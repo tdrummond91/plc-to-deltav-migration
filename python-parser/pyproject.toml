@@ -1,0 +1,11 @@
+[project]
+name = "python-parser"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "argparse>=1.4.0",
+    "l5x>=1.7",
+    "pathlib>=1.0.1",
+]

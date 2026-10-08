@@ -1,0 +1,10 @@
+Scope: DemoProcess / MainRoutine / rung 1
+Source: XIC(Enable)[XIC(LimitA),XIC(LimitB)]TON(Wait,1000,0);
+
+|--[XIC Enable]--+--[XIC LimitA]--+--[TON Wait PRE=1000 ACC=0]--|
+|               |               |
+|               +--[XIC LimitB]--+
+
+This manually drawn connectivity reference is synthetic.
+The planned renderer may format columns differently but must preserve these connections.
+It shows source syntax, not live power flow or a runtime simulation.

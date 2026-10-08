@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "fixture_id": "controller_demo_v1",
+  "scope": "This fixture only; not an application inventory schema.",
+  "counts": {
+    "controllers": 1,
+    "modules": 1,
+    "tasks": 2,
+    "programs": 2,
+    "user_data_types": 1,
+    "aoi_definitions": 0,
+    "trends": 0,
+    "encoded_regions": 0,
+    "controller_tags": 12,
+    "program_tags": 3,
+    "total_tag_definitions": 15,
+    "aliases": 1,
+    "routines": 4,
+    "rungs": 9,
+    "instructions": 25
+  },
+  "routine_types": {
+    "RLL": 3,
+    "SFC": 1
+  },
+  "instruction_counts": {
+    "XIC": 14,
+    "XIO": 1,
+    "OTE": 5,
+    "TON": 1,
+    "JMP": 1,
+    "JSR": 1,
+    "LBL": 1,
+    "ADD": 1
+  },
+  "rungs_by_routine": {
+    "DemoProcess/MainRoutine": 6,
+    "DemoProcess/Helper": 2,
+    "AuxProgram/MainRoutine": 1,
+    "DemoProcess/SequenceEnvelope": 0
+  },
+  "scheduled_programs": {
+    "FastTask": [
+      "DemoProcess"
+    ],
+    "SlowTask": [
+      "AuxProgram"
+    ]
+  },
+  "tag_names_by_scope": {
+    "controller": [
+      "Enable",
+      "Permit",
+      "LimitA",
+      "LimitB",
+      "Fault",
+      "Run",
+      "Skip",
+      "Counter",
+      "Samples",
+      "Wait",
+      "RunAlias",
+      "Device"
+    ],
+    "program:DemoProcess": [
+      "LocalSignal",
+      "LocalCount"
+    ],
+    "program:AuxProgram": [
+      "LocalSignal"
+    ]
+  },
+  "preserved_unsupported": [
+    {
+      "source": "DemoProcess/SequenceEnvelope",
+      "type": "SFC",
+      "reason": "Empty language envelope only. No steps or transitions to interpret."
+    }
+  ],
+  "intended_findings": [
+    "RunAlias resolves to controller Run.",
+    "LocalSignal belongs to two distinct program scopes.",
+    "MainRoutine occurs in two distinct program scopes.",
+    "Run has multiple writes including an alias write; do not infer a single-owner output.",
+    "Array brackets inside Samples[1] are operand syntax, not parallel branches.",
+    "JMP ContinueHere targets LBL ContinueHere in the same routine.",
+    "JSR Helper targets the DemoProcess Helper routine.",
+    "Task rates are configured values, not measured execution behavior."
+  ],
+  "known_limits": [
+    "No hardware validation or Studio 5000 import validation.",
+    "No encoded or malformed XML fixture yet.",
+    "No AOI body, SFC graph, ST, FBD, safety task, or communications fixture yet.",
+    "Instruction counts are for simple known neutral text; no full grammar is implemented."
+  ]
+}

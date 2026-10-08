@@ -1,0 +1,50 @@
+{
+  "schema_version": "draft-1",
+  "synthetic": true,
+  "note": "Invented example. No AI call was made and no confidence estimate is claimed.",
+  "translations": [
+    {
+      "translation_id": "translation_demo_001",
+      "source_locale": "fr-CA",
+      "source_text": "autor. marche pompe",
+      "source_refs": [
+        {
+          "snapshot_id": "snapshot_demo",
+          "entity_id": "tag_demo_001",
+          "field": "description"
+        }
+      ],
+      "context": {
+        "role": "boolean permissive",
+        "origin": "invented"
+      },
+      "proposal": {
+        "english": "Pump run permission",
+        "alternatives": [
+          "Pump run enable"
+        ],
+        "uncertain_tokens": [
+          "autor."
+        ],
+        "confidence": {
+          "estimated_percent": null,
+          "basis": "unavailable",
+          "calibrated": false
+        },
+        "question": "Does autor. mean authorization/permissive here, or a command?"
+      },
+      "provenance": {
+        "provider": "synthetic_fixture",
+        "model": null,
+        "prompt_version": "draft-1",
+        "glossary_version": "demo-1"
+      },
+      "review": {
+        "status": "proposed",
+        "approved_english": null,
+        "reviewer": null,
+        "comment": null
+      }
+    }
+  ]
+}

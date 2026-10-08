@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Independently invented structural parser fixture. Not a deployable controller export. -->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="33.01" TargetName="SyntheticDemo" TargetType="Controller" ContainsContext="false">
+  <Controller Name="SyntheticDemo">
+    <Description><![CDATA[Fixture synthétique indépendante; aucun procédé réel.]]></Description>
+    <DataTypes>
+      <DataType Name="ExampleDevice" Family="NoFamily" Class="User"><Members>
+        <Member Name="Enabled" DataType="BOOL" Dimension="0" Hidden="false"/>
+        <Member Name="Reading" DataType="REAL" Dimension="0" Hidden="false"/>
+      </Members></DataType>
+    </DataTypes>
+    <Modules>
+      <Module Name="MockIO" CatalogNumber="SYNTHETIC"><Ports/></Module>
+    </Modules>
+    <AddOnInstructionDefinitions/>
+    <Tags>
+        <Tag Name="Enable" TagType="Base" DataType="BOOL" Dimensions="0" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Signal fictif Enable.]]></Description>
+          <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0"/></Data>
+        </Tag>
+        <Tag Name="Permit" TagType="Base" DataType="BOOL" Dimensions="0" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Signal fictif Permit.]]></Description>
+          <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0"/></Data>
+        </Tag>
+        <Tag Name="LimitA" TagType="Base" DataType="BOOL" Dimensions="0" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Signal fictif LimitA.]]></Description>
+          <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0"/></Data>
+        </Tag>
+        <Tag Name="LimitB" TagType="Base" DataType="BOOL" Dimensions="0" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Signal fictif LimitB.]]></Description>
+          <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0"/></Data>
+        </Tag>
+        <Tag Name="Fault" TagType="Base" DataType="BOOL" Dimensions="0" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Signal fictif Fault.]]></Description>
+          <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0"/></Data>
+        </Tag>
+        <Tag Name="Run" TagType="Base" DataType="BOOL" Dimensions="0" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Signal fictif Run.]]></Description>
+          <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0"/></Data>
+        </Tag>
+        <Tag Name="Skip" TagType="Base" DataType="BOOL" Dimensions="0" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Signal fictif Skip.]]></Description>
+          <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0"/></Data>
+        </Tag>
+        <Tag Name="Counter" TagType="Base" DataType="DINT" Dimensions="0" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Compteur fictif non utilisé.]]></Description>
+          <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0"/></Data>
+        </Tag>
+        <Tag Name="Samples" TagType="Base" DataType="DINT" Dimensions="4" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Tableau de démonstration.]]></Description>
+          <Data Format="Decorated"><Array DataType="DINT" Dimensions="4" Radix="Decimal">
+            <Element Index="[0]" Value="0"/><Element Index="[1]" Value="1"/>
+            <Element Index="[2]" Value="2"/><Element Index="[3]" Value="3"/>
+          </Array></Data>
+        </Tag>
+        <Tag Name="Wait" TagType="Base" DataType="TIMER" Dimensions="0" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Délai synthétique.]]></Description>
+          <Data Format="Decorated"><Structure DataType="TIMER">
+            <DataValueMember Name="PRE" DataType="DINT" Radix="Decimal" Value="1000"/>
+            <DataValueMember Name="ACC" DataType="DINT" Radix="Decimal" Value="0"/>
+            <DataValueMember Name="EN" DataType="BOOL" Radix="Decimal" Value="0"/>
+            <DataValueMember Name="TT" DataType="BOOL" Radix="Decimal" Value="0"/>
+            <DataValueMember Name="DN" DataType="BOOL" Radix="Decimal" Value="0"/>
+          </Structure></Data>
+        </Tag>
+        <Tag Name="RunAlias" TagType="Alias" AliasFor="Run" ExternalAccess="Read/Write">
+          <Description><![CDATA[Alias fictif de Run.]]></Description>
+        </Tag>
+        <Tag Name="Device" TagType="Base" DataType="ExampleDevice" Dimensions="0" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Structure fictive, sans lien avec du matériel.]]></Description>
+          <Data Format="Decorated"><Structure DataType="ExampleDevice">
+            <DataValueMember Name="Enabled" DataType="BOOL" Radix="Decimal" Value="0"/>
+            <DataValueMember Name="Reading" DataType="REAL" Radix="Float" Value="0.0"/>
+          </Structure></Data>
+        </Tag>
+    </Tags>
+    <Programs>
+      <Program Name="DemoProcess" MainRoutineName="MainRoutine" Disabled="false">
+        <Tags>
+        <Tag Name="LocalSignal" TagType="Base" DataType="BOOL" Dimensions="0" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Signal local du programme de démonstration.]]></Description>
+          <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0"/></Data>
+        </Tag>
+        <Tag Name="LocalCount" TagType="Base" DataType="DINT" Dimensions="0" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Résultat arithmétique fictif.]]></Description>
+          <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0"/></Data>
+        </Tag>
+        </Tags>
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL"><RLLContent>
+            <Rung Number="0" Type="N">
+              <Comment><![CDATA[Autor. marche - exemple fictif.]]></Comment>
+              <Text><![CDATA[XIC(Enable)XIO(Fault)OTE(Run);]]></Text>
+            </Rung>
+            <Rung Number="1" Type="N">
+              <Comment><![CDATA[Att. retour fin course - exemple fictif.]]></Comment>
+              <Text><![CDATA[XIC(Enable)[XIC(LimitA),XIC(LimitB)]TON(Wait,1000,0);]]></Text>
+            </Rung>
+            <Rung Number="2" Type="N">
+              <Comment><![CDATA[Sortie après délai - exemple fictif.]]></Comment>
+              <Text><![CDATA[XIC(Wait.DN)OTE(RunAlias);]]></Text>
+            </Rung>
+            <Rung Number="3" Type="N">
+              <Comment><![CDATA[Saut conditionnel local.]]></Comment>
+              <Text><![CDATA[XIC(Skip)JMP(ContinueHere);]]></Text>
+            </Rung>
+            <Rung Number="4" Type="N">
+              <Comment><![CDATA[Appel de routine sans paramètres.]]></Comment>
+              <Text><![CDATA[XIC(Enable)JSR(Helper,0);]]></Text>
+            </Rung>
+            <Rung Number="5" Type="N">
+              <Comment><![CDATA[Étiquette et signal local.]]></Comment>
+              <Text><![CDATA[LBL(ContinueHere)XIC(LocalSignal)OTE(Permit);]]></Text>
+            </Rung>
+          </RLLContent></Routine>
+          <Routine Name="Helper" Type="RLL"><RLLContent>
+            <Rung Number="0" Type="N">
+              <Comment><![CDATA[Branches imbriquées.]]></Comment>
+              <Text><![CDATA[[XIC(Enable)[XIC(LimitA),XIC(LimitB)],XIC(LocalSignal)]OTE(Device.Enabled);]]></Text>
+            </Rung>
+            <Rung Number="1" Type="N">
+              <Comment><![CDATA[Indice de tableau : ne pas confondre avec une branche.]]></Comment>
+              <Text><![CDATA[XIC(Enable)ADD(Samples[1],1,LocalCount);]]></Text>
+            </Rung>
+          </RLLContent></Routine>
+          <Routine Name="SequenceEnvelope" Type="SFC"><SFCContent/></Routine>
+        </Routines>
+      </Program>
+      <Program Name="AuxProgram" MainRoutineName="MainRoutine" Disabled="false">
+        <Tags>
+        <Tag Name="LocalSignal" TagType="Base" DataType="BOOL" Dimensions="0" Radix="Decimal" Constant="false" ExternalAccess="Read/Write">
+          <Description><![CDATA[Autre signal local; même nom, portée différente.]]></Description>
+          <Data Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0"/></Data>
+        </Tag>
+        </Tags>
+        <Routines>
+          <Routine Name="MainRoutine" Type="RLL"><RLLContent>
+            <Rung Number="0" Type="N">
+              <Comment><![CDATA[Même nom local dans un autre programme.]]></Comment>
+              <Text><![CDATA[XIC(LocalSignal)OTE(Run);]]></Text>
+            </Rung>
+          </RLLContent></Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="FastTask" Type="PERIODIC" Rate="100" Priority="5" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false">
+        <ScheduledPrograms><ScheduledProgram Name="DemoProcess"/></ScheduledPrograms>
+      </Task>
+      <Task Name="SlowTask" Type="PERIODIC" Rate="500" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false">
+        <ScheduledPrograms><ScheduledProgram Name="AuxProgram"/></ScheduledPrograms>
+      </Task>
+    </Tasks>
+    <Trends/>
+  </Controller>
+</RSLogix5000Content>

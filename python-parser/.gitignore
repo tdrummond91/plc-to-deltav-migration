@@ -1,0 +1,5 @@
+# Root .gitignore provides shared exclusions.
+# Keep uv.lock tracked for reproducible dependency resolution.
+.venv/
+__pycache__/
+*.py[cod]

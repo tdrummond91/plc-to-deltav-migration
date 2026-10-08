@@ -1,0 +1,102 @@
+{
+  "schema_version": "draft-1",
+  "synthetic": true,
+  "note": "Illustrative later-stage cross-rung motif. It is not an implemented match or proof of equivalence.",
+  "pattern": {
+    "pattern_id": "pattern_demo_001",
+    "family": "cross_rung_structural",
+    "normalization_version": "demo-1",
+    "source_rungs": [
+      "XIC(INPUT_1)[XIC(INPUT_2),XIC(INPUT_3)]TON(TIMER_1,PRESET,ACCUM);",
+      "XIC(TIMER_1.DN)OTE(OUTPUT_1);"
+    ],
+    "role_constraints": {
+      "INPUT_1": "BOOL read",
+      "INPUT_2": "BOOL read",
+      "INPUT_3": "BOOL read",
+      "TIMER_1": "same timer instance across both rungs",
+      "OUTPUT_1": "BOOL write"
+    },
+    "relationship": {
+      "from": "first rung TON timer",
+      "to": "second rung XIC timer.DN",
+      "kind": "state_reference"
+    },
+    "abstracted_fields": [
+      "tag names",
+      "timer preset",
+      "timer accumulator"
+    ],
+    "equivalence_claim": false
+  },
+  "occurrences": [
+    {
+      "occurrence_id": "occurrence_demo_001",
+      "source_refs": [
+        {
+          "snapshot_id": "snapshot_demo",
+          "entity_id": "rung_demo_001",
+          "program": "ExampleProgram",
+          "routine": "ExampleRoutine",
+          "rung_ordinal": 0
+        },
+        {
+          "snapshot_id": "snapshot_demo",
+          "entity_id": "rung_demo_002",
+          "program": "ExampleProgram",
+          "routine": "ExampleRoutine",
+          "rung_ordinal": 1
+        }
+      ],
+      "bindings": {
+        "INPUT_1": "Enable_A",
+        "INPUT_2": "Closed_A1",
+        "INPUT_3": "Closed_A2",
+        "TIMER_1": "Delay_A",
+        "OUTPUT_1": "Output_A",
+        "PRESET": "1000",
+        "ACCUM": "0"
+      },
+      "execution_context": {
+        "task_id": "task_demo_001",
+        "order": "consecutive",
+        "other_writers": "unknown"
+      },
+      "review_status": "proposed"
+    },
+    {
+      "occurrence_id": "occurrence_demo_002",
+      "source_refs": [
+        {
+          "snapshot_id": "snapshot_demo",
+          "entity_id": "rung_demo_003",
+          "program": "ExampleProgram",
+          "routine": "ExampleRoutine",
+          "rung_ordinal": 2
+        },
+        {
+          "snapshot_id": "snapshot_demo",
+          "entity_id": "rung_demo_004",
+          "program": "ExampleProgram",
+          "routine": "ExampleRoutine",
+          "rung_ordinal": 3
+        }
+      ],
+      "bindings": {
+        "INPUT_1": "Enable_B",
+        "INPUT_2": "Closed_B1",
+        "INPUT_3": "Closed_B2",
+        "TIMER_1": "Delay_B",
+        "OUTPUT_1": "Output_B",
+        "PRESET": "2000",
+        "ACCUM": "0"
+      },
+      "execution_context": {
+        "task_id": "task_demo_001",
+        "order": "consecutive",
+        "other_writers": "unknown"
+      },
+      "review_status": "proposed"
+    }
+  ]
+}

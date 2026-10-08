@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "fixture_id": "controller_demo_v1",
+  "file": "controller_demo.L5X",
+  "origin": "independently_synthetic",
+  "derived_from_plant_export": false,
+  "purpose": "Small structural test input for offline parser development.",
+  "construction": "Invented names, values, descriptions, task assignments, and rung connections. No confidential L5X or target-system export was read to create this fixture.",
+  "sha256": "1db4e6ce2696786bcce51d36fff91ed878654e1a193f380d8d2dc65d2a4b79cd",
+  "studio5000_import_verified": false,
+  "python_l5x_load_verified": true,
+  "note": "SchemaRevision and SoftwareRevision are illustrative metadata, not a tested compatibility claim.",
+  "python_validation_evidence": {
+    "source": "user_supplied_terminal_output",
+    "date": "2026-10-08",
+    "command": "uv run python -B ../public/tools/check_fixture.py --with-l5x",
+    "result": "PASS: fixture hash, XML, counts, scopes, schedules and l5x tag access.",
+    "independently_executed_by_codex": false
+  }
+}
