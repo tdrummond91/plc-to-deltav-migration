@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-10-09",
+  "stage": "stage_3_review",
+  "evidence": {
+    "user_test_output": "58 tests passed",
+    "user_run_output": "PASS: 194 paths; 213876 attribute values; 70 routines.",
+    "inspected": "Generated public xml-value-profile.json and public xml-structure-counts.json",
+    "original_confidential_export_read": false
+  },
+  "accounting": {
+    "source_totals_match_stage_1": true,
+    "attributeOccurrences": 213876,
+    "withheldOccurrences": 123462,
+    "technicalOccurrences": 90414,
+    "textOccurrences": 19211,
+    "errors": []
+  },
+  "routine_coverage": {
+    "count": 70,
+    "type_counts": {
+      "RLL": 56,
+      "SFC": 14
+    },
+    "issue_counts": {
+      "no_recognized_content": 1
+    },
+    "findings": [
+      {
+        "ordinal": 68,
+        "locator": "/RSLogix5000Content[1]/Controller[1]/Programs[1]/Program[2]/Routines[1]/Routine[1]",
+        "routine_type": "RLL",
+        "direct_child_counts": {},
+        "content_counts": {},
+        "issues": [
+          "no_recognized_content"
+        ]
+      }
+    ],
+    "conclusion": "One RLL Routine, first under the second Program, has no child elements. This explains the routine/content count gap; whether the empty routine is intentional is not established."
+  },
+  "tag_kinds": {
+    "Base": 5364,
+    "Alias": 941,
+    "Produced": 2
+  },
+  "declared_datatypes_on_tag_elements": {
+    "BOOL": 2993,
+    "SINT": 7,
+    "MESSAGE": 27,
+    "DINT": 129,
+    "REAL": 1536,
+    "TIMER": 434,
+    "COUNTER": 3,
+    "CONTROL": 4,
+    "INT": 39,
+    "withheld_occurrences": 194
+  },
+  "data_formats_in_data_and_defaultdata": {
+    "Decorated": 5597,
+    "L5K": 5511,
+    "Message": 27
+  },
+  "unknown_datatype_policy": "Withheld values remain counted. They may be valid built-in, module-defined, AOI or custom types; no classification is claimed without further evidence.",
+  "source_totals": {
+    "element_occurrences": 83942,
+    "attribute_occurrences": 213876,
+    "distinct_element_paths": 194,
+    "elements_with_text": 19015,
+    "elements_with_cdata": 18351,
+    "max_depth": 14
+  },
+  "next_bounded_stage": {
+    "name": "Rung structure inventory and sanitized shape samples",
+    "status": "proposed_not_implemented",
+    "input": "Original local L5X; never the blank skeleton",
+    "outputs": [
+      "Instruction and branch counts with parse coverage",
+      "Explicit metrics for nesting depth, parallel paths, and normalized width",
+      "Selected tall/wide examples with identifiers and constants replaced",
+      "Ordinal source locations and explicit unknown-syntax findings"
+    ],
+    "deferred": [
+      "Complete minimized L5X",
+      "Semantic equivalence or Studio import validity",
+      "DeltaV conversion"
+    ]
+  }
+}

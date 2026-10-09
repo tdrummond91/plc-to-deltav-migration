@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "stage": "stage_4_review",
+  "reviewed_date": "2026-10-09",
+  "status": "report_consistency_checks_passed",
+  "evidence": {
+    "user_reported_tests": {
+      "count": 94,
+      "result": "OK",
+      "seconds": 0.037
+    },
+    "user_reported_real_run": "PASS",
+    "public_report_read": "public/rung-structure.json",
+    "confidential_source_read": false
+  },
+  "coverage": {
+    "xml_rungs": 4606,
+    "ladder_rungs": 4606,
+    "parsed_rungs": 4606,
+    "unparsed_rungs": 0,
+    "parsed_rungs_without_instructions": 0,
+    "ignored_non_ladder_rungs": 0,
+    "rung_text_elements": 4606,
+    "parse_error_counts": {},
+    "metadata_findings": {},
+    "distinct_shapes": 554,
+    "unlisted_opcode_labels": 1
+  },
+  "source_totals": {
+    "element_occurrences": 83942,
+    "attribute_occurrences": 213876,
+    "distinct_element_paths": 194,
+    "elements_with_text": 19015,
+    "elements_with_cdata": 18351,
+    "max_depth": 14
+  },
+  "totals_for_parsed_rungs": {
+    "instruction_calls": 17874,
+    "argument_slots": 24583,
+    "nonempty_argument_fields": 24583,
+    "expression_instruction_calls": 46,
+    "branch_groups": 3719,
+    "branch_legs": 8887,
+    "empty_branch_legs": 0
+  },
+  "maxima_for_parsed_rungs": {
+    "max_branch_depth": 4,
+    "max_legs_in_group": 49,
+    "height_lanes": 59,
+    "width_instructions": 18
+  },
+  "instruction_counts": {
+    "CPT": 45,
+    "OTU": 1302,
+    "OTL": 1174,
+    "XIC": 5057,
+    "OTE": 1687,
+    "GSV": 5,
+    "MOV": 1131,
+    "UNLISTED_OP_0001": 1,
+    "XIO": 3412,
+    "TON": 390,
+    "JSR": 76,
+    "LES": 382,
+    "SQR": 18,
+    "MUL": 121,
+    "DIV": 277,
+    "EQU": 319,
+    "MSG": 27,
+    "ONS": 133,
+    "SUB": 463,
+    "LEQ": 909,
+    "NEQ": 74,
+    "GRT": 212,
+    "CLR": 41,
+    "FAL": 1,
+    "ADD": 32,
+    "PID": 46,
+    "GEQ": 160,
+    "SBR": 1,
+    "RET": 1,
+    "LIM": 9,
+    "LN": 2,
+    "ABS": 8,
+    "CTU": 3,
+    "RES": 48,
+    "SFR": 140,
+    "RTO": 44,
+    "OSF": 3,
+    "SQO": 1,
+    "AVE": 1,
+    "COP": 92,
+    "SWPB": 10,
+    "MVM": 16
+  },
+  "program_rungs": 4604,
+  "aoi_rungs": 2,
+  "checks": {
+    "shape_metrics_recalculated": 554,
+    "unique_occurrence_links_checked": 4606,
+    "samples_checked": 19,
+    "rankings_checked": 4,
+    "prior_stage_totals_match": true,
+    "weighted_totals_match": true,
+    "sample_operands_are_placeholders": true,
+    "sample_text_matches_trees": true,
+    "errors": []
+  },
+  "tallest": {
+    "pattern_id": "pattern_00038",
+    "rung_id": "rung_000237",
+    "metrics": {
+      "instruction_calls": 94,
+      "argument_slots": 94,
+      "nonempty_argument_fields": 94,
+      "expression_instruction_calls": 0,
+      "branch_groups": 6,
+      "branch_legs": 64,
+      "empty_branch_legs": 0,
+      "max_branch_depth": 2,
+      "max_legs_in_group": 49,
+      "height_lanes": 59,
+      "width_instructions": 3
+    },
+    "branch_groups": [
+      {
+        "legs": 49,
+        "height": 59
+      },
+      {
+        "legs": 3,
+        "height": 3
+      },
+      {
+        "legs": 3,
+        "height": 3
+      },
+      {
+        "legs": 3,
+        "height": 3
+      },
+      {
+        "legs": 3,
+        "height": 3
+      },
+      {
+        "legs": 3,
+        "height": 3
+      }
+    ],
+    "height_explanation": "49 outer legs plus five nested 3-leg groups, each adding 2 lanes: 59."
+  },
+  "widest": {
+    "pattern_id": "pattern_00420",
+    "rung_id": "rung_003215",
+    "metrics": {
+      "instruction_calls": 25,
+      "argument_slots": 27,
+      "nonempty_argument_fields": 27,
+      "expression_instruction_calls": 0,
+      "branch_groups": 2,
+      "branch_legs": 7,
+      "empty_branch_legs": 0,
+      "max_branch_depth": 2,
+      "max_legs_in_group": 5,
+      "height_lanes": 6,
+      "width_instructions": 18
+    }
+  },
+  "most_frequent": {
+    "pattern_id": "pattern_00048",
+    "count": 999,
+    "neutral_text": "XIO(ARG_001)OTU(ARG_002);"
+  },
+  "unlisted_instruction": {
+    "label": "UNLISTED_OP_0001",
+    "count": 1,
+    "rung": {
+      "id": "rung_000007",
+      "locator": "/RSLogix5000Content[1]/Controller[1]/Programs[1]/Program[1]/Routines[1]/Routine[1]/RLLContent[1]/Rung[5]",
+      "number": "4",
+      "type": "N",
+      "metadata_findings": [],
+      "status": "parsed",
+      "pattern_id": "pattern_00007",
+      "metrics": {
+        "instruction_calls": 4,
+        "argument_slots": 7,
+        "nonempty_argument_fields": 7,
+        "expression_instruction_calls": 0,
+        "branch_groups": 1,
+        "branch_legs": 4,
+        "empty_branch_legs": 0,
+        "max_branch_depth": 1,
+        "max_legs_in_group": 4,
+        "height_lanes": 4,
+        "width_instructions": 1
+      }
+    },
+    "in_ranked_samples": false,
+    "action": "Keep masked; include a sanitized example in the next fixture. No parser repair is indicated."
+  },
+  "limitations": [
+    "Report consistency review only; original confidential source was not opened.",
+    "Structural parse success does not establish semantic validity or Studio import validity.",
+    "Pattern equality ignores operands, reuse and inner expression structure.",
+    "Sample placeholder checks are not a general confidentiality certification."
+  ],
+  "next_slice": {
+    "name": "first minimized L5X generator",
+    "implemented": false,
+    "requirements": [
+      "Use reviewed XML paths and value profiles.",
+      "Keep representative structural variants and ranked rung samples, including the masked opcode case.",
+      "Apply explicit technical-literal retention and dummy substitution policies.",
+      "Store any private mapping only under confidential/.",
+      "Account for retained, replaced, omitted and unsupported data in a companion report.",
+      "Test invented cases, then inspect the user-run result before expansion."
+    ]
+  }
+}

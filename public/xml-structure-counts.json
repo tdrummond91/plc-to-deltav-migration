@@ -1,0 +1,3080 @@
+{
+  "schema_version": 1,
+  "count_scope": "complete_input",
+  "aggregation": "repeated_elements_grouped_by_xml_path",
+  "namespaces": "prefixes_and_uris_removed",
+  "totals": {
+    "element_occurrences": 83942,
+    "attribute_occurrences": 213876,
+    "distinct_element_paths": 194,
+    "elements_with_text": 19015,
+    "elements_with_cdata": 18351,
+    "max_depth": 14
+  },
+  "counts_by_element_name": {
+    "RSLogix5000Content": 1,
+    "Controller": 1,
+    "Description": 6268,
+    "RedundancyInfo": 1,
+    "Security": 1,
+    "SafetyInfo": 1,
+    "DataTypes": 1,
+    "Modules": 1,
+    "Module": 120,
+    "EKey": 120,
+    "Ports": 120,
+    "Port": 137,
+    "Bus": 15,
+    "Communications": 113,
+    "Connections": 113,
+    "Connection": 114,
+    "InputTag": 104,
+    "Data": 11123,
+    "Structure": 1177,
+    "DataValueMember": 31899,
+    "ArrayMember": 114,
+    "Element": 6050,
+    "StructureMember": 550,
+    "EngineeringUnits": 10,
+    "EngineeringUnit": 70,
+    "Comments": 56,
+    "Comment": 1285,
+    "OutputTag": 65,
+    "RackConnection": 11,
+    "InAliasTag": 11,
+    "OutAliasTag": 4,
+    "ConfigTag": 83,
+    "ConfigData": 7,
+    "ConfigScript": 11,
+    "ExtendedProperties": 114,
+    "public": 114,
+    "ConfigID": 102,
+    "Vendor": 86,
+    "CatNum": 114,
+    "ADDAVersion": 63,
+    "ControlModuleType": 11,
+    "ControlModuleMismatchTripEn": 11,
+    "SensingModuleType": 11,
+    "SensingModuleMismatchTripEn": 11,
+    "Digital1Type": 11,
+    "Digital1MismatchTripEn": 11,
+    "Digital2Type": 11,
+    "Digital2MismatchTripEn": 11,
+    "Digital3Type": 11,
+    "Digital3MismatchTripEn": 11,
+    "Digital4Type": 11,
+    "Digital4MismatchTripEn": 11,
+    "Analog1Type": 11,
+    "Analog1MismatchTripEn": 11,
+    "Analog2Type": 11,
+    "Analog2MismatchTripEn": 11,
+    "Analog3Type": 11,
+    "Analog3MismatchTripEn": 11,
+    "Analog4Type": 11,
+    "Analog4MismatchTripEn": 11,
+    "OperatorStationType": 11,
+    "OperatorStationMismatchTripEn": 11,
+    "UserDefinedData0": 11,
+    "UserDefinedData1": 11,
+    "UserDefinedData2": 11,
+    "UserDefinedData3": 11,
+    "UserDefinedData4": 11,
+    "UserDefinedData5": 11,
+    "UserDefinedData6": 11,
+    "UserDefinedData7": 11,
+    "OperatingMode": 11,
+    "Pt00OutputFunction": 11,
+    "Pt01OutputFunction": 11,
+    "Pt02OutputFunction": 11,
+    "SensorMinFLA": 11,
+    "SensorMaxFLA": 11,
+    "OperatingModeChanged": 11,
+    "PL": 12,
+    "Version": 12,
+    "DataTypeFormats": 12,
+    "DataTypeFormat": 32,
+    "AddOnInstructionDefinitions": 1,
+    "AddOnInstructionDefinition": 1,
+    "RevisionNote": 1,
+    "AdditionalHelpText": 1,
+    "Parameters": 1,
+    "Parameter": 6,
+    "DefaultData": 12,
+    "DataValue": 4666,
+    "LocalTags": 1,
+    "LocalTag": 2,
+    "Routines": 4,
+    "Routine": 70,
+    "RLLContent": 55,
+    "Rung": 4606,
+    "Text": 4886,
+    "Tags": 4,
+    "Tag": 6307,
+    "Array": 44,
+    "MessageParameters": 27,
+    "ProduceInfo": 2,
+    "Programs": 1,
+    "Program": 3,
+    "SFCContent": 14,
+    "Step": 145,
+    "Transition": 155,
+    "Condition": 155,
+    "STContent": 155,
+    "Line": 329,
+    "DirectedLink": 324,
+    "TextBox": 280,
+    "Attachment": 213,
+    "Branch": 14,
+    "Leg": 34,
+    "Tasks": 1,
+    "Task": 3,
+    "ScheduledPrograms": 3,
+    "ScheduledProgram": 3,
+    "CST": 1,
+    "WallClockTime": 1,
+    "Trends": 1,
+    "Trend": 78,
+    "Template": 78,
+    "Pens": 78,
+    "Pen": 347,
+    "DataLogs": 1,
+    "TimeSynchronize": 1,
+    "EthernetPorts": 1,
+    "EthernetPort": 1
+  },
+  "counts_by_attribute_name": {
+    "SchemaRevision": 1,
+    "SoftwareRevision": 2,
+    "TargetName": 1,
+    "TargetType": 1,
+    "ContainsContext": 1,
+    "ExportDate": 1,
+    "ExportOptions": 1,
+    "Use": 1,
+    "Name": 39630,
+    "ProcessorType": 1,
+    "MajorRev": 1,
+    "MinorRev": 1,
+    "ProjectCreationDate": 1,
+    "LastModifiedDate": 1,
+    "SFCExecutionControl": 1,
+    "SFCRestartPosition": 1,
+    "SFCLastScan": 1,
+    "CommPath": 1,
+    "ProjectSN": 1,
+    "MatchProjectToController": 1,
+    "CanUseRPIFromProducer": 1,
+    "InhibitAutomaticFirmwareUpdate": 1,
+    "PassThroughConfiguration": 1,
+    "DownloadProjectDocumentationAndExtendedProperties": 1,
+    "DownloadProjectCustomProperties": 1,
+    "ReportMinorOverflow": 1,
+    "AutoDiagsEnabled": 64,
+    "WebServerEnabled": 1,
+    "Enabled": 1,
+    "KeepTestEditsOnSwitchOver": 1,
+    "Code": 1,
+    "ChangesToDetect": 1,
+    "SafetyLocked": 1,
+    "SignatureRunModeProtect": 1,
+    "ConfigureSafetyIOAlways": 1,
+    "SafetyLevel": 1,
+    "CatalogNumber": 120,
+    "Vendor": 121,
+    "ProductType": 120,
+    "ProductCode": 120,
+    "Major": 120,
+    "Minor": 120,
+    "ParentModule": 120,
+    "ParentModPortId": 120,
+    "Inhibited": 120,
+    "MajorFault": 120,
+    "SafetyEnabled": 23,
+    "State": 120,
+    "Id": 137,
+    "Address": 129,
+    "Type": 5299,
+    "Upstream": 137,
+    "SafetyNetwork": 2,
+    "Size": 23,
+    "Baud": 1,
+    "CommMethod": 81,
+    "RPI": 104,
+    "EventID": 104,
+    "ProgrammaticallySendEventTrigger": 104,
+    "Unicast": 51,
+    "OutputSize": 27,
+    "InputSize": 27,
+    "Priority": 40,
+    "InputConnectionType": 27,
+    "InputProductionTrigger": 27,
+    "ConnectionPath": 54,
+    "InputTagSuffix": 27,
+    "OutputTagSuffix": 27,
+    "ExternalAccess": 6567,
+    "Format": 11177,
+    "DataType": 43824,
+    "Radix": 24006,
+    "Value": 42325,
+    "Dimensions": 202,
+    "Index": 6050,
+    "Operand": 486,
+    "ConfigSize": 90,
+    "InstanceApplicationPath": 32,
+    "Class": 5328,
+    "Revision": 1,
+    "RevisionExtension": 1,
+    "ExecutePrescan": 1,
+    "ExecutePostscan": 1,
+    "ExecuteEnableInFalse": 1,
+    "CreatedDate": 1,
+    "CreatedBy": 1,
+    "EditedDate": 1,
+    "EditedBy": 1,
+    "TagType": 6313,
+    "Usage": 6,
+    "Required": 6,
+    "Visible": 353,
+    "Number": 4935,
+    "Constant": 5339,
+    "AliasFor": 941,
+    "MessageType": 27,
+    "RequestedLength": 27,
+    "ConnectedFlag": 26,
+    "CommTypeCode": 27,
+    "ServiceCode": 6,
+    "ObjectType": 6,
+    "TargetObject": 6,
+    "AttributeNumber": 6,
+    "LocalIndex": 27,
+    "DestinationTag": 6,
+    "LargePacketUsage": 6,
+    "RemoteElement": 21,
+    "LocalElement": 21,
+    "Channel": 1,
+    "DHPlusSourceLink": 1,
+    "DHPlusDestinationLink": 1,
+    "DHPlusDestinationNode": 1,
+    "CacheConnections": 7,
+    "PLCMappingFile": 2,
+    "TestEdits": 3,
+    "MainRoutineName": 3,
+    "Disabled": 3,
+    "UseAsFolder": 3,
+    "SheetSize": 14,
+    "SheetOrientation": 14,
+    "ID": 628,
+    "X": 580,
+    "Y": 594,
+    "HideDesc": 300,
+    "DescX": 300,
+    "DescY": 300,
+    "DescWidth": 300,
+    "InitialStep": 145,
+    "PresetUsesExpr": 145,
+    "LimitHighUsesExpr": 145,
+    "LimitLowUsesExpr": 145,
+    "ShowActions": 145,
+    "FromID": 537,
+    "ToID": 537,
+    "Show": 324,
+    "Width": 627,
+    "BranchType": 14,
+    "BranchFlow": 14,
+    "Watchdog": 3,
+    "DisableUpdateOutputs": 3,
+    "InhibitTask": 3,
+    "Rate": 2,
+    "MasterID": 1,
+    "LocalTimeAdjustment": 1,
+    "TimeZone": 1,
+    "SamplePeriod": 78,
+    "NumberOfCaptures": 78,
+    "CaptureSizeType": 78,
+    "CaptureSize": 69,
+    "StartTriggerType": 78,
+    "StopTriggerType": 78,
+    "TrendxVersion": 78,
+    "Color": 347,
+    "Style": 347,
+    "Marker": 347,
+    "Min": 347,
+    "Max": 347,
+    "EngUnits": 49,
+    "Priority1": 1,
+    "Priority2": 1,
+    "PTPEnable": 1,
+    "Port": 1,
+    "Label": 1,
+    "PortEnabled": 1
+  },
+  "root": {
+    "element": "RSLogix5000Content",
+    "count": 1,
+    "attributes": {
+      "SchemaRevision": {
+        "count": 1
+      },
+      "SoftwareRevision": {
+        "count": 1
+      },
+      "TargetName": {
+        "count": 1
+      },
+      "TargetType": {
+        "count": 1
+      },
+      "ContainsContext": {
+        "count": 1
+      },
+      "ExportDate": {
+        "count": 1
+      },
+      "ExportOptions": {
+        "count": 1
+      }
+    },
+    "elements_with_text": 0,
+    "elements_with_cdata": 0,
+    "children": [
+      {
+        "element": "Controller",
+        "count": 1,
+        "attributes": {
+          "Use": {
+            "count": 1
+          },
+          "Name": {
+            "count": 1
+          },
+          "ProcessorType": {
+            "count": 1
+          },
+          "MajorRev": {
+            "count": 1
+          },
+          "MinorRev": {
+            "count": 1
+          },
+          "ProjectCreationDate": {
+            "count": 1
+          },
+          "LastModifiedDate": {
+            "count": 1
+          },
+          "SFCExecutionControl": {
+            "count": 1
+          },
+          "SFCRestartPosition": {
+            "count": 1
+          },
+          "SFCLastScan": {
+            "count": 1
+          },
+          "CommPath": {
+            "count": 1
+          },
+          "ProjectSN": {
+            "count": 1
+          },
+          "MatchProjectToController": {
+            "count": 1
+          },
+          "CanUseRPIFromProducer": {
+            "count": 1
+          },
+          "InhibitAutomaticFirmwareUpdate": {
+            "count": 1
+          },
+          "PassThroughConfiguration": {
+            "count": 1
+          },
+          "DownloadProjectDocumentationAndExtendedProperties": {
+            "count": 1
+          },
+          "DownloadProjectCustomProperties": {
+            "count": 1
+          },
+          "ReportMinorOverflow": {
+            "count": 1
+          },
+          "AutoDiagsEnabled": {
+            "count": 1
+          },
+          "WebServerEnabled": {
+            "count": 1
+          }
+        },
+        "elements_with_text": 0,
+        "elements_with_cdata": 0,
+        "children": [
+          {
+            "element": "Description",
+            "count": 1,
+            "attributes": {},
+            "elements_with_text": 1,
+            "elements_with_cdata": 1,
+            "children": []
+          },
+          {
+            "element": "RedundancyInfo",
+            "count": 1,
+            "attributes": {
+              "Enabled": {
+                "count": 1
+              },
+              "KeepTestEditsOnSwitchOver": {
+                "count": 1
+              }
+            },
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": []
+          },
+          {
+            "element": "Security",
+            "count": 1,
+            "attributes": {
+              "Code": {
+                "count": 1
+              },
+              "ChangesToDetect": {
+                "count": 1
+              }
+            },
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": []
+          },
+          {
+            "element": "SafetyInfo",
+            "count": 1,
+            "attributes": {
+              "SafetyLocked": {
+                "count": 1
+              },
+              "SignatureRunModeProtect": {
+                "count": 1
+              },
+              "ConfigureSafetyIOAlways": {
+                "count": 1
+              },
+              "SafetyLevel": {
+                "count": 1
+              }
+            },
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": []
+          },
+          {
+            "element": "DataTypes",
+            "count": 1,
+            "attributes": {},
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": []
+          },
+          {
+            "element": "Modules",
+            "count": 1,
+            "attributes": {},
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": [
+              {
+                "element": "Module",
+                "count": 120,
+                "attributes": {
+                  "Name": {
+                    "count": 120
+                  },
+                  "CatalogNumber": {
+                    "count": 120
+                  },
+                  "Vendor": {
+                    "count": 120
+                  },
+                  "ProductType": {
+                    "count": 120
+                  },
+                  "ProductCode": {
+                    "count": 120
+                  },
+                  "Major": {
+                    "count": 120
+                  },
+                  "Minor": {
+                    "count": 120
+                  },
+                  "ParentModule": {
+                    "count": 120
+                  },
+                  "ParentModPortId": {
+                    "count": 120
+                  },
+                  "Inhibited": {
+                    "count": 120
+                  },
+                  "MajorFault": {
+                    "count": 120
+                  },
+                  "AutoDiagsEnabled": {
+                    "count": 63
+                  },
+                  "SafetyEnabled": {
+                    "count": 23
+                  }
+                },
+                "elements_with_text": 0,
+                "elements_with_cdata": 0,
+                "children": [
+                  {
+                    "element": "EKey",
+                    "count": 120,
+                    "attributes": {
+                      "State": {
+                        "count": 120
+                      }
+                    },
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": []
+                  },
+                  {
+                    "element": "Ports",
+                    "count": 120,
+                    "attributes": {},
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": [
+                      {
+                        "element": "Port",
+                        "count": 137,
+                        "attributes": {
+                          "Id": {
+                            "count": 137
+                          },
+                          "Address": {
+                            "count": 129
+                          },
+                          "Type": {
+                            "count": 137
+                          },
+                          "Upstream": {
+                            "count": 137
+                          },
+                          "SafetyNetwork": {
+                            "count": 2
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "Bus",
+                            "count": 15,
+                            "attributes": {
+                              "Size": {
+                                "count": 12
+                              },
+                              "Baud": {
+                                "count": 1
+                              }
+                            },
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "element": "Communications",
+                    "count": 113,
+                    "attributes": {
+                      "CommMethod": {
+                        "count": 81
+                      }
+                    },
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": [
+                      {
+                        "element": "Connections",
+                        "count": 113,
+                        "attributes": {},
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "Connection",
+                            "count": 104,
+                            "attributes": {
+                              "Name": {
+                                "count": 104
+                              },
+                              "RPI": {
+                                "count": 104
+                              },
+                              "Type": {
+                                "count": 104
+                              },
+                              "EventID": {
+                                "count": 104
+                              },
+                              "ProgrammaticallySendEventTrigger": {
+                                "count": 104
+                              },
+                              "Unicast": {
+                                "count": 51
+                              },
+                              "OutputSize": {
+                                "count": 27
+                              },
+                              "InputSize": {
+                                "count": 27
+                              },
+                              "Priority": {
+                                "count": 27
+                              },
+                              "InputConnectionType": {
+                                "count": 27
+                              },
+                              "InputProductionTrigger": {
+                                "count": 27
+                              },
+                              "ConnectionPath": {
+                                "count": 27
+                              },
+                              "InputTagSuffix": {
+                                "count": 27
+                              },
+                              "OutputTagSuffix": {
+                                "count": 27
+                              }
+                            },
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 0,
+                            "children": [
+                              {
+                                "element": "InputTag",
+                                "count": 104,
+                                "attributes": {
+                                  "ExternalAccess": {
+                                    "count": 104
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": [
+                                  {
+                                    "element": "Data",
+                                    "count": 104,
+                                    "attributes": {
+                                      "Format": {
+                                        "count": 104
+                                      }
+                                    },
+                                    "elements_with_text": 0,
+                                    "elements_with_cdata": 0,
+                                    "children": [
+                                      {
+                                        "element": "Structure",
+                                        "count": 104,
+                                        "attributes": {
+                                          "DataType": {
+                                            "count": 104
+                                          }
+                                        },
+                                        "elements_with_text": 0,
+                                        "elements_with_cdata": 0,
+                                        "children": [
+                                          {
+                                            "element": "DataValueMember",
+                                            "count": 6796,
+                                            "attributes": {
+                                              "Name": {
+                                                "count": 6796
+                                              },
+                                              "DataType": {
+                                                "count": 6796
+                                              },
+                                              "Radix": {
+                                                "count": 2473
+                                              },
+                                              "Value": {
+                                                "count": 6796
+                                              }
+                                            },
+                                            "elements_with_text": 0,
+                                            "elements_with_cdata": 0,
+                                            "children": []
+                                          },
+                                          {
+                                            "element": "ArrayMember",
+                                            "count": 44,
+                                            "attributes": {
+                                              "Name": {
+                                                "count": 44
+                                              },
+                                              "DataType": {
+                                                "count": 44
+                                              },
+                                              "Dimensions": {
+                                                "count": 44
+                                              },
+                                              "Radix": {
+                                                "count": 32
+                                              }
+                                            },
+                                            "elements_with_text": 0,
+                                            "elements_with_cdata": 0,
+                                            "children": [
+                                              {
+                                                "element": "Element",
+                                                "count": 1339,
+                                                "attributes": {
+                                                  "Index": {
+                                                    "count": 1339
+                                                  },
+                                                  "Value": {
+                                                    "count": 1200
+                                                  }
+                                                },
+                                                "elements_with_text": 0,
+                                                "elements_with_cdata": 0,
+                                                "children": [
+                                                  {
+                                                    "element": "Structure",
+                                                    "count": 139,
+                                                    "attributes": {
+                                                      "DataType": {
+                                                        "count": 139
+                                                      }
+                                                    },
+                                                    "elements_with_text": 0,
+                                                    "elements_with_cdata": 0,
+                                                    "children": [
+                                                      {
+                                                        "element": "DataValueMember",
+                                                        "count": 538,
+                                                        "attributes": {
+                                                          "Name": {
+                                                            "count": 538
+                                                          },
+                                                          "DataType": {
+                                                            "count": 538
+                                                          },
+                                                          "Radix": {
+                                                            "count": 274
+                                                          },
+                                                          "Value": {
+                                                            "count": 538
+                                                          }
+                                                        },
+                                                        "elements_with_text": 0,
+                                                        "elements_with_cdata": 0,
+                                                        "children": []
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "element": "StructureMember",
+                                            "count": 55,
+                                            "attributes": {
+                                              "Name": {
+                                                "count": 55
+                                              },
+                                              "DataType": {
+                                                "count": 55
+                                              }
+                                            },
+                                            "elements_with_text": 0,
+                                            "elements_with_cdata": 0,
+                                            "children": [
+                                              {
+                                                "element": "DataValueMember",
+                                                "count": 2233,
+                                                "attributes": {
+                                                  "Name": {
+                                                    "count": 2233
+                                                  },
+                                                  "DataType": {
+                                                    "count": 2233
+                                                  },
+                                                  "Radix": {
+                                                    "count": 220
+                                                  },
+                                                  "Value": {
+                                                    "count": 2233
+                                                  }
+                                                },
+                                                "elements_with_text": 0,
+                                                "elements_with_cdata": 0,
+                                                "children": []
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "element": "EngineeringUnits",
+                                    "count": 9,
+                                    "attributes": {},
+                                    "elements_with_text": 0,
+                                    "elements_with_cdata": 0,
+                                    "children": [
+                                      {
+                                        "element": "EngineeringUnit",
+                                        "count": 62,
+                                        "attributes": {
+                                          "Operand": {
+                                            "count": 62
+                                          }
+                                        },
+                                        "elements_with_text": 62,
+                                        "elements_with_cdata": 62,
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "element": "Comments",
+                                    "count": 12,
+                                    "attributes": {},
+                                    "elements_with_text": 0,
+                                    "elements_with_cdata": 0,
+                                    "children": [
+                                      {
+                                        "element": "Comment",
+                                        "count": 46,
+                                        "attributes": {
+                                          "Operand": {
+                                            "count": 46
+                                          }
+                                        },
+                                        "elements_with_text": 46,
+                                        "elements_with_cdata": 46,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "element": "OutputTag",
+                                "count": 65,
+                                "attributes": {
+                                  "ExternalAccess": {
+                                    "count": 65
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": [
+                                  {
+                                    "element": "Data",
+                                    "count": 130,
+                                    "attributes": {
+                                      "Format": {
+                                        "count": 130
+                                      }
+                                    },
+                                    "elements_with_text": 65,
+                                    "elements_with_cdata": 65,
+                                    "children": [
+                                      {
+                                        "element": "Structure",
+                                        "count": 65,
+                                        "attributes": {
+                                          "DataType": {
+                                            "count": 65
+                                          }
+                                        },
+                                        "elements_with_text": 0,
+                                        "elements_with_cdata": 0,
+                                        "children": [
+                                          {
+                                            "element": "ArrayMember",
+                                            "count": 20,
+                                            "attributes": {
+                                              "Name": {
+                                                "count": 20
+                                              },
+                                              "DataType": {
+                                                "count": 20
+                                              },
+                                              "Dimensions": {
+                                                "count": 20
+                                              },
+                                              "Radix": {
+                                                "count": 10
+                                              }
+                                            },
+                                            "elements_with_text": 0,
+                                            "elements_with_cdata": 0,
+                                            "children": [
+                                              {
+                                                "element": "Element",
+                                                "count": 1185,
+                                                "attributes": {
+                                                  "Index": {
+                                                    "count": 1185
+                                                  },
+                                                  "Value": {
+                                                    "count": 1050
+                                                  }
+                                                },
+                                                "elements_with_text": 0,
+                                                "elements_with_cdata": 0,
+                                                "children": [
+                                                  {
+                                                    "element": "Structure",
+                                                    "count": 135,
+                                                    "attributes": {
+                                                      "DataType": {
+                                                        "count": 135
+                                                      }
+                                                    },
+                                                    "elements_with_text": 0,
+                                                    "elements_with_cdata": 0,
+                                                    "children": [
+                                                      {
+                                                        "element": "DataValueMember",
+                                                        "count": 327,
+                                                        "attributes": {
+                                                          "Name": {
+                                                            "count": 327
+                                                          },
+                                                          "DataType": {
+                                                            "count": 327
+                                                          },
+                                                          "Radix": {
+                                                            "count": 135
+                                                          },
+                                                          "Value": {
+                                                            "count": 327
+                                                          }
+                                                        },
+                                                        "elements_with_text": 0,
+                                                        "elements_with_cdata": 0,
+                                                        "children": []
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "element": "DataValueMember",
+                                            "count": 1545,
+                                            "attributes": {
+                                              "Name": {
+                                                "count": 1545
+                                              },
+                                              "DataType": {
+                                                "count": 1545
+                                              },
+                                              "Radix": {
+                                                "count": 1138
+                                              },
+                                              "Value": {
+                                                "count": 1545
+                                              }
+                                            },
+                                            "elements_with_text": 0,
+                                            "elements_with_cdata": 0,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "element": "Comments",
+                                    "count": 11,
+                                    "attributes": {},
+                                    "elements_with_text": 0,
+                                    "elements_with_cdata": 0,
+                                    "children": [
+                                      {
+                                        "element": "Comment",
+                                        "count": 21,
+                                        "attributes": {
+                                          "Operand": {
+                                            "count": 21
+                                          }
+                                        },
+                                        "elements_with_text": 21,
+                                        "elements_with_cdata": 21,
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "element": "EngineeringUnits",
+                                    "count": 1,
+                                    "attributes": {},
+                                    "elements_with_text": 0,
+                                    "elements_with_cdata": 0,
+                                    "children": [
+                                      {
+                                        "element": "EngineeringUnit",
+                                        "count": 8,
+                                        "attributes": {
+                                          "Operand": {
+                                            "count": 8
+                                          }
+                                        },
+                                        "elements_with_text": 8,
+                                        "elements_with_cdata": 8,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "element": "RackConnection",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 0,
+                            "children": [
+                              {
+                                "element": "InAliasTag",
+                                "count": 11,
+                                "attributes": {},
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              },
+                              {
+                                "element": "OutAliasTag",
+                                "count": 4,
+                                "attributes": {},
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "element": "ConfigTag",
+                        "count": 83,
+                        "attributes": {
+                          "ConfigSize": {
+                            "count": 83
+                          },
+                          "ExternalAccess": {
+                            "count": 83
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "Data",
+                            "count": 166,
+                            "attributes": {
+                              "Format": {
+                                "count": 166
+                              }
+                            },
+                            "elements_with_text": 83,
+                            "elements_with_cdata": 83,
+                            "children": [
+                              {
+                                "element": "Structure",
+                                "count": 83,
+                                "attributes": {
+                                  "DataType": {
+                                    "count": 83
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": [
+                                  {
+                                    "element": "DataValueMember",
+                                    "count": 2941,
+                                    "attributes": {
+                                      "Name": {
+                                        "count": 2941
+                                      },
+                                      "DataType": {
+                                        "count": 2941
+                                      },
+                                      "Value": {
+                                        "count": 2941
+                                      },
+                                      "Radix": {
+                                        "count": 1882
+                                      }
+                                    },
+                                    "elements_with_text": 0,
+                                    "elements_with_cdata": 0,
+                                    "children": []
+                                  },
+                                  {
+                                    "element": "StructureMember",
+                                    "count": 490,
+                                    "attributes": {
+                                      "Name": {
+                                        "count": 490
+                                      },
+                                      "DataType": {
+                                        "count": 490
+                                      }
+                                    },
+                                    "elements_with_text": 0,
+                                    "elements_with_cdata": 0,
+                                    "children": [
+                                      {
+                                        "element": "DataValueMember",
+                                        "count": 9643,
+                                        "attributes": {
+                                          "Name": {
+                                            "count": 9643
+                                          },
+                                          "DataType": {
+                                            "count": 9643
+                                          },
+                                          "Value": {
+                                            "count": 9643
+                                          },
+                                          "Radix": {
+                                            "count": 3888
+                                          }
+                                        },
+                                        "elements_with_text": 0,
+                                        "elements_with_cdata": 0,
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "element": "ArrayMember",
+                                    "count": 2,
+                                    "attributes": {
+                                      "Name": {
+                                        "count": 2
+                                      },
+                                      "DataType": {
+                                        "count": 2
+                                      },
+                                      "Dimensions": {
+                                        "count": 2
+                                      }
+                                    },
+                                    "elements_with_text": 0,
+                                    "elements_with_cdata": 0,
+                                    "children": [
+                                      {
+                                        "element": "Element",
+                                        "count": 16,
+                                        "attributes": {
+                                          "Index": {
+                                            "count": 16
+                                          }
+                                        },
+                                        "elements_with_text": 0,
+                                        "elements_with_cdata": 0,
+                                        "children": [
+                                          {
+                                            "element": "Structure",
+                                            "count": 16,
+                                            "attributes": {
+                                              "DataType": {
+                                                "count": 16
+                                              }
+                                            },
+                                            "elements_with_text": 0,
+                                            "elements_with_cdata": 0,
+                                            "children": [
+                                              {
+                                                "element": "DataValueMember",
+                                                "count": 368,
+                                                "attributes": {
+                                                  "Name": {
+                                                    "count": 368
+                                                  },
+                                                  "DataType": {
+                                                    "count": 368
+                                                  },
+                                                  "Radix": {
+                                                    "count": 240
+                                                  },
+                                                  "Value": {
+                                                    "count": 368
+                                                  }
+                                                },
+                                                "elements_with_text": 0,
+                                                "elements_with_cdata": 0,
+                                                "children": []
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "element": "ConfigData",
+                        "count": 7,
+                        "attributes": {
+                          "ConfigSize": {
+                            "count": 7
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "Data",
+                            "count": 7,
+                            "attributes": {
+                              "Format": {
+                                "count": 7
+                              }
+                            },
+                            "elements_with_text": 7,
+                            "elements_with_cdata": 7,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "element": "ConfigScript",
+                        "count": 11,
+                        "attributes": {
+                          "Size": {
+                            "count": 11
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "Data",
+                            "count": 11,
+                            "attributes": {
+                              "Format": {
+                                "count": 11
+                              }
+                            },
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 11,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "element": "ExtendedProperties",
+                    "count": 114,
+                    "attributes": {},
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": [
+                      {
+                        "element": "public",
+                        "count": 114,
+                        "attributes": {},
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "ConfigID",
+                            "count": 102,
+                            "attributes": {},
+                            "elements_with_text": 102,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Vendor",
+                            "count": 86,
+                            "attributes": {},
+                            "elements_with_text": 86,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "CatNum",
+                            "count": 114,
+                            "attributes": {},
+                            "elements_with_text": 112,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "ADDAVersion",
+                            "count": 63,
+                            "attributes": {},
+                            "elements_with_text": 63,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "ControlModuleType",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "ControlModuleMismatchTripEn",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "SensingModuleType",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "SensingModuleMismatchTripEn",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Digital1Type",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Digital1MismatchTripEn",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Digital2Type",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Digital2MismatchTripEn",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Digital3Type",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Digital3MismatchTripEn",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Digital4Type",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Digital4MismatchTripEn",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Analog1Type",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Analog1MismatchTripEn",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Analog2Type",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Analog2MismatchTripEn",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Analog3Type",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Analog3MismatchTripEn",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Analog4Type",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Analog4MismatchTripEn",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "OperatorStationType",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "OperatorStationMismatchTripEn",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "UserDefinedData0",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "UserDefinedData1",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "UserDefinedData2",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "UserDefinedData3",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "UserDefinedData4",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "UserDefinedData5",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "UserDefinedData6",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "UserDefinedData7",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "OperatingMode",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Pt00OutputFunction",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Pt01OutputFunction",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "Pt02OutputFunction",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "SensorMinFLA",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "SensorMaxFLA",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "OperatingModeChanged",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "PL",
+                            "count": 12,
+                            "attributes": {},
+                            "elements_with_text": 12,
+                            "elements_with_cdata": 0,
+                            "children": [
+                              {
+                                "element": "Version",
+                                "count": 12,
+                                "attributes": {
+                                  "Name": {
+                                    "count": 12
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              },
+                              {
+                                "element": "Connection",
+                                "count": 10,
+                                "attributes": {
+                                  "Name": {
+                                    "count": 10
+                                  },
+                                  "Format": {
+                                    "count": 10
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "element": "DataTypeFormats",
+                            "count": 12,
+                            "attributes": {},
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 0,
+                            "children": [
+                              {
+                                "element": "DataTypeFormat",
+                                "count": 32,
+                                "attributes": {
+                                  "InstanceApplicationPath": {
+                                    "count": 32
+                                  },
+                                  "Format": {
+                                    "count": 32
+                                  },
+                                  "Type": {
+                                    "count": 32
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "element": "Description",
+                    "count": 20,
+                    "attributes": {},
+                    "elements_with_text": 19,
+                    "elements_with_cdata": 20,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "element": "AddOnInstructionDefinitions",
+            "count": 1,
+            "attributes": {},
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": [
+              {
+                "element": "AddOnInstructionDefinition",
+                "count": 1,
+                "attributes": {
+                  "Name": {
+                    "count": 1
+                  },
+                  "Class": {
+                    "count": 1
+                  },
+                  "Revision": {
+                    "count": 1
+                  },
+                  "RevisionExtension": {
+                    "count": 1
+                  },
+                  "Vendor": {
+                    "count": 1
+                  },
+                  "ExecutePrescan": {
+                    "count": 1
+                  },
+                  "ExecutePostscan": {
+                    "count": 1
+                  },
+                  "ExecuteEnableInFalse": {
+                    "count": 1
+                  },
+                  "CreatedDate": {
+                    "count": 1
+                  },
+                  "CreatedBy": {
+                    "count": 1
+                  },
+                  "EditedDate": {
+                    "count": 1
+                  },
+                  "EditedBy": {
+                    "count": 1
+                  },
+                  "SoftwareRevision": {
+                    "count": 1
+                  }
+                },
+                "elements_with_text": 0,
+                "elements_with_cdata": 0,
+                "children": [
+                  {
+                    "element": "Description",
+                    "count": 1,
+                    "attributes": {},
+                    "elements_with_text": 1,
+                    "elements_with_cdata": 1,
+                    "children": []
+                  },
+                  {
+                    "element": "RevisionNote",
+                    "count": 1,
+                    "attributes": {},
+                    "elements_with_text": 1,
+                    "elements_with_cdata": 1,
+                    "children": []
+                  },
+                  {
+                    "element": "AdditionalHelpText",
+                    "count": 1,
+                    "attributes": {},
+                    "elements_with_text": 1,
+                    "elements_with_cdata": 1,
+                    "children": []
+                  },
+                  {
+                    "element": "Parameters",
+                    "count": 1,
+                    "attributes": {},
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": [
+                      {
+                        "element": "Parameter",
+                        "count": 6,
+                        "attributes": {
+                          "Name": {
+                            "count": 6
+                          },
+                          "TagType": {
+                            "count": 6
+                          },
+                          "DataType": {
+                            "count": 6
+                          },
+                          "Usage": {
+                            "count": 6
+                          },
+                          "Radix": {
+                            "count": 6
+                          },
+                          "Required": {
+                            "count": 6
+                          },
+                          "Visible": {
+                            "count": 6
+                          },
+                          "ExternalAccess": {
+                            "count": 6
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "Description",
+                            "count": 6,
+                            "attributes": {},
+                            "elements_with_text": 6,
+                            "elements_with_cdata": 6,
+                            "children": []
+                          },
+                          {
+                            "element": "DefaultData",
+                            "count": 8,
+                            "attributes": {
+                              "Format": {
+                                "count": 8
+                              }
+                            },
+                            "elements_with_text": 4,
+                            "elements_with_cdata": 4,
+                            "children": [
+                              {
+                                "element": "DataValue",
+                                "count": 4,
+                                "attributes": {
+                                  "DataType": {
+                                    "count": 4
+                                  },
+                                  "Radix": {
+                                    "count": 4
+                                  },
+                                  "Value": {
+                                    "count": 4
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "element": "LocalTags",
+                    "count": 1,
+                    "attributes": {},
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": [
+                      {
+                        "element": "LocalTag",
+                        "count": 2,
+                        "attributes": {
+                          "Name": {
+                            "count": 2
+                          },
+                          "DataType": {
+                            "count": 2
+                          },
+                          "Radix": {
+                            "count": 2
+                          },
+                          "ExternalAccess": {
+                            "count": 2
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "Description",
+                            "count": 2,
+                            "attributes": {},
+                            "elements_with_text": 2,
+                            "elements_with_cdata": 2,
+                            "children": []
+                          },
+                          {
+                            "element": "DefaultData",
+                            "count": 4,
+                            "attributes": {
+                              "Format": {
+                                "count": 4
+                              }
+                            },
+                            "elements_with_text": 2,
+                            "elements_with_cdata": 2,
+                            "children": [
+                              {
+                                "element": "DataValue",
+                                "count": 2,
+                                "attributes": {
+                                  "DataType": {
+                                    "count": 2
+                                  },
+                                  "Radix": {
+                                    "count": 2
+                                  },
+                                  "Value": {
+                                    "count": 2
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "element": "Routines",
+                    "count": 1,
+                    "attributes": {},
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": [
+                      {
+                        "element": "Routine",
+                        "count": 1,
+                        "attributes": {
+                          "Name": {
+                            "count": 1
+                          },
+                          "Type": {
+                            "count": 1
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "Description",
+                            "count": 1,
+                            "attributes": {},
+                            "elements_with_text": 1,
+                            "elements_with_cdata": 1,
+                            "children": []
+                          },
+                          {
+                            "element": "RLLContent",
+                            "count": 1,
+                            "attributes": {},
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 0,
+                            "children": [
+                              {
+                                "element": "Rung",
+                                "count": 2,
+                                "attributes": {
+                                  "Number": {
+                                    "count": 2
+                                  },
+                                  "Type": {
+                                    "count": 2
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": [
+                                  {
+                                    "element": "Comment",
+                                    "count": 2,
+                                    "attributes": {},
+                                    "elements_with_text": 2,
+                                    "elements_with_cdata": 2,
+                                    "children": []
+                                  },
+                                  {
+                                    "element": "Text",
+                                    "count": 2,
+                                    "attributes": {},
+                                    "elements_with_text": 2,
+                                    "elements_with_cdata": 2,
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "element": "Tags",
+            "count": 1,
+            "attributes": {},
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": [
+              {
+                "element": "Tag",
+                "count": 6261,
+                "attributes": {
+                  "Name": {
+                    "count": 6261
+                  },
+                  "Class": {
+                    "count": 5321
+                  },
+                  "TagType": {
+                    "count": 6261
+                  },
+                  "DataType": {
+                    "count": 5321
+                  },
+                  "Radix": {
+                    "count": 5616
+                  },
+                  "Constant": {
+                    "count": 5294
+                  },
+                  "ExternalAccess": {
+                    "count": 6261
+                  },
+                  "Dimensions": {
+                    "count": 44
+                  },
+                  "AliasFor": {
+                    "count": 940
+                  }
+                },
+                "elements_with_text": 0,
+                "elements_with_cdata": 0,
+                "children": [
+                  {
+                    "element": "Description",
+                    "count": 6067,
+                    "attributes": {},
+                    "elements_with_text": 6067,
+                    "elements_with_cdata": 6067,
+                    "children": []
+                  },
+                  {
+                    "element": "Data",
+                    "count": 10615,
+                    "attributes": {
+                      "Format": {
+                        "count": 10615
+                      }
+                    },
+                    "elements_with_text": 5294,
+                    "elements_with_cdata": 5294,
+                    "children": [
+                      {
+                        "element": "DataValue",
+                        "count": 4632,
+                        "attributes": {
+                          "DataType": {
+                            "count": 4632
+                          },
+                          "Radix": {
+                            "count": 4632
+                          },
+                          "Value": {
+                            "count": 4632
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": []
+                      },
+                      {
+                        "element": "Array",
+                        "count": 44,
+                        "attributes": {
+                          "DataType": {
+                            "count": 44
+                          },
+                          "Dimensions": {
+                            "count": 44
+                          },
+                          "Radix": {
+                            "count": 44
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "Element",
+                            "count": 2703,
+                            "attributes": {
+                              "Index": {
+                                "count": 2703
+                              },
+                              "Value": {
+                                "count": 2703
+                              }
+                            },
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "element": "MessageParameters",
+                        "count": 27,
+                        "attributes": {
+                          "MessageType": {
+                            "count": 27
+                          },
+                          "RequestedLength": {
+                            "count": 27
+                          },
+                          "ConnectedFlag": {
+                            "count": 26
+                          },
+                          "ConnectionPath": {
+                            "count": 27
+                          },
+                          "CommTypeCode": {
+                            "count": 27
+                          },
+                          "ServiceCode": {
+                            "count": 6
+                          },
+                          "ObjectType": {
+                            "count": 6
+                          },
+                          "TargetObject": {
+                            "count": 6
+                          },
+                          "AttributeNumber": {
+                            "count": 6
+                          },
+                          "LocalIndex": {
+                            "count": 27
+                          },
+                          "DestinationTag": {
+                            "count": 6
+                          },
+                          "LargePacketUsage": {
+                            "count": 6
+                          },
+                          "RemoteElement": {
+                            "count": 21
+                          },
+                          "LocalElement": {
+                            "count": 21
+                          },
+                          "Channel": {
+                            "count": 1
+                          },
+                          "DHPlusSourceLink": {
+                            "count": 1
+                          },
+                          "DHPlusDestinationLink": {
+                            "count": 1
+                          },
+                          "DHPlusDestinationNode": {
+                            "count": 1
+                          },
+                          "CacheConnections": {
+                            "count": 7
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": []
+                      },
+                      {
+                        "element": "Structure",
+                        "count": 618,
+                        "attributes": {
+                          "DataType": {
+                            "count": 618
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "DataValueMember",
+                            "count": 6999,
+                            "attributes": {
+                              "Name": {
+                                "count": 6999
+                              },
+                              "DataType": {
+                                "count": 6999
+                              },
+                              "Radix": {
+                                "count": 3164
+                              },
+                              "Value": {
+                                "count": 6999
+                              }
+                            },
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 0,
+                            "children": []
+                          },
+                          {
+                            "element": "StructureMember",
+                            "count": 5,
+                            "attributes": {
+                              "Name": {
+                                "count": 5
+                              },
+                              "DataType": {
+                                "count": 5
+                              }
+                            },
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 0,
+                            "children": [
+                              {
+                                "element": "DataValueMember",
+                                "count": 203,
+                                "attributes": {
+                                  "Name": {
+                                    "count": 203
+                                  },
+                                  "DataType": {
+                                    "count": 203
+                                  },
+                                  "Radix": {
+                                    "count": 20
+                                  },
+                                  "Value": {
+                                    "count": 203
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "element": "ArrayMember",
+                            "count": 48,
+                            "attributes": {
+                              "Name": {
+                                "count": 48
+                              },
+                              "DataType": {
+                                "count": 48
+                              },
+                              "Dimensions": {
+                                "count": 48
+                              },
+                              "Radix": {
+                                "count": 48
+                              }
+                            },
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 0,
+                            "children": [
+                              {
+                                "element": "Element",
+                                "count": 807,
+                                "attributes": {
+                                  "Index": {
+                                    "count": 807
+                                  },
+                                  "Value": {
+                                    "count": 807
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "element": "Comments",
+                    "count": 33,
+                    "attributes": {},
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": [
+                      {
+                        "element": "Comment",
+                        "count": 49,
+                        "attributes": {
+                          "Operand": {
+                            "count": 49
+                          }
+                        },
+                        "elements_with_text": 49,
+                        "elements_with_cdata": 49,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "element": "ProduceInfo",
+                    "count": 2,
+                    "attributes": {
+                      "PLCMappingFile": {
+                        "count": 2
+                      }
+                    },
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "element": "Programs",
+            "count": 1,
+            "attributes": {},
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": [
+              {
+                "element": "Program",
+                "count": 3,
+                "attributes": {
+                  "Name": {
+                    "count": 3
+                  },
+                  "TestEdits": {
+                    "count": 3
+                  },
+                  "MainRoutineName": {
+                    "count": 3
+                  },
+                  "Disabled": {
+                    "count": 3
+                  },
+                  "Class": {
+                    "count": 3
+                  },
+                  "UseAsFolder": {
+                    "count": 3
+                  }
+                },
+                "elements_with_text": 0,
+                "elements_with_cdata": 0,
+                "children": [
+                  {
+                    "element": "Tags",
+                    "count": 3,
+                    "attributes": {},
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": [
+                      {
+                        "element": "Tag",
+                        "count": 46,
+                        "attributes": {
+                          "Name": {
+                            "count": 46
+                          },
+                          "TagType": {
+                            "count": 46
+                          },
+                          "DataType": {
+                            "count": 45
+                          },
+                          "Constant": {
+                            "count": 45
+                          },
+                          "ExternalAccess": {
+                            "count": 46
+                          },
+                          "Radix": {
+                            "count": 29
+                          },
+                          "AliasFor": {
+                            "count": 1
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "Data",
+                            "count": 90,
+                            "attributes": {
+                              "Format": {
+                                "count": 90
+                              }
+                            },
+                            "elements_with_text": 45,
+                            "elements_with_cdata": 45,
+                            "children": [
+                              {
+                                "element": "Structure",
+                                "count": 17,
+                                "attributes": {
+                                  "DataType": {
+                                    "count": 17
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": [
+                                  {
+                                    "element": "DataValueMember",
+                                    "count": 306,
+                                    "attributes": {
+                                      "Name": {
+                                        "count": 306
+                                      },
+                                      "DataType": {
+                                        "count": 306
+                                      },
+                                      "Radix": {
+                                        "count": 119
+                                      },
+                                      "Value": {
+                                        "count": 306
+                                      }
+                                    },
+                                    "elements_with_text": 0,
+                                    "elements_with_cdata": 0,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "element": "DataValue",
+                                "count": 28,
+                                "attributes": {
+                                  "DataType": {
+                                    "count": 28
+                                  },
+                                  "Radix": {
+                                    "count": 28
+                                  },
+                                  "Value": {
+                                    "count": 28
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "element": "Description",
+                            "count": 11,
+                            "attributes": {},
+                            "elements_with_text": 11,
+                            "elements_with_cdata": 11,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "element": "Routines",
+                    "count": 3,
+                    "attributes": {},
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": [
+                      {
+                        "element": "Routine",
+                        "count": 69,
+                        "attributes": {
+                          "Name": {
+                            "count": 69
+                          },
+                          "Type": {
+                            "count": 69
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "RLLContent",
+                            "count": 54,
+                            "attributes": {},
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 0,
+                            "children": [
+                              {
+                                "element": "Rung",
+                                "count": 4604,
+                                "attributes": {
+                                  "Number": {
+                                    "count": 4604
+                                  },
+                                  "Type": {
+                                    "count": 4604
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": [
+                                  {
+                                    "element": "Text",
+                                    "count": 4604,
+                                    "attributes": {},
+                                    "elements_with_text": 4604,
+                                    "elements_with_cdata": 4604,
+                                    "children": []
+                                  },
+                                  {
+                                    "element": "Comment",
+                                    "count": 1167,
+                                    "attributes": {},
+                                    "elements_with_text": 1167,
+                                    "elements_with_cdata": 1167,
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "element": "Description",
+                            "count": 45,
+                            "attributes": {},
+                            "elements_with_text": 45,
+                            "elements_with_cdata": 45,
+                            "children": []
+                          },
+                          {
+                            "element": "SFCContent",
+                            "count": 14,
+                            "attributes": {
+                              "SheetSize": {
+                                "count": 14
+                              },
+                              "SheetOrientation": {
+                                "count": 14
+                              }
+                            },
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 0,
+                            "children": [
+                              {
+                                "element": "Step",
+                                "count": 145,
+                                "attributes": {
+                                  "ID": {
+                                    "count": 145
+                                  },
+                                  "X": {
+                                    "count": 145
+                                  },
+                                  "Y": {
+                                    "count": 145
+                                  },
+                                  "Operand": {
+                                    "count": 145
+                                  },
+                                  "HideDesc": {
+                                    "count": 145
+                                  },
+                                  "DescX": {
+                                    "count": 145
+                                  },
+                                  "DescY": {
+                                    "count": 145
+                                  },
+                                  "DescWidth": {
+                                    "count": 145
+                                  },
+                                  "InitialStep": {
+                                    "count": 145
+                                  },
+                                  "PresetUsesExpr": {
+                                    "count": 145
+                                  },
+                                  "LimitHighUsesExpr": {
+                                    "count": 145
+                                  },
+                                  "LimitLowUsesExpr": {
+                                    "count": 145
+                                  },
+                                  "ShowActions": {
+                                    "count": 145
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              },
+                              {
+                                "element": "Transition",
+                                "count": 155,
+                                "attributes": {
+                                  "ID": {
+                                    "count": 155
+                                  },
+                                  "X": {
+                                    "count": 155
+                                  },
+                                  "Y": {
+                                    "count": 155
+                                  },
+                                  "Operand": {
+                                    "count": 155
+                                  },
+                                  "HideDesc": {
+                                    "count": 155
+                                  },
+                                  "DescX": {
+                                    "count": 155
+                                  },
+                                  "DescY": {
+                                    "count": 155
+                                  },
+                                  "DescWidth": {
+                                    "count": 155
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": [
+                                  {
+                                    "element": "Condition",
+                                    "count": 155,
+                                    "attributes": {},
+                                    "elements_with_text": 0,
+                                    "elements_with_cdata": 0,
+                                    "children": [
+                                      {
+                                        "element": "STContent",
+                                        "count": 155,
+                                        "attributes": {},
+                                        "elements_with_text": 0,
+                                        "elements_with_cdata": 0,
+                                        "children": [
+                                          {
+                                            "element": "Line",
+                                            "count": 329,
+                                            "attributes": {
+                                              "Number": {
+                                                "count": 329
+                                              }
+                                            },
+                                            "elements_with_text": 241,
+                                            "elements_with_cdata": 329,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "element": "DirectedLink",
+                                "count": 324,
+                                "attributes": {
+                                  "FromID": {
+                                    "count": 324
+                                  },
+                                  "ToID": {
+                                    "count": 324
+                                  },
+                                  "Show": {
+                                    "count": 324
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              },
+                              {
+                                "element": "TextBox",
+                                "count": 280,
+                                "attributes": {
+                                  "ID": {
+                                    "count": 280
+                                  },
+                                  "X": {
+                                    "count": 280
+                                  },
+                                  "Y": {
+                                    "count": 280
+                                  },
+                                  "Width": {
+                                    "count": 280
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": [
+                                  {
+                                    "element": "Text",
+                                    "count": 280,
+                                    "attributes": {},
+                                    "elements_with_text": 280,
+                                    "elements_with_cdata": 280,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "element": "Attachment",
+                                "count": 213,
+                                "attributes": {
+                                  "FromID": {
+                                    "count": 213
+                                  },
+                                  "ToID": {
+                                    "count": 213
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": []
+                              },
+                              {
+                                "element": "Branch",
+                                "count": 14,
+                                "attributes": {
+                                  "ID": {
+                                    "count": 14
+                                  },
+                                  "Y": {
+                                    "count": 14
+                                  },
+                                  "BranchType": {
+                                    "count": 14
+                                  },
+                                  "BranchFlow": {
+                                    "count": 14
+                                  },
+                                  "Priority": {
+                                    "count": 10
+                                  }
+                                },
+                                "elements_with_text": 0,
+                                "elements_with_cdata": 0,
+                                "children": [
+                                  {
+                                    "element": "Leg",
+                                    "count": 34,
+                                    "attributes": {
+                                      "ID": {
+                                        "count": 34
+                                      }
+                                    },
+                                    "elements_with_text": 0,
+                                    "elements_with_cdata": 0,
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "element": "Description",
+                    "count": 1,
+                    "attributes": {},
+                    "elements_with_text": 1,
+                    "elements_with_cdata": 1,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "element": "Tasks",
+            "count": 1,
+            "attributes": {},
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": [
+              {
+                "element": "Task",
+                "count": 3,
+                "attributes": {
+                  "Name": {
+                    "count": 3
+                  },
+                  "Type": {
+                    "count": 3
+                  },
+                  "Priority": {
+                    "count": 3
+                  },
+                  "Watchdog": {
+                    "count": 3
+                  },
+                  "DisableUpdateOutputs": {
+                    "count": 3
+                  },
+                  "InhibitTask": {
+                    "count": 3
+                  },
+                  "Class": {
+                    "count": 3
+                  },
+                  "Rate": {
+                    "count": 2
+                  }
+                },
+                "elements_with_text": 0,
+                "elements_with_cdata": 0,
+                "children": [
+                  {
+                    "element": "ScheduledPrograms",
+                    "count": 3,
+                    "attributes": {},
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": [
+                      {
+                        "element": "ScheduledProgram",
+                        "count": 3,
+                        "attributes": {
+                          "Name": {
+                            "count": 3
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "element": "Description",
+                    "count": 1,
+                    "attributes": {},
+                    "elements_with_text": 1,
+                    "elements_with_cdata": 1,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "element": "CST",
+            "count": 1,
+            "attributes": {
+              "MasterID": {
+                "count": 1
+              }
+            },
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": []
+          },
+          {
+            "element": "WallClockTime",
+            "count": 1,
+            "attributes": {
+              "LocalTimeAdjustment": {
+                "count": 1
+              },
+              "TimeZone": {
+                "count": 1
+              }
+            },
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": []
+          },
+          {
+            "element": "Trends",
+            "count": 1,
+            "attributes": {},
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": [
+              {
+                "element": "Trend",
+                "count": 78,
+                "attributes": {
+                  "Name": {
+                    "count": 78
+                  },
+                  "SamplePeriod": {
+                    "count": 78
+                  },
+                  "NumberOfCaptures": {
+                    "count": 78
+                  },
+                  "CaptureSizeType": {
+                    "count": 78
+                  },
+                  "CaptureSize": {
+                    "count": 69
+                  },
+                  "StartTriggerType": {
+                    "count": 78
+                  },
+                  "StopTriggerType": {
+                    "count": 78
+                  },
+                  "TrendxVersion": {
+                    "count": 78
+                  }
+                },
+                "elements_with_text": 0,
+                "elements_with_cdata": 0,
+                "children": [
+                  {
+                    "element": "Template",
+                    "count": 78,
+                    "attributes": {},
+                    "elements_with_text": 78,
+                    "elements_with_cdata": 0,
+                    "children": []
+                  },
+                  {
+                    "element": "Pens",
+                    "count": 78,
+                    "attributes": {},
+                    "elements_with_text": 0,
+                    "elements_with_cdata": 0,
+                    "children": [
+                      {
+                        "element": "Pen",
+                        "count": 347,
+                        "attributes": {
+                          "Name": {
+                            "count": 347
+                          },
+                          "Color": {
+                            "count": 347
+                          },
+                          "Visible": {
+                            "count": 347
+                          },
+                          "Style": {
+                            "count": 347
+                          },
+                          "Type": {
+                            "count": 347
+                          },
+                          "Width": {
+                            "count": 347
+                          },
+                          "Marker": {
+                            "count": 347
+                          },
+                          "Min": {
+                            "count": 347
+                          },
+                          "Max": {
+                            "count": 347
+                          },
+                          "EngUnits": {
+                            "count": 49
+                          }
+                        },
+                        "elements_with_text": 0,
+                        "elements_with_cdata": 0,
+                        "children": [
+                          {
+                            "element": "Description",
+                            "count": 107,
+                            "attributes": {},
+                            "elements_with_text": 0,
+                            "elements_with_cdata": 107,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "element": "Description",
+                    "count": 5,
+                    "attributes": {},
+                    "elements_with_text": 5,
+                    "elements_with_cdata": 5,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "element": "DataLogs",
+            "count": 1,
+            "attributes": {},
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": []
+          },
+          {
+            "element": "TimeSynchronize",
+            "count": 1,
+            "attributes": {
+              "Priority1": {
+                "count": 1
+              },
+              "Priority2": {
+                "count": 1
+              },
+              "PTPEnable": {
+                "count": 1
+              }
+            },
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": []
+          },
+          {
+            "element": "EthernetPorts",
+            "count": 1,
+            "attributes": {},
+            "elements_with_text": 0,
+            "elements_with_cdata": 0,
+            "children": [
+              {
+                "element": "EthernetPort",
+                "count": 1,
+                "attributes": {
+                  "Port": {
+                    "count": 1
+                  },
+                  "Label": {
+                    "count": 1
+                  },
+                  "PortEnabled": {
+                    "count": 1
+                  }
+                },
+                "elements_with_text": 0,
+                "elements_with_cdata": 0,
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
