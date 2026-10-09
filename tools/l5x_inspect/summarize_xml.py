@@ -39,13 +39,14 @@ def _local_name(expanded_name: str) -> str:
     return expanded_name.rsplit("}", 1)[-1]
 
 
-def parse_structure(source: BinaryIO) -> XMLPathSummary:
+def parse_structure(source: BinaryIO, *, require_blank_attributes: bool = False) -> XMLPathSummary:
     """Read XML without retaining its text or attribute values.
 
     Each parent has at most one child of each local element name. Attributes and
     child structures from repeated occurrences are combined in first-seen order.
     Counts preserve multiplicity at each XML path; individual record associations
-    are intentionally not retained.
+    are intentionally not retained. Set require_blank_attributes when verifying
+    a skeleton to reject any nonempty attribute without exposing its value.
     """
     root: XMLPathSummary | None = None
     stack: list[XMLPathSummary] = []
@@ -81,6 +82,8 @@ def parse_structure(source: BinaryIO) -> XMLPathSummary:
         if shape_count > MAX_SHAPES:
             raise StructureError(f"XML exceeds the limit of {MAX_SHAPES} unique paths.")
 
+        if require_blank_attributes and any(value != "" for value in attributes.values()):
+            raise StructureError("Skeleton verification found a nonblank attribute value.")
         node.occurrences += 1
         # Iterate names only. Attribute values are deliberately never copied.
         for expanded_attribute in attributes:

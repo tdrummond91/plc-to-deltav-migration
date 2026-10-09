@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "stage": "stage_5_policy_2_run_review",
+  "status": "user_run_and_public_review_passed",
+  "reviewed_date": "2026-10-09",
+  "evidence": {
+    "user_install_checks": {
+      "files": 13,
+      "dependencies": 12,
+      "result": "PASS"
+    },
+    "user_tests": {
+      "count": 130,
+      "seconds": 0.061,
+      "result": "OK"
+    },
+    "user_generator": "PASS",
+    "user_public_checker": "PASS",
+    "codex_direct_review": [
+      "Public report schema, policy, coverage and output counts",
+      "Generated XML SHA-256 matches report",
+      "Previously oversized group and mandatory exception reasons"
+    ],
+    "confidential_source_opened_by_codex": false,
+    "repository_or_git_modified_by_codex": false
+  },
+  "coverage": {
+    "source_elements": 83942,
+    "retained_elements": 7303,
+    "omitted_elements": 76639,
+    "source_paths": 194,
+    "retained_paths": 194,
+    "source_ladder_rungs": 4606,
+    "retained_ladder_rungs": 276,
+    "retained_ladder_shapes": 161,
+    "source_ladder_shapes": 554,
+    "comments_ignored": 0,
+    "processing_instructions_ignored": 0
+  },
+  "output_totals": {
+    "element_occurrences": 7303,
+    "attribute_occurrences": 18539,
+    "distinct_element_paths": 194,
+    "elements_with_text": 1493,
+    "elements_with_cdata": 1016,
+    "max_depth": 14
+  },
+  "unsupported_content": {
+    "opaque_payload_replaced": 204,
+    "mixed_text_replaced": 11,
+    "structured_text_replaced": 78
+  },
+  "files": {
+    "xml": "public/fixtures/minimized_review/controller_demo.L5X",
+    "report": "public/fixtures/minimized_review/minimized-report.json",
+    "xml_bytes": 714140,
+    "report_bytes": 2854812,
+    "generated_xml_sha256": "2697337fee3f16e35445529506b05b462614850b3e357fe46365a78489038de1"
+  },
+  "required_coverage": {
+    "paths": 194,
+    "variants": 431,
+    "ranked_examples": 19,
+    "instruction_labels": 42,
+    "maxima": {
+      "max_branch_depth": 4,
+      "max_legs_in_group": 49,
+      "height_lanes": 59,
+      "width_instructions": 18
+    }
+  },
+  "sampling_case": {
+    "parent_locator": "/RSLogix5000Content[1]/Controller[1]/Programs[1]/Program[1]/Routines[1]/Routine[14]/RLLContent[1]",
+    "variant_id": 376,
+    "policy_1_count": 614,
+    "policy_2_count": 7,
+    "ordinary_examples": 5,
+    "mandatory_additions": [
+      "instruction:CTU",
+      "instruction:RES"
+    ]
+  },
+  "limits": [
+    "161 of 554 shapes sampled; full rung inventory retains all shapes and occurrences.",
+    "Structural verification does not establish reference coherence, Studio import or runtime correctness.",
+    "XML and JSON are individually atomic; pair integrity is checked using generated XML hash."
+  ],
+  "next": "Copy updated handoff/result record, then user-run Git fetch/status review before checkpoint instructions."
+}

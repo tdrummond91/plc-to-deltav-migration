@@ -122,7 +122,7 @@ def create_skeleton(source: Path, output: Path) -> dict:
                 write_blank_xml(stream, handle)
 
         with temporary.open("rb") as blank_stream:
-            actual = build_summary(parse_structure(blank_stream))
+            actual = build_summary(parse_structure(blank_stream, require_blank_attributes=True))
         verify_skeleton(expected, actual)
         os.replace(temporary, output)
         return {

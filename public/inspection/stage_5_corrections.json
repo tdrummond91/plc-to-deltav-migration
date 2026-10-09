@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "stage": "stage_5_corrections",
+  "reviewed_date": "2026-10-09",
+  "status": "handoff_tested_original_source_regeneration_pending",
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "medium",
+      "file": "tools/l5x_inspect/dummy/selection.py",
+      "original_lines": [
+        59,
+        66
+      ],
+      "summary": "Consecutive-run counters refill the sampling quota when variants alternate.",
+      "evidence": "Invented 20-child alternating input retained 20 instead of 4 at quota 2; reviewed public output retained 614 of one variant under one parent.",
+      "correction": "Count each variant across the retained parent; mandatory anchors and complete selected rung subtrees remain exceptions."
+    },
+    {
+      "id": "R2",
+      "severity": "medium",
+      "file": "tools/l5x_inspect/write_skeleton.py",
+      "original_lines": [
+        124,
+        126
+      ],
+      "related_file": "tools/l5x_inspect/summarize_xml.py",
+      "related_original_lines": [
+        84,
+        95
+      ],
+      "summary": "Skeleton publication accepted a nonblank attribute because structure summaries omit values.",
+      "evidence": "Mocked completed output with correct structure and an unexpected nonblank Name value was published before the fix.",
+      "correction": "Opt-in strict blank-attribute parsing on completed skeleton before publication. Existing public skeleton passed strict verification; no observed exposure."
+    }
+  ],
+  "versions": {
+    "minimized_report_schema": 2,
+    "minimized_policy": 2,
+    "selection_field": "per_parent_variant_limit",
+    "retired_selection_field": "per_consecutive_variant_run",
+    "earlier_report_schemas_unchanged": true
+  },
+  "validation": {
+    "baseline_review_regressions": {
+      "tests": 12,
+      "failures": 4,
+      "detail": "Two quota regressions, new version contract, and retained-attribute publication gate failed as expected."
+    },
+    "corrected_suite": {
+      "tests": 130,
+      "failures": 0,
+      "seconds": 0.182
+    },
+    "existing_public_pair": {
+      "result": "PASS",
+      "links": 44545,
+      "rungs": 2397,
+      "paths": 194,
+      "variants": 431,
+      "ranked_examples": 19,
+      "instruction_labels": 42
+    },
+    "in_memory_public_reminimization": {
+      "result": "PASS",
+      "source_elements": 44545,
+      "retained_elements": 7303,
+      "source_rungs": 2397,
+      "retained_rungs": 276,
+      "paths": 194,
+      "variants": 431,
+      "ranked_examples": 19,
+      "instruction_labels": 42,
+      "maxima": {
+        "max_branch_depth": 4,
+        "max_legs_in_group": 49,
+        "height_lanes": 59,
+        "width_instructions": 18
+      },
+      "note": "Input was already public minimized fixture, not original confidential source; retained counts are not a prediction of the original-source rerun."
+    },
+    "confidential_source_opened": false,
+    "repository_modified": false,
+    "git_operations_executed": false
+  },
+  "remaining_limits": [
+    "Whole operand masking does not preserve expressions or cross-rung reference identity.",
+    "Semantic coherence, Studio import, execution timing and behavior remain unvalidated.",
+    "Local XML variants do not encode complete subtrees or all rung patterns; mandated coverage is retained, not every combination.",
+    "Two output writes are individually atomic, not a bundle transaction. A second-write failure must be detected by comparing the XML hash with the report.",
+    "Original-source regeneration and inspection of that new public result remain user-run steps."
+  ],
+  "next": {
+    "run": "minimize_l5x.py on original local source with --output-dir public/fixtures/minimized_review",
+    "check": "check_public_outputs.py --repo . --fixture-name minimized_review",
+    "preserve": "Keep public/fixtures/minimized as policy-1 comparison until the new run is reviewed."
+  }
+}

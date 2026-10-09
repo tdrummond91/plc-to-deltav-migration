@@ -1,6 +1,6 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-09. Current slice: **Stage 5 helper ready; user copy/test/run pending**.
+Updated 2026-10-09. Current slice: **Stage 5 policy-2 installed, original-source run passed, public outputs reviewed; Git checkpoint next**.
 
 Tyler wants one small helper at a time: provide code, let him run it, inspect the
 result, then implement the next piece. Do not jump directly to a complete dummy
@@ -138,7 +138,7 @@ instruction/branch totals, four rankings and 19 sample/tree links reconciled.
 No new parser correction is indicated by this report review.
 This verifies report consistency, not instruction semantics or Studio validity.
 
-## Stage 5: first minimized fixture helper ready; user run pending
+## Stage 5: first minimized fixture generated and reviewed
 
 The handoff adds minimize_l5x.py, dummy/model.py, dummy/selection.py and
 dummy/build.py under tools/l5x_inspect/, plus test_minimize_l5x.py, MINIMIZE.md
@@ -153,7 +153,9 @@ Default outputs:
 - public/fixtures/minimized/controller_demo.L5X
 - public/fixtures/minimized/minimized-report.json
 
-Default --per-variant 5 samples consecutive equivalent local runs. Mandatory
+The initial policy-1 --per-variant 5 sampled consecutive equivalent local runs.
+The reviewed policy-2 handoff counts first N occurrences per variant under each
+retained parent, including interleaved variants. Mandatory
 anchors retain the first occurrence of every global local variant, the ranked
 ladder examples, every instruction label (including masked ones), and all needed
 ancestors. Selected ladder Rung subtrees are retained completely. Retained
@@ -195,13 +197,142 @@ Validation completed:
   and preserved depth 4, 49-leg maximum, 59-lane height and width 18.
 - No confidential export was opened and no repository/Git writes occurred.
 
-Actual Stage 5 retained counts and output size remain unknown. The unchanged
-source should still report 83,942 elements, 194 paths and 4,606 ladder rungs.
-Immediate next step: Tyler copies the additions, runs 118 tests, runs
-minimize_l5x.py on the local original, and returns the console summary. Codex
-then reads the two generated public files, reviews sampling and replacements,
-and makes the next bounded correction. Do not claim a real-input run before it
-happens or expand semantic conversion work before reviewing this first result.
+Actual Stage 5 run and public-output review are complete.
+
+Tyler passed all 118 tests locally (0.057 seconds), committed the helpers and
+earlier reviewed public reports as 6c50244, and successfully pushed main to
+origin/main. The push created the remote branch and set tracking. The new
+minimized files were generated afterward; no subsequent commit/push was reported.
+
+The real-input generator reported:
+- 44,545 of 83,942 elements retained; 39,397 omitted.
+- 194 of 194 XML paths and 431 of 431 local variants represented.
+- 2,397 of 4,606 ladder rungs retained, covering 458 of 554 source shapes.
+- All 42 encountered instruction labels represented, including the masked one.
+- 4,171 opaque payload replacements, 107 ST-line replacements and 12 mixed-text
+  replacements among retained elements.
+- Generated XML 4,078,792 bytes; companion report 14,379,883 bytes.
+
+Codex read the two public files and ran a read-only audit, without opening the
+confidential original. The generated XML hash matches its report. Every one of
+44,545 output/source occurrence links was verified against the full blank
+skeleton, including unchanged element names and attribute-name sets. All 194
+per-path source/retained/omitted counts reconcile with the earlier reports and
+actual output. All 2,397 rung source records, metadata, shapes and metrics match
+the Stage 4 report. All 19 ranked source examples and 42 instruction labels remain.
+Maxima remain depth 4, 49 direct legs, 59 lanes and width 18. All 108,252 output
+attributes were checked against the stated public/dummy value categories, with
+zero findings. All 13,131 nonblank direct text fields, including whole ladder
+operands, passed their replacement-policy checks.
+
+These checks verify output structure, provenance and stated replacement policies;
+they do not establish instruction semantics, coherent runtime references, Studio
+import validity or a general confidentiality certification. Public source/output
+ordinal locators apply to this source ordering only.
+
+## Stage 5 review corrections: installed and verified by user
+
+The independent review confirmed two issues. See
+public/docs/reviews/STAGE_5_CODE_REVIEW.md and
+public/inspection/stage_5_corrections.json for original file/line evidence.
+
+1. The sampler reset its quota between consecutive variant runs. It now counts
+   the first N occurrences of each variant across each retained parent.
+   Mandatory anchors and their ancestors, full selected rung subtrees, global
+   path/local-variant coverage, ranked examples, instruction representatives,
+   source ordering and occurrence mappings are retained.
+2. Skeleton publication checked counts/text but could accept nonblank attributes.
+   parse_structure now has an opt-in require_blank_attributes gate, enabled when
+   create_skeleton verifies its completed output. A failing gate prevents
+   publication without printing the unexpected value.
+
+The new minimized report uses schema_version 2 and policy_version 2.
+selection.per_parent_variant_limit replaces per_consecutive_variant_run.
+Other report schemas are unchanged. Variant identity itself is unchanged;
+retained parents may lose entire later child-name runs when redundant examples
+are omitted. The full blank skeleton remains the authority for complete nesting.
+
+Twelve new tests were run against the unchanged helpers first: four expected
+failures established the two quota cases, version contract and skeleton gate.
+After the bounded correction, all 130 tests passed in 0.182 seconds. Existing
+count, parser, sanitizer and publication tests also passed. Tests use memory
+and mocks, with Python -B; no workspace writes or confidential reads occurred.
+
+The existing policy-1 public pair was freshly audited: 44,545 links, 2,397 rung
+records/shapes/metrics, 194 paths, 431 variant IDs, all 19 source ranked samples,
+42 instruction labels, counts, source order, full retained rung descendants and
+replacement policies reconciled. The actual public skeleton also passed strict
+blank-attribute verification; no existing retained attribute value was found.
+
+A separate in-memory re-minimization of the existing public fixture retained
+7,303 of 44,545 elements and 276 of 2,397 rungs. It preserved 194 paths, 431
+variants, 19 rankings selected for that public input, all 42 instruction labels
+and maxima depth 4 / direct legs 49 / height 59 / width 18. Every retained source
+link and rung tree was checked. These are public-fixture integration counts;
+that check did not regenerate the original confidential source. The subsequent
+user-run original-source results are recorded below; keep the two evidence
+sources distinct.
+
+The handoff files are under the task outputs/l5x-inspect-stage-5-fixes directory.
+Tyler has installed them; both pre/post-install verification checks passed.
+Codex did not install files in the repository. COPY_AND_RUN.md contains bounded
+backup/copy commands. verify_handoff.py checks all destination code/document
+hashes before replacement and detects skipped/changed files after installation.
+It handles line-ending differences only, not other edits. The package also
+contains unchanged helper snapshots for task-local tests; copy only the paths
+listed in install-files.txt, never the whole snapshot.
+
+## Policy-2 original-source run and public review: complete
+
+Tyler supplied the completed install/test/generation/audit output. Both checks
+verified 13 handoff files and 12 dependencies. All 130 tests passed in 0.061
+seconds. The original-source run produced public/fixtures/minimized_review.
+Codex read that public JSON and generated XML bytes, confirmed schema/policy 2,
+reconciled the report summary and independently verified its generated-file hash.
+Codex did not open the confidential original or repeat the production run.
+
+Actual original-source coverage:
+- 7,303 of 83,942 elements retained; 76,639 omitted.
+- 194/194 XML paths and 431/431 local variants represented.
+- 276 of 4,606 rungs retained, representing 161 of 554 ladder shapes.
+- All 19 ranked source examples and 42 instruction labels preserved.
+- Maxima unchanged: branch depth 4, direct legs 49, height 59, width 18.
+- 204 opaque payload, 78 ST-line and 11 mixed-text replacements retained.
+- Output: 18,539 attributes; 1,493 nonblank text-bearing elements;
+  1,016 CDATA-bearing elements; XML depth 14.
+- XML 714,140 bytes; JSON 2,854,812 bytes.
+
+The user's public checker returned PASS: generated XML hash matches; all 7,303
+occurrence links and 276 rung shape/metric pairs verified; all required path,
+variant, ranked-example and instruction-label coverage accounted; zero attribute
+policy findings; all 1,493 nonblank text fields passed policy checks.
+These are user-run checker results plus Codex's direct public-report/hash review.
+
+The previously oversized parent/variant group fell from 614 retained rungs to 7.
+Codex inspected their recorded source locators and mandatory selection reasons:
+first five ordinary examples plus one CTU and one RES instruction representative.
+The two extra examples are intentional quota exceptions, not counter resets.
+
+The fixture is representative, not complete ladder-pattern coverage. The full
+rung-structure.json retains all 554 shape records and all 4,606 rung occurrences.
+Keep the policy-1 minimized folder as a comparison until a separate cleanup is
+chosen. No helper code changed after the 130-test review checkpoint.
+
+See public/inspection/stage_5_run_review.json for the portable result record.
+
+## Next bounded step: documentation checkpoint and Git review
+
+Copy the updated handoff and stage_5_run_review.json from the task
+outputs/l5x-inspect-stage-5-run-review directory. Then Tyler should fetch origin
+and return git status and ahead/behind evidence before commit/push instructions.
+No new commit/push is reported. The earlier successful main push is the last
+confirmed remote event; Codex has not fetched or modified Git.
+
+Generated references, array dimensions/indices, sampled SFC graphs and opaque/ST
+payload placeholders remain outside semantic validity. Two output files are
+individually atomic, not a transaction. GUI, translation and DeltaV conversion
+remain deferred. Next development scope should be chosen after this checkpoint;
+do not start another broad implementation automatically.
 
 ## Stage 3 report contract
 
@@ -260,7 +391,7 @@ values before interpreting payloads; a Data count is not a tag count.
 | Nested counts JSON | User-run report inspected; totals reconciled |
 | Full blank XML skeleton | Complete public skeleton independently verified against Stage 1 |
 | Type/value profile | User run and public JSON reviewed; accounting reconciled |
-| Minimized dummy L5X | Stage 5 helper tested; actual user run/output inspection pending |
+| Minimized dummy L5X | Policy-2 original-source run and public audit passed; 276 sampled rungs with required coverage |
 
 Full skeleton: preserve every element, repeated instance, sibling order and
 attribute name; blank all values, including Number, Type and DataType.
@@ -332,7 +463,7 @@ DeltaV FHX conversion is deferred. Target library/version, mapping semantics,
 execution behavior, acceptance tests, and the conversion design are not chosen.
 No PLC download or runtime change is part of this work.
 
-Earlier planning remains under `docs/planning/`: ARCHITECTURE, DATA_CONTRACTS,
+Earlier planning remains under `public/docs/planning/`: ARCHITECTURE, DATA_CONTRACTS,
 CLI_AND_REVIEW, L5X_STRUCTURE, ROADMAP, CONFIDENTIALITY, and DECISIONS. Treat it as
 a proposal subject to actual-structure findings and the staged sequence above.
 
@@ -340,8 +471,12 @@ a proposal subject to actual-structure findings and the staged sequence above.
 
 Stages 3 and 4 results are recorded above. Stage 4 user tests and source run
 succeeded, and Codex inspected the generated public report. The first minimized
-L5X generator is now implemented/tested in the Stage 5 handoff; actual user run
-and output inspection remain pending.
+L5X generator has now passed the user run and public-output audit. The code
+checkpoint was pushed; generated outputs have no reported subsequent push.
+Fresh review corrections are installed by Tyler. Policy-2 original-source
+generation and the public checker passed; Codex reviewed the generated public
+report/hash and mandatory exceptions. Documentation checkpoint and user-run Git
+review are next; no new commit/push has been reported.
 Keep user-reported runs distinct from inspected output and semantic validation.
 
 After each slice, update:

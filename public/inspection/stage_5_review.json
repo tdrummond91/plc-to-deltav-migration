@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "stage": "stage_5_review",
+  "reviewed_date": "2026-10-09",
+  "status": "public_output_audit_passed",
+  "evidence": {
+    "user_tests": {
+      "count": 118,
+      "result": "OK",
+      "seconds": 0.057
+    },
+    "user_run": "PASS",
+    "user_git_push": {
+      "commit": "6c50244",
+      "branch": "main",
+      "tracking": "origin/main",
+      "succeeded": true
+    },
+    "confidential_original_read_by_codex": false
+  },
+  "generated_files": {
+    "xml": "public/fixtures/minimized/controller_demo.L5X",
+    "report": "public/fixtures/minimized/minimized-report.json",
+    "xml_bytes": 4078792,
+    "report_bytes": 14379883,
+    "xml_sha256": "c349165f4eea6d95d0e1cd69c95769422d3d6007d1bf948737fe819de12fe36d",
+    "hash_matches": true
+  },
+  "coverage": {
+    "source_elements": 83942,
+    "retained_elements": 44545,
+    "omitted_elements": 39397,
+    "source_paths": 194,
+    "retained_paths": 194,
+    "source_ladder_rungs": 4606,
+    "retained_ladder_rungs": 2397,
+    "retained_ladder_shapes": 458,
+    "source_ladder_shapes": 554,
+    "comments_ignored": 0,
+    "processing_instructions_ignored": 0
+  },
+  "output_totals": {
+    "element_occurrences": 44545,
+    "attribute_occurrences": 108252,
+    "distinct_element_paths": 194,
+    "elements_with_text": 13131,
+    "elements_with_cdata": 12402,
+    "max_depth": 14
+  },
+  "attribute_actions": {
+    "literal_replaced": 32428,
+    "identifier_replaced": 18415,
+    "technical_literal_retained": 54073,
+    "datatype_masked": 939,
+    "rung_number_retained": 2397
+  },
+  "text_actions": {
+    "free_text_replaced": 5545,
+    "element_text_replaced": 899,
+    "opaque_payload_replaced": 4171,
+    "empty_preserved": 84,
+    "mixed_text_replaced": 12,
+    "ladder_operands_replaced": 2397,
+    "structured_text_replaced": 107
+  },
+  "unsupported_retained_content": {
+    "opaque_payload_replaced": 4171,
+    "mixed_text_replaced": 12,
+    "structured_text_replaced": 107
+  },
+  "audit": {
+    "source_output_links_verified": 44545,
+    "path_count_equations_verified": 194,
+    "variant_ids_accounted": 431,
+    "source_rung_records_and_shape_metric_pairs_verified": 2397,
+    "ranked_examples_present": 19,
+    "instruction_labels_present": 42,
+    "output_attributes_policy_checked": 108252,
+    "attribute_policy_findings": 0,
+    "nonblank_direct_text_policy_checked": 13131,
+    "text_policy_findings": 0,
+    "maxima": {
+      "max_branch_depth": 4,
+      "max_legs_in_group": 49,
+      "height_lanes": 59,
+      "width_instructions": 18
+    },
+    "read_only": true
+  },
+  "findings": [
+    {
+      "kind": "minimization_improvement",
+      "code": "quota_resets_per_consecutive_run",
+      "evidence": {
+        "per_run_limit": 5,
+        "retained_same_variant_under_one_parent": 614,
+        "variant_id": 376,
+        "parent_locator": "/RSLogix5000Content[1]/Controller[1]/Programs[1]/Program[1]/Routines[1]/Routine[14]/RLLContent[1]"
+      },
+      "recommendation": "Review a per-parent/per-variant quota while retaining coverage anchors, source order, full selected rungs and provenance."
+    }
+  ],
+  "limits": [
+    "No confidential original was opened; checks used earlier public reports, the full blank skeleton and generated dummy files.",
+    "This is structural/provenance/replacement-policy validation, not Studio import or execution validation.",
+    "Replacement-policy checks are not a general confidentiality certification.",
+    "Generated outputs were produced after the confirmed GitHub push; no later commit/push was reported."
+  ],
+  "next": "Fresh Astra High review using ASTRA_REVIEW_PROMPT.md, then bounded corrections and user regeneration."
+}

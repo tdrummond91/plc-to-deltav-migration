@@ -56,19 +56,18 @@ def select_nodes(nodes: list[Node], report: dict, per_variant: int) -> tuple[set
         node = nodes[index]
         keep.add(index)
         whole_rung = whole_rung or node.path.endswith("/RLLContent/Rung")
-        previous = None
-        run_count = 0
+        occurrences: Counter[int] = Counter()
         for child in node.children:
             variant = nodes[child].variant
-            run_count = run_count + 1 if variant == previous else 1
-            previous = variant
-            # Sample consecutive equivalent runs; retain ordering and rare anchors.
-            if whole_rung or child in keep or run_count <= per_variant:
+            occurrences[variant] += 1
+            # First N occurrences per variant under this parent, even if interleaved.
+            # Mandatory anchors are additional; full selected rungs bypass the quota.
+            if whole_rung or child in keep or occurrences[variant] <= per_variant:
                 visit(child, whole_rung)
 
     visit(0)
     return keep, {
-        "per_consecutive_variant_run": per_variant,
+        "per_parent_variant_limit": per_variant,
         "local_variants": len(variants),
         "retained_local_variants": len({nodes[i].variant for i in keep}),
         "mandatory_selections": [

@@ -72,3 +72,24 @@ any publication error before using a report left from an older attempt.
 Tyler copies only the new addition, runs the combined tests and the helper,
 then returns the console summary. Inspect both public outputs before expanding
 the replacement policy or changing sampling.
+
+## Policy-2 code review, 2026-10-09
+
+Two confirmed findings and code references are recorded in
+public/docs/reviews/STAGE_5_CODE_REVIEW.md. The sampler now applies a quota per
+parent/variant. Skeleton publication independently rejects nonblank attributes.
+All 130 tests passed in 0.182 seconds, including 12 new review regressions.
+The new tests were run against the old implementation first; four failed as
+expected before the correction. One previous A/B/A sampling expectation was
+updated to the new A/B quota behavior.
+
+The existing public pair passed a fresh counts/provenance/rung/policy audit.
+In-memory re-minimization of that public fixture retained 7,303 of 44,545 elements
+and 276 of 2,397 rungs, retaining 194 paths, 431 variants, 19 public-input rankings,
+42 instruction labels and maxima depth 4 / legs 49 / height 59 / width 18.
+This was not a run on the confidential source. Original-source policy-2
+regeneration remains user-operated and pending.
+
+check_public_outputs.py supplies a portable, read-only check against the earlier
+public reports and full blank skeleton. It accepts minimized (baseline) or
+minimized_review (new run) and must be run without Python -O.

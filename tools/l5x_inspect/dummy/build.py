@@ -100,7 +100,7 @@ def build_fixture(source: BinaryIO, per_variant: int = 5, top: int = 5, seed: in
     selected = set(retained_rungs)
     rung_records = [r for r in rung_report["rungs"] if r["locator"] in selected]
     report = {
-        "schema_version": 1, "stage": "minimized_fixture", "policy_version": 1, "seed": seed,
+        "schema_version": 2, "stage": "minimized_fixture", "policy_version": 2, "seed": seed,
         "status": "structural_fixture_verified",
         "output_sha256": hashlib.sha256(xml.encode("utf-8")).hexdigest(),
         "source_totals": rung_report["source_totals"],
@@ -122,7 +122,7 @@ def build_fixture(source: BinaryIO, per_variant: int = 5, top: int = 5, seed: in
             if action in {"opaque_payload_replaced", "structured_text_replaced", "mixed_text_replaced"}
         },
         "policies": {
-            "sampling": "First N in each consecutive local-variant run, plus first occurrence of every global local variant, ranked rungs and instruction representatives; ancestors included.",
+            "sampling": "First N occurrences of each local variant per retained parent, plus first occurrence of every global local variant, ranked rungs and instruction representatives; ancestors included. Complete selected rung subtrees bypass the quota.",
             "variant": "XML path, attribute names/categories, approved technical values or masked datatype identity, collapsed ordered child-name runs, text/CDATAness and text action. Not complete subtree equivalence.",
             "ladder": "Retained rung subtrees are complete; whole operands replaced using Stage 4. Number/approved Type retained.",
             "identifiers": "Exact whole identifier/reference strings share dummy IDs in this run; no scope/member/reference resolution. Ladder ARG IDs are separate per rung.",

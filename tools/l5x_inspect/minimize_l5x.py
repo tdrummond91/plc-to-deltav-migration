@@ -29,7 +29,7 @@ def main() -> int:
                         default=Path(__file__).resolve().parents[2] / "public" / "fixtures" / "minimized",
                         help="Directory for controller_demo.L5X and minimized-report.json.")
     parser.add_argument("--per-variant", type=sample_count, default=5,
-                        help="Examples per consecutive equivalent XML run (default: 5); mandatory coverage may exceed this.")
+                        help="Examples per local XML variant under each retained parent (default: 5); mandatory coverage and full selected rungs may exceed this.")
     parser.add_argument("--top", type=sample_count, default=5,
                         help="Distinct ladder shapes per ranking (default: 5).")
     parser.add_argument("--seed", type=int, default=0,

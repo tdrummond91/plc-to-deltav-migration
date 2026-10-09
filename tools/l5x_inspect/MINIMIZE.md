@@ -1,4 +1,4 @@
-# Stage 5: first minimized L5X example
+# Stage 5: minimized L5X example (policy 2)
 
 This standalone helper follows the inspected structure counts, full blank skeleton,
 value profile and ladder report. It reads the original local export and produces:
@@ -38,8 +38,10 @@ metadata or ladder text from which this helper can select and substitute.
 
 ## Selection
 
-Default --per-variant 5 keeps up to five examples in each consecutive run of
-equivalent local XML structures under a retained parent. It also keeps:
+Default --per-variant 5 keeps the first five occurrences of each local XML
+variant under each retained parent, including when variants are interleaved.
+Mandatory selections within those first five count toward the ordinary quota.
+It also keeps:
 
 - the first occurrence of every observed local variant anywhere in the export;
 - the top five distinct ladder shapes for each Stage 4 ranking;
@@ -47,8 +49,8 @@ equivalent local XML structures under a retained parent. It also keeps:
 - ancestors needed to preserve original nesting;
 - every descendant of a selected ladder Rung.
 
-The limit is not a global five-per-element cap. Mandatory coverage can exceed
-five, and differently structured runs can each contribute examples. Reduce
+The limit is not a global five-per-element cap. Mandatory coverage and complete
+selected rung subtrees can exceed five; each retained parent has its own quota. Reduce
 --per-variant to 1 in a separate attempt if the first result is too large:
 
 ~~~bash
@@ -57,7 +59,15 @@ uv run --project python-parser python -B tools/l5x_inspect/minimize_l5x.py \
   --per-variant 1 --output-dir public/fixtures/minimized_one
 ~~~
 
-Do not adjust sampling before the first output is inspected.
+Policy 2 fixes the policy-1 counter reset between consecutive groups. A sequence
+A, B, A, B with limit 1 now retains A, B unless later entries are mandatory.
+Retained siblings stay in their original relative order; omitted interleaving
+is available in the full blank skeleton. The minimized file does not preserve
+every original child-name run or every ladder shape.
+
+The minimized report now has schema_version 2 and policy_version 2. The selection
+field is per_parent_variant_limit; per_consecutive_variant_run is retired.
+Earlier stage report schemas are unchanged.
 
 A local variant uses the XML path, attribute names and broad value categories,
 approved technical values or masked datatype identity, the ordered child-name
@@ -127,8 +137,9 @@ existing report. A fatal parse/generation error occurs before publication.
 ## Expected first run and limits
 
 For the unchanged inspected export, source coverage should be 83,942 elements,
-194 paths and 4,606 ladder rungs. The retained counts are unknown until Tyler runs
-this helper on the real local source. It recomputes the rung inventory rather
+194 paths and 4,606 ladder rungs. The policy-1 result retained 44,545 elements
+and 2,397 rungs. Policy-2 original-source retained counts remain pending a user
+run. It recomputes the rung inventory rather
 than trusting a stale saved report.
 
 PASS means the structural fixture and its coverage counts were verified. This
@@ -144,3 +155,19 @@ Inspect size, path/variant coverage, dummy values, complex ladder examples,
 provenance links and unsupported-content counts. Then make bounded corrections
 based on that result. General ASCII rendering, reference resolution, SFC/ST
 interpretation and DeltaV conversion remain separate later work.
+
+## Verify regenerated public files
+
+Run the project-specific read-only cross-check after generation:
+
+~~~bash
+uv run --project python-parser python -B tools/l5x_inspect/check_public_outputs.py \
+  --repo . --fixture-name minimized_review
+~~~
+
+This checks the pair against public/xml-skeleton.XML and the three earlier public
+JSON reports. Use minimized for the policy-1 baseline. It verifies generated XML
+hash, field categories, counts, source order, full retained rung subtrees,
+mandatory selections, source/output links, rung metrics and ranked examples.
+It writes no files and never opens confidential/. Run without Python -O.
+A passing check establishes these structural contracts, not Studio validity.

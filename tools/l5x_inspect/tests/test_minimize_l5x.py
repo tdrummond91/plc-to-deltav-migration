@@ -73,9 +73,9 @@ class MinimizedFixtureTests(unittest.TestCase):
                 self.assertEqual(row[f"source_{kind}"], row[f"retained_{kind}"] + row[f"omitted_{kind}"])
         self.assertEqual(report["coverage"]["omitted_elements"], 17)
 
-    def test_consecutive_runs_keep_original_order(self):
+    def test_retained_children_keep_original_order(self):
         xml, _ = create('<Items>' + '<A/>' * 10 + '<B/>' + '<A/>' * 10 + '</Items>', per_variant=1)
-        self.assertEqual([e.tag for e in ET.fromstring(xml).find(".//Items")], ["A", "B", "A"])
+        self.assertEqual([e.tag for e in ET.fromstring(xml).find(".//Items")], ["A", "B"])
 
     def test_ranked_tall_and_wide_rungs_preserved(self):
         body = rung("XIC(SECRET_A)OTE(SECRET_B);", 0) * 10
