@@ -1,6 +1,6 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-12. Current activity: **scope discovery on chore/project-scope-review-pc; five product phases confirmed, next implementation slice not yet selected**.
+Updated 2026-10-12. Current activity: **code and scrubbed-fixture review complete; snapshot-bound source inventory proposed as the next Phase 1 slice on chore/project-scope-review-pc**.
 
 ## Current scope and PC checkpoint (2026-10-12)
 
@@ -44,8 +44,9 @@ bounded summary reports and stripped dummy ladder examples for development;
 these should not enable reconstruction of the complete process.
 
 On this editing PC, origin was fetched and main matched origin/main at bafc410.
-Created local branch chore/project-scope-review-pc as requested. This scope
-checkpoint is intended as one documentation commit; use git log/status for the
+Created local branch chore/project-scope-review-pc as requested. Scope was
+recorded in 3ade905 and sequential-review preference in e8a1ede; subsequent
+clarifications are separate documentation commits. Use git log/status for the
 current commit/push state. All 130 helper tests passed, and the read-only
 minimized_review audit passed (7,303 source links, 276 rung records, 194 paths,
 431 variants). No confidential source was read. Changes in this scope discussion
@@ -55,6 +56,24 @@ Scope-document validation: reviewed the changed requirements/proposals, checked
 the referenced local review entry point, and passed git diff --check. The helper
 test/audit results above are from the initial repository inspection in this
 session; documentation changes did not trigger a repeated test run.
+
+After Tyler requested code/fixture examination and invited subagents, independent
+validation, parser review and design-readiness review checked the unchanged
+implementation again. Fresh results: 130 tests passed (0.077 seconds), the
+minimized_review public audit passed, and the synthetic fixture checker passed
+including l5x tag access. No stable-input blocker was established within the
+documented outer-syntax/metrics contract. Allocation limits, sanitized-opcode
+round-trip assumptions and changing-input protection need explicit treatment
+as the reader evolves. Exact probes, commands and limitations are recorded in
+docs/reviews/NEXT_DEVELOPMENT_PROMPT.md.
+
+The recommended next slice is one private snapshot-bound source inventory,
+selected-rung evidence and gap reporting, with JSON/readable views over shared
+records. Current scrubbed fixtures validate structural breadth but not source
+relationships: the minimized sample retains 276/4,606 rungs and 161/554 shapes,
+with per-rung ARG identities. Use coherent independent synthetic cases for future
+reference tracing. This review does not select the GUI, database or final PCSD
+schema, and no new parser/application implementation has begun.
 
 A separate ChatGPT chat will review the work. Keep focused conventional commits,
 decision rationale, useful code comments and reproducible validation notes. Read
