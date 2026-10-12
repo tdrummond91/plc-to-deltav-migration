@@ -35,7 +35,63 @@ def build_parser() -> argparse.ArgumentParser:
             "Omit to write only stdout."
         ),
     )
+    summarize = commands.add_parser(
+        "summarize",
+        help="Generate a bounded count summary candidate for review before sharing.",
+        description=(
+            "Capture and analyze one local L5X, then emit only the approved summary "
+            "schema. This is a counts-only candidate; review it before sharing. "
+            "No raw source identifiers, paths or logic belong in this summary."
+        ),
+        epilog=(
+            "Example: plc summarize example.L5X --output confidential/summary.json. "
+            "Omit --output for JSON on stdout. Shell redirection is outside path checks. "
+            "Exit codes: 0 complete structural report, 1 failure, 2 usage, 3 partial coverage."
+        ),
+    )
+    summarize.add_argument("file", type=Path, help="Local L5X input; never modified.")
+    summarize.add_argument(
+        "--output", type=Path,
+        help="NEW .json destination; existing files and symlinks are never overwritten.",
+    )
     return parser
+
+
+def _summarize(args: argparse.Namespace) -> int:
+    from .revision import collect_revision
+    from .source import SourceError, analyze_snapshot, capture_snapshot
+    from .summary import SummaryError, build_summary, render_summary
+    from .summary_output import SummaryOutputError, publish_summary
+
+    try:
+        snapshot = capture_snapshot(args.file)
+        result = analyze_snapshot(snapshot)
+        summary = build_summary(result, revision=collect_revision())
+        rendered = render_summary(summary)
+        partial = result.status == "partial"
+        if args.output is None:
+            sys.stdout.write(rendered)
+        else:
+            publish_summary(args.output, rendered, input_path=args.file)
+            notice = (
+                "Saved summary candidate; status: partial. Review before sharing."
+                if partial else
+                "Saved summary candidate; status: complete. Review before sharing."
+            )
+            print(notice, file=sys.stderr)
+        return 3 if partial else 0
+    except SourceError:
+        # The source reader is also used by private inspection, whose error
+        # context may include operating-system diagnostics. The shareable
+        # summary boundary must not reflect any of that source context.
+        print("plc: Cannot read or analyze source; no summary was produced.", file=sys.stderr)
+        return 1
+    except (SummaryError, SummaryOutputError) as exc:
+        print(f"plc: {exc}", file=sys.stderr)
+        return 1
+    except OSError:
+        print("plc: Could not read or write a local stream.", file=sys.stderr)
+        return 1
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -45,6 +101,8 @@ def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
+    if args.command == "summarize":
+        return _summarize(args)
     # Delay analysis imports until help/usage handling has completed.
     from .reporting import ReportError, render_json, render_text
     from .source import SourceError, analyze_snapshot, capture_snapshot
