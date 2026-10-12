@@ -1,6 +1,6 @@
 # PLC analysis workbench
 
-Status: updated 2026-10-12. The first packaged source-inventory command is implemented on `feat/source-inventory-pc`, alongside the original prototype and inspection helpers. Validation: 29 application tests and 139 helper tests passed; one Windows symlink test skipped. Both public-fixture checks passed. The editor, engineering interpretation, PCSD and FHX stages remain planned.
+Status: updated 2026-10-12. Source inventory and bounded summary export are implemented on `feat/summary-export-pc`, alongside the original prototype and inspection helpers. Validation: 56 application tests and 139 helper tests passed; one Windows symlink test skipped. The editor, engineering interpretation, PCSD and FHX stages remain planned.
 
 The aim is a reusable tool for migrating several units from L5X source analysis through editable engineering records and PCSD to class-based DeltaV FHX. FHX input must also support producing a PCSD. Phase 1 analyzes L5X in two parallel paths: reports for reading and understanding the source, and editable engineering files for organizing and mapping it. Both need source traceability. Other routine languages, including SFC, remain visible even before detailed analysis is implemented.
 
@@ -50,7 +50,9 @@ The first available command is `plc inspect`, installed from `python-parser/`:
 uv run --project python-parser plc inspect public/fixtures/synthetic/controller_demo.L5X
 ```
 
-This fixture intentionally returns exit 3 (partial) because SFC interpretation is not implemented. See [command usage and private run storage](python-parser/README.md) and [implementation/review evidence](public/docs/reviews/SOURCE_INVENTORY_REVIEW.md). JSON and readable reports use the same snapshot-bound records. Outputs retain private source data; this command is not a public-report scrubber. Other commands in the planning documents remain proposals.
+This fixture intentionally returns exit 3 (partial) because SFC interpretation is not implemented. See [command usage and private run storage](python-parser/README.md) and [source-inventory review](public/docs/reviews/SOURCE_INVENTORY_REVIEW.md). JSON and readable reports use the same snapshot-bound records. `inspect` retains private source data; it is not a public-report scrubber.
+
+For bounded aggregate feedback, `plc summarize FILE --output NEW.json` emits only reviewed-schema counts and global measurements. Unknown labels are pooled; source identifiers, hashes, operands, paths and rung layouts are omitted. Keep the candidate private until locally reviewed. Follow [the work-machine procedure](public/docs/reviews/WORK_MACHINE_SUMMARY_RUN.md), and see [summary implementation evidence](public/docs/reviews/SUMMARY_EXPORT_REVIEW.md). Other planned commands remain proposals.
 
 Unit test source belongs in `python-parser/tests/`. Logs, test run output, reports, reviewer workbooks, source snapshots, and checkpoints belong under `confidential/`. Real data must not be placed in synthetic fixtures or application documentation.
 

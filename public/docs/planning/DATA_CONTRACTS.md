@@ -1,6 +1,38 @@
 # Data contracts, traceability, and checkpoints
 
-Status: updated 2026-10-12. The private source inventory has an initial versioned contract below; the engineering/review contracts remain proposals.
+Status: updated 2026-10-12. The private source inventory and bounded aggregate summary have initial versioned contracts below; engineering/editable-review contracts remain proposals.
+
+## Implemented aggregate summary v1
+
+`plc_workbench.summary` builds and validates report_kind
+`l5x_aggregate_review_summary`, schema_version 1, policy_version 1 and
+exporter_version `aggregate-summary-1`. The accepted input is source-inventory-1.
+Its closed field vocabulary includes component counts, coverage dispositions,
+approved routine types, approved instruction totals, global ladder totals/maxima,
+diagnostic counts and fixed analysis limitations. Unlisted labels use pooled
+`withheld` counts, never stable unknown IDs. Missing routine Type is distinguished
+from a present but unlisted value. XML coverage includes only aggregate element/
+distinct-path counts, not path strings. Source identities and raw fields are absent.
+
+Strict nonnegative integer checks and cross-field accounting run before rendering
+or publication. Complete reports cannot hide unknown-severity diagnostics or
+unsupported executable coverage. Known parser measurement bounds are enforced.
+Serialized UTF-8 JSON is capped at 32 KiB; report cardinality does not grow with
+distinct unknown labels. `sharing_status=local_review_required` remains explicit.
+These checks enforce this policy, not general confidentiality of aggregate scale.
+
+`tool_revision` contains this code checkout's 40-hex Git commit plus `clean`,
+`modified` or `unavailable`. Unavailable requires a null commit. Modified checks
+tracked/untracked application sources and build/dependency metadata, not plant
+data. There is no source digest or caller-supplied revision option. An exported
+summary alone cannot identify which private L5X revision was used; retain that
+association locally if needed. This tradeoff deliberately limits cross-report
+source correlation. Never use the code commit as a source identity.
+
+Only the final `.json` is the published candidate. Exclusive hard-link publication
+avoids clobbering existing files. Temporary `.pending` files can remain after an
+interruption/cleanup failure and are not shareable results. See the
+[work-machine procedure](../reviews/WORK_MACHINE_SUMMARY_RUN.md).
 
 ## Implemented source inventory v1
 

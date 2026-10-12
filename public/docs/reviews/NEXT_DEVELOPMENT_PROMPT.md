@@ -1,4 +1,7 @@
-Read public/CODEX_HANDOFF.md and
+Read public/CODEX_HANDOFF.md,
+public/docs/reviews/SUMMARY_EXPORT_REVIEW.md and
+public/docs/reviews/WORK_MACHINE_SUMMARY_RUN.md for the current
+feat/summary-export-pc checkpoint. Then read
 public/docs/reviews/SOURCE_INVENTORY_REVIEW.md first for the implemented
 snapshot-bound source inventory on feat/source-inventory-pc, then
 public/docs/reviews/STAGE_5_CODE_REVIEW.md.
@@ -22,7 +25,7 @@ uv run --project python-parser python -B -m unittest discover \
 Current baseline: 139 passing helper tests. Also run:
 uv run --project python-parser python -B -m unittest discover -s python-parser/tests -v
 
-Application baseline: 30 tests run, 29 pass, one Windows symlink-capability skip.
+Application baseline: 57 tests run, 56 pass, one Windows symlink-capability skip.
 These and the minimized_review public audit passed locally on 2026-10-12.
 For documentation-only changes, review the diff and links; do not describe an old
 test run as fresh execution.
@@ -132,13 +135,14 @@ analysis follow this foundation. These enable later alarm, control-loop and
 equipment interpretation. GUI/database implementation, PCSD schema design,
 translation providers and FHX generation remain later work.
 
-## Recommended next slice
+## Completed aggregate slice and next action
 
-Define a bounded summary export from the new private inventory so Tyler can run
-one version-labelled work-machine check and return reviewed non-proprietary
-evidence. Current `plc inspect` output is private, not a scrubbed return report.
-After that, scoped symbol/alias and instruction-reference analysis can support
-engineering interpretation. Agree the next slice before expanding implementation.
+The bounded summary export is implemented as `plc summarize`. Follow the current
+work-machine procedure and inspect Tyler's returned, locally reviewed aggregate
+JSON before changing parser behavior based on real-export results. Do not request
+the private `plc inspect` output. Scoped symbol/alias and instruction-reference
+analysis can then support engineering interpretation; agree that next slice
+before expanding implementation.
 
 The historical allocation-limit finding above is fixed in the shared grammar.
 The new reader captures bytes once; the earlier two-pass public helper retains

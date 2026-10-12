@@ -1,8 +1,38 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-12. Current activity: **first snapshot-bound source inventory implemented and locally validated on feat/source-inventory-pc**. See [the implementation review](docs/reviews/SOURCE_INVENTORY_REVIEW.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-12. Current activity: **bounded summary export implemented and locally validated on feat/summary-export-pc**, including the earlier source inventory. See [the summary review](docs/reviews/SUMMARY_EXPORT_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_SUMMARY_RUN.md) and [command usage](../python-parser/README.md).
 
-## Source inventory checkpoint (2026-10-12)
+## Summary export checkpoint (2026-10-12)
+
+Tyler authorized building/testing the next slice and pushing it to GitHub for a
+work-machine run. This branch starts at 79d865f and includes the source-inventory
+commits. `plc summarize FILE [--output NEW.json]` reconstructs a fixed, bounded
+aggregate schema from one captured source inventory. It includes component and
+coverage counts, approved routine/instruction vocabulary, pooled withheld labels,
+global ladder measurements and diagnostic counts. It excludes source identities,
+hashes, names, paths, operands, layouts and per-occurrence records. Code revision
+metadata refers to the application checkout, not the source export.
+
+The summary is a local review candidate. Optional explicit output stays private
+inside this checkout, uses atomic no-clobber publication and does not save an
+L5X or raw inventory. Existing files remain untouched. Exit 3 means a usable
+partial-coverage summary was produced; it does not imply a failed save.
+
+Validation: 56 application tests passed plus one existing Windows symlink skip;
+all 139 helper tests passed. Installed-command checks against both public fixtures
+verified counts, unchanged inputs, no source hash in output, and preserved
+existing reports. Independent review findings about OS-error disclosure and
+impossible internal states were fixed and rechecked without remaining blockers.
+Exact tested revision and command evidence are in SUMMARY_EXPORT_REVIEW.md.
+
+Next action is Tyler's bounded work-machine run using the linked procedure.
+Return only the locally reviewed summary JSON and test outcome. No real-export
+run has occurred on this PC. Further symbol/alias analysis can follow the returned
+evidence; PCSD/FHX and editor implementation remain deferred. Git log/status and
+the branch's remote tip determine publication state; earlier no-push statements
+below are historical checkpoints.
+
+## Preceding source inventory checkpoint (2026-10-12)
 
 The feature branch starts at 3cfdb57 on chore/project-scope-review-pc; source
 implementation and validation are recorded at f9f61bc. The new

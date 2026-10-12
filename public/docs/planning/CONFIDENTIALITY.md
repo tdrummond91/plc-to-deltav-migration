@@ -1,6 +1,6 @@
 # Confidential data, synthetic examples, and Git
 
-Status: workflow proposal. The user has already moved the input folders under root `confidential/`. The user has copied files into a new project directory without .git; initialization is pending. Old repository history has not been audited.
+Status: updated 2026-10-12. Git initialization and the source inventory are implemented. The bounded aggregate-summary command is implemented on feat/summary-export-pc; later data exchange/redaction workflows remain proposals. No audit of the old repository's history is claimed.
 
 ## Current layout and output boundary
 
@@ -19,18 +19,18 @@ There is no need to rename or unpack the existing target backup for this plan. P
 
 All actual exports, working datasets, tag lists, glossary mappings, AI prompts/responses, checkpoints, reviewer spreadsheets, logs, and reports remain inside `confidential/`. This includes pseudonymized candidates until explicitly reviewed for sharing.
 
-The application resolves the workspace's real path and refuses outputs outside it, including through symlinks or `..`. Shared synthetic examples use a separate explicit development path and are never generated automatically from production data.
+Application workspaces and summary destinations resolve paths and restrict locations inside this checkout to confidential/. Explicit external private locations are also supported. Shared synthetic examples use an explicit development workflow and are never generated automatically from production data. These are local single-owner checks, not a security boundary against hostile concurrent filesystem changes; shell redirection is outside them.
 
-## Git ignore proposal
+## Git ignore rules
 
 Keep the user's single plant-data boundary:
 ```gitignore
 confidential/
 ```
 
-The supplied `.gitignore.proposed` adds ordinary Python caches, virtual environments, build artifacts, and local credential files. Those entries are software hygiene, not additional plant-data locations. It intentionally does not ignore all JSON/CSV/XML because schemas and independently synthetic fixtures must remain trackable.
+The root `.gitignore` also excludes ordinary Python caches, virtual environments, build artifacts, and local credential files. Those entries are software hygiene, not additional plant-data locations. It intentionally does not ignore all JSON/CSV/XML because schemas and independently synthetic fixtures must remain trackable.
 
-The root and nested ignore files both apply. The current python-parser/.gitignore contains uv.lock; replace that rule before the fresh baseline. Keep uv.lock, source code, tests, generic rules, and synthetic documentation tracked.
+The root and nested ignore files both apply. uv.lock, source code, tests, generic rules, and synthetic documentation are tracked; do not reintroduce a uv.lock ignore rule.
 
 Git ignore rules do not remove files that are already tracked or erase older commits. A file renamed into `confidential/` can still have a prior committed version. See the [Git ignore documentation](https://git-scm.com/docs/gitignore).
 
@@ -85,6 +85,15 @@ This is a review aid, not proof of confidentiality. Git ignore is not encryption
 
 ## Sharing modes
 
+Implemented aggregate feedback mode: `plc summarize` rebuilds a bounded fixed
+schema from generated counters. It omits source IDs/hashes, paths, raw fields,
+occurrence records and ladder topology; unknown instruction/language/diagnostic
+labels become pooled withheld counts. Known labels use explicit publication
+vocabularies. Counts and global measurements still reveal source scale, so the
+generated JSON remains in private storage until locally reviewed for sharing.
+The code commit in its metadata identifies software, not plant source data.
+See [the work-machine procedure](../reviews/WORK_MACHINE_SUMMARY_RUN.md).
+
 1. Schema-only inventory: element/attribute names, ordering, value kinds, and bounded shape examples. Omit literal values and counts unless needed and explicitly approved.
 2. Tag-only sample: tags can still reveal the process. Use invented identifiers and minimal synthetic descriptions unless the actual naming pattern is approved for disclosure.
 3. Pseudonymized structural slice: replace names consistently within a bounded sample, preserve only requested relationships, and keep the reverse mapping private.
@@ -105,7 +114,11 @@ Removing names alone does not hide plant logic. Branch topology, task rates, tim
 - Manual inspection of the exact candidate and a release manifest listing included files and remaining disclosure.
 - Do not call it risk-free or guarantee anonymization.
 
-No redaction implementation exists yet. For initial research, Tyler can supply independently dummy data with a small wrapper showing scope and order. Do not request a full confidential export in assistant context.
+The existing structural publication helpers and aggregate exporter have their
+own limited policies. The general relationship-preserving redaction workflow
+above is not implemented. For research, Tyler can supply independently dummy
+data with a small wrapper showing scope and order. Do not request a full
+confidential export in assistant context.
 
 ## AI translation data profile
 

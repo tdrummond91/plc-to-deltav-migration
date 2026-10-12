@@ -68,6 +68,22 @@ last. Preserve unfamiliar XML and report gaps rather than invent declarations
 from element names or claiming complete executable coverage. See
 [implementation review](../reviews/SOURCE_INVENTORY_REVIEW.md) for evidence.
 
+### Aggregate feedback implementation choices (2026-10-12)
+
+On feat/summary-export-pc, build the return report from a closed set of aggregate
+fields instead of redacting a copy of the private inventory. Reuse the existing
+instruction publication vocabulary, pool unknown labels and omit occurrence
+links/topology. Preserve structural partial status and explicit unimplemented
+semantics. Validate numeric types, reconciled totals and parser bounds before
+publishing a candidate capped at 32 KiB. Human review still determines whether
+the exact aggregate counts may be returned.
+
+Record the local code commit and code-worktree state without publishing a source
+fingerprint or private path. Use atomic no-clobber publication for an explicit new
+JSON destination; unsupported filesystems fail without an overwrite fallback.
+Tyler authorized the feature-branch push and bounded work-machine check. This
+does not authorize merging into main or publishing plant data.
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?

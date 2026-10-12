@@ -1,14 +1,53 @@
 # L5X source inventory
 
-This is the first read-only application slice. It captures one local L5X as
+`plc inspect` is the first read-only application slice. It captures one local L5X as
 immutable in-memory bytes, inventories source envelopes and scoped tags, and
 reports each rung's preserved text, outer syntax, instruction arguments, offsets
 and structural coverage. JSON and readable text use the same inventory records.
 
-All outputs are **private**: they can contain names, comments, raw ladder logic,
+All `inspect` outputs are **private**: they can contain names, comments, raw ladder logic,
 source hashes and identifiers. This command is not a scrubber. Keep real inputs
 and outputs in approved private storage; do not put them in `public/` or Git.
 The existing `tools/l5x_inspect/` publication helpers remain a separate workflow.
+
+## Bounded summary for feedback
+
+`plc summarize` applies a separate aggregate publication policy to the captured
+inventory. It contains approved count fields, routine-language and instruction
+totals, diagnostic counts and global ladder measurements. Unknown source labels
+are pooled into fixed withheld buckets. No source hashes, names, operands, XML
+paths, rung IDs or layouts are included. Reports still disclose aggregate scale
+and remain local review candidates, not automatic permission to publish.
+
+```bash
+uv run --project python-parser plc summarize "public/fixtures/synthetic/controller_demo.L5X"
+uv run --project python-parser plc summarize "confidential/plc-code/unit.L5X" \
+  --output "confidential/review-exports/summary-001.json"
+```
+
+Without `--output`, stdout is JSON. An explicit output creates a new UTF-8 JSON
+file and prints a fixed save notice to stderr. Existing files/symlinks are never
+overwritten, and output inside this checkout must remain under confidential/.
+Publication uses a temporary sibling plus an atomic no-clobber hard link; an
+unsupported filesystem fails without publishing the candidate. Normal local
+NTFS storage is covered by the tests; network-share support is not assumed.
+If temporary-file cleanup fails, a `.plc-summary-*.pending` file may remain.
+Only the requested final `.json` is the published candidate; a pending file is
+never a report to share.
+
+Summary schema/policy version 1 and exporter `aggregate-summary-1` accept only
+the source-inventory-1 contract. A complete validated report is capped at 32 KiB.
+All counts are strict nonnegative integers and reconcile across groups. Output
+cardinality does not grow with unrecognized source labels. The code revision
+comes from this application's checkout, with a clean/modified/unavailable flag;
+it is not a source-data fingerprint. Modified includes tracked or untracked
+application sources/build metadata; docs and plant inputs are excluded. The
+command never accesses a network for revision collection.
+
+Exit codes match `inspect`: 0 structural completion, 3 partial coverage with a
+usable candidate, 1 failure, 2 usage. Parsed syntax is not understood engineering
+purpose. See [the work-machine procedure](../public/docs/reviews/WORK_MACHINE_SUMMARY_RUN.md)
+for checkout, testing, generation and the exact artifact to return.
 
 ## Run from Git Bash
 
