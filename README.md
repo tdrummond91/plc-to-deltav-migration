@@ -1,8 +1,8 @@
 # PLC analysis workbench — planning draft
 
-Status: architecture plan and independently synthetic fixture, revision 0.2, 2026-10-08. The modular application described here has not been implemented. The existing Python reader remains the working prototype.
+Status: scope updated 2026-10-12. The Python reader and standalone L5X inspection helpers are implemented; the modular migration application remains planned. The latest local baseline passed 130 tests and the policy-2 public-fixture audit.
 
-The aim is to understand exported PLC projects, retain evidence, and guide an engineering review before any future conversion is designed. Initial work prioritizes ladder logic. Other routine languages, including SFC, remain visible in the inventory even before detailed analysis is implemented.
+The aim is a reusable tool for migrating several units from L5X source analysis through editable engineering records and PCSD to class-based DeltaV FHX. FHX input must also support producing a PCSD. Phase 1 analyzes L5X in two parallel paths: reports for reading and understanding the source, and editable engineering files for organizing and mapping it. Both need source traceability. Other routine languages, including SFC, remain visible even before detailed analysis is implemented.
 
 Start with [CODEX_HANDOFF.md](CODEX_HANDOFF.md). Read [the architecture](public/docs/planning/ARCHITECTURE.md), then [the implementation roadmap](public/docs/planning/ROADMAP.md).
 
@@ -15,7 +15,13 @@ Start with [CODEX_HANDOFF.md](CODEX_HANDOFF.md). Read [the architecture](public/
 - Show both the source hierarchy and relationships across rungs, programs, tasks, and controllers.
 - Treat translations, classifications, and equipment mappings as proposals with evidence and reviewer decisions.
 - Use AI-assisted Quebec French interpretation, with explicit data/provider configuration and a review queue. No translation service has been chosen.
-- Defer DeltaV FHX generation and any claim of behavioral equivalence.
+- Preserve approved corrections across stage reruns and reconcile changes to source objects.
+- Support the review cycle Tyler -> Quebec -> Tyler -> development team -> Tyler.
+- Include PCSD feedback, class-based FHX generation, and FHX-to-PCSD in the later project phases; their implementation remains deferred.
+- Synchronize non-proprietary tools and reviewed development examples across computers. Real inputs and private engineering state stay outside Git.
+- PCSD means Process Control Strategy Document and supports plant test-sheet generation. Determine its detailed contents from the L5X analysis before fixing its schema.
+- Prefer a standalone editor with search, change review, import/export and backups for non-programmers. Excel remains an exchange/fallback option; packaging and database choices are proposals.
+- Keep reviewable notes and focused commits for an independent reviewing chat. When work-machine feedback is slow, use comparable experiment branches from one baseline, each ending in -pc.
 
 ## Documentation map
 

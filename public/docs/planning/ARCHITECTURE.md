@@ -1,10 +1,10 @@
 # Architecture — source evidence, analysis, and review
 
-Status: proposed design, not implemented.
+Status: proposed design, updated 2026-10-12. The standalone inspection helpers exist; the application architecture below is not implemented.
 
 ## Central design
 
-Use one analysis library with a CLI adapter now and a GUI adapter later. Keep source facts, inferred findings, and human-approved decisions separate. The original export is the evidence; a normalized project model makes it convenient to query; review records explain changes in interpretation.
+Use one analysis library with a CLI adapter now and a preferred standalone editor later. Keep source facts, inferred findings, and human-approved decisions separate. The original export is the evidence; a normalized project model makes it convenient to query; review records explain changes in interpretation. L5X analysis feeds both user-readable investigation reports and editable engineering records used to build the PCSD.
 
 ```mermaid
 flowchart LR
@@ -13,19 +13,78 @@ flowchart LR
   M --> A["Analysis: inventory, references, patterns"]
   A --> F["Findings + coverage reports"]
   F --> CLI["CLI / ASCII / JSON reports"]
-  F --> GUI["Future GUI"]
-  F --> X["Review workbook"]
-  X --> V["Validated review import"]
+  M --> E["Engineering records + source bindings"]
+  F --> E
+  E --> GUI["Standalone editor / exchange files"]
+  GUI --> V["Validate changes and imports"]
   V --> D["Versioned human decisions"]
-  D --> A
+  D --> E
+  D -. approved rule updates .-> A
   M --> T["AI translation adapter"]
   T --> F
   F --> K["Immutable run checkpoint"]
   D --> K
-  K -. later .-> C["Reviewed target mapping / FHX exporter"]
+  E --> P["PCSD + plant test sheets"]
+  P -. corrections .-> V
+  E --> C["Class mapping / FHX exporter"]
+  I["FHX snapshot"] --> IR["Class-aware FHX reader"]
+  IR --> E
 ```
 
 The AI adapter is optional and explicitly configured. Parsing and ordinary reporting must work offline. CLI and GUI call the same services and use the same validation rules; neither owns a separate interpretation of the source.
+
+## PCSD discovery before schema design
+
+PCSD means Process Control Strategy Document. In the earlier MOD migration it
+used Excel and supported plant test-sheet generation for a DeltaV unit and
+simulation. The new PCSD content must follow what can be extracted and reviewed
+from L5X. These are discovery categories, not a finalized database schema:
+
+| Category | Information to investigate |
+|---|---|
+| I/O and communications | AI/AO/DI/DO, configured ranges/units where present, aliases, field connections, external references and communication inputs/outputs |
+| PID and selectors | PV/SP/output sources, selector conditions, master/slave relationships, control type/modes and flowchart connections |
+| Equipment | Valves, pumps and other device roles, commands, feedback, permissives and interlocks, with supporting source logic |
+| Alarms | Trigger/reset/delay behavior, warning or shutdown effects, affected objects and ranking evidence; missing external alarm definitions stay unresolved |
+| Calculations | Standalone Boolean and floating-point expressions, operands, results and dependencies relevant to DeltaV misc/bool logic |
+| Sequences | Source states, transitions and actions, plus proposed steps when the L5X does not already expose the desired target sequence |
+| Target organization | Reviewed assignment to classes, modules, units and execution locations, kept distinct from source program/routine grouping |
+| Test sheets | Reviewed preconditions, actions and expected outcomes linked to strategy objects; later observed test results remain separate from expectations |
+
+Do not infer a complete strategy from similar rung shapes. Preserve the evidence
+for extracted behavior and mark engineering-authored target strategy separately.
+Moving an object in the editor changes its organization, not its source locator.
+Detailed sequence design and the final PCSD layout remain open.
+
+## Editor and storage direction
+
+Tyler prefers a standalone editor with object search, source drill-down, change
+comparison, grouping/reassignment, import/export and backup/restore. Users should
+not need Python, SQL or programming knowledge. Excel remains a possible review,
+exchange and test-sheet format. Select the GUI toolkit after a small real workflow
+and its data contracts are demonstrated.
+
+Proposal: evaluate a local SQLite project store with versioned records, explicit
+change history and portable JSON/Excel exchanges. This revises the earlier idea
+that SQLite could only be a later search index; the canonical storage choice is
+not finalized. If selected, SQLite is the authoritative editor store and exports
+are versioned snapshots, not a second independently writable database. A local
+store plus validated handoff packages can support sequential reviews; concurrent
+returned copies need change reconciliation. A shared live server is a separate
+requirement, not assumed here.
+
+SQLite documents desktop application storage as an intended use and supplies a
+[backup API](https://www.sqlite.org/backup.html); its core is
+[public domain](https://www.sqlite.org/copyright.html). Review the
+[deployment/concurrency guidance](https://www.sqlite.org/whentouse.html) when
+choosing local storage versus a service. A database does not itself supply the
+project's review history or correction semantics; the application must do that.
+
+For Windows distribution, [PyInstaller](https://www.pyinstaller.org/en/stable/operating-mode.html)
+is one candidate that bundles Python and dependencies so users need no separate
+Python installation. Packaging is not implemented. Validate the eventual build
+on a target Windows machine without a development environment, including imports,
+reports, backup/restore and readable error messages.
 
 ## Repository and local-data layout
 
@@ -115,7 +174,7 @@ repository/
       share_candidates/             still confidential until reviewed
 ```
 
-This is a destination map, not a request to implement every file now. Begin with cli, services, models, one reader, inventory, and run storage. Split models into a package only when the records become large enough to warrant it.
+This is an earlier proposed destination map, not a request to implement every file now. Its JSON/run-directory layout must be reconciled with the editor storage decision before implementation; immutable source evidence and versioned exports remain requirements. Begin with cli, services, models, one reader and inventory. Split models into a package only when the records become large enough to warrant it.
 
 `artifacts/` is a chosen convention for generated results, not a Python-mandated name. Unit tests are code under `tests/`; generated test results belong under `confidential/`.
 
@@ -153,7 +212,7 @@ Results include diagnostic records. A GUI can subscribe to progress callbacks su
 - Existing `l5x` package behind a tag adapter where its behavior is useful. Do not let its incomplete coverage define the project model.
 - pytest and Ruff for development. Add property-based testing when the grammar is ready.
 - openpyxl when workbook round trips are implemented. No Excel automation is required.
-- Add Rich, NetworkX, a GUI toolkit, or SQLite only when a concrete need justifies them.
+- Evaluate SQLite for editor storage as described above. Add Rich, NetworkX and a GUI toolkit only when the selected workflow justifies them.
 
 Verify dependencies against synthetic exports and the actual supported Logix versions. The `l5x` package documents tag/program/module access and language limitations; it is not the complete analysis engine.
 

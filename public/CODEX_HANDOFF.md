@@ -1,12 +1,73 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-09. Current slice: **Stage 5 policy-2 installed, original-source run passed, public outputs reviewed; Git checkpoint next**.
+Updated 2026-10-12. Current activity: **scope discovery on chore/project-scope-review-pc; five product phases confirmed, next implementation slice not yet selected**.
+
+## Current scope and PC checkpoint (2026-10-12)
+
+Tyler confirmed a reusable migration tool for several units. The five product
+phases and workflow are recorded in docs/planning/ROADMAP.md and decisions D013-D023.
+L5X analysis has two parallel outputs: information/scanning reports for source
+understanding, and editable engineering files used to organize objects and build
+the PCSD. Both need links to the same source evidence. PCSD feedback, class-based
+FHX generation and FHX-to-PCSD are explicitly in the long-term scope.
+
+Review runs Tyler -> Quebec -> Tyler -> development team -> Tyler. Approved
+corrections must survive reruns. Changed, expanded, collapsed, split or combined
+objects require reconciliation rather than losing prior decisions.
+
+PCSD means Process Control Strategy Document. The earlier MOD-to-DeltaV workflow
+used Excel, which was accessible to users but difficult to organize and version.
+The PCSD supports generating plant test sheets for a DeltaV unit and simulation.
+Candidate content includes I/O, selectors, PID relationships/flowcharts,
+sequences/transitions, alarms, communications, external references, Boolean and
+floating-point calculations, valves and pumps. Source understanding comes first;
+the final PCSD content/schema is not settled. L5X sequences may require explicit
+engineering design, and source grouping is not automatically target unit/module
+or execution-location grouping.
+
+Tyler prefers a standalone editor with search, useful navigation, change review,
+import/export and backups, while retaining Excel if it proves useful. Design
+deployment for non-programmers without a separately installed Python runtime.
+SQLite as a local project store and PyInstaller-style Windows packaging are
+recommendations to evaluate, not installed components or confirmed selections.
+Whether reviewers work sequentially or return concurrently edited copies remains
+open; do not assume a shared live database or conflict-free imports.
+
+Only non-proprietary code/tools and reviewed development artifacts travel through
+Git. Real L5X files and private engineering state stay local. Tyler may supply
+bounded summary reports and stripped dummy ladder examples for development;
+these should not enable reconstruction of the complete process.
+
+On this editing PC, origin was fetched and main matched origin/main at bafc410.
+Created local branch chore/project-scope-review-pc as requested. This scope
+checkpoint is intended as one documentation commit; use git log/status for the
+current commit/push state. All 130 helper tests passed, and the read-only
+minimized_review audit passed (7,303 source links, 276 rung records, 194 paths,
+431 variants). No confidential source was read. Changes in this scope discussion
+are documentation only. Future PC development branches must end in -pc.
+
+Scope-document validation: reviewed the changed requirements/proposals, checked
+the referenced local review entry point, and passed git diff --check. The helper
+test/audit results above are from the initial repository inspection in this
+session; documentation changes did not trigger a repeated test run.
+
+A separate ChatGPT chat will review the work. Keep focused conventional commits,
+decision rationale, useful code comments and reproducible validation notes. Read
+docs/reviews/NEXT_DEVELOPMENT_PROMPT.md (relative to public/) for the review entry
+point. When work-machine turnaround is slow, Tyler may test up to three sibling
+experiment branches from a common baseline and return their comparable results.
+This is a workflow option, not a request to create three branches immediately.
+
+The sections below retain the earlier work-machine evidence and chronology.
+Their pending Git/checkpoint statements describe those earlier sessions, not
+this PC's current state. The five product phases are distinct from helper
+Stages 1-5 and the earlier technical implementation milestones.
 
 Tyler wants one small helper at a time: provide code, let him run it, inspect the
 result, then implement the next piece. Do not jump directly to a complete dummy
 generator or migration framework.
 
-## Current status
+## Historical inspection status (2026-10-09)
 
 - Stage 1: Tyler reported 19 tests passed and supplied the counts JSON. Its nested
   counts reconcile with 83,942 elements, 213,876 attributes, 194 paths and depth 14.

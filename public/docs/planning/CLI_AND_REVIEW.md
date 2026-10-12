@@ -2,6 +2,25 @@
 
 Status: interface proposal. The commands below are not yet implemented.
 
+## Preferred reviewer experience (2026-10-12)
+
+Prefer a standalone editor for non-programmers, distributed with its runtime so
+users do not install Python. Provide object search, hierarchy/source navigation,
+clear editable fields, change comparisons, grouping/moving objects, review queues,
+import/export and backup/restore. Keep the CLI for development and repeatable
+processing; both interfaces use the same services and validation rules.
+
+Excel was easy for users in the MOD migration but difficult to version and
+organize. It remains an exchange/fallback option. Workbooks and PCSD/test-sheet
+outputs should identify their source snapshot, analysis revision and decision
+revision so a returned edit can be compared with current work.
+
+PCSD means Process Control Strategy Document. Its detailed contents and generated
+plant test sheets follow L5X discovery and reviewed target strategy. Distinguish
+source-derived states/transitions from newly designed sequence steps. The editor
+must preserve source links when objects are renamed, regrouped or mapped to
+target modules/units.
+
 ## Command design
 
 Use subcommands instead of a growing mutually exclusive flag group. A subcommand is the named action after `plc`; for example, `plc tags` and `plc rung` have different arguments and help pages.
@@ -105,7 +124,10 @@ A proposal is not automatically accepted because a confidence score is high. A u
 
 ## Review workbook contract
 
-Use macro-free XLSX for people and JSON/JSONL for canonical state. The workbook is a review interface, not the database.
+When Excel is used, use macro-free XLSX as an exchange/review interface. Validate
+imports through the same decision services as editor changes. Canonical storage
+(local SQLite versus the earlier JSON-file proposal) is still to be selected;
+the workbook is not an independent authoritative store.
 
 Suggested sheets:
 - `Readme`: instructions, status choices, examples, and no-change meaning.

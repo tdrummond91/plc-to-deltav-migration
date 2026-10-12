@@ -1,6 +1,6 @@
 # Data contracts, traceability, and checkpoints
 
-Status: proposed contracts. Final schemas are implemented and versioned in Milestone 1.
+Status: proposed contracts, updated 2026-10-12. Final schemas are to be implemented and versioned in a selected development slice.
 
 ## Evidence, interpretation, decision
 
@@ -28,6 +28,40 @@ Rung Number alone is not stable: inserting a rung may renumber subsequent rungs.
 
 Across different exports, do not silently reuse entity IDs. Store a correspondence proposal with old ID, new ID, match method, evidence, ambiguity, and review decision. Confirmed correspondences support continuity; unmatched or ambiguous records remain visible.
 
+## Engineering objects and correction survival
+
+Add a persistent engineering-object identity distinct from snapshot-bound source
+entity IDs. One equipment object or sequence can refer to multiple source rungs;
+one rung can contribute to several engineering objects. Names, spreadsheet row
+numbers, UI folders and target unit assignments are attributes, not identity.
+
+Proposed correction records distinguish:
+
+- extraction/classification defects that may justify a reusable rule/code fix;
+- object-specific reviewed facts and interpretations;
+- target design decisions such as names, grouping, classes and sequence design.
+
+An object-specific correction does not automatically become a global rule.
+Promoting it requires an explicit rule change and independent test examples.
+Retain the original source value, parser proposal and approved value separately.
+
+On a rerun, preserve the decision history, compute new proposals, and compare the
+evidence each decision depends on. An unchanged source/binding can reuse an
+applicable decision. Changed dependencies, source splits/merges, missing objects
+and ambiguous correspondence go to review with the previous decision attached.
+Never silently discard that decision or apply it to an unrelated replacement.
+The engineering workspace must expose unresolved decisions before dependent
+PCSD/FHX outputs can be considered reviewed.
+
+For example, a reviewed DeltaV name belongs to the engineering object and can
+survive moving it between groups. A corrected trip interpretation depends on
+the relevant source logic; changing that logic requires revalidation. Splitting
+one source rung into two must not silently duplicate a single equipment decision.
+
+Compare imports against their base revision and current state. A concurrent
+returned copy needs a preview of compatible changes and conflicts, not a file
+overwrite. The required review concurrency model remains an open question.
+
 ## Trace links
 
 A trace link contains:
@@ -45,7 +79,8 @@ Original text and canonicalized text are separate fields. Record a normalization
 
 Use UTF-8 JSON for manifests and small structured reports; JSONL for large record collections. JSONL is one JSON object per line, suitable for streaming and later indexing.
 
-Initial canonical storage:
+Required persisted information:
+
 - versioned JSON/JSONL data;
 - immutable original source bytes;
 - immutable decision batches;
@@ -53,7 +88,20 @@ Initial canonical storage:
 
 Use validated models and generated schemas. Refuse unknown major schema versions; explicit migrations create a new copy with migration provenance. Keep timestamps separate from semantic payloads so deterministic results can be compared without clock noise.
 
-SQLite can later index these records for GUI searches. It begins as a disposable, rebuildable index. If editing concurrency eventually requires a transactional database to become canonical, make that an explicit design migration rather than silently keeping two competing sources of truth.
+The earlier proposal made JSON/JSONL files canonical and SQLite a later index.
+The standalone editor preference reopens that choice. Evaluate SQLite as the
+canonical private project store, with explicit versioned history and JSON/JSONL
+exchange/report snapshots. Select one authoritative writable store before
+implementing editor persistence. JSON contracts are still required for inspection,
+review exchange and synthetic regression artifacts; existing helper reports do
+not need migration for this planning update.
+
+Backup/restore is separate from review history. A portable private backup must
+cover the selected store, immutable source files, decision history, required
+attachments and schema/tool versions. Use a consistent database backup mechanism
+if SQLite is selected; test restoration with relative links on a fresh workspace.
+Define backup destination and retention before relying on it. Restoring an older
+backup must not silently replace newer reviewed work.
 
 Avoid pickle for long-lived state. It ties restoration to Python objects and can execute code when loaded.
 
