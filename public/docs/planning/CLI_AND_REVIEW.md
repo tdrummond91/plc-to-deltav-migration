@@ -15,6 +15,11 @@ organize. It remains an exchange/fallback option. Workbooks and PCSD/test-sheet
 outputs should identify their source snapshot, analysis revision and decision
 revision so a returned edit can be compared with current work.
 
+Initially, hand work off sequentially with one active editor. Show the current
+revision and handoff status clearly. Validate returned edits before creating the
+next revision, and explain stale-base conflicts without replacing newer work.
+Concurrent editing is outside the initial reviewer workflow.
+
 PCSD means Process Control Strategy Document. Its detailed contents and generated
 plant test sheets follow L5X discovery and reviewed target strategy. Distinguish
 source-derived states/transitions from newly designed sequence steps. The editor

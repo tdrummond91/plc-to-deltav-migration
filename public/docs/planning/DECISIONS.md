@@ -29,6 +29,7 @@ Scope revision 0.3 — 2026-10-12. Implementation proposals remain subject to th
 | D021 | Prefer a standalone editor for non-programmers, with Excel still an option | Search/navigation, change review, import/export, backups and deployment without user-managed Python |
 | D022 | An independent ChatGPT chat will review development | Maintain clear handoffs, decision rationale, useful comments and focused conventional commits |
 | D023 | Slow work-machine feedback may warrant up to three experiment branches | Branch from one agreed baseline, use -pc suffixes and comparable validation/reporting; consolidate after results |
+| D024 | Prefer sequential reviewer handoffs initially | One active editor and revision-bound handoff packages; validate returned changes against their base and flag stale copies; concurrent editing is a later option |
 
 D010 supersedes the earlier transition plan to retain a root plc-code ignore rule. The repository has confidential/, public/, and python-parser/ roles; confidential/ is ignored. D012's fresh-repository setup is complete: origin was fetched on 2026-10-12 and main matched origin/main at bafc410. D009 applies to the restricted work-machine environment, not every computer. D014 establishes the later PCSD/FHX scope while retaining D008's deferral of conversion implementation during source understanding.
 
@@ -51,7 +52,6 @@ Proposals can be revised before their implementation slice. No GUI framework or 
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?
-- Will reviewers hand off work sequentially or return independently edited copies that require reconciliation?
 - What information do developers correct, and when does a correction apply to one object versus a reusable parser/classification rule?
 - Which changes happen in the source L5X versus the engineering representation, and what evidence should carry decisions across splits/merges?
 - Which existing class libraries or generators will the PCSD/FHX adapters use?

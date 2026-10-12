@@ -23,6 +23,8 @@ and uncertainty rather than inferring these solely from names. The meaning of
 loops and the ranking criteria should be refined with concrete examples.
 
 The review cycle is Tyler -> Quebec -> Tyler -> development team -> Tyler.
+Prefer sequential handoffs initially, with one active editor and revision-bound
+packages. Detect stale returned copies; concurrent editing is a later option.
 Tyler handles the L5X-through-PCSD workflow and needs downstream corrections
 returned to it. Rerunning any stage must preserve intended fixes. Source and
 engineering objects can change or be split, combined, expanded or collapsed;

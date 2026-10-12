@@ -69,9 +69,11 @@ change history and portable JSON/Excel exchanges. This revises the earlier idea
 that SQLite could only be a later search index; the canonical storage choice is
 not finalized. If selected, SQLite is the authoritative editor store and exports
 are versioned snapshots, not a second independently writable database. A local
-store plus validated handoff packages can support sequential reviews; concurrent
-returned copies need change reconciliation. A shared live server is a separate
-requirement, not assumed here.
+store plus validated handoff packages supports the preferred initial sequential
+review workflow: one active editor at a time. Each handoff identifies its base
+revision; returned changes must match the expected base before application.
+Stale copies are flagged for reconciliation. Concurrent editing or a shared live
+server would be a later explicit requirement.
 
 SQLite documents desktop application storage as an intended use and supplies a
 [backup API](https://www.sqlite.org/backup.html); its core is

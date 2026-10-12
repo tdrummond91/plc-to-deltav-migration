@@ -5,7 +5,7 @@ Updated 2026-10-12. Current activity: **scope discovery on chore/project-scope-r
 ## Current scope and PC checkpoint (2026-10-12)
 
 Tyler confirmed a reusable migration tool for several units. The five product
-phases and workflow are recorded in docs/planning/ROADMAP.md and decisions D013-D023.
+phases and workflow are recorded in docs/planning/ROADMAP.md and decisions D013-D024.
 L5X analysis has two parallel outputs: information/scanning reports for source
 understanding, and editable engineering files used to organize objects and build
 the PCSD. Both need links to the same source evidence. PCSD feedback, class-based
@@ -30,8 +30,10 @@ import/export and backups, while retaining Excel if it proves useful. Design
 deployment for non-programmers without a separately installed Python runtime.
 SQLite as a local project store and PyInstaller-style Windows packaging are
 recommendations to evaluate, not installed components or confirmed selections.
-Whether reviewers work sequentially or return concurrently edited copies remains
-open; do not assume a shared live database or conflict-free imports.
+Tyler prefers sequential review initially: one active editor, followed by a
+revision-bound handoff to the next reviewer. Validate returned changes against
+their base revision and flag stale copies. Shared live editing and concurrent
+copy reconciliation are later options, not initial requirements.
 
 Only non-proprietary code/tools and reviewed development artifacts travel through
 Git. Real L5X files and private engineering state stay local. Tyler may supply

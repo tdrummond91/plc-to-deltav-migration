@@ -58,9 +58,13 @@ survive moving it between groups. A corrected trip interpretation depends on
 the relevant source logic; changing that logic requires revalidation. Splitting
 one source rung into two must not silently duplicate a single equipment decision.
 
-Compare imports against their base revision and current state. A concurrent
-returned copy needs a preview of compatible changes and conflicts, not a file
-overwrite. The required review concurrency model remains an open question.
+The initial workflow is sequential, with one active editor and revision-bound
+handoffs. Record the source set, analysis revision and decision head in each
+handoff. Compare returned edits against that base and current state, validate
+the complete batch, and create a new decision revision after acceptance.
+Reimporting the same batch remains a no-op. Reject a stale base with a clear
+conflict report rather than replacing newer work. Concurrent copy merging is
+a later option; stale-copy detection is required even with sequential review.
 
 ## Trace links
 
