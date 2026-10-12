@@ -66,6 +66,11 @@ Reimporting the same batch remains a no-op. Reject a stale base with a clear
 conflict report rather than replacing newer work. Concurrent copy merging is
 a later option; stale-copy detection is required even with sequential review.
 
+There is no fixed reviewer order. A handoff records its sender, selected recipient,
+base revision and status; participant identities are not hardcoded stage names.
+Keep assignment and routing separate from the initial single-editor policy.
+Parsing/analysis services should not depend on a particular reviewer sequence.
+
 ## Trace links
 
 A trace link contains:

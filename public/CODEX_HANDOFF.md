@@ -5,13 +5,15 @@ Updated 2026-10-12. Current activity: **scope discovery on chore/project-scope-r
 ## Current scope and PC checkpoint (2026-10-12)
 
 Tyler confirmed a reusable migration tool for several units. The five product
-phases and workflow are recorded in docs/planning/ROADMAP.md and decisions D013-D024.
+phases and workflow are recorded in docs/planning/ROADMAP.md and decisions D013-D025.
 L5X analysis has two parallel outputs: information/scanning reports for source
 understanding, and editable engineering files used to organize objects and build
 the PCSD. Both need links to the same source evidence. PCSD feedback, class-based
 FHX generation and FHX-to-PCSD are explicitly in the long-term scope.
 
-Review runs Tyler -> Quebec -> Tyler -> development team -> Tyler. Approved
+Review is sequential initially, but participant order is not fixed. Tyler,
+Quebec and the development team are participants, not hardcoded workflow stages.
+Choose the recipient at each handoff and keep the policy adaptable. Approved
 corrections must survive reruns. Changed, expanded, collapsed, split or combined
 objects require reconciliation rather than losing prior decisions.
 
@@ -33,7 +35,8 @@ recommendations to evaluate, not installed components or confirmed selections.
 Tyler prefers sequential review initially: one active editor, followed by a
 revision-bound handoff to the next reviewer. Validate returned changes against
 their base revision and flag stale copies. Shared live editing and concurrent
-copy reconciliation are later options, not initial requirements.
+copy reconciliation are later options, not initial requirements. Keep the
+one-active-editor policy separate from participant identity and routing.
 
 Only non-proprietary code/tools and reviewed development artifacts travel through
 Git. Real L5X files and private engineering state stay local. Tyler may supply

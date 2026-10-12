@@ -21,7 +21,7 @@ Scope revision 0.3 — 2026-10-12. Implementation proposals remain subject to th
 | D013 | Reusable tool for several units | Keep unit-specific source data and engineering decisions outside reusable code |
 | D014 | Five phases: L5X understanding; editable files; naming/data corrections; PCSD with feedback; class-based FHX and FHX-to-PCSD | PCSD and FHX are explicit project scope; conversion implementation remains a later phase |
 | D015 | L5X analysis feeds both reading/scanning reports and editable engineering files | Share parsed evidence and trace links; editable files support organizing objects for PCSD |
-| D016 | Tyler -> Quebec -> Tyler -> development team -> Tyler review cycle | Import downstream corrections and preserve review history |
+| D016 | Review involves Tyler, Quebec and the development team, with no fixed handoff order | Import downstream corrections and preserve review history; D025 clarifies routing |
 | D017 | Reruns must preserve intended corrections even as objects or rung groupings change | Track decisions independently and reconcile split/merged/changed objects |
 | D018 | Synchronize only non-proprietary code and reviewed development artifacts across computers | Real L5X/private state remain local; bounded summaries and stripped examples support development |
 | D019 | Private GitHub repository, one developer across computers; PC branches end in -pc | Fetch/check state and preserve local edits; commit, push and merge remain separate actions |
@@ -30,6 +30,7 @@ Scope revision 0.3 — 2026-10-12. Implementation proposals remain subject to th
 | D022 | An independent ChatGPT chat will review development | Maintain clear handoffs, decision rationale, useful comments and focused conventional commits |
 | D023 | Slow work-machine feedback may warrant up to three experiment branches | Branch from one agreed baseline, use -pc suffixes and comparable validation/reporting; consolidate after results |
 | D024 | Prefer sequential reviewer handoffs initially | One active editor and revision-bound handoff packages; validate returned changes against their base and flag stale copies; concurrent editing is a later option |
+| D025 | Sequential review does not prescribe participant order | Choose recipients per handoff; separate assignment/routing from the single-editor policy so future workflows can extend it |
 
 D010 supersedes the earlier transition plan to retain a root plc-code ignore rule. The repository has confidential/, public/, and python-parser/ roles; confidential/ is ignored. D012's fresh-repository setup is complete: origin was fetched on 2026-10-12 and main matched origin/main at bafc410. D009 applies to the restricted work-machine environment, not every computer. D014 establishes the later PCSD/FHX scope while retaining D008's deferral of conversion implementation during source understanding.
 

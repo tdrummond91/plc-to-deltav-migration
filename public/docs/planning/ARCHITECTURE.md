@@ -75,6 +75,13 @@ revision; returned changes must match the expected base before application.
 Stale copies are flagged for reconciliation. Concurrent editing or a shared live
 server would be a later explicit requirement.
 
+Sequential means one active editor, not a fixed order of people or teams. Keep
+reviewer identity, current assignment, handoff recipient and revision history
+as data. Enforce the initial editing policy through the review service; do not
+encode organization names or a fixed recipient chain in the parser, schema or
+UI. This leaves room for later routing policies without building a general
+workflow engine in Phase 1.
+
 SQLite documents desktop application storage as an intended use and supplies a
 [backup API](https://www.sqlite.org/backup.html); its core is
 [public domain](https://www.sqlite.org/copyright.html). Review the

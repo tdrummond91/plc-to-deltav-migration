@@ -16,7 +16,7 @@ Start with [CODEX_HANDOFF.md](CODEX_HANDOFF.md). Read [the architecture](public/
 - Treat translations, classifications, and equipment mappings as proposals with evidence and reviewer decisions.
 - Use AI-assisted Quebec French interpretation, with explicit data/provider configuration and a review queue. No translation service has been chosen.
 - Preserve approved corrections across stage reruns and reconcile changes to source objects.
-- Support the review cycle Tyler -> Quebec -> Tyler -> development team -> Tyler.
+- Support sequential review between chosen participants, with configurable handoff order and room to extend the workflow later.
 - Include PCSD feedback, class-based FHX generation, and FHX-to-PCSD in the later project phases; their implementation remains deferred.
 - Synchronize non-proprietary tools and reviewed development examples across computers. Real inputs and private engineering state stay outside Git.
 - PCSD means Process Control Strategy Document and supports plant test-sheet generation. Determine its detailed contents from the L5X analysis before fixing its schema.
