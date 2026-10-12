@@ -1,11 +1,19 @@
 [project]
 name = "python-parser"
 version = "0.1.0"
-description = "Add your description here"
+description = "Read-only L5X source inventory for PLC migration review"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "argparse>=1.4.0",
     "l5x>=1.7",
-    "pathlib>=1.0.1",
 ]
+
+[project.scripts]
+plc = "plc_workbench.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plc_workbench"]
