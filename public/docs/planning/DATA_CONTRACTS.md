@@ -1,6 +1,42 @@
 # Data contracts, traceability, and checkpoints
 
-Status: proposed contracts, updated 2026-10-12. Final schemas are to be implemented and versioned in a selected development slice.
+Status: updated 2026-10-12. The private source inventory has an initial versioned contract below; the engineering/review contracts remain proposals.
+
+## Implemented source inventory v1
+
+`python-parser/src/plc_workbench/models.py` defines typed source records serialized
+by `InventoryResult.to_dict()`. The full report has schema_version 1,
+parser_version `source-inventory-1`, analysis_scope `source_structure_only` and
+semantic_analysis `not_implemented`. Top-level fields include snapshot metadata,
+export attributes, entities, rungs, diagnostics, counts, routine_types,
+instruction_counts, coverage and status. This is a private source format,
+separate from the sanitized helpers' schemas. External JSON Schema validation
+and editable import are not implemented.
+
+Snapshot identity is `sha256:<digest>` of the exact captured bytes. Entity/rung/
+instruction IDs hash that identity, kind and occurrence locator. Names are not
+keys. Parent/scope links refer to source entity IDs; rung instruction structures
+refer to their instruction IDs. Offsets are zero-based, end-exclusive Python
+character offsets into decoded rung text, not file-byte offsets. Attributes and
+operands are source evidence with no reference or instruction-effect validation.
+
+Coverage accounts for each encountered rung as parsed, failed, unsupported or
+excluded; each inventoried routine is parsed, failed or unsupported. Instruction
+totals cover parsed RLL rungs only, with an explicit completeness flag. Familiar
+element names outside supported containers are preserved without becoming
+declarations. Unknown executable XML makes routine coverage incomplete. Generic
+unmodeled paths remain counted and original bytes remain available in the snapshot.
+`complete` means this structural slice completed, never engineering completeness.
+
+Saved runs contain snapshot.L5X, inventory.json, overview.txt and a v1 manifest
+with artifact hashes/sizes. Publish the manifest last and never reuse a prior
+run directory. Incomplete directories have no final manifest and must not be
+treated as checkpoints. The initial manifest does not store an original file
+name/path or parent-run lineage. See [usage](../../../python-parser/README.md)
+and [review evidence](../reviews/SOURCE_INVENTORY_REVIEW.md).
+
+The identity/checkpoint proposals below describe later additions; they do not
+change the implemented v1 fields implicitly.
 
 ## Evidence, interpretation, decision
 

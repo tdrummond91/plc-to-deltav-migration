@@ -1,6 +1,6 @@
-# PLC analysis workbench — planning draft
+# PLC analysis workbench
 
-Status: scope updated 2026-10-12. The Python reader and standalone L5X inspection helpers are implemented; the modular migration application remains planned. The latest local baseline passed 130 tests and the policy-2 public-fixture audit.
+Status: updated 2026-10-12. The first packaged source-inventory command is implemented on `feat/source-inventory-pc`, alongside the original prototype and inspection helpers. Validation: 29 application tests and 139 helper tests passed; one Windows symlink test skipped. Both public-fixture checks passed. The editor, engineering interpretation, PCSD and FHX stages remain planned.
 
 The aim is a reusable tool for migrating several units from L5X source analysis through editable engineering records and PCSD to class-based DeltaV FHX. FHX input must also support producing a PCSD. Phase 1 analyzes L5X in two parallel paths: reports for reading and understanding the source, and editable engineering files for organizing and mapping it. Both need source traceability. Other routine languages, including SFC, remain visible even before detailed analysis is implemented.
 
@@ -44,7 +44,13 @@ On the work machine, Codex may inspect the project read-only and produce handoff
 
 ## Intended usage
 
-The planned command name is `plc`, installed from the Python package in `python-parser/`. Commands in the planning documents are interface proposals, not commands already available in the prototype.
+The first available command is `plc inspect`, installed from `python-parser/`:
+
+```bash
+uv run --project python-parser plc inspect public/fixtures/synthetic/controller_demo.L5X
+```
+
+This fixture intentionally returns exit 3 (partial) because SFC interpretation is not implemented. See [command usage and private run storage](python-parser/README.md) and [implementation/review evidence](public/docs/reviews/SOURCE_INVENTORY_REVIEW.md). JSON and readable reports use the same snapshot-bound records. Outputs retain private source data; this command is not a public-report scrubber. Other commands in the planning documents remain proposals.
 
 Unit test source belongs in `python-parser/tests/`. Logs, test run output, reports, reviewer workbooks, source snapshots, and checkpoints belong under `confidential/`. Real data must not be placed in synthetic fixtures or application documentation.
 

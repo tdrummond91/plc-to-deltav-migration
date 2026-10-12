@@ -1,6 +1,6 @@
 # Implementation roadmap and acceptance gates
 
-Status: planning. Build small complete slices, each ending with a runnable command, a report, tests, and a handoff update.
+Status: first source-inventory slice implemented; later milestones remain proposals. Build small complete slices, each ending with a runnable command, a report, tests, and a handoff update. See [current implementation evidence](../reviews/SOURCE_INVENTORY_REVIEW.md).
 
 ## Confirmed product phases (2026-10-12)
 
@@ -56,8 +56,12 @@ disclosing enough information to reconstruct the complete process.
 
 The technical milestones below remain an earlier implementation proposal. Their
 order and boundaries need reconciliation with these phases before selecting the
-next slice. Current implemented baseline: the prototype plus inspection helpers,
-130 passing tests and the policy-2 structural fixture. Initial Git setup is done.
+next slice. Current implemented baseline: the prototype, inspection helpers and
+`plc inspect` source inventory, with 29 application tests and 139 helper tests
+passing (one additional application test skipped for Windows symlink capability).
+Initial Git setup is done. The first slice uses typed dataclasses and bounded
+Expat parsing; it does not introduce Pydantic, SQLite or a GUI. The Milestone 1
+command names below remain proposals; only `plc inspect` is implemented.
 
 ## Development and comparison workflow
 

@@ -1,6 +1,9 @@
 # CLI, reports, and human review
 
-Status: interface proposal. The commands below are not yet implemented.
+Status: `plc inspect FILE [--format text|json] [--rung-id ID] [--workspace PATH]`
+is implemented. See [current usage](../../../python-parser/README.md). Other
+commands and all reviewer interfaces below remain proposals. The command emits
+private source evidence and is not a public-report exporter.
 
 ## Preferred reviewer experience (2026-10-12)
 

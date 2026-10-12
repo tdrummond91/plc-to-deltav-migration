@@ -1,8 +1,42 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-12. Current activity: **code and scrubbed-fixture review complete; snapshot-bound source inventory proposed as the next Phase 1 slice on chore/project-scope-review-pc**.
+Updated 2026-10-12. Current activity: **first snapshot-bound source inventory implemented and locally validated on feat/source-inventory-pc**. See [the implementation review](docs/reviews/SOURCE_INVENTORY_REVIEW.md) and [command usage](../python-parser/README.md).
 
-## Current scope and PC checkpoint (2026-10-12)
+## Source inventory checkpoint (2026-10-12)
+
+The feature branch starts at 3cfdb57 on chore/project-scope-review-pc; source
+implementation and validation are recorded at f9f61bc. The new
+`plc inspect` captures input bytes once and produces JSON or readable reports
+with scoped declarations, ordered rungs/instructions, source offsets, coverage
+and diagnostics. Optional explicit private storage creates a new run with the
+exact snapshot, complete reports and a manifest published last. Source IDs are
+snapshot-specific; persistent engineering identities and review overlays remain
+future work. The existing main.py prototype remains available.
+
+Validation: 29 application tests passed, one Windows symlink test skipped, and
+139 helper tests passed. The public minimized-fixture audit and synthetic fixture
+checker passed. Installed CLI checks from an unrelated temporary working directory
+parsed all 9 synthetic rungs (25 instructions) and all 276 minimized rungs
+(1,904 instructions). Both correctly reported partial coverage for unsupported
+routine content; the minimized fixture also includes an RLL routine without a
+content block. These are public fixture results, not real-export validation.
+
+Independent code review found and prompted fixes for declaration context,
+unrecognized executable XML, ambiguous descriptions/comments and canonical
+snapshot identity. The shared grammar now limits total branch legs and argument
+slots and records instruction spans. Standalone inspection helpers import that
+same grammar from python-parser/src; copy the full branch across machines rather
+than only the old tools folder. No confidential files were read or remote
+branches pushed. Use git log/status for the exact local commit state.
+
+No work-machine run is required to continue development. A bounded public-summary
+export is the recommended next slice before asking Tyler to return new private
+inventory results. After that, scoped symbols/aliases and references can build on
+this foundation. GUI/database decisions, editable review data, PCSD and FHX are
+still deferred. Detailed evidence, limits and next-step rationale are in the
+implementation review linked above.
+
+## Confirmed scope and preceding documentation checkpoint (2026-10-12)
 
 Tyler confirmed a reusable migration tool for several units. The five product
 phases and workflow are recorded in docs/planning/ROADMAP.md and decisions D013-D025.
@@ -67,13 +101,13 @@ round-trip assumptions and changing-input protection need explicit treatment
 as the reader evolves. Exact probes, commands and limitations are recorded in
 docs/reviews/NEXT_DEVELOPMENT_PROMPT.md.
 
-The recommended next slice is one private snapshot-bound source inventory,
+At this preceding documentation checkpoint, the recommended next slice was one private snapshot-bound source inventory,
 selected-rung evidence and gap reporting, with JSON/readable views over shared
 records. Current scrubbed fixtures validate structural breadth but not source
 relationships: the minimized sample retains 276/4,606 rungs and 161/554 shapes,
 with per-rung ARG identities. Use coherent independent synthetic cases for future
 reference tracing. This review does not select the GUI, database or final PCSD
-schema, and no new parser/application implementation has begun.
+schema. Implementation followed in the source-inventory checkpoint above.
 
 A separate ChatGPT chat will review the work. Keep focused conventional commits,
 decision rationale, useful code comments and reproducible validation notes. Read

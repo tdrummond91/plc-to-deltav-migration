@@ -1,4 +1,6 @@
 Read public/CODEX_HANDOFF.md and
+public/docs/reviews/SOURCE_INVENTORY_REVIEW.md first for the implemented
+snapshot-bound source inventory on feat/source-inventory-pc, then
 public/docs/reviews/STAGE_5_CODE_REVIEW.md.
 
 Then read the 2026-10-12 scope in public/docs/planning/DECISIONS.md,
@@ -17,8 +19,11 @@ For implementation/review involving helper behavior, run the existing tests:
 uv run --project python-parser python -B -m unittest discover \
   -s tools/l5x_inspect/tests -v
 
-Expected baseline: 130 passing tests.
-This baseline and the minimized_review public audit passed locally on 2026-10-12.
+Current baseline: 139 passing helper tests. Also run:
+uv run --project python-parser python -B -m unittest discover -s python-parser/tests -v
+
+Application baseline: 30 tests run, 29 pass, one Windows symlink-capability skip.
+These and the minimized_review public audit passed locally on 2026-10-12.
 For documentation-only changes, review the diff and links; do not describe an old
 test run as fresh execution.
 
@@ -97,12 +102,12 @@ Three review findings to carry forward:
    limitation, not a stable-file failure. Analyze frozen snapshot bytes in the
    new source reader and test that contract explicitly.
 
-## Proposed next bounded implementation slice
+## Selected and completed first implementation slice
 
-Build a snapshot-bound source inventory with selected-rung evidence and explicit
-gap reporting. Generate JSON and readable views from one reusable result model.
-This proposal needs selection before implementation; the five-phase application
-is not the scope of a single refactor.
+The snapshot-bound source inventory with selected-rung evidence and explicit
+gap reporting is implemented. JSON and readable views share one reusable result
+model. The following list records the selected scope; do not repeat this work.
+See SOURCE_INVENTORY_REVIEW.md for implementation, validation and limitations.
 
 - Inventory task/program/routine envelopes, languages, scoped tag declarations,
   module envelopes and AOI definitions from one captured L5X snapshot.
@@ -126,3 +131,16 @@ Full symbol/alias resolution, read/write effects, calls/jumps and cross-rung
 analysis follow this foundation. These enable later alarm, control-loop and
 equipment interpretation. GUI/database implementation, PCSD schema design,
 translation providers and FHX generation remain later work.
+
+## Recommended next slice
+
+Define a bounded summary export from the new private inventory so Tyler can run
+one version-labelled work-machine check and return reviewed non-proprietary
+evidence. Current `plc inspect` output is private, not a scrubbed return report.
+After that, scoped symbol/alias and instruction-reference analysis can support
+engineering interpretation. Agree the next slice before expanding implementation.
+
+The historical allocation-limit finding above is fixed in the shared grammar.
+The new reader captures bytes once; the earlier two-pass public helper retains
+its documented changing-input limitation. Scrubbed opcode labels remain run-local
+and are not persistent source or engineering identities.

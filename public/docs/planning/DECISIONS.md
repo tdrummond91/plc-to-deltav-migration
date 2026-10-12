@@ -50,6 +50,24 @@ D010 supersedes the earlier transition plan to retain a root plc-code ignore rul
 
 Proposals can be revised before their implementation slice. No GUI framework or conversion engine is selected.
 
+### First slice implementation choices (2026-10-12)
+
+These are engineering choices for `feat/source-inventory-pc`, not new user
+requirements. P001 and P002 are implemented; P003 is implemented only for private
+source records and run evidence. P004 remains a proposal: this reader uses
+standard-library dataclasses and bounded Expat parsing, with no new validation
+framework. Existing l5x remains for the unchanged prototype and fixture checker.
+
+Capture bytes once before parsing so records and saved evidence share one input.
+Use deterministic snapshot-specific IDs; do not claim decision continuity across
+exports. Move the existing outer ladder grammar into the application package
+and retain a repository-helper compatibility alias, adding instruction spans and
+allocation limits instead of a competing parser. Require explicit private
+workspace selection and a new directory per saved run; publish the manifest
+last. Preserve unfamiliar XML and report gaps rather than invent declarations
+from element names or claiming complete executable coverage. See
+[implementation review](../reviews/SOURCE_INVENTORY_REVIEW.md) for evidence.
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?
