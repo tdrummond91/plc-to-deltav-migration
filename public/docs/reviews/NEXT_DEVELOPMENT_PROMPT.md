@@ -148,9 +148,15 @@ established by this aggregate. The original encoded summary remains historical.
 Tyler authorized and the branch implements the next bounded root-reference slice:
 `plc references` private records and `plc reference-summary` aggregate feedback.
 Do not repeat that implementation or claim instruction effects/member validation.
-Inspect the returned reference aggregate next, then choose the next model/catalog
-gap before adding broader semantics. Never request the private source/reference
-reports here. More engineering interpretation remains later work.
+The first reference aggregate has now returned in 7328809 and validates: 98.26%
+of instruction signatures catalogued, 17,856 bound operand occurrences and only
+45 of 941 aliases bound. Tyler confirmed both work-machine suites passed. Read
+SOURCE_REFERENCES_REVIEW.md for all counters and exact structural reconciliation.
+The recommended next bounded slice is module/I/O declarations plus fixed aggregate
+reasons for unresolved aliases/unsupported addresses. Existing public counts show
+104 InputTag, 65 OutputTag and 83 ConfigTag elements absent from the current symbol
+model; they do not prove the cause of every unresolved reference. Agree the next
+slice before implementing. Never request private source/reference reports here.
 
 Tyler clarified confidentiality on 2026-10-13: unit reconstruction with data
 values, or more than 2% rung knowledge. Aggregate summaries contain no individual

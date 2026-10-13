@@ -1,6 +1,27 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-13. Current activity: **scoped root-reference analysis on feat/source-references-pc**. See [reference implementation review](docs/reviews/SOURCE_REFERENCES_REVIEW.md), [current work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-13. Current activity: **first work-machine reference aggregate reviewed on feat/source-references-pc**. See [reference implementation review](docs/reviews/SOURCE_REFERENCES_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+
+## Returned reference evidence (2026-10-13)
+
+Tyler pushed public/inspection/reference-summary-20261013T203510Z.json in 7328809,
+with clean code provenance at 294c839, and confirmed both work-machine test suites
+passed. The reference aggregate validates. Its nested structural report exactly
+matches summary-002 except for tool_revision; all 4,606 rungs remain accounted for.
+
+17,563 of 17,874 instruction signatures are catalogued (98.26%). Of 24,583 operand
+occurrences, 17,856 bind to declared roots and 2,517 are literals; 2,642 remain
+unresolved, 870 have unsupported address syntax, 45 are unsupported expressions
+and 653 occur in uncatalogued instructions. Aliases: 45 bound and 896 unresolved
+out of 941. No ambiguity, cycles, depth limits or argument-count mismatches appear.
+These are lexical-reference counts, not engineering interpretation percentages.
+
+Recommended next slice: module/I/O declaration coverage with fixed aggregate
+reasons for unresolved aliases/unsupported addresses. The public structural
+baseline includes 104 InputTag, 65 OutputTag and 83 ConfigTag elements omitted
+from the current symbol model. That is a verified gap; its contribution to the
+unresolved totals is still unproven. No further work-machine run is needed for
+this review. See the reference review for reconciliation and remaining limits.
 
 ## Current reference-analysis checkpoint (2026-10-13)
 
@@ -9,7 +30,8 @@ It passes aggregate validation and matches the earlier readable baseline:
 4,606/4,606 rungs parsed, 17,874 instructions, 6,307 tags, 941 tag aliases,
 120 modules, 70 routines, one AOI and zero encoded regions. All ladder measures
 match. Partial coverage reflects the already observed 14 SFC routines and one
-RLL routine without content. Work-machine test-suite outcomes remain unreported.
+RLL routine without content. The later reference run and suite confirmation are
+recorded above.
 
 Tyler then authorized continuing. The new branch starts at 3dd1b25 and preserves
 the earlier review notes without resetting either history. `plc references`
@@ -27,10 +49,9 @@ CLI checks verified private storage, aggregate output, unchanged inputs and
 no-overwrite behavior. The synthetic aggregate records clean b8d92bc provenance.
 
 See the reference review for scope, primary documentation, independent review,
-test evidence and resource bounds. Next action: run the reference aggregate on
-the readable work-machine export and return the new report through Git. Use
-normal commits/pushes on feat/source-references-pc. Engineering classification,
-editable corrections, GUI, PCSD and FHX remain later phases.
+test evidence and resource bounds. The initial work-machine run has now returned
+and is reviewed above. Use normal commits/pushes on feat/source-references-pc.
+Engineering classification, editable corrections, GUI, PCSD and FHX remain later phases.
 
 ## First returned work-machine evidence (historical, 2026-10-13)
 

@@ -27,8 +27,9 @@ historical: that export exposed 70 encoded regions and no readable rungs.
 The work-machine force-push rewrote the report commit and omitted the earlier
 review notes. The new branch starts from the current remote report commit and
 restores those notes from 516a24a, preserving the original local branch too.
-No remote history was reset or force-pushed from this PC. Work-machine test-suite
-outcomes have not been supplied; aggregate validation is separate evidence.
+No remote history was reset or force-pushed from this PC. At that preceding
+structural-summary checkpoint, work-machine suite outcomes were unreported;
+the later reference run and Tyler's test confirmation are recorded below.
 
 ## Implemented behavior
 
@@ -145,9 +146,58 @@ analyze references and 0.675s to validate/build the aggregate (1.312s total).
 The aggregate was 3,856 bytes. These are synthetic timing observations, not a
 performance guarantee for the private export or another computer.
 
-## Next bounded action
+## First returned reference aggregate (2026-10-13)
 
-Run [the work-machine reference procedure](WORK_MACHINE_REFERENCES_RUN.md) on the
-readable export and return the aggregate through Git. Prioritize the next model/
-catalog gap from those counts before adding instruction effects or classifications.
-Editable review records, correction survival, PCSD, FHX and GUI remain later work.
+Tyler returned [reference-summary-20261013T203510Z.json](../../inspection/reference-summary-20261013T203510Z.json)
+in 73288090b321b7ee1c8cee599a7224320de6f92a. It records clean code revision
+294c8392e0234ed97d2fe72625af1c4979509110. Tyler also confirmed that both test
+suites passed on the work machine. This is user-reported test evidence; the
+aggregate itself contains no test-run record.
+
+Fresh review ran validate_reference_summary and compared its nested source_summary
+with summary-002 after excluding only tool_revision. Both checks passed: all
+structural counts, diagnostics, coverage and ladder measurements match exactly.
+No private source or reference records were opened. No application code changed
+and unit suites were not rerun for this documentation-only review.
+
+| Measure | Returned result |
+| --- | ---: |
+| Rungs analyzed | 4,606 / 4,606 |
+| Instruction signatures catalogued | 17,563 / 17,874 (98.26%) |
+| Symbols | 6,315 (6,307 tags + 8 AOI parameters/local tags) |
+| Operand occurrences bound to declared roots | 17,856 |
+| Literal operands | 2,517 |
+| Unresolved operand occurrences | 2,642 |
+| Unsupported address occurrences | 870 |
+| Unsupported expression occurrences | 45 |
+| Operands in uncatalogued instructions | 653 |
+| All operand occurrences | 24,583 |
+| Aliases bound / unresolved | 45 / 896 (941 total) |
+
+There are no ambiguous symbol groups, unnamed symbols, alias cycles, depth-limit
+hits, argument-count mismatches or empty argument slots in the aggregate.
+Counts refer to occurrences, not distinct used tags or validated engineering
+objects. The 98.26% figure measures known instruction signatures, not understood
+process behavior. Source partial coverage remains the 14 SFC and one empty-RLL
+gaps already recorded above.
+
+All 311 uncatalogued calls reconcile with the existing catalog: SFR 140, JSR 76,
+MSG 27, SQR 18, MVM 16, SWPB 10, ABS 8, GSV 5, CTU 3, LN 2, and AVE/FAL/RET/SBR/
+withheld one each. These represent unimplemented roles, not failed ladder parsing.
+
+## Recommended next bounded action
+
+Prioritize module/I/O symbol declarations and aggregate reasons for unresolved
+aliases and unsupported addresses before broader instruction effects. The earlier
+public xml-structure-counts.json contains 104 InputTag, 65 OutputTag and 83 ConfigTag
+elements; source.py does not model those as declarations, and references.py indexes
+only Tag/AOI Parameter/LocalTag entities. This is a verified model gap and a plausible
+contributor to unresolved aliases. The counts do not prove that all 896 unresolved
+aliases, or all 2,642 unresolved operands, point to module tags. Do not equate the
+252 module-tag elements with 252 independently usable addresses without examining
+their export context.
+
+The existing public structural evidence and synthetic fixtures support starting
+that design here. No extra work-machine rerun is needed merely to accept this
+report. Agree the next implementation slice before expanding it. Editable review
+records, correction survival, PCSD, FHX and GUI remain later work.
