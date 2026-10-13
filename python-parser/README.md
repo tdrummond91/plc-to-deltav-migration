@@ -31,14 +31,25 @@ are retained as evidence. Expressions, dynamic indexing, cross-program qualified
 addresses, uncatalogued instructions and malformed argument lists remain explicit
 gaps. Routine labels in JMP/LBL are accounted as non-data; call/sequence/system
 instruction roles are not guessed. Module InputTag/OutputTag/ConfigTag declarations
-are not yet modeled, so unresolved module addresses may reflect missing model
-coverage. This is not evidence that the source project has an invalid tag.
+now participate in root lookup. Explicit names or conservative ICP/Ethernet
+module/port topology supply the name; private symbols retain `name_origin` and
+`name_reason`. Missing or ambiguous topology leaves an unnamed declaration.
+RackConnection mappings remain unsupported and explicitly diagnosed. These gaps
+do not establish that the source project has an invalid tag.
+
+Private inventory schema 2 (`source-inventory-2`) adds module ports, ordinary
+connections and input/output/configuration tag records without changing ordinary
+tag/alias totals. Reference schema 2 (`source-references-2`) adds those three I/O
+symbol kinds and a fixed `reason` on unresolved/unsupported-address bindings.
+Reasons distinguish missing declared roots, qualified or dynamic addresses and
+other bounded syntax gaps; they do not claim to identify every gap's engineering
+cause. Raw declarations remain separate from inferred names.
 
 Both text and JSON reports are private. The workspace option creates a NEW run
 containing the existing snapshot/inventory/overview, plus `references.json` and
 `references.txt`. Its schema-2 `source_reference_run` manifest records artifact
 hashes, versions, limits of analysis and combined partial status. The existing
-`inspect` run contract remains schema 1. Old runs and inputs are never overwritten.
+`inspect` run manifest remains schema 1. Old runs and inputs are never overwritten.
 
 For portable feedback, run:
 
@@ -47,18 +58,21 @@ uv run --project python-parser plc reference-summary "confidential/plc-code/unit
   --output "public/inspection/reference-summary-001.json"
 ```
 
-This approved aggregate includes fixed symbol-kind, alias-status and operand-status
-counts, analysis coverage, and a nested `source_summary` using the existing v2
-contract. Code provenance is `source_summary.tool_revision`. It contains no names,
-values, source identities or individual reference links. Its new report kind is
-`l5x_reference_review_summary`, schema 1, policy 2, analyzer `source-references-1`.
+This approved aggregate includes fixed symbol-kind, alias/operand status and
+reason counts, module naming origins/unavailable reasons, analysis coverage and
+a nested schema-3 `source_summary`. Code provenance is
+`source_summary.tool_revision`. It contains no names, values, source identities
+or individual reference links. Its report kind is `l5x_reference_review_summary`,
+schema 2, policy 2, exporter `reference-summary-2`, analyzer `source-references-2`.
+The validator also accepts the previous reference schema 1 with source schema 2;
+mixed version combinations are rejected.
 The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
 
 Exit 3 means useful partial results were produced. Reference analysis can be
 partial even when the structural inventory is complete. Exit 0 means this bounded
 root-binding scope completed; it never means all engineering behavior is understood.
-See [validation and exact scope](../public/docs/reviews/SOURCE_REFERENCES_REVIEW.md)
+See [validation and exact scope](../public/docs/reviews/MODULE_IO_REVIEW.md)
 and [work-machine steps](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
 ## Bounded summary for feedback
@@ -91,8 +105,11 @@ If temporary-file cleanup fails, a `.plc-summary-*.pending` file may remain.
 Only the requested final `.json` is the published candidate; a pending file is
 never a report to share.
 
-Summary schema/policy version 2 and exporter `aggregate-summary-2` accept only
-the source-inventory-1 contract. A complete validated report is capped at 32 KiB.
+New summaries use schema 3, policy 2 and exporter `aggregate-summary-3`, built from
+the source-inventory-2 contract. Counts now include module ports, ordinary
+connections and input/output/configuration tags. The validator retains support
+for the previous schema-2 source aggregate and rejects mixed version fields.
+A complete validated report is capped at 32 KiB.
 All counts are strict nonnegative integers and reconcile across groups. Output
 cardinality does not grow with unrecognized source labels. The code revision
 comes from this application's checkout, with a clean/modified/unavailable flag;
@@ -100,10 +117,11 @@ it is not a source-data fingerprint. Modified includes tracked or untracked
 application sources/build metadata; docs and plant inputs are excluded. The
 command never accesses a network for revision collection.
 
-V2 records `sharing_status=aggregate_sync_allowed` and removes the old review
-warning. Existing v1 aggregate reports remain suitable for sync under Tyler's
+Policy 2 records `sharing_status=aggregate_sync_allowed` without a review warning.
+Existing v1 aggregate reports remain suitable for sync under Tyler's
 clarification; they do not require a fresh source run. Their old status string
-records the previous policy. Source-inventory schemas are unchanged.
+records the previous policy. They remain historical feedback rather than a
+directly accepted input to the current validator.
 
 Exit codes match `inspect`: 0 structural completion, 3 partial coverage with a
 usable candidate, 1 failure, 2 usage. Parsed syntax is not understood engineering
@@ -130,6 +148,12 @@ runner pushes normally to the matching origin branch. Failed tests are also
 reported, with source analysis skipped. Useful partial analysis exits 0; test or
 analysis failure exits 1 after publishing its result. Preflight/publication/Git
 failures stop without claiming completion.
+
+The outer work-check report remains schema 1 and now carries reference schema 2
+with source schema 3 when analysis succeeds. Existing work-check reports with the
+previous nested versions remain readable. After updating this branch, the next
+work-machine run needs only `bash ./run-work-check.sh`; it publishes the new
+module/I/O and gap-reason counters for comparison with the prior run.
 
 The saved source path lives in Git metadata. Logs and full results stay under
 `confidential/`; source and older output files are preserved. There is no extra

@@ -13,6 +13,7 @@ import re
 from typing import Any
 
 from .models import EntityRecord, InventoryResult
+from .module_io import MODULE_IO_KINDS, ModuleIOError, derive_module_io_names
 
 MAX_OPERANDS = 250_000
 MAX_ALIAS_DEPTH = 64
@@ -28,6 +29,15 @@ ALIAS_STATUSES = frozenset({
     'root_bound', 'unresolved', 'ambiguous', 'alias_cycle', 'alias_depth_limit',
     'unsupported_address',
 })
+UNRESOLVED_REASONS = frozenset({
+    'invalid_scope', 'root_not_declared', 'colon_root_not_declared',
+    'aoi_alias_target_not_local',
+})
+UNSUPPORTED_ADDRESS_REASONS = frozenset({
+    'empty_address', 'address_length_limit', 'program_qualified_address',
+    'backslash_qualified_address', 'non_static_array_index', 'malformed_address',
+    'expanded_suffix_limit',
+})
 
 # These are operand-role contracts, not instruction execution models. Keeping
 # the initial list small avoids turning labels, class names or opaque AOI slots
@@ -40,7 +50,7 @@ _ARITIES = {
     'TON': 3, 'TOF': 3, 'RTO': 3, 'OSF': 2, 'OSR': 2, 'RES': 1,
     'COP': 3, 'CPS': 3, 'PID': 7,
 }
-_SYMBOL_KINDS = frozenset({'tag', 'aoi_parameter', 'aoi_local_tag'})
+_SYMBOL_KINDS = frozenset({'tag', 'aoi_parameter', 'aoi_local_tag', *MODULE_IO_KINDS})
 _ATTRIBUTES = frozenset({
     'Name', 'TagType', 'DataType', 'Dimensions', 'AliasFor', 'Usage',
     'ExternalAccess', 'Required', 'Visible',
@@ -59,6 +69,10 @@ _NUMBER = re.compile(
 )
 _STRINGS = tuple(re.compile(rf'{quote}(?:[^{quote}$]|\$.|{quote}{quote})*{quote}', re.DOTALL)
                  for quote in ("'", '"'))
+_INDEX_TOKEN = re.compile(
+    rf'\s*(?:(?P<name>{_ROOT_TEXT}(?:\.[A-Za-z_][A-Za-z0-9_]*|\.[0-9]+)*)'
+    r'|(?P<number>[0-9]+)|(?P<operator>[+*/%()-]))', re.ASCII,
+)
 
 
 class ReferenceError(ValueError):
@@ -73,8 +87,8 @@ class ReferenceResult:
     operands: list[dict[str, Any]]
     coverage: dict[str, str | int]
     status: str
-    schema_version: int = 1
-    analyzer_version: str = 'source-references-1'
+    schema_version: int = 2
+    analyzer_version: str = 'source-references-2'
     analysis_scope: str = 'scoped_root_bindings'
     semantic_analysis: str = 'not_implemented'
     effect_analysis: str = 'not_implemented'
@@ -86,17 +100,85 @@ class ReferenceResult:
 
 
 def _is_alias(entity: EntityRecord) -> bool:
-    return (entity.attributes.get('TagType') == 'Alias'
+    return (entity.kind == 'tag' and entity.attributes.get('TagType') == 'Alias'
             or entity.kind in {'aoi_parameter', 'aoi_local_tag'}
             and 'AliasFor' in entity.attributes)
 
 
-def _address(raw: str) -> tuple[str, str] | None:
+def _index_expression(value: str) -> bool:
+    """Recognize a limited index expression without evaluating any source.
+
+    A malformed bracket is not evidence of indirect addressing. This small
+    lexical grammar admits names, arithmetic and balanced parentheses, while
+    excluding empty operands and dangling operators. Signed literal indices
+    remain malformed for our supported nonnegative static-index syntax.
+    """
+    value = value.strip()
+    if not value or re.fullmatch(r'[+-]?[0-9]+', value):
+        return False
+    cursor = depth = 0
+    expecting_operand = True
+    while cursor < len(value):
+        token = _INDEX_TOKEN.match(value, cursor)
+        if token is None:
+            return False
+        cursor = token.end()
+        operator = token['operator']
+        if operator == '(':
+            if not expecting_operand:
+                return False
+            depth += 1
+        elif operator == ')':
+            if expecting_operand or not depth:
+                return False
+            depth -= 1
+        elif operator is not None:
+            if expecting_operand:
+                if operator not in {'+', '-'}:
+                    return False
+            else:
+                expecting_operand = True
+        else:
+            if not expecting_operand:
+                return False
+            expecting_operand = False
+    return not expecting_operand and depth == 0
+
+
+def _non_static_index(value: str) -> bool:
+    """Require a well-formed address envelope and recognizable index slots."""
+    matches = list(re.finditer(r'\[([^\[\]]*)\]', value))
+    dynamic = False
+    parts: list[str] = []
+    cursor = 0
+    for match in matches:
+        parts.extend((value[cursor:match.start()], '[0]'))
+        cursor = match.end()
+        for slot in match[1].split(','):
+            if re.fullmatch(r'\s*[0-9]+\s*', slot):
+                continue
+            if not _index_expression(slot):
+                return False
+            dynamic = True
+    parts.append(value[cursor:])
+    return dynamic and _ADDRESS.fullmatch(''.join(parts)) is not None
+
+
+def _address(raw: str) -> tuple[tuple[str, str] | None, str | None]:
     value = raw.strip()
-    if len(value) > MAX_ADDRESS_LENGTH or value.lower().startswith('program:'):
-        return None
+    if not value:
+        return None, 'empty_address'
+    if len(value) > MAX_ADDRESS_LENGTH:
+        return None, 'address_length_limit'
+    if value.lower().startswith('program:'):
+        return None, 'program_qualified_address'
+    if '\\' in value:
+        return None, 'backslash_qualified_address'
     match = _ADDRESS.fullmatch(value)
-    return (match['root'], match['suffix']) if match else None
+    if match:
+        return (match['root'], match['suffix']), None
+    reason = 'non_static_array_index' if _non_static_index(value) else 'malformed_address'
+    return None, reason
 
 
 def _literal(raw: str) -> bool:
@@ -105,31 +187,40 @@ def _literal(raw: str) -> bool:
 
 def _binding(status: str, symbol_id: str | None = None,
              target_id: str | None = None, suffix: str = '',
-             alias_chain: list[str] | None = None) -> dict[str, Any]:
+             alias_chain: list[str] | None = None,
+             reason: str | None = None) -> dict[str, Any]:
     return {'status': status, 'symbol_id': symbol_id, 'target_id': target_id,
-            'suffix': suffix, 'alias_chain': list(alias_chain or [])}
+            'suffix': suffix, 'alias_chain': list(alias_chain or []), 'reason': reason}
 
 
 class _Resolver:
     def __init__(self, inventory: InventoryResult):
         self.entities = {entity.id: entity for entity in inventory.entities}
         self.symbols = [entity for entity in inventory.entities if entity.kind in _SYMBOL_KINDS]
+        try:
+            self.names = derive_module_io_names(inventory)
+        except ModuleIOError as error:
+            raise ReferenceError(str(error)) from None
         self.index: dict[tuple[str, str], list[EntityRecord]] = defaultdict(list)
         self.unnamed = 0
         for symbol in self.symbols:
-            if (not symbol.name or not _ROOT.fullmatch(symbol.name)
-                    or symbol.name.lower().startswith('program:')):
+            name = self.name(symbol)
+            if (not name or not _ROOT.fullmatch(name)
+                    or name.lower().startswith('program:')):
                 self.unnamed += 1
                 continue
             if symbol.scope_id is not None:
-                self.index[symbol.scope_id, symbol.name.lower()].append(symbol)
+                self.index[symbol.scope_id, name.lower()].append(symbol)
         self.ambiguous = sum(len(group) > 1 for group in self.index.values())
 
+    def name(self, entity: EntityRecord) -> str | None:
+        return self.names[entity.id]['name'] if entity.kind in MODULE_IO_KINDS else entity.name
+
     def lookup(self, name: str, scope_id: str | None,
-               aoi_local_only: bool = False) -> tuple[str, EntityRecord | None]:
+               aoi_local_only: bool = False) -> tuple[str, EntityRecord | None, str | None]:
         scope = self.entities.get(scope_id) if scope_id else None
         if scope is None or scope.kind not in {'program', 'controller', 'aoi'}:
-            return 'unresolved', None
+            return 'unresolved', None, 'invalid_scope'
         scopes = [scope.id]
         # AOIs are isolated templates. A program may only fall back to its own
         # controller, never to another program or an unrelated controller.
@@ -143,22 +234,22 @@ class _Resolver:
                 # A colliding declaration is ambiguous before kind filtering;
                 # an invalid AOI duplicate must not appear uniquely resolvable.
                 if len(matches) != 1:
-                    return 'ambiguous', None
+                    return 'ambiguous', None, None
                 if aoi_local_only and matches[0].kind != 'aoi_local_tag':
-                    return 'unresolved', None
-                return 'root_bound', matches[0]
-        return 'unresolved', None
+                    return 'unresolved', None, 'aoi_alias_target_not_local'
+                return 'root_bound', matches[0], None
+        return 'unresolved', None, 'colon_root_not_declared' if ':' in name else 'root_not_declared'
 
     def resolve(self, raw: str, scope_id: str | None, *,
                 chain: list[str] | None = None, aoi_local_only: bool = False) -> dict[str, Any]:
         chain = list(chain or [])
-        parsed = _address(raw)
+        parsed, reason = _address(raw)
         if parsed is None:
-            return _binding('unsupported_address', alias_chain=chain)
+            return _binding('unsupported_address', alias_chain=chain, reason=reason)
         root, suffix = parsed
-        status, symbol = self.lookup(root, scope_id, aoi_local_only)
+        status, symbol, reason = self.lookup(root, scope_id, aoi_local_only)
         if symbol is None:
-            return _binding(status, suffix=suffix, alias_chain=chain)
+            return _binding(status, suffix=suffix, alias_chain=chain, reason=reason)
         first_id = symbol.id
         seen = set(chain)
         while _is_alias(symbol):
@@ -168,19 +259,21 @@ class _Resolver:
                 return _binding('alias_depth_limit', first_id, suffix=suffix, alias_chain=chain)
             chain.append(symbol.id)
             seen.add(symbol.id)
-            parsed = _address(symbol.attributes.get('AliasFor', ''))
+            parsed, reason = _address(symbol.attributes.get('AliasFor', ''))
             if parsed is None:
-                return _binding('unsupported_address', first_id, suffix=suffix, alias_chain=chain)
+                return _binding('unsupported_address', first_id, suffix=suffix,
+                                alias_chain=chain, reason=reason)
             root, next_suffix = parsed
             if len(next_suffix) + len(suffix) > MAX_ADDRESS_LENGTH:
-                return _binding('unsupported_address', first_id, suffix=suffix, alias_chain=chain)
+                return _binding('unsupported_address', first_id, suffix=suffix,
+                                alias_chain=chain, reason='expanded_suffix_limit')
             suffix = next_suffix + suffix
             # The alias target is resolved in the declaration's own scope,
             # regardless of the program that referenced the alias.
-            status, symbol = self.lookup(root, symbol.scope_id,
-                                         symbol.kind == 'aoi_parameter')
+            status, symbol, reason = self.lookup(root, symbol.scope_id,
+                                                 symbol.kind == 'aoi_parameter')
             if symbol is None:
-                return _binding(status, first_id, suffix=suffix, alias_chain=chain)
+                return _binding(status, first_id, suffix=suffix, alias_chain=chain, reason=reason)
         return _binding('root_bound', first_id, symbol.id, suffix, chain)
 
 
@@ -191,7 +284,7 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
     assembled in target-to-caller order, not validated addresses. Root binding
     deliberately does not prove that an instruction accepts the given value.
     """
-    if inventory.parser_version != 'source-inventory-1' or inventory.schema_version != 1:
+    if inventory.parser_version != 'source-inventory-2' or inventory.schema_version != 2:
         raise ReferenceError('Unsupported source inventory version.')
     operand_total = sum(len(instruction.arguments) for rung in inventory.rungs
                         if rung.parse_status == 'parsed' for instruction in rung.instructions)
@@ -199,9 +292,14 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
         raise ReferenceError('Reference analysis exceeds the operand limit.')
     resolver = _Resolver(inventory)
     symbols = [
-        {'id': entity.id, 'name': entity.name, 'scope_id': entity.scope_id,
+        {'id': entity.id, 'name': resolver.name(entity), 'scope_id': entity.scope_id,
          'kind': entity.kind,
-         'attributes': {key: value for key, value in entity.attributes.items() if key in _ATTRIBUTES}}
+         'name_origin': resolver.names[entity.id]['name_origin']
+         if entity.kind in MODULE_IO_KINDS else 'explicit_name',
+         'name_reason': resolver.names[entity.id]['reason']
+         if entity.kind in MODULE_IO_KINDS else None,
+         'attributes': dict(entity.attributes) if entity.kind in MODULE_IO_KINDS else
+         {key: value for key, value in entity.attributes.items() if key in _ATTRIBUTES}}
         for entity in resolver.symbols
     ]
     expanded_characters = 0

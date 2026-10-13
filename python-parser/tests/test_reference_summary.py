@@ -60,7 +60,10 @@ class ReferenceSummaryTests(unittest.TestCase):
                           source.snapshot['id'], 'raw_text', 'scope_id', 'alias_chain', 'target_id'):
             self.assertNotIn(forbidden, rendered)
         self.assertEqual(report['symbols']['total'], 4)
-        self.assertEqual(report['symbols']['by_kind'], {'tag': 4, 'aoi_local_tag': 0, 'aoi_parameter': 0})
+        self.assertEqual(report['symbols']['by_kind'], {
+            'tag': 4, 'aoi_local_tag': 0, 'aoi_parameter': 0,
+            'module_input_tag': 0, 'module_output_tag': 0, 'module_config_tag': 0,
+        })
         self.assertEqual(report['aliases']['total'], 2)
         self.assertEqual(report['aliases']['by_status']['root_bound'], 1)
         self.assertEqual(report['aliases']['by_status']['unresolved'], 1)
@@ -102,7 +105,10 @@ class ReferenceSummaryTests(unittest.TestCase):
         report = build_reference_summary(source, analyze_references(source))
         self.assertEqual(report['source_summary']['counts']['aliases'], 0)
         self.assertEqual(report['aliases']['total'], 1)
-        self.assertEqual(report['symbols']['by_kind'], {'tag': 0, 'aoi_local_tag': 1, 'aoi_parameter': 1})
+        self.assertEqual(report['symbols']['by_kind'], {
+            'tag': 0, 'aoi_local_tag': 1, 'aoi_parameter': 1,
+            'module_input_tag': 0, 'module_output_tag': 0, 'module_config_tag': 0,
+        })
         validate_reference_summary(report)
 
     def test_code_revision_is_nested_once_and_validated(self) -> None:
@@ -121,7 +127,7 @@ class ReferenceSummaryTests(unittest.TestCase):
         with self.assertRaises(ReferenceSummaryError):
             build_reference_summary(inventory('DIFFERENT_SECRET'), references)
         for field, value in (
-            ('schema_version', True), ('schema_version', 2),
+            ('schema_version', True), ('schema_version', 3),
             ('analyzer_version', 'PRIVATE_VERSION'), ('analysis_scope', 'PRIVATE_SCOPE'),
             ('semantic_analysis', 'implemented'), ('effect_analysis', 'implemented'),
             ('member_validation', 'implemented'), ('status', 'PRIVATE_STATUS'),
@@ -241,12 +247,17 @@ class ReferenceSummaryTests(unittest.TestCase):
     def test_complete_cannot_hide_source_or_reference_gaps(self) -> None:
         source = complete_inventory()
         original = build_reference_summary(source, analyze_references(source))
+
+        def make_unresolved(report: dict) -> None:
+            report['operands']['by_status'].update(root_bound=1, unresolved=1)
+            report['operands']['by_reason']['unresolved']['root_not_declared'] = 1
+
         for mutate in (
             lambda r: r['source_summary'].update(status='partial'),
             lambda r: r['coverage'].update(instructions_catalogued=1),
             lambda r: r['symbols'].update(unnamed=1),
             lambda r: r['symbols'].update(ambiguous_groups=1),
-            lambda r: r['operands']['by_status'].update(root_bound=1, unresolved=1),
+            make_unresolved,
         ):
             report = deepcopy(original)
             mutate(report)

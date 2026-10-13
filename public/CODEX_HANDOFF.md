@@ -1,6 +1,43 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-13. Current activity: **two automated work-machine reports returned and validated on feat/source-references-pc**. See [runner implementation review](docs/reviews/WORK_CHECK_RUNNER_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md), [reference implementation review](docs/reviews/SOURCE_REFERENCES_REVIEW.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-13. Current activity: **module/I/O declarations and fixed reference-gap reasons implemented on feat/source-references-pc**. See [module/I/O review](docs/reviews/MODULE_IO_REVIEW.md) for the tested revision and validation, [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) for the next run, and [command usage](../python-parser/README.md).
+
+## Current module/I/O checkpoint (2026-10-13)
+
+Tyler authorized implementing the next slice here after the two successful
+work-machine reports. Do not ask for that authorization again or repeat this
+implementation. Phase 1 now inventories module ports, ordinary connections and
+input/output/configuration tag declarations. Scoped reference lookup can use
+explicit module-tag names or names inferred conservatively from supported
+ICP/Ethernet topology. Private records keep raw source and naming provenance
+separate; unavailable names and unresolved/unsupported addresses have fixed
+reasons. RackConnection mappings remain an explicit unsupported gap. This does
+not validate members, types, instruction effects or engineering purpose.
+
+Current private contracts are inventory schema 2 (`source-inventory-2`) and
+reference schema 2 (`source-references-2`). New public output uses source schema 3
+(`aggregate-summary-3`) and reference schema 2 (`reference-summary-2`), both with
+policy 2. Public validation retains source schema 2 and reference schema 1 with
+its schema-2 source; hybrid versions are rejected. The outer work-check schema 1
+and private run manifests 1/2 are unchanged. See
+[data contracts](docs/planning/DATA_CONTRACTS.md) for details.
+
+Next work-machine action: `bash ./run-work-check.sh`. The saved source choice is
+reused; the script pulls, tests, analyzes and pushes its aggregate report. Review
+the new module naming and reason counters against the previous 896 unresolved
+aliases and 2,642 unresolved operands. Those old totals were not proven to be all
+I/O gaps. Do not request private inventories, reference records or terminal logs
+here. Use the returned aggregate to select the next bounded parser improvement;
+PCSD, FHX, editor and engineering classification remain later work.
+
+Tyler proposed a listener to check for new work-machine pushes and continue the
+agreed development step. This is a follow-up proposal, not an active automation.
+A local scheduled check should process each new work report once, avoid reacting
+to its own code pushes, and stop for questions, work-machine investigation or a
+phase checkpoint requiring Tyler's decision.
+
+The checkpoints below preserve earlier evidence and chronology. Their previous
+next-step statements do not override this current checkpoint.
 
 ## Returned automated checks (2026-10-13)
 
@@ -17,9 +54,9 @@ the work-machine test/report/push cycle. It does not establish source byte ident
 or independently inspect the private saved files. No real export or private log
 was accessed here, and no local test rerun was needed for this report review.
 
-No additional work-machine run is needed for this checkpoint. The next proposed
-parser slice remains module/I/O declarations plus fixed aggregate gap reasons;
-its scope still needs agreement before implementation. Phase 1 remains active.
+No additional work-machine run was needed to close this earlier checkpoint.
+Tyler subsequently authorized the module/I/O slice recorded above. Phase 1 remains
+active.
 
 ## Work-machine automation checkpoint (2026-10-13)
 
@@ -45,7 +82,8 @@ without remaining blockers after corrections. An actual temporary-remote workflo
 also passed success, failed-test and malformed-source scenarios, verifying both
 successful and failed results are committed/pushed without private text. The work-machine
 run has now returned and is reviewed above.
-The proposed module/I/O parser extension below has not been started.
+The module/I/O parser extension was implemented after this runner checkpoint;
+see the current section above.
 
 ## Returned reference evidence (2026-10-13)
 
@@ -61,14 +99,13 @@ and 653 occur in uncatalogued instructions. Aliases: 45 bound and 896 unresolved
 out of 941. No ambiguity, cycles, depth limits or argument-count mismatches appear.
 These are lexical-reference counts, not engineering interpretation percentages.
 
-Recommended next slice: module/I/O declaration coverage with fixed aggregate
-reasons for unresolved aliases/unsupported addresses. The public structural
-baseline includes 104 InputTag, 65 OutputTag and 83 ConfigTag elements omitted
-from the current symbol model. That is a verified gap; its contribution to the
-unresolved totals is still unproven. No further work-machine run is needed for
-this review. See the reference review for reconciliation and remaining limits.
+This evidence motivated the module/I/O declaration and fixed-reason slice now
+implemented above. The public structural baseline includes 104 InputTag, 65
+OutputTag and 83 ConfigTag elements omitted from the previous symbol model.
+Their contribution to the unresolved totals remains unproven until the new run.
+See the reference review for the earlier reconciliation and remaining limits.
 
-## Current reference-analysis checkpoint (2026-10-13)
+## Preceding reference-analysis checkpoint (2026-10-13)
 
 Tyler's corrected public/inspection/summary-002.json arrived in remote 3dd1b25.
 It passes aggregate validation and matches the earlier readable baseline:

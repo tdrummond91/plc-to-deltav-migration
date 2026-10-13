@@ -11,7 +11,11 @@ import json
 from typing import Any, TYPE_CHECKING
 
 from .models import InventoryResult
-from .references import ALIAS_STATUSES, OPERAND_STATUSES, ReferenceError, validate_references
+from .module_io import MODULE_IO_KINDS, NAME_ORIGINS, NAME_REASONS
+from .references import (
+    ALIAS_STATUSES, OPERAND_STATUSES, UNRESOLVED_REASONS, UNSUPPORTED_ADDRESS_REASONS,
+    ReferenceError, validate_references,
+)
 from .summary import SummaryError, build_summary, validate_summary
 
 if TYPE_CHECKING:
@@ -19,9 +23,12 @@ if TYPE_CHECKING:
 
 MAX_REPORT_BYTES = 32 * 1024
 MAX_COUNT = 10**12
-SYMBOL_KINDS = frozenset({'tag', 'aoi_local_tag', 'aoi_parameter'})
+LEGACY_SYMBOL_KINDS = frozenset({'tag', 'aoi_local_tag', 'aoi_parameter'})
+SYMBOL_KINDS = LEGACY_SYMBOL_KINDS | frozenset(MODULE_IO_KINDS)
+REASONS_BY_STATUS = {'unresolved': frozenset(UNRESOLVED_REASONS),
+                     'unsupported_address': frozenset(UNSUPPORTED_ADDRESS_REASONS)}
 COMPLETE_OPERAND_STATUSES = frozenset({'root_bound', 'literal', 'non_data'})
-CONSTANTS = {
+LEGACY_CONSTANTS = {
     'schema_version': 1,
     'policy_version': 2,
     'report_kind': 'l5x_reference_review_summary',
@@ -33,6 +40,11 @@ CONSTANTS = {
     'member_validation': 'not_implemented',
     'sharing_status': 'aggregate_sync_allowed',
 }
+CONSTANTS = LEGACY_CONSTANTS | {
+    'schema_version': 2,
+    'exporter_version': 'reference-summary-2',
+    'analyzer_version': 'source-references-2',
+}
 _CORE_CONSTANTS = {key: CONSTANTS[key] for key in (
     'schema_version', 'analyzer_version', 'analysis_scope', 'semantic_analysis',
     'effect_analysis', 'member_validation',
@@ -42,11 +54,12 @@ _COVERAGE_KEYS = frozenset({'rungs_total', 'rungs_analyzed', 'instructions_total
 _CORE_COVERAGE_KEYS = _COVERAGE_KEYS | {
     'source_status', 'operands_total', 'ambiguous_symbol_groups', 'unnamed_symbols',
 }
-_SYMBOL_KEYS = frozenset({'id', 'name', 'scope_id', 'kind', 'attributes'})
+_SYMBOL_KEYS = frozenset({'id', 'name', 'scope_id', 'kind', 'attributes',
+                         'name_origin', 'name_reason'})
 _ALIAS_KEYS = frozenset({'source_id', 'scope_id', 'raw_target', 'status', 'symbol_id',
-                        'target_id', 'suffix', 'alias_chain'})
+                        'target_id', 'suffix', 'alias_chain', 'reason'})
 _OPERAND_KEYS = frozenset({'id', 'instruction_id', 'rung_id', 'scope_id', 'argument_index',
-                          'raw_text', 'status', 'symbol_id', 'target_id', 'suffix', 'alias_chain'})
+                          'raw_text', 'status', 'symbol_id', 'target_id', 'suffix', 'alias_chain', 'reason'})
 
 
 class ReferenceSummaryError(ValueError):
@@ -99,9 +112,43 @@ def _status_counts(records: list[dict[str, Any]], allowed: frozenset[str]) -> di
 
 
 def _is_alias(entity: Any) -> bool:
-    return (entity.attributes.get('TagType') == 'Alias'
+    return (entity.kind == 'tag' and entity.attributes.get('TagType') == 'Alias'
             or (entity.kind in {'aoi_parameter', 'aoi_local_tag'}
                 and 'AliasFor' in entity.attributes))
+
+
+def _reason_counts(records: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    counts = {status: dict.fromkeys(sorted(allowed), 0) for status, allowed in REASONS_BY_STATUS.items()}
+    for record in records:
+        status, reason = record['status'], record['reason']
+        if status in counts:
+            if type(reason) is not str or reason not in counts[status]:
+                _invalid()
+            counts[status][reason] += 1
+        elif reason is not None:
+            _invalid()
+    return counts
+
+
+def _module_io_counts(symbols: list[dict[str, Any]]) -> dict[str, Any]:
+    origins = dict.fromkeys(sorted(NAME_ORIGINS), 0)
+    reasons = dict.fromkeys(sorted(NAME_REASONS), 0)
+    for symbol in symbols:
+        if symbol['kind'] not in MODULE_IO_KINDS:
+            continue
+        origin, reason = symbol['name_origin'], symbol['name_reason']
+        if type(origin) is not str or origin not in origins:
+            _invalid()
+        origins[origin] += 1
+        if origin == 'unavailable':
+            if type(reason) is not str or reason not in reasons or symbol['name'] is not None:
+                _invalid()
+            reasons[reason] += 1
+        elif reason is not None or type(symbol['name']) is not str or not symbol['name']:
+            _invalid()
+    total = sum(origins.values())
+    return {'total': total, 'named': total - origins['unavailable'],
+            'by_name_origin': origins, 'unavailable_by_reason': reasons}
 
 
 def build_reference_summary(
@@ -150,7 +197,8 @@ def build_reference_summary(
                     or type(kind) is not str or kind not in SYMBOL_KINDS):
                 _invalid()
             entity = entities.get(identifier)
-            if (entity is None or kind != entity.kind or symbol['name'] != entity.name
+            if (entity is None or kind != entity.kind
+                    or (kind not in MODULE_IO_KINDS and symbol['name'] != entity.name)
                     or symbol['scope_id'] != entity.scope_id):
                 _invalid()
             seen_symbols.add(identifier)
@@ -204,8 +252,11 @@ def build_reference_summary(
                 'unnamed': coverage['unnamed_symbols'],
                 'ambiguous_groups': coverage['ambiguous_symbol_groups'],
             },
-            'aliases': {'total': len(aliases), 'by_status': _status_counts(aliases, ALIAS_STATUSES)},
-            'operands': {'total': len(operands), 'by_status': _status_counts(operands, OPERAND_STATUSES)},
+            'aliases': {'total': len(aliases), 'by_status': _status_counts(aliases, ALIAS_STATUSES),
+                        'by_reason': _reason_counts(aliases)},
+            'operands': {'total': len(operands), 'by_status': _status_counts(operands, OPERAND_STATUSES),
+                         'by_reason': _reason_counts(operands)},
+            'module_io': _module_io_counts(symbols),
             'coverage': {key: coverage[key] for key in sorted(_COVERAGE_KEYS)},
         }
         validate_reference_summary(summary)
@@ -223,33 +274,61 @@ def validate_reference_summary(summary: dict[str, Any]) -> None:
 
 
 def _validate(summary: dict[str, Any]) -> None:
-    _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'})
-    _constants(summary, CONSTANTS)
+    if type(summary) is not dict:
+        _invalid()
+    legacy = type(summary.get('schema_version')) is int and summary['schema_version'] == 1
+    _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'}
+          | (set() if legacy else {'module_io'}))
+    _constants(summary, LEGACY_CONSTANTS if legacy else CONSTANTS)
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
         _invalid()
     source = summary['source_summary']
     validate_summary(source)
+    if source['schema_version'] != (2 if legacy else 3):
+        _invalid()
     source_counts = source['counts']
     symbols = summary['symbols']
     _keys(symbols, {'total', 'by_kind', 'unnamed', 'ambiguous_groups'})
     for key in ('total', 'unnamed', 'ambiguous_groups'):
         _count(symbols[key])
-    _counts(symbols['by_kind'], SYMBOL_KINDS)
+    _counts(symbols['by_kind'], LEGACY_SYMBOL_KINDS if legacy else SYMBOL_KINDS)
     expected_kinds = {
         'tag': source_counts['total_tag_definitions'],
         'aoi_local_tag': source_counts['aoi_local_tags'],
         'aoi_parameter': source_counts['aoi_parameters'],
     }
+    if not legacy:
+        expected_kinds.update({kind: source_counts[f'{kind}s'] for kind in MODULE_IO_KINDS})
     if (symbols['by_kind'] != expected_kinds or sum(symbols['by_kind'].values()) != symbols['total']
             or symbols['unnamed'] > symbols['total']
             or 2 * symbols['ambiguous_groups'] > symbols['total'] - symbols['unnamed']):
         _invalid()
     for name, allowed in (('aliases', ALIAS_STATUSES), ('operands', OPERAND_STATUSES)):
         group = summary[name]
-        _keys(group, {'total', 'by_status'})
+        _keys(group, {'total', 'by_status'} | (set() if legacy else {'by_reason'}))
         _count(group['total'])
         _counts(group['by_status'], allowed)
         if sum(group['by_status'].values()) != group['total']:
+            _invalid()
+        if not legacy:
+            _keys(group['by_reason'], set(REASONS_BY_STATUS))
+            for status, reasons in REASONS_BY_STATUS.items():
+                _counts(group['by_reason'][status], reasons)
+                if sum(group['by_reason'][status].values()) != group['by_status'][status]:
+                    _invalid()
+    if not legacy:
+        module_io = summary['module_io']
+        _keys(module_io, {'total', 'named', 'by_name_origin', 'unavailable_by_reason'})
+        _count(module_io['total'])
+        _count(module_io['named'])
+        _counts(module_io['by_name_origin'], frozenset(NAME_ORIGINS))
+        _counts(module_io['unavailable_by_reason'], frozenset(NAME_REASONS))
+        unavailable = module_io['by_name_origin']['unavailable']
+        if (module_io['total'] != sum(symbols['by_kind'][kind] for kind in MODULE_IO_KINDS)
+                or sum(module_io['by_name_origin'].values()) != module_io['total']
+                or module_io['named'] + unavailable != module_io['total']
+                or sum(module_io['unavailable_by_reason'].values()) != unavailable
+                or unavailable > symbols['unnamed']):
             _invalid()
     aliases = summary['aliases']
     operands = summary['operands']

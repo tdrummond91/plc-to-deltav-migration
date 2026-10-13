@@ -17,14 +17,17 @@ from .models import InventoryResult
 
 MAX_REPORT_BYTES = 32 * 1024
 MAX_COUNT = 10**12
-COUNT_KEYS = frozenset('''controllers modules tasks programs user_data_types
+LEGACY_COUNT_KEYS = frozenset('''controllers modules tasks programs user_data_types
     aoi_definitions trends encoded_regions controller_tags program_tags
     other_tag_definitions total_tag_definitions aoi_local_tags aoi_parameters
     aliases routines rungs instructions'''.split())
+MODULE_COUNT_KEYS = frozenset({'module_ports', 'module_connections', 'module_input_tags',
+                               'module_output_tags', 'module_config_tags'})
+COUNT_KEYS = LEGACY_COUNT_KEYS | MODULE_COUNT_KEYS
 # Same publication vocabulary as the existing value-profile helper. Exact match
 # only: a familiar literal in a Name/operand field never grants publication.
 ROUTINE_TYPES = frozenset({'RLL', 'FBD', 'SFC', 'ST', 'Sequence'})
-DIAGNOSTIC_CODES = frozenset('''encoded_content entity_name_missing
+LEGACY_DIAGNOSTIC_CODES = frozenset('''encoded_content entity_name_missing
     declaration_context_not_analyzed controller_context_missing
     routine_language_not_analyzed routine_content_missing routine_content_mismatch
     routine_content_not_analyzed rung_context_not_analyzed rung_content_not_analyzed
@@ -34,13 +37,14 @@ DIAGNOSTIC_CODES = frozenset('''encoded_content entity_name_missing
     expected_argument_list argument_depth_limit mismatched_argument_delimiter
     semicolon_inside_argument unclosed_quote unclosed_argument_list text_limit
     missing_rung_terminator unexpected_branch_separator trailing_content'''.split())
+DIAGNOSTIC_CODES = LEGACY_DIAGNOSTIC_CODES | {'module_rack_connection_not_analyzed'}
 RUNG_STATES = frozenset({'parsed', 'failed', 'preserved_unsupported', 'excluded'})
 ROUTINE_STATES = RUNG_STATES - {'excluded'}
 SEVERITIES = frozenset({'info', 'warning', 'error'})
 TOTAL_METRICS = frozenset('''instruction_calls argument_slots nonempty_argument_fields
     expression_instruction_calls branch_groups branch_legs empty_branch_legs'''.split())
 MAX_METRICS = frozenset({'max_branch_depth', 'max_legs_in_group', 'height_lanes', 'width_instructions'})
-CONSTANTS = {
+LEGACY_CONSTANTS = {
     'schema_version': 2,
     'policy_version': 2,
     'report_kind': 'l5x_aggregate_review_summary',
@@ -49,6 +53,11 @@ CONSTANTS = {
     'analysis_scope': 'source_structure_only',
     'semantic_analysis': 'not_implemented',
     'sharing_status': 'aggregate_sync_allowed',
+}
+CONSTANTS = LEGACY_CONSTANTS | {
+    'schema_version': 3,
+    'exporter_version': 'aggregate-summary-3',
+    'parser_version': 'source-inventory-2',
 }
 
 
@@ -91,10 +100,10 @@ def _pooled(values: dict[str, int], allowed: frozenset[str]) -> dict[str, int]:
 def build_summary(result: InventoryResult, *, revision: dict[str, Any] | None = None) -> dict[str, Any]:
     """Reconstruct approved aggregates, without copying a private payload.
 
-    Only this reader's v1 contract is supported. Adding fields or changing its
+    Only this reader's current private contract is supported. Adding fields or changing its
     meaning requires explicitly reviewing this publication policy as well.
     """
-    if (type(result.schema_version) is not int or result.schema_version != 1
+    if (type(result.schema_version) is not int or result.schema_version != 2
             or result.parser_version != CONSTANTS['parser_version']
             or result.analysis_scope != CONSTANTS['analysis_scope']
             or result.semantic_analysis != CONSTANTS['semantic_analysis']):
@@ -166,10 +175,12 @@ def build_summary(result: InventoryResult, *, revision: dict[str, Any] | None = 
 
 
 def validate_summary(summary: dict[str, Any]) -> None:
-    """Check the entire output boundary, including aggregate reconciliation."""
+    """Validate current v3 or historical v2 without admitting mixed contracts."""
     _keys(summary, set(CONSTANTS) | {'tool_revision', 'status', 'counts', 'routine_types',
                                     'coverage', 'instructions', 'ladder_metrics', 'diagnostics'})
-    for key, expected in CONSTANTS.items():
+    legacy = type(summary['schema_version']) is int and summary['schema_version'] == 2
+    constants = LEGACY_CONSTANTS if legacy else CONSTANTS
+    for key, expected in constants.items():
         if type(summary[key]) is not type(expected) or summary[key] != expected:
             _invalid()
     if summary['status'] not in ('complete', 'partial'):
@@ -185,7 +196,12 @@ def validate_summary(summary: dict[str, Any]) -> None:
     else:
         _invalid()
     counts = summary['counts']
-    _counts(counts, COUNT_KEYS)
+    _counts(counts, LEGACY_COUNT_KEYS if legacy else COUNT_KEYS)
+    if not legacy and not counts['modules'] and any(counts[key] for key in MODULE_COUNT_KEYS):
+        _invalid()
+    if (not legacy and not counts['module_connections']
+            and (counts['module_input_tags'] or counts['module_output_tags'])):
+        _invalid()
     _counts(summary['routine_types'], ROUTINE_TYPES | {'missing', 'withheld'})
     coverage = summary['coverage']
     _keys(coverage, {'xml_elements', 'routines', 'rungs', 'instruction_count_complete', 'unmodeled_xml'})
@@ -236,7 +252,7 @@ def validate_summary(summary: dict[str, Any]) -> None:
     diagnostics = summary['diagnostics']
     _keys(diagnostics, {'total', 'by_code', 'by_severity'})
     _count(diagnostics['total'])
-    _counts(diagnostics['by_code'], DIAGNOSTIC_CODES | {'withheld'}, sparse=True)
+    _counts(diagnostics['by_code'], (LEGACY_DIAGNOSTIC_CODES if legacy else DIAGNOSTIC_CODES) | {'withheld'}, sparse=True)
     _counts(diagnostics['by_severity'], SEVERITIES | {'withheld'})
     if any(sum(diagnostics[key].values()) != diagnostics['total'] for key in ('by_code', 'by_severity')):
         _invalid()

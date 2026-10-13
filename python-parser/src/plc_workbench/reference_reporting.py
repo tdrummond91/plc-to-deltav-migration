@@ -36,11 +36,16 @@ def render_reference_text(result: ReferenceResult) -> str:
     lines.extend(f"  {key}: {value}" for key, value in payload["coverage"].items())
     lines.extend(["", "Declarations:"])
     for symbol in payload["symbols"]:
-        lines.append(f"  {label(symbol['id'])} kind={symbol['kind']} scope={symbol['scope_id']}")
+        lines.extend([
+            f"  {label(symbol['id'])} kind={symbol['kind']} scope={symbol['scope_id']}",
+            f"    name origin: {symbol['name_origin']}; "
+            f"name reason: {symbol['name_reason'] or '(none)'}",
+        ])
     lines.extend(["", "Aliases:"])
     for alias in payload["aliases"]:
         lines.extend([
             f"  {label(alias['source_id'])}: {alias['raw_target']} -> {alias['status']}",
+            f"    reason: {alias['reason'] or '(none)'}",
             f"    terminal root: {label(alias['target_id'])}; suffix: {alias['suffix']}",
             f"    chain: {', '.join(alias['alias_chain']) or '(none)'}",
         ])
@@ -49,6 +54,7 @@ def render_reference_text(result: ReferenceResult) -> str:
         lines.extend([
             f"  {operand['instruction_id']} argument {operand['argument_index']}: "
             f"{operand['raw_text']} -> {operand['status']}",
+            f"    reason: {operand['reason'] or '(none)'}",
             f"    rung: {operand['rung_id']}; scope: {operand['scope_id']}",
             f"    declaration: {label(operand['symbol_id'])}",
             f"    terminal root: {label(operand['target_id'])}; suffix: {operand['suffix']}",

@@ -77,8 +77,8 @@ class InventoryResult:
     instruction_counts: dict[str, int]
     coverage: dict[str, Any]
     status: str
-    schema_version: int = 1
-    parser_version: str = "source-inventory-1"
+    schema_version: int = 2
+    parser_version: str = "source-inventory-2"
     analysis_scope: str = "source_structure_only"
     semantic_analysis: str = "not_implemented"
 

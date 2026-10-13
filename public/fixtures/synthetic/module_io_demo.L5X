@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Independently invented parser fixture; not a Studio 5000 import project. -->
+<RSLogix5000Content>
+  <Controller Name="InventedIOController">
+    <Modules>
+      <Module Name="Local" ParentModule="Local" ParentModPortId="1">
+        <Ports><Port Id="1" Type="ICP" Address="0" Upstream="false"/></Ports>
+      </Module>
+      <Module Name="Card" ParentModule="Local" ParentModPortId="1">
+        <Ports><Port Id="1" Type="ICP" Address="3" Upstream="true"/></Ports>
+        <Communications>
+          <ConfigTag/>
+          <Connections><Connection Name="CardData"><InputTag/><OutputTag/></Connection></Connections>
+        </Communications>
+      </Module>
+      <Module Name="Bridge" ParentModule="Local" ParentModPortId="1">
+        <Ports>
+          <Port Id="1" Type="ICP" Address="2" Upstream="true"/>
+          <Port Id="2" Type="Ethernet" Address="192.0.2.1" Upstream="false"/>
+        </Ports>
+      </Module>
+      <Module Name="Device" ParentModule="Bridge" ParentModPortId="2">
+        <Ports><Port Id="1" Type="Ethernet" Address="192.0.2.10" Upstream="true"/></Ports>
+        <Communications>
+          <ConfigTag/>
+          <Connections><Connection Name="DeviceData" InputTagSuffix="I1" OutputTagSuffix="O1">
+            <InputTag/><OutputTag/>
+          </Connection></Connections>
+        </Communications>
+      </Module>
+    </Modules>
+    <Tags>
+      <Tag Name="InputAlias" TagType="Alias" AliasFor="Local:3:I.Data.0"/>
+      <Tag Name="MissingAlias" TagType="Alias" AliasFor="Absent:I.Data"/>
+      <Tag Name="Flag" TagType="Base" DataType="BOOL"/>
+    </Tags>
+    <Programs><Program Name="Demo"><Routines><Routine Name="Main" Type="RLL"><RLLContent>
+      <Rung Number="0" Type="N"><Text><![CDATA[XIC(InputAlias)OTE(Flag);]]></Text></Rung>
+      <Rung Number="1" Type="N"><Text><![CDATA[MOV(Local:3:I.Data,Device:O1.Data)MOV(Device:I1.Data,Local:3:O.Data)XIC(MissingAlias);]]></Text></Rung>
+    </RLLContent></Routine></Routines></Program></Programs>
+  </Controller>
+</RSLogix5000Content>

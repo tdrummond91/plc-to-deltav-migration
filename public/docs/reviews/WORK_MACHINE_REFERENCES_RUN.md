@@ -1,7 +1,7 @@
 # Work-machine check: one command
 
 Use the existing **feat/source-references-pc** branch. This remains Phase 1:
-source inventory, declared tag roots and alias chains. Engineering classifications,
+source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
 
 ## First run
@@ -82,7 +82,9 @@ Interpret the reference counters as follows:
 - `root_bound`: a declared root/alias chain was found; members, dimensions,
   access rules and instruction effects are not validated.
 - `unresolved`: no applicable declaration was found. Missing module-tag modeling
-  or partial export context can cause this; it does not prove a source typo.
+  for unsupported topologies or partial export context can cause this; it does
+  not prove a source typo. Fixed `by_reason` counts explain the supported cases;
+  `colon_root_not_declared` only describes address syntax, not proven I/O intent.
 - `ambiguous`: multiple declarations matched the same case-insensitive name.
 - `unsupported_instruction`, `unsupported_expression`, `unsupported_address`:
   private evidence was retained but this slice did not interpret it.
@@ -92,3 +94,10 @@ Interpret the reference counters as follows:
 Manual commands remain available in the [Python README](../../../python-parser/README.md).
 See [runner implementation and validation](WORK_CHECK_RUNNER_REVIEW.md) for the
 automated workflow's contract and test evidence.
+
+The module/I/O update adds `module_io` naming/provenance counts and fixed reason
+counts under both `aliases` and `operands`. Source module ports, connections and
+input/output/config declarations are counted separately from ordinary tags.
+Actual names, topology and per-reference detail remain in the private reports.
+See [module/I/O review](MODULE_IO_REVIEW.md) for comparison targets. Nothing is
+automatically monitoring GitHub yet; continue telling this chat when a run finishes.

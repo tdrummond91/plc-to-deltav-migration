@@ -115,6 +115,7 @@ class ReferenceTests(unittest.TestCase):
         self.assertEqual(result.operands[3]['target_id'], named(result, 'Local')['id'])
         self.assertEqual(result.operands[3]['suffix'], '.Member')
         self.assertEqual(result.aliases[1]['status'], 'unresolved')
+        self.assertEqual(result.aliases[1]['reason'], 'aoi_alias_target_not_local')
 
     def test_never_resolves_between_distinct_controllers(self) -> None:
         raw = ('<RSLogix5000Content><Controller Name="One"><Tags>' + tag('OnlyOne') +
@@ -138,6 +139,56 @@ class ReferenceTests(unittest.TestCase):
         self.assertTrue(all(row['status'] == 'unsupported_address' for row in result.operands))
         self.assertTrue(all(row['symbol_id'] is None for row in result.operands))
         self.assertEqual(result.operands[0]['raw_text'], 'Array[Index]')
+        self.assertEqual([row['reason'] for row in result.operands], [
+            'non_static_array_index', 'program_qualified_address',
+            'backslash_qualified_address', 'malformed_address', 'malformed_address',
+            'malformed_address', 'malformed_address',
+        ])
+
+    def test_dynamic_index_reason_requires_complete_recognizable_bracket_expression(self) -> None:
+        dynamic = ['Array[Index + 1]', 'Array[(Index + 1) * 2]',
+                   'Array[1, Index.Member]', 'Array[1+2]']
+        malformed = ['Array[]', 'Array[Index +]', 'Array[1,,2]',
+                     'Array[Index) + 1]', 'Array[Index]Extra', 'Array[-1]']
+        # Build captured occurrences directly for delimiter-malformed addresses;
+        # the ladder parser rightly rejects some of these before binding.
+        source = inventory(tag('Array'), program('XIC(Array);'))
+        instruction = source.rungs[0].instructions[0]
+        for address, reason in [(x, 'non_static_array_index') for x in dynamic] + [
+                (x, 'malformed_address') for x in malformed]:
+            with self.subTest(address=address):
+                rung = replace(source.rungs[0], instructions=[replace(
+                    instruction, arguments=(address,))])
+                result = analyze_references(replace(source, rungs=[rung]))
+                self.assertEqual(result.operands[0]['status'], 'unsupported_address')
+                self.assertEqual(result.operands[0]['reason'], reason)
+
+    def test_alias_failure_reasons_describe_terminal_target_not_caller(self) -> None:
+        result = analyze(tag('First', 'Second') + tag('Second', 'Absent:I.Data') +
+                         tag('Indirect', 'Array[Index]') +
+                         tag('EmptyTarget', '') + tag('AbsentPlain', 'Gone'),
+                         'XIC(First)XIC(Indirect)XIC(EmptyTarget)XIC(AbsentPlain);')
+        self.assertEqual([row['reason'] for row in result.operands], [
+            'colon_root_not_declared', 'non_static_array_index', 'empty_address',
+            'root_not_declared',
+        ])
+        alias = next(row for row in result.aliases
+                     if row['source_id'] == named(result, 'First')['id'])
+        self.assertEqual(alias['reason'], 'colon_root_not_declared')
+        self.assertEqual(result.operands[0]['symbol_id'], named(result, 'First')['id'])
+
+    def test_invalid_scope_is_distinct_from_missing_root(self) -> None:
+        source = inventory(tag('A'), program('XIC(A);'))
+        rung = replace(source.rungs[0], scope_id='not_a_scope')
+        result = analyze_references(replace(source, rungs=[rung]))
+        self.assertEqual(result.operands[0]['status'], 'unresolved')
+        self.assertEqual(result.operands[0]['reason'], 'invalid_scope')
+
+    def test_long_addresses_have_fixed_length_reason_and_other_statuses_no_reason(self) -> None:
+        with patch('plc_workbench.references.MAX_ADDRESS_LENGTH', 5):
+            result = analyze(tag('A'), 'XIC(TooLong)XIC(A)MOV(1,A)JMP(Label)Custom(A);')
+        self.assertEqual(result.operands[0]['reason'], 'address_length_limit')
+        self.assertTrue(all(row['reason'] is None for row in result.operands[1:]))
 
     def test_numeric_and_string_literals_never_create_symbol_edges(self) -> None:
         values = ['-1', '+1.5E-2', '.25', '2#1010_0101', '8#77', '16#A0_FF',
@@ -241,6 +292,7 @@ class ReferenceTests(unittest.TestCase):
         self.assertEqual(result.operands[0]['status'], 'unsupported_address')
         self.assertEqual(result.operands[0]['raw_text'], 'A.Member')
         self.assertIsNone(result.operands[0]['target_id'])
+        self.assertEqual(result.operands[0]['reason'], 'expanded_suffix_limit')
 
     def test_independently_authored_fixture_known_bindings(self) -> None:
         source = analyze_snapshot(snapshot_from_bytes(FIXTURE.read_bytes()))
@@ -277,11 +329,15 @@ class ReferenceTests(unittest.TestCase):
             (('operands', 0, 'raw_text'), 'PRIVATE_WRONG_TEXT'),
             (('operands', 0, 'suffix'), '.WrongMember'),
             (('operands', 0, 'status'), 'literal'),
+            (('operands', 0, 'reason'), 'root_not_declared'),
             (('operands', 0, 'argument_index'), False),
             (('aliases', 0, 'raw_target'), 'PRIVATE_WRONG_TARGET'),
             (('aliases', 0, 'target_id'), 'tag_wrong_snapshot'),
             (('aliases', 0, 'alias_chain'), []),
+            (('aliases', 0, 'reason'), 'PRIVATE_INVENTED_REASON'),
             (('symbols', 0, 'attributes', 'DataType'), 'BOOL'),
+            (('symbols', 0, 'name_origin'), 'module_name'),
+            (('symbols', 0, 'name_reason'), 'PRIVATE_INVENTED_REASON'),
             (('coverage', 'operands_total'), 1.0),
             (('snapshot', 'id'), 'sha256:wrong_snapshot'),
         ]

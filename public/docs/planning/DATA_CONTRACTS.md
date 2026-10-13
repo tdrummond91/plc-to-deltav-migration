@@ -2,15 +2,25 @@
 
 Status: updated 2026-10-13. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Implemented root-reference analysis v1 (2026-10-13)
+## Implemented root-reference analysis v2 (2026-10-13)
 
-`references.ReferenceResult` has schema 1, analyzer `source-references-1` and
-analysis_scope `scoped_root_bindings`. It consumes the typed source-inventory-1
+`references.ReferenceResult` has schema 2, analyzer `source-references-2` and
+analysis_scope `scoped_root_bindings`. It consumes the typed source-inventory-2
 result without modifying it. Private records include the snapshot identity,
 symbols, alias resolutions, operand occurrences, coverage and status. Semantic,
 instruction-effect and member validation fields remain `not_implemented`.
 
-Symbols retain declaration IDs and owning scopes. Each operand ID hashes the
+Symbols retain declaration IDs, owning scopes, `name_origin` and `name_reason`.
+Alongside ordinary tags and AOI declarations, module_input_tag, module_output_tag
+and module_config_tag records participate in root lookup. Module names may be
+explicit or inferred from supported ICP/Ethernet topology; origins are
+`explicit_name`, `module_name`, `backplane_slot` or `unavailable`. Missing,
+ambiguous, unsupported or cyclic topology leaves the name unavailable with a
+fixed reason. No value or Data child supplies a missing name. Raw inventory
+records are not modified by this interpretation. Alias records are limited to
+ordinary Tag aliases and AOI declarations with AliasFor.
+
+Each operand ID hashes the
 snapshot, instruction ID and zero-based argument index. Its record preserves the
 raw argument, rung/instruction/scope IDs, direct symbol ID, terminal target ID,
 alias-chain IDs and accumulated member/index suffix. Repeated uses remain separate.
@@ -26,34 +36,64 @@ access validation is claimed. Coverage distinguishes parsed source rungs and
 instructions with catalogued signatures. Even a zero-argument unknown instruction
 prevents complete status. Unsupported source content also propagates partial.
 
+Alias and operand records also carry `reason`. It is non-null only for
+`unresolved` or `unsupported_address`, including a terminal alias failure.
+Unresolved reasons are `invalid_scope`, `root_not_declared`,
+`colon_root_not_declared` and `aoi_alias_target_not_local`. Unsupported-address
+reasons are `empty_address`, `address_length_limit`, `program_qualified_address`,
+`backslash_qualified_address`, `non_static_array_index`, `malformed_address` and
+`expanded_suffix_limit`. A colon-shaped missing root is a syntax observation,
+not proof of an I/O defect or invalid source. Dynamic-index recognition is
+bounded lexical analysis; no expression is evaluated.
+
 Reference runs add references.json/references.txt to the existing private run and
 use manifest schema 2, artifact_kind source_reference_run. The manifest is still
 published last, includes all artifact hashes and records the analyzer version.
 Ordinary source-inventory runs retain their existing schema-1 manifest.
 
 `reference_summary` reconstructs only fixed aggregate fields: symbol kinds,
-alias/operand disposition counts, coverage and the existing structural v2 report
-as source_summary. Its report_kind is l5x_reference_review_summary, schema 1,
-policy 2 and exporter reference-summary-1. Code provenance occurs only in the
+alias/operand disposition and reason counts, module naming counts, coverage and
+the structural schema-3 report as source_summary. Its report_kind is
+l5x_reference_review_summary, schema 2, policy 2 and exporter reference-summary-2.
+Each aliases/operands `by_reason` group includes the complete fixed unresolved
+and unsupported-address vocabularies; each reason total must equal the matching
+status count. `module_io` contains `total`, `named`, `by_name_origin` and
+`unavailable_by_reason`. Origins reconcile with total module I/O declarations;
+named plus unavailable equals total, and unavailable reason counts reconcile.
+The reason vocabulary comes from module_io.NAME_REASONS, never source labels.
+Code provenance occurs only in the
 nested source_summary.tool_revision. Private snapshot/occurrence reconciliation
-happens in memory. Closed-key/type/count validation runs again at publication;
+happens in memory, including canonical reanalysis of names and bindings.
+Closed-key/type/count validation runs again at publication;
 private records, arbitrary labels, added fields and source identities are rejected.
 The whole report is capped at 32 KiB and approved for sync under D026.
 
-See [reference review](../reviews/SOURCE_REFERENCES_REVIEW.md) for catalog,
+Public validation also accepts the previous reference schema 1 with its nested
+source schema 2. New schema 2 requires source schema 3; mixed version fields or
+nested versions are rejected. The outer work-check schema stays 1 and accepts
+either supported nested reference version. This is aggregate read compatibility,
+not an editable-data import or private-run migration.
+
+See [module/I/O review](../reviews/MODULE_IO_REVIEW.md) and the
+[preceding reference review](../reviews/SOURCE_REFERENCES_REVIEW.md) for scope,
 resource bounds, primary documentation and test evidence.
 
-## Implemented aggregate summary v2 (2026-10-13)
+## Implemented aggregate summary v3 (2026-10-13)
 
 `plc_workbench.summary` builds and validates report_kind
-`l5x_aggregate_review_summary`, schema_version 2, policy_version 2 and
-exporter_version `aggregate-summary-2`. The accepted input is source-inventory-1.
+`l5x_aggregate_review_summary`, schema_version 3, policy_version 2 and
+exporter_version `aggregate-summary-3`. The builder accepts source-inventory-2.
 Its closed field vocabulary includes component counts, coverage dispositions,
 approved routine types, approved instruction totals, global ladder totals/maxima,
 diagnostic counts and fixed analysis limitations. Unlisted labels use pooled
 `withheld` counts, never stable unknown IDs. Missing routine Type is distinguished
 from a present but unlisted value. XML coverage includes only aggregate element/
 distinct-path counts, not path strings. Source identities and raw fields are absent.
+New count fields are `module_ports`, `module_connections`, `module_input_tags`,
+`module_output_tags` and `module_config_tags`; the diagnostic vocabulary now
+includes `module_rack_connection_not_analyzed`. Ordinary tag totals are unchanged
+in meaning. The validator also accepts the exact previous schema-2 contract;
+schema versions cannot be mixed with another version's fields or metadata.
 
 Strict nonnegative integer checks and cross-field accounting run before rendering
 or publication. Complete reports cannot hide unknown-severity diagnostics or
@@ -63,8 +103,9 @@ distinct unknown labels. `sharing_status=aggregate_sync_allowed` records Tyler's
 authorization to sync these aggregates. They contain no individual rung logic
 or process values. His boundary is unit reconstruction with data values, or more
 than 2% rung knowledge; this summary has no rung samples. V1 reports remain usable
-under that clarification without rerunning the source, although new exports and
-the current validator use v2. No editable-import compatibility is claimed.
+as historical feedback under that clarification without rerunning the source;
+they are not directly accepted by the current validator. No editable-import
+compatibility is claimed.
 
 `tool_revision` contains this code checkout's 40-hex Git commit plus `clean`,
 `modified` or `unavailable`. Unavailable requires a null commit. Modified checks
@@ -79,11 +120,11 @@ avoids clobbering existing files. Temporary `.pending` files can remain after an
 interruption/cleanup failure and are not shareable results. See the
 [work-machine procedure](../reviews/WORK_MACHINE_SUMMARY_RUN.md).
 
-## Implemented source inventory v1
+## Implemented source inventory v2
 
 `python-parser/src/plc_workbench/models.py` defines typed source records serialized
-by `InventoryResult.to_dict()`. The full report has schema_version 1,
-parser_version `source-inventory-1`, analysis_scope `source_structure_only` and
+by `InventoryResult.to_dict()`. The full report has schema_version 2,
+parser_version `source-inventory-2`, analysis_scope `source_structure_only` and
 semantic_analysis `not_implemented`. Top-level fields include snapshot metadata,
 export attributes, entities, rungs, diagnostics, counts, routine_types,
 instruction_counts, coverage and status. This is a private source format,
@@ -96,6 +137,18 @@ keys. Parent/scope links refer to source entity IDs; rung instruction structures
 refer to their instruction IDs. Offsets are zero-based, end-exclusive Python
 character offsets into decoded rung text, not file-byte offsets. Attributes and
 operands are source evidence with no reference or instruction-effect validation.
+
+Module records now include five additional entity kinds: module_port,
+module_connection, module_input_tag, module_output_tag and module_config_tag.
+Ports and configuration tags link to the module; input/output tags link to their
+ordinary connection, which links to the module. All inherit controller scope.
+Only the supported Module/Ports and Module/Communications paths create these
+records. Similar vendor-extension element names do not become declarations.
+Absent Name attributes stay absent; topology-based names belong only to derived
+references. RackConnection remains preserved in the snapshot with the explicit
+`module_rack_connection_not_analyzed` diagnostic. Its aliases are not ordinary
+connection tag records. These new counts do not inflate total_tag_definitions
+or tag_aliases.
 
 Coverage accounts for each encountered rung as parsed, failed, unsupported or
 excluded; each inventoried routine is parsed, failed or unsupported. Instruction
@@ -113,7 +166,7 @@ name/path or parent-run lineage. See [usage](../../../python-parser/README.md)
 and [review evidence](../reviews/SOURCE_INVENTORY_REVIEW.md).
 
 The identity/checkpoint proposals below describe later additions; they do not
-change the implemented v1 fields implicitly.
+change the implemented v2 fields implicitly.
 
 ## Evidence, interpretation, decision
 

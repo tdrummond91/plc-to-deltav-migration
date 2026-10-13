@@ -55,7 +55,7 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual(summary['status'], 'partial')
         self.assertFalse(summary['coverage']['instruction_count_complete'])
         self.assertEqual(summary['semantic_analysis'], 'not_implemented')
-        self.assertEqual(summary['schema_version'], 2)
+        self.assertEqual(summary['schema_version'], 3)
         self.assertEqual(summary['policy_version'], 2)
         self.assertEqual(summary['sharing_status'], 'aggregate_sync_allowed')
         self.assertNotIn('rungs', summary)  # no occurrence records or layout

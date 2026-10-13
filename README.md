@@ -1,6 +1,6 @@
 # PLC analysis workbench
 
-Status: updated 2026-10-13. Source inventory, scoped tag/alias root bindings and bounded aggregate exports are implemented on `feat/source-references-pc`, alongside the original prototype and inspection helpers. See [reference implementation evidence](public/docs/reviews/SOURCE_REFERENCES_REVIEW.md) for validation and limitations. The editor, engineering interpretation, PCSD and FHX stages remain planned.
+Status: updated 2026-10-13. Phase 1 now includes module/I/O declarations, conservative module-root naming, scoped tag/alias bindings and fixed gap-reason counts on `feat/source-references-pc`. See [module/I/O implementation evidence](public/docs/reviews/MODULE_IO_REVIEW.md) for scope, validation and limitations. The editor, engineering interpretation, PCSD and FHX stages remain planned.
 
 The aim is a reusable tool for migrating several units from L5X source analysis through editable engineering records and PCSD to class-based DeltaV FHX. FHX input must also support producing a PCSD. Phase 1 analyzes L5X in two parallel paths: reports for reading and understanding the source, and editable engineering files for organizing and mapping it. Both need source traceability. Other routine languages, including SFC, remain visible even before detailed analysis is implemented.
 
@@ -61,10 +61,14 @@ This fixture intentionally returns exit 3 (partial) because SFC interpretation i
 For bounded aggregate feedback, `plc summarize FILE --output public/inspection/NEW.json` emits validated counts and global measurements. Unknown labels are pooled; source identifiers, hashes, operands, paths and rung layouts are omitted. Tyler has approved these aggregate reports for repository sync. His confidentiality boundary is unit reconstruction with data values, or more than 2% rung knowledge; these summaries expose no individual rung logic or process values. See [summary implementation evidence](public/docs/reviews/SUMMARY_EXPORT_REVIEW.md).
 
 `plc references FILE` produces private scoped declarations, alias chains and
-operand occurrences linked to declared roots. It does not validate structure
-members, array bounds, instruction effects or engineering purpose.
+operand occurrences linked to declared roots. Module input/output/configuration
+tags can bind through explicit names or supported module/port topology; inferred
+names retain their provenance, and incomplete topology has fixed gap reasons.
+Root binding does not validate structure members, array bounds, instruction
+effects or engineering purpose.
 `plc reference-summary FILE --output public/inspection/NEW.json` exports only
-binding/coverage counts plus the existing structural summary. Follow the
+binding/coverage counts, module naming and gap-reason counts, plus the structural
+summary. Follow the
 [current work-machine procedure](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
 Unit test source belongs in `python-parser/tests/`. Private reports, reviewer workbooks, source snapshots and checkpoints belong under `confidential/`; approved aggregate reports are the explicit sync exception. Real data must not be placed in synthetic fixtures or application documentation.

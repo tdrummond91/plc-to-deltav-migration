@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/MODULE_IO_REVIEW.md,
 public/docs/reviews/WORK_CHECK_RUNNER_REVIEW.md,
 public/docs/reviews/SOURCE_REFERENCES_REVIEW.md and
 public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md for the current
@@ -27,15 +28,18 @@ uv run --project python-parser python -B -m unittest discover \
 Current baseline: 139 passing helper tests. Also run:
 uv run --project python-parser python -B -m unittest discover -s python-parser/tests -v
 
-Use the final application test count and tested revision in WORK_CHECK_RUNNER_REVIEW.md;
+Use the final application test count and tested revision in MODULE_IO_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
 test run as fresh execution.
 
-Summarize the current architecture, implemented capabilities,
-limitations, and propose the next bounded development milestone.
-Wait for agreement before implementing that milestone.
+The module/I/O slice is authorized and implemented. Finish any validation or
+review recorded as outstanding in MODULE_IO_REVIEW.md before handing it off.
+After the next work-machine report arrives, validate its counters and identify
+the next bounded parser improvement. Continue work already authorized in the
+active session; ask for a decision when the evidence or a phase boundary needs
+Tyler's input.
 
 Keep parsing and analysis reusable by both CLI and a future GUI.
 Preserve source mappings and account for unsupported content.
@@ -163,20 +167,38 @@ The runner's first two work-machine reports have returned in ad2ec8b and f38d81e
 Both validate, include successful suites (155 application tests with one skip;
 139 helper tests), and report saved private runs with expected partial analysis.
 Their reference aggregates match the previous report exactly except code revision.
-The automated feedback cycle is verified; no extra work-machine run is needed
-before deciding the next parser slice. Do not repeat the runner implementation.
+The automated feedback cycle is verified. Do not repeat the runner implementation.
 
-The recommended next parser slice is module/I/O declarations plus fixed aggregate
-reasons for unresolved aliases/unsupported addresses. Existing public counts show
-104 InputTag, 65 OutputTag and 83 ConfigTag elements absent from the current symbol
-model; they do not prove the cause of every unresolved reference. Agree the next
-slice before implementing. Never request private source/reference reports here.
+Tyler then authorized implementing module/I/O declarations and fixed aggregate
+reasons for unresolved/unsupported-address bindings. That slice is now present:
+inventory schema 2, reference schema 2, source aggregate schema 3 and reference
+aggregate schema 2. Module InputTag/OutputTag/ConfigTag roots can bind using
+explicit names or conservative supported topology; inferred names retain
+provenance, and incomplete/ambiguous context remains a gap. RackConnection is
+explicitly unsupported. Ordinary tag/alias counts stay separate from module I/O.
+See MODULE_IO_REVIEW.md and DATA_CONTRACTS.md for exact scope and validation.
+
+Next work-machine action is `bash ./run-work-check.sh`, which remembers the local
+source, pulls, tests, analyzes and pushes a new aggregate. Compare module counts,
+naming origins/unavailable reasons and binding reason counts with the preceding
+896 unresolved aliases and 2,642 unresolved operands. Public structure counts
+show 104 InputTag, 65 OutputTag and 83 ConfigTag elements; they do not prove the
+cause of every unresolved reference. Never request private source/reference
+reports here. Root binding still does not validate members, types, effects,
+alarm consequences, control loops or equipment/sequence classifications.
+
+The listener idea is a follow-up proposal; nothing is listening automatically.
+If selected, process each new work report once, continue only agreed work and
+stop for user questions, investigation or phase decisions. Avoid duplicate runs
+and loops triggered by the development agent's own pushes.
 
 Tyler clarified confidentiality on 2026-10-13: unit reconstruction with data
 values, or more than 2% rung knowledge. Aggregate summaries contain no individual
 rung logic or process values and are approved for sync in public/inspection/.
-Do not reintroduce an extra per-report sharing gate. Current exports are schema/
-policy v2; already-generated v1 work-machine summaries remain valid feedback.
+Do not reintroduce an extra per-report sharing gate. New source/reference
+aggregates use schemas 3/2 with policy 2. The validator retains the preceding
+source schema 2 and reference schema 1 with its schema-2 source; hybrid versions
+are rejected. Already-generated v1 source summaries remain historical feedback.
 The full `inspect` output still stays private. Read D026 and the current handoff.
 
 The historical allocation-limit finding above is fixed in the shared grammar.

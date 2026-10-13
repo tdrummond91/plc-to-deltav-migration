@@ -144,8 +144,16 @@ _ENTITY_KINDS = {
     'AddOnInstructionDefinition': 'aoi', 'DataType': 'data_type',
     'ScheduledProgram': 'program_schedule', 'Parameter': 'aoi_parameter',
     'LocalTag': 'aoi_local_tag', 'EncodedData': 'encoded_region',
+    'Port': 'module_port', 'Connection': 'module_connection',
+    'InputTag': 'module_input_tag', 'OutputTag': 'module_output_tag',
+    'ConfigTag': 'module_config_tag',
 }
 _SCOPES = {'controller', 'program', 'aoi'}
+# These module declarations commonly have identity through their source position
+# and attributes other than Name. Keep that evidence without inventing a name.
+_OPTIONALLY_NAMED_KINDS = {
+    'module_port', 'module_input_tag', 'module_output_tag', 'module_config_tag',
+}
 # These envelopes are traversed by this slice. All other paths are accounted as
 # generic preserved XML, not claimed invalid or interpreted. Exact bytes remain
 # in the snapshot even when a dedicated source model has not been implemented.
@@ -155,6 +163,8 @@ _CONTAINER_PARENTS = {
     'Modules': {'controller'}, 'AddOnInstructionDefinitions': {'controller'},
     'DataTypes': {'controller'}, 'ScheduledPrograms': {'task'},
     'Parameters': {'aoi'}, 'LocalTags': {'aoi'}, 'Trends': {'controller', 'program'},
+    'Ports': {'module'}, 'Communications': {'module'},
+    'Connections': {'Communications'},
 }
 _DECLARATION_PARENTS = {
     'Controller': 'root', 'Task': 'Tasks', 'Program': 'Programs',
@@ -162,6 +172,9 @@ _DECLARATION_PARENTS = {
     'AddOnInstructionDefinition': 'AddOnInstructionDefinitions',
     'DataType': 'DataTypes', 'ScheduledProgram': 'ScheduledPrograms',
     'Parameter': 'Parameters', 'LocalTag': 'LocalTags',
+    'Port': 'Ports', 'Connection': 'Connections',
+    'InputTag': 'module_connection', 'OutputTag': 'module_connection',
+    'ConfigTag': 'Communications',
 }
 
 
@@ -208,12 +221,17 @@ def analyze_snapshot(snapshot: SourceSnapshot) -> InventoryResult:
         'aoi_definitions', 'trends', 'encoded_regions', 'controller_tags',
         'program_tags', 'other_tag_definitions', 'total_tag_definitions',
         'aoi_local_tags', 'aoi_parameters', 'aliases', 'routines', 'rungs', 'instructions',
+        'module_ports', 'module_connections', 'module_input_tags',
+        'module_output_tags', 'module_config_tags',
     )})
     count_key = {
         'controller': 'controllers', 'module': 'modules', 'task': 'tasks',
         'program': 'programs', 'data_type': 'user_data_types', 'aoi': 'aoi_definitions',
         'encoded_region': 'encoded_regions', 'routine': 'routines',
         'aoi_local_tag': 'aoi_local_tags', 'aoi_parameter': 'aoi_parameters',
+        'module_port': 'module_ports', 'module_connection': 'module_connections',
+        'module_input_tag': 'module_input_tags', 'module_output_tag': 'module_output_tags',
+        'module_config_tag': 'module_config_tags',
     }
     # Roles only propagate through supported parents. A familiar element name in
     # a vendor extension is evidence, not automatically a source declaration.
@@ -263,12 +281,17 @@ def analyze_snapshot(snapshot: SourceSnapshot) -> InventoryResult:
             if kind == 'encoded_region':
                 diagnose('encoded_content', node, entity.id,
                          'Encoded content is preserved in the snapshot and has not been analyzed.')
-            elif not entity.name:
+            elif not entity.name and kind not in _OPTIONALLY_NAMED_KINDS:
                 diagnose('entity_name_missing', node, entity.id,
                          'An inventoried declaration or reference has no Name value.')
         elif index not in roles:
             generic_paths[node.path] += 1
-            if node.name in _ENTITY_KINDS and node.name not in {'Parameter', 'LocalTag'}:
+            if node.name == 'RackConnection' and parent_role == 'Connections':
+                parent = ancestor(index, {'module'})
+                diagnose('module_rack_connection_not_analyzed', node,
+                         parent.id if parent else None,
+                         'Rack connection XML is preserved but has no dedicated interpretation in this slice.')
+            elif node.name in _ENTITY_KINDS and node.name not in {'Parameter', 'LocalTag'}:
                 diagnose('declaration_context_not_analyzed', node, None,
                          'Declaration-like XML is outside a supported source container; it was not inventoried.')
 

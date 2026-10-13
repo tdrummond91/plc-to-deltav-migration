@@ -1,0 +1,236 @@
+{
+  "aliases": {
+    "by_reason": {
+      "unresolved": {
+        "aoi_alias_target_not_local": 0,
+        "colon_root_not_declared": 1,
+        "invalid_scope": 0,
+        "root_not_declared": 0
+      },
+      "unsupported_address": {
+        "address_length_limit": 0,
+        "backslash_qualified_address": 0,
+        "empty_address": 0,
+        "expanded_suffix_limit": 0,
+        "malformed_address": 0,
+        "non_static_array_index": 0,
+        "program_qualified_address": 0
+      }
+    },
+    "by_status": {
+      "alias_cycle": 0,
+      "alias_depth_limit": 0,
+      "ambiguous": 0,
+      "root_bound": 1,
+      "unresolved": 1,
+      "unsupported_address": 0
+    },
+    "total": 2
+  },
+  "analysis_scope": "scoped_root_bindings",
+  "analyzer_version": "source-references-2",
+  "coverage": {
+    "instructions_catalogued": 5,
+    "instructions_total": 5,
+    "rungs_analyzed": 2,
+    "rungs_total": 2
+  },
+  "effect_analysis": "not_implemented",
+  "exporter_version": "reference-summary-2",
+  "member_validation": "not_implemented",
+  "module_io": {
+    "by_name_origin": {
+      "backplane_slot": 3,
+      "explicit_name": 0,
+      "module_name": 3,
+      "unavailable": 0
+    },
+    "named": 6,
+    "total": 6,
+    "unavailable_by_reason": {
+      "ambiguous_connection_context": 0,
+      "ambiguous_module_context": 0,
+      "ambiguous_parent_module": 0,
+      "ambiguous_parent_port": 0,
+      "ambiguous_upstream_port": 0,
+      "invalid_explicit_name": 0,
+      "invalid_module_name": 0,
+      "invalid_slot": 0,
+      "invalid_suffix": 0,
+      "invalid_upstream_port": 0,
+      "missing_connection_context": 0,
+      "missing_module_context": 0,
+      "missing_parent_module": 0,
+      "missing_parent_port": 0,
+      "missing_upstream_port": 0,
+      "name_length_limit": 0,
+      "port_type_mismatch": 0,
+      "topology_cycle": 0,
+      "topology_depth_limit": 0,
+      "unsupported_port_type": 0
+    }
+  },
+  "operands": {
+    "by_reason": {
+      "unresolved": {
+        "aoi_alias_target_not_local": 0,
+        "colon_root_not_declared": 1,
+        "invalid_scope": 0,
+        "root_not_declared": 0
+      },
+      "unsupported_address": {
+        "address_length_limit": 0,
+        "backslash_qualified_address": 0,
+        "empty_address": 0,
+        "expanded_suffix_limit": 0,
+        "malformed_address": 0,
+        "non_static_array_index": 0,
+        "program_qualified_address": 0
+      }
+    },
+    "by_status": {
+      "alias_cycle": 0,
+      "alias_depth_limit": 0,
+      "ambiguous": 0,
+      "argument_count_mismatch": 0,
+      "empty": 0,
+      "literal": 0,
+      "non_data": 0,
+      "root_bound": 6,
+      "unresolved": 1,
+      "unsupported_address": 0,
+      "unsupported_expression": 0,
+      "unsupported_instruction": 0
+    },
+    "total": 7
+  },
+  "policy_version": 2,
+  "report_kind": "l5x_reference_review_summary",
+  "schema_version": 2,
+  "semantic_analysis": "not_implemented",
+  "sharing_status": "aggregate_sync_allowed",
+  "source_summary": {
+    "analysis_scope": "source_structure_only",
+    "counts": {
+      "aliases": 2,
+      "aoi_definitions": 0,
+      "aoi_local_tags": 0,
+      "aoi_parameters": 0,
+      "controller_tags": 3,
+      "controllers": 1,
+      "encoded_regions": 0,
+      "instructions": 5,
+      "module_config_tags": 2,
+      "module_connections": 2,
+      "module_input_tags": 2,
+      "module_output_tags": 2,
+      "module_ports": 5,
+      "modules": 4,
+      "other_tag_definitions": 0,
+      "program_tags": 0,
+      "programs": 1,
+      "routines": 1,
+      "rungs": 2,
+      "tasks": 0,
+      "total_tag_definitions": 3,
+      "trends": 0,
+      "user_data_types": 0
+    },
+    "coverage": {
+      "instruction_count_complete": true,
+      "routines": {
+        "encountered": 1,
+        "failed": 0,
+        "parsed": 1,
+        "preserved_unsupported": 0
+      },
+      "rungs": {
+        "encountered": 2,
+        "excluded": 0,
+        "failed": 0,
+        "parsed": 2,
+        "preserved_unsupported": 0
+      },
+      "unmodeled_xml": {
+        "distinct_paths": 0,
+        "elements": 0
+      },
+      "xml_elements": 41
+    },
+    "diagnostics": {
+      "by_code": {
+        "withheld": 0
+      },
+      "by_severity": {
+        "error": 0,
+        "info": 0,
+        "warning": 0,
+        "withheld": 0
+      },
+      "total": 0
+    },
+    "exporter_version": "aggregate-summary-3",
+    "instructions": {
+      "counts": {
+        "MOV": 2,
+        "OTE": 1,
+        "XIC": 2,
+        "withheld": 0
+      },
+      "scope": "successfully_parsed_RLL_rungs_only",
+      "total": 5
+    },
+    "ladder_metrics": {
+      "maxima": {
+        "height_lanes": 1,
+        "max_branch_depth": 0,
+        "max_legs_in_group": 0,
+        "width_instructions": 3
+      },
+      "scope": "successfully_parsed_RLL_rungs_only",
+      "totals": {
+        "argument_slots": 7,
+        "branch_groups": 0,
+        "branch_legs": 0,
+        "empty_branch_legs": 0,
+        "expression_instruction_calls": 0,
+        "instruction_calls": 5,
+        "nonempty_argument_fields": 7
+      }
+    },
+    "parser_version": "source-inventory-2",
+    "policy_version": 2,
+    "report_kind": "l5x_aggregate_review_summary",
+    "routine_types": {
+      "FBD": 0,
+      "RLL": 1,
+      "SFC": 0,
+      "ST": 0,
+      "Sequence": 0,
+      "missing": 0,
+      "withheld": 0
+    },
+    "schema_version": 3,
+    "semantic_analysis": "not_implemented",
+    "sharing_status": "aggregate_sync_allowed",
+    "status": "complete",
+    "tool_revision": {
+      "commit": null,
+      "worktree": "unavailable"
+    }
+  },
+  "status": "partial",
+  "symbols": {
+    "ambiguous_groups": 0,
+    "by_kind": {
+      "aoi_local_tag": 0,
+      "aoi_parameter": 0,
+      "module_config_tag": 2,
+      "module_input_tag": 2,
+      "module_output_tag": 2,
+      "tag": 3
+    },
+    "total": 9,
+    "unnamed": 0
+  }
+}
