@@ -85,6 +85,29 @@ JSON destination; unsupported filesystems fail without an overwrite fallback.
 Tyler authorized the feature-branch push and bounded work-machine check. This
 does not authorize merging into main or publishing plant data.
 
+### Root-reference implementation choices (2026-10-13)
+
+After summary-002 matched the readable-source baseline, Tyler authorized continuing
+with the next Phase 1 slice. Implement scoped root binding, alias traversal and
+operand occurrences as a separate derived result; retain the source-inventory-1
+contract. Use an explicit conservative signature catalog so routine labels and
+instruction options cannot accidentally bind to same-named tags. Root lookup is
+distinct from member/access validation, effects and engineering classifications.
+
+Provide private `references` drill-down and a closed `reference-summary` aggregate
+for the next work-machine run. A shared integrity check canonically reanalyzes the
+captured inventory before either publication path; this avoids maintaining a
+second set of binding rules and rejects mutated derived records. The second pass
+does not read the source again and its initial synthetic cost is recorded in the
+[reference review](../reviews/SOURCE_REFERENCES_REVIEW.md). Future optimization
+must preserve these validation and publication boundaries.
+
+The feature branch starts at the user's current remote report commit 3dd1b25,
+preserves prior notes, ends in -pc and does not merge into main. Return aggregate
+coverage before choosing broader expression, module, call or instruction-effect
+analysis. These are implementation choices within the authorized slice, not a
+final PCSD schema or an expansion of the source-sharing policy.
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?

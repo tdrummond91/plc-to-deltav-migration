@@ -1,6 +1,6 @@
 # Architecture — source evidence, analysis, and review
 
-Status: proposed design, updated 2026-10-12. The standalone inspection helpers exist; the application architecture below is not implemented.
+Status: design updated 2026-10-13. Inspection helpers, source inventory, scoped root references and aggregate exports are implemented. The broader architecture below remains a proposed destination; see [implemented reference scope](../reviews/SOURCE_REFERENCES_REVIEW.md).
 
 ## Central design
 

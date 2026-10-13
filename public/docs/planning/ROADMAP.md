@@ -1,6 +1,6 @@
 # Implementation roadmap and acceptance gates
 
-Status: source inventory and bounded summary export implemented; later milestones remain proposals. Build small complete slices, each ending with a runnable command, a report, tests, and a handoff update. See [current implementation evidence](../reviews/SUMMARY_EXPORT_REVIEW.md).
+Status: source inventory, scoped root references and bounded summary exports implemented; later milestones remain proposals. Build small complete slices, each ending with a runnable command, a report, tests, and a handoff update. See [current implementation evidence](../reviews/SOURCE_REFERENCES_REVIEW.md).
 
 ## Confirmed product phases (2026-10-12)
 
@@ -57,11 +57,11 @@ disclosing enough information to reconstruct the complete process.
 The technical milestones below remain an earlier implementation proposal. Their
 order and boundaries need reconciliation with these phases before selecting the
 next slice. Current implemented baseline: the prototype, inspection helpers and
-`plc inspect` source inventory and `plc summarize`, with 58 application tests and a baseline of 139 helper tests
-passing (one additional application test skipped for Windows symlink capability).
+`plc inspect`, `plc summarize`, `plc references` and `plc reference-summary`.
+Current tests and returned work-machine evidence are recorded in the reference review.
 Initial Git setup is done. The first slice uses typed dataclasses and bounded
 Expat parsing; it does not introduce Pydantic, SQLite or a GUI. The Milestone 1
-command names below remain proposals; only `plc inspect` and `plc summarize` are implemented.
+command names below remain proposals except for the four implemented commands above.
 
 ## Development and comparison workflow
 

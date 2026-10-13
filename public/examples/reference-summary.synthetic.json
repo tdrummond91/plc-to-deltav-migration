@@ -1,0 +1,168 @@
+{
+  "aliases": {
+    "by_status": {
+      "alias_cycle": 0,
+      "alias_depth_limit": 0,
+      "ambiguous": 0,
+      "root_bound": 1,
+      "unresolved": 0,
+      "unsupported_address": 0
+    },
+    "total": 1
+  },
+  "analysis_scope": "scoped_root_bindings",
+  "analyzer_version": "source-references-1",
+  "coverage": {
+    "instructions_catalogued": 24,
+    "instructions_total": 25,
+    "rungs_analyzed": 9,
+    "rungs_total": 9
+  },
+  "effect_analysis": "not_implemented",
+  "exporter_version": "reference-summary-1",
+  "member_validation": "not_implemented",
+  "operands": {
+    "by_status": {
+      "alias_cycle": 0,
+      "alias_depth_limit": 0,
+      "ambiguous": 0,
+      "argument_count_mismatch": 0,
+      "empty": 0,
+      "literal": 3,
+      "non_data": 2,
+      "root_bound": 23,
+      "unresolved": 0,
+      "unsupported_address": 0,
+      "unsupported_expression": 0,
+      "unsupported_instruction": 2
+    },
+    "total": 30
+  },
+  "policy_version": 2,
+  "report_kind": "l5x_reference_review_summary",
+  "schema_version": 1,
+  "semantic_analysis": "not_implemented",
+  "sharing_status": "aggregate_sync_allowed",
+  "source_summary": {
+    "analysis_scope": "source_structure_only",
+    "counts": {
+      "aliases": 1,
+      "aoi_definitions": 0,
+      "aoi_local_tags": 0,
+      "aoi_parameters": 0,
+      "controller_tags": 12,
+      "controllers": 1,
+      "encoded_regions": 0,
+      "instructions": 25,
+      "modules": 1,
+      "other_tag_definitions": 0,
+      "program_tags": 3,
+      "programs": 2,
+      "routines": 4,
+      "rungs": 9,
+      "tasks": 2,
+      "total_tag_definitions": 15,
+      "trends": 0,
+      "user_data_types": 1
+    },
+    "coverage": {
+      "instruction_count_complete": false,
+      "routines": {
+        "encountered": 4,
+        "failed": 0,
+        "parsed": 3,
+        "preserved_unsupported": 1
+      },
+      "rungs": {
+        "encountered": 9,
+        "excluded": 0,
+        "failed": 0,
+        "parsed": 9,
+        "preserved_unsupported": 0
+      },
+      "unmodeled_xml": {
+        "distinct_paths": 12,
+        "elements": 44
+      },
+      "xml_elements": 132
+    },
+    "diagnostics": {
+      "by_code": {
+        "routine_language_not_analyzed": 1,
+        "withheld": 0
+      },
+      "by_severity": {
+        "error": 0,
+        "info": 1,
+        "warning": 0,
+        "withheld": 0
+      },
+      "total": 1
+    },
+    "exporter_version": "aggregate-summary-2",
+    "instructions": {
+      "counts": {
+        "ADD": 1,
+        "JMP": 1,
+        "JSR": 1,
+        "LBL": 1,
+        "OTE": 5,
+        "TON": 1,
+        "XIC": 14,
+        "XIO": 1,
+        "withheld": 0
+      },
+      "scope": "successfully_parsed_RLL_rungs_only",
+      "total": 25
+    },
+    "ladder_metrics": {
+      "maxima": {
+        "height_lanes": 3,
+        "max_branch_depth": 2,
+        "max_legs_in_group": 2,
+        "width_instructions": 3
+      },
+      "scope": "successfully_parsed_RLL_rungs_only",
+      "totals": {
+        "argument_slots": 30,
+        "branch_groups": 3,
+        "branch_legs": 6,
+        "empty_branch_legs": 0,
+        "expression_instruction_calls": 0,
+        "instruction_calls": 25,
+        "nonempty_argument_fields": 30
+      }
+    },
+    "parser_version": "source-inventory-1",
+    "policy_version": 2,
+    "report_kind": "l5x_aggregate_review_summary",
+    "routine_types": {
+      "FBD": 0,
+      "RLL": 3,
+      "SFC": 1,
+      "ST": 0,
+      "Sequence": 0,
+      "missing": 0,
+      "withheld": 0
+    },
+    "schema_version": 2,
+    "semantic_analysis": "not_implemented",
+    "sharing_status": "aggregate_sync_allowed",
+    "status": "partial",
+    "tool_revision": {
+      "commit": "b8d92bc03ef7168b17d4e07a6beaddd1fce9f00f",
+      "worktree": "clean"
+    }
+  },
+  "status": "partial",
+  "symbols": {
+    "ambiguous_groups": 0,
+    "by_kind": {
+      "aoi_local_tag": 0,
+      "aoi_parameter": 0,
+      "tag": 15
+    },
+    "total": 15,
+    "unnamed": 0
+  }
+}

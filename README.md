@@ -1,6 +1,6 @@
 # PLC analysis workbench
 
-Status: updated 2026-10-13. Source inventory and bounded summary export are implemented on `feat/summary-export-pc`, alongside the original prototype and inspection helpers. Validation: 58 application tests passed with one Windows symlink skip; the unchanged helper baseline has 139 passing tests. The editor, engineering interpretation, PCSD and FHX stages remain planned.
+Status: updated 2026-10-13. Source inventory, scoped tag/alias root bindings and bounded aggregate exports are implemented on `feat/source-references-pc`, alongside the original prototype and inspection helpers. See [reference implementation evidence](public/docs/reviews/SOURCE_REFERENCES_REVIEW.md) for validation and limitations. The editor, engineering interpretation, PCSD and FHX stages remain planned.
 
 The aim is a reusable tool for migrating several units from L5X source analysis through editable engineering records and PCSD to class-based DeltaV FHX. FHX input must also support producing a PCSD. Phase 1 analyzes L5X in two parallel paths: reports for reading and understanding the source, and editable engineering files for organizing and mapping it. Both need source traceability. Other routine languages, including SFC, remain visible even before detailed analysis is implemented.
 
@@ -9,7 +9,7 @@ Start with [CODEX_HANDOFF.md](CODEX_HANDOFF.md). Read [the architecture](public/
 ## Agreed direction
 
 - Keep command-line argument parsing and presentation separate from the reusable analysis functions.
-- Keep all real exports and every derived plant artifact under root `confidential/`.
+- Keep real exports and private engineering artifacts under root `confidential/`; approved count summaries can be synced in `public/inspection/`.
 - Retain immutable source snapshots and versioned analysis runs; use Git for application code and synthetic tests.
 - Publish machine-readable JSON results and coverage reports at every stage.
 - Show both the source hierarchy and relationships across rungs, programs, tasks, and controllers.
@@ -36,7 +36,8 @@ Start with [CODEX_HANDOFF.md](CODEX_HANDOFF.md). Read [the architecture](public/
 | [Synthetic glossary](public/examples/glossary.synthetic.json) | Illustrative reviewable translation record |
 | [Synthetic pattern](public/examples/pattern.synthetic.json) | Illustrative pattern, occurrences, and trace links |
 
-All examples in `public/examples/` are invented. Their JSON is illustrative; the implementation must define and validate formal versioned schemas.
+All examples in `public/examples/` are invented. Glossary/pattern JSON remains
+illustrative; source/reference summaries follow their implemented versioned contracts.
 
 ## Work-machine rule
 
@@ -52,9 +53,16 @@ uv run --project python-parser plc inspect public/fixtures/synthetic/controller_
 
 This fixture intentionally returns exit 3 (partial) because SFC interpretation is not implemented. See [command usage and private run storage](python-parser/README.md) and [source-inventory review](public/docs/reviews/SOURCE_INVENTORY_REVIEW.md). JSON and readable reports use the same snapshot-bound records. `inspect` retains private source data; it is not a public-report scrubber.
 
-For bounded aggregate feedback, `plc summarize FILE --output public/inspection/NEW.json` emits validated counts and global measurements. Unknown labels are pooled; source identifiers, hashes, operands, paths and rung layouts are omitted. Tyler has approved these aggregate reports for repository sync. His confidentiality boundary is unit reconstruction with data values, or more than 2% rung knowledge; these summaries expose no individual rung logic or process values. Follow [the work-machine procedure](public/docs/reviews/WORK_MACHINE_SUMMARY_RUN.md), and see [summary implementation evidence](public/docs/reviews/SUMMARY_EXPORT_REVIEW.md). Other planned commands remain proposals.
+For bounded aggregate feedback, `plc summarize FILE --output public/inspection/NEW.json` emits validated counts and global measurements. Unknown labels are pooled; source identifiers, hashes, operands, paths and rung layouts are omitted. Tyler has approved these aggregate reports for repository sync. His confidentiality boundary is unit reconstruction with data values, or more than 2% rung knowledge; these summaries expose no individual rung logic or process values. See [summary implementation evidence](public/docs/reviews/SUMMARY_EXPORT_REVIEW.md).
 
-Unit test source belongs in `python-parser/tests/`. Logs, test run output, reports, reviewer workbooks, source snapshots, and checkpoints belong under `confidential/`. Real data must not be placed in synthetic fixtures or application documentation.
+`plc references FILE` produces private scoped declarations, alias chains and
+operand occurrences linked to declared roots. It does not validate structure
+members, array bounds, instruction effects or engineering purpose.
+`plc reference-summary FILE --output public/inspection/NEW.json` exports only
+binding/coverage counts plus the existing structural summary. Follow the
+[current work-machine procedure](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+Unit test source belongs in `python-parser/tests/`. Private reports, reviewer workbooks, source snapshots and checkpoints belong under `confidential/`; approved aggregate reports are the explicit sync exception. Real data must not be placed in synthetic fixtures or application documentation.
 
 ## First development input
 

@@ -1,6 +1,53 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-13. Current activity: **aggregate summary sync policy corrected on feat/summary-export-pc**. See [the summary review](docs/reviews/SUMMARY_EXPORT_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_SUMMARY_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-13. Current activity: **scoped root-reference analysis on feat/source-references-pc**. See [reference implementation review](docs/reviews/SOURCE_REFERENCES_REVIEW.md), [current work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+
+## Current reference-analysis checkpoint (2026-10-13)
+
+Tyler's corrected public/inspection/summary-002.json arrived in remote 3dd1b25.
+It passes aggregate validation and matches the earlier readable baseline:
+4,606/4,606 rungs parsed, 17,874 instructions, 6,307 tags, 941 tag aliases,
+120 modules, 70 routines, one AOI and zero encoded regions. All ladder measures
+match. Partial coverage reflects the already observed 14 SFC routines and one
+RLL routine without content. Work-machine test-suite outcomes remain unreported.
+
+Tyler then authorized continuing. The new branch starts at 3dd1b25 and preserves
+the earlier review notes without resetting either history. `plc references`
+adds private scoped declaration/alias/operand records from the captured inventory;
+`plc reference-summary` publishes only fixed aggregate counts plus the structural
+summary. Root binding does not validate members, access, effects or engineering
+purpose. Unknown instructions, dynamic/qualified addresses, expressions and
+missing module-tag declarations remain explicit gaps. Both publication paths
+verify derived records against the source inventory before saving.
+
+Implementation is b8d92bc. Validation: 107 application tests run, 106 passed,
+one existing Windows symlink skip; all 139 helper tests passed. Independent review
+passed all 48 reference tests after fixing record-integrity validation. Installed
+CLI checks verified private storage, aggregate output, unchanged inputs and
+no-overwrite behavior. The synthetic aggregate records clean b8d92bc provenance.
+
+See the reference review for scope, primary documentation, independent review,
+test evidence and resource bounds. Next action: run the reference aggregate on
+the readable work-machine export and return the new report through Git. Use
+normal commits/pushes on feat/source-references-pc. Engineering classification,
+editable corrections, GUI, PCSD and FHX remain later phases.
+
+## First returned work-machine evidence (historical, 2026-10-13)
+
+Tyler pushed public/inspection/summary-001.json in 61b9ca7. It reports a clean
+028537d application revision, 6,000 tags, 111 modules, 70 encoded regions and
+zero exposed routines/rungs/instructions. All 70 diagnostics are encoded_content
+warnings. The aggregate passes a read-only v1-to-v2 schema compatibility check;
+the original report remains unchanged and approved for sync.
+
+The earlier public baseline had 6,307 tags, 120 modules, 70 routines, 4,606 rungs
+and no EncodedData. Source equivalence is not established. The next action is to
+confirm whether the same unchanged L5X or a different/new export was used, then
+compare source availability on the work machine. Tyler may have sent the wrong
+one and is checking; the cause is still unconfirmed. EncodedData counts do not prove
+70 encrypted routines or identify their contents. No parser change was justified
+from this aggregate alone. The corrected summary-002 above resolves the missing
+readable-source evidence; the original report remains a separate comparison.
 
 ## Clarified sharing boundary (2026-10-13)
 
@@ -19,11 +66,10 @@ rung-sample allowance or whole-unit reconstruction capability was added here.
 
 Validation: 59 application tests run, 58 passed, one existing Windows symlink
 skip. Independent review passed all 25 summary tests with no remaining blocker.
-Tyler reported a partial summary on the work machine, but its contents and test
-outcomes have not been returned. His existing v1 aggregate report can be copied
-to public/inspection/ and committed without rerunning the source. The updated
-work-machine procedure includes that handoff. Earlier review-gate statements
-below describe the superseded v1 policy, not a current approval requirement.
+Tyler's v1 work-machine report has now been returned and reviewed above; no
+rerun was needed merely to adopt the clarified sharing policy. Earlier review-gate
+statements below describe the superseded v1 policy, not a current approval
+requirement.
 
 ## Summary export checkpoint (2026-10-12)
 

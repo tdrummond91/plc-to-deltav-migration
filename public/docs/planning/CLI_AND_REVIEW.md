@@ -1,12 +1,17 @@
 # CLI, reports, and human review
 
 Status: `plc inspect FILE [--format text|json] [--rung-id ID] [--workspace PATH]`
-and `plc summarize FILE [--output NEW.json]` are implemented. See
+and `plc summarize FILE [--output NEW.json]` are implemented, along with
+`plc references FILE [--format text|json] [--workspace PATH]` and
+`plc reference-summary FILE [--output NEW.json]`. See
 [current usage](../../../python-parser/README.md). Other commands and all reviewer
 interfaces below remain proposals. `inspect` emits private source evidence;
 `summarize` emits bounded aggregates approved by Tyler for repository sync,
 including direct public/inspection/ output. The per-report gate was removed
-under D026; full private inventory behavior is unchanged.
+under D026; full private inventory behavior is unchanged. `references` provides
+private root bindings and aliases, while `reference-summary` exports only counts.
+Neither implements member/access validation or instruction effects. The proposed
+workspace-query command `plc refs` below is not an alias for `plc references`.
 
 ## Preferred reviewer experience (2026-10-12)
 

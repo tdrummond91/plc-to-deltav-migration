@@ -1,6 +1,47 @@
 # Data contracts, traceability, and checkpoints
 
-Status: updated 2026-10-12. The private source inventory and bounded aggregate summary have initial versioned contracts below; engineering/editable-review contracts remain proposals.
+Status: updated 2026-10-13. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
+
+## Implemented root-reference analysis v1 (2026-10-13)
+
+`references.ReferenceResult` has schema 1, analyzer `source-references-1` and
+analysis_scope `scoped_root_bindings`. It consumes the typed source-inventory-1
+result without modifying it. Private records include the snapshot identity,
+symbols, alias resolutions, operand occurrences, coverage and status. Semantic,
+instruction-effect and member validation fields remain `not_implemented`.
+
+Symbols retain declaration IDs and owning scopes. Each operand ID hashes the
+snapshot, instruction ID and zero-based argument index. Its record preserves the
+raw argument, rung/instruction/scope IDs, direct symbol ID, terminal target ID,
+alias-chain IDs and accumulated member/index suffix. Repeated uses remain separate.
+Alias records include unused aliases; target lookup follows each alias's scope.
+These are snapshot evidence links, not persistent engineering/review identities.
+
+Operand dispositions are root_bound, unresolved, ambiguous, alias_cycle,
+alias_depth_limit, unsupported_address, unsupported_expression, literal, non_data,
+unsupported_instruction, argument_count_mismatch and empty. Aliases use the first
+six applicable resolution dispositions (excluding unsupported_expression).
+Root binding proves declaration lookup only; no member, array-bound, type or
+access validation is claimed. Coverage distinguishes parsed source rungs and
+instructions with catalogued signatures. Even a zero-argument unknown instruction
+prevents complete status. Unsupported source content also propagates partial.
+
+Reference runs add references.json/references.txt to the existing private run and
+use manifest schema 2, artifact_kind source_reference_run. The manifest is still
+published last, includes all artifact hashes and records the analyzer version.
+Ordinary source-inventory runs retain their existing schema-1 manifest.
+
+`reference_summary` reconstructs only fixed aggregate fields: symbol kinds,
+alias/operand disposition counts, coverage and the existing structural v2 report
+as source_summary. Its report_kind is l5x_reference_review_summary, schema 1,
+policy 2 and exporter reference-summary-1. Code provenance occurs only in the
+nested source_summary.tool_revision. Private snapshot/occurrence reconciliation
+happens in memory. Closed-key/type/count validation runs again at publication;
+private records, arbitrary labels, added fields and source identities are rejected.
+The whole report is capped at 32 KiB and approved for sync under D026.
+
+See [reference review](../reviews/SOURCE_REFERENCES_REVIEW.md) for catalog,
+resource bounds, primary documentation and test evidence.
 
 ## Implemented aggregate summary v2 (2026-10-13)
 

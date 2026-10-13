@@ -1,4 +1,4 @@
-# L5X source inventory
+# L5X source inventory and references
 
 `plc inspect` is the first read-only application slice. It captures one local L5X as
 immutable in-memory bytes, inventories source envelopes and scoped tags, and
@@ -9,6 +9,57 @@ All `inspect` outputs are **private**: they can contain names, comments, raw lad
 source hashes and identifiers. This command is not a scrubber. Keep real inputs
 and outputs in approved private storage; do not put them in `public/` or Git.
 The existing `tools/l5x_inspect/` publication helpers remain a separate workflow.
+
+## Scoped tag and alias references
+
+`plc references` analyzes the captured source inventory without rereading the
+file. It binds supported whole operands to declared tag roots, follows aliases
+in each alias's declaring scope, and retains each occurrence with its rung and
+instruction IDs. Program locals shadow controller tags; AOI definitions use only
+their own parameters/local tags. Case-insensitive collisions are ambiguous.
+
+```bash
+uv run --project python-parser plc references public/fixtures/synthetic/controller_demo.L5X
+uv run --project python-parser plc references "confidential/plc-code/unit.L5X" \
+  --format json --workspace "confidential/workspaces/reference-check"
+```
+
+`root_bound` means the declared root and any alias chain were found. It does not
+prove valid members, array dimensions/bounds, access permissions, instruction
+types, read/write direction or engineering meaning. Static member/index suffixes
+are retained as evidence. Expressions, dynamic indexing, cross-program qualified
+addresses, uncatalogued instructions and malformed argument lists remain explicit
+gaps. Routine labels in JMP/LBL are accounted as non-data; call/sequence/system
+instruction roles are not guessed. Module InputTag/OutputTag/ConfigTag declarations
+are not yet modeled, so unresolved module addresses may reflect missing model
+coverage. This is not evidence that the source project has an invalid tag.
+
+Both text and JSON reports are private. The workspace option creates a NEW run
+containing the existing snapshot/inventory/overview, plus `references.json` and
+`references.txt`. Its schema-2 `source_reference_run` manifest records artifact
+hashes, versions, limits of analysis and combined partial status. The existing
+`inspect` run contract remains schema 1. Old runs and inputs are never overwritten.
+
+For portable feedback, run:
+
+```bash
+uv run --project python-parser plc reference-summary "confidential/plc-code/unit.L5X" \
+  --output "public/inspection/reference-summary-001.json"
+```
+
+This approved aggregate includes fixed symbol-kind, alias-status and operand-status
+counts, analysis coverage, and a nested `source_summary` using the existing v2
+contract. Code provenance is `source_summary.tool_revision`. It contains no names,
+values, source identities or individual reference links. Its new report kind is
+`l5x_reference_review_summary`, schema 1, policy 2, analyzer `source-references-1`.
+The publisher accepts only the two closed aggregate schemas and validates again
+before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
+
+Exit 3 means useful partial results were produced. Reference analysis can be
+partial even when the structural inventory is complete. Exit 0 means this bounded
+root-binding scope completed; it never means all engineering behavior is understood.
+See [validation and exact scope](../public/docs/reviews/SOURCE_REFERENCES_REVIEW.md)
+and [work-machine steps](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
 ## Bounded summary for feedback
 
@@ -132,8 +183,9 @@ does not implement editable records, correction overlays, handoffs or backups.
 
 Parsed syntax does not establish engineering purpose. SFC/other unsupported
 content and opaque regions are preserved in the snapshot and reported as gaps.
-No tag/reference resolution, alarm shutdown analysis, PID relationships,
-equipment/sequence classification, PCSD or FHX generation is implemented.
+The separate `references` command adds bounded root binding; `inspect` remains
+structural. Alarm shutdown analysis, PID relationships, equipment/sequence
+classification, PCSD and FHX generation are not implemented.
 Instruction subtotals cover only parsed rungs; inspect coverage before using
 them as source-wide totals. The synthetic fixture includes unsupported SFC and
 therefore intentionally returns exit 3.

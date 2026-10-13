@@ -1,7 +1,8 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/SOURCE_REFERENCES_REVIEW.md and
+public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md for the current
+feat/source-references-pc checkpoint. Then read
 public/docs/reviews/SUMMARY_EXPORT_REVIEW.md and
-public/docs/reviews/WORK_MACHINE_SUMMARY_RUN.md for the current
-feat/summary-export-pc checkpoint. Then read
 public/docs/reviews/SOURCE_INVENTORY_REVIEW.md first for the implemented
 snapshot-bound source inventory on feat/source-inventory-pc, then
 public/docs/reviews/STAGE_5_CODE_REVIEW.md.
@@ -25,8 +26,9 @@ uv run --project python-parser python -B -m unittest discover \
 Current baseline: 139 passing helper tests. Also run:
 uv run --project python-parser python -B -m unittest discover -s python-parser/tests -v
 
-Application baseline: 59 tests run, 58 pass, one Windows symlink-capability skip
-on 2026-10-13. The unchanged helper suite and public audit passed on 2026-10-12.
+Use the final application test count and tested revision in SOURCE_REFERENCES_REVIEW.md;
+one Windows symlink-capability skip is expected on this PC. The helper suite
+passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
 test run as fresh execution.
 
@@ -137,12 +139,18 @@ translation providers and FHX generation remain later work.
 
 ## Completed aggregate slice and next action
 
-The bounded summary export is implemented as `plc summarize`. Follow the current
-work-machine procedure and inspect Tyler's returned aggregate
-JSON before changing parser behavior based on real-export results. Do not request
-the private `plc inspect` output. Scoped symbol/alias and instruction-reference
-analysis can then support engineering interpretation; agree that next slice
-before expanding implementation.
+The corrected public/inspection/summary-002.json at 3dd1b25 matches the earlier
+readable baseline: 4,606 parsed rungs, 17,874 instructions, 6,307 tags and no
+encoded regions. It validates; partial status reflects 14 SFC routines and one
+empty RLL routine. Source byte identity and work-machine suite results are not
+established by this aggregate. The original encoded summary remains historical.
+
+Tyler authorized and the branch implements the next bounded root-reference slice:
+`plc references` private records and `plc reference-summary` aggregate feedback.
+Do not repeat that implementation or claim instruction effects/member validation.
+Inspect the returned reference aggregate next, then choose the next model/catalog
+gap before adding broader semantics. Never request the private source/reference
+reports here. More engineering interpretation remains later work.
 
 Tyler clarified confidentiality on 2026-10-13: unit reconstruction with data
 values, or more than 2% rung knowledge. Aggregate summaries contain no individual
