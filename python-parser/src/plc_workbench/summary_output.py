@@ -56,7 +56,14 @@ def publish_summary(output: Path, rendered: str, *, input_path: Path) -> None:
         if len(rendered.encode('utf-8')) > MAX_REPORT_BYTES:
             raise SummaryOutputError('Summary exceeds its publication size limit.')
         try:
-            rendered = render_summary(json.loads(rendered))
+            payload = json.loads(rendered)
+            # Dispatch only known closed publication contracts. Callers cannot
+            # provide their own validator or bypass validation for private data.
+            if isinstance(payload, dict) and payload.get('report_kind') == 'l5x_reference_review_summary':
+                from .reference_summary import render_reference_summary
+                rendered = render_reference_summary(payload)
+            else:
+                rendered = render_summary(payload)
         except (ValueError, TypeError, RecursionError) as exc:
             raise SummaryOutputError('Only a validated aggregate summary can be published.') from exc
         destination = _destination_path(output, input_path)

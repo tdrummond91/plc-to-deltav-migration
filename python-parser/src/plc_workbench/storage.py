@@ -20,6 +20,7 @@ from .reporting import InventoryView, render_json, render_text
 
 if TYPE_CHECKING:
     from .models import SourceSnapshot
+    from .references import ReferenceResult
 
 
 class StorageError(ValueError):
@@ -66,7 +67,10 @@ def _write_artifact(workspace: Path, run_dir: Path, name: str, data: bytes) -> d
     return {"sha256": hashlib.sha256(data).hexdigest(), "size_bytes": len(data)}
 
 
-def save_run(workspace: Path, snapshot: SourceSnapshot, result: InventoryView) -> Path:
+def save_run(
+    workspace: Path, snapshot: SourceSnapshot, result: InventoryView,
+    *, references: ReferenceResult | None = None,
+) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
     No existing run is reused or overwritten. A failure leaves an incomplete
@@ -77,6 +81,17 @@ def save_run(workspace: Path, snapshot: SourceSnapshot, result: InventoryView) -
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
             raise StorageError("Inventory does not match the captured source snapshot.")
+        if references is not None:
+            from .references import ReferenceError, validate_references
+            try:
+                validate_references(result, references)
+            except ReferenceError as exc:
+                raise StorageError("Reference records do not match the captured source inventory.") from exc
+            reference_payload = references.to_dict()
+            if (reference_payload["snapshot"] != expected
+                    or reference_payload["status"] not in ("complete", "partial")
+                    or reference_payload["coverage"]["source_status"] != payload["status"]):
+                raise StorageError("References do not match the captured source inventory.")
         digest = hashlib.sha256(snapshot.data).hexdigest()
         if (
             len(snapshot.data) != snapshot.size_bytes
@@ -104,6 +119,12 @@ def save_run(workspace: Path, snapshot: SourceSnapshot, result: InventoryView) -
             "inventory.json": render_json(result).encode("utf-8"),
             "overview.txt": render_text(result).encode("utf-8"),
         }
+        if references is not None:
+            from .reference_reporting import render_reference_json, render_reference_text
+            contents.update({
+                "references.json": render_reference_json(references).encode("utf-8"),
+                "references.txt": render_reference_text(references).encode("utf-8"),
+            })
         artifacts = {
             name: _write_artifact(destination, run_dir, name, data)
             for name, data in contents.items()
@@ -120,6 +141,16 @@ def save_run(workspace: Path, snapshot: SourceSnapshot, result: InventoryView) -
             "semantic_analysis": payload["semantic_analysis"],
             "artifacts": artifacts,
         }
+        if references is not None:
+            manifest.update({
+                "schema_version": 2,
+                "artifact_kind": "source_reference_run",
+                "status": reference_payload["status"],
+                "analysis_scope": reference_payload["analysis_scope"],
+                "analyzer_version": reference_payload["analyzer_version"],
+                "effect_analysis": reference_payload["effect_analysis"],
+                "member_validation": reference_payload["member_validation"],
+            })
         _write_artifact(
             destination, run_dir, ".manifest.pending",
             (json.dumps(manifest, indent=2, ensure_ascii=False) + "\n").encode("utf-8"),
