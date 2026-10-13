@@ -126,11 +126,34 @@ invented source filename/path and a sentinel placed in the test assertion messag
 All three reports and their local-only test commits remained in the temporary
 repositories; they were not added to this project's GitHub history.
 
+## Returned work-machine results
+
+On 2026-10-13, Tyler ran the script and two aggregate reports reached GitHub:
+
+| Report | Report commit | Tested clean commit |
+|---|---|---|
+| work-check-20261013T221312Z-4c286cdf.json | ad2ec8b | 0666542 |
+| work-check-20261013T221358Z-0ad977a3.json | f38d81e | ad2ec8b |
+
+Both pass validate_work_check_report using the committed implementation. Each
+records 155 application tests (154 passed, one skip), all 139 helper tests passed,
+zero failures/errors and no failed test IDs. Analysis is partial with no failure
+code and private_run_saved=true. Both commits contain only their new report.
+
+Each nested reference summary exactly matches the earlier returned reference
+aggregate after excluding code provenance, including all 4,606 rungs and 17,874
+instructions. No aggregate regression or new parser result appears. This confirms
+the automated work-machine feedback cycle and successful GitHub publication;
+it does not prove the two source files were byte-identical or independently verify
+private artifact contents. The shared report deliberately omits that source data.
+Review consisted of schema validation, aggregate comparison and Git history checks;
+the suites were not rerun locally for this documentation-only review.
+
 ## Remaining scope
 
 This PC never opens the real export. The end-to-end test uses independently
 invented input and a local bare remote; actual GitHub authentication and the plant
-export are verified by Tyler's work-machine run. Setup failures cannot publish
+export were exercised by Tyler's returned work-machine runs above. Setup failures cannot publish
 results for tests which never started. Disk/network failures may require normal
 local recovery; the script does not claim a failed push reached GitHub.
 

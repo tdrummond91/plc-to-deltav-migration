@@ -159,6 +159,13 @@ aggregate report-only commit/push. New work-check reports automatically carry te
 outcomes; do not ask Tyler to paste terminal output or manually stage reports.
 Read WORK_CHECK_RUNNER_REVIEW.md and the updated work-machine procedure first.
 
+The runner's first two work-machine reports have returned in ad2ec8b and f38d81e.
+Both validate, include successful suites (155 application tests with one skip;
+139 helper tests), and report saved private runs with expected partial analysis.
+Their reference aggregates match the previous report exactly except code revision.
+The automated feedback cycle is verified; no extra work-machine run is needed
+before deciding the next parser slice. Do not repeat the runner implementation.
+
 The recommended next parser slice is module/I/O declarations plus fixed aggregate
 reasons for unresolved aliases/unsupported addresses. Existing public counts show
 104 InputTag, 65 OutputTag and 83 ConfigTag elements absent from the current symbol

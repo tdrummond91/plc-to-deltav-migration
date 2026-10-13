@@ -1,6 +1,25 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-13. Current activity: **one-command work-machine feedback on feat/source-references-pc**. See [runner implementation review](docs/reviews/WORK_CHECK_RUNNER_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md), [reference implementation review](docs/reviews/SOURCE_REFERENCES_REVIEW.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-13. Current activity: **two automated work-machine reports returned and validated on feat/source-references-pc**. See [runner implementation review](docs/reviews/WORK_CHECK_RUNNER_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md), [reference implementation review](docs/reviews/SOURCE_REFERENCES_REVIEW.md) and [command usage](../python-parser/README.md).
+
+## Returned automated checks (2026-10-13)
+
+Two work-check reports arrived in ad2ec8b and f38d81e, testing clean revisions
+0666542 and ad2ec8b respectively. Both pass validate_work_check_report. Each
+reports 155 application tests run (154 passed, one skip), all 139 helper tests
+passed, no test failures/errors, partial analysis, no analysis failure code and
+private_run_saved=true. Both commits change only their new aggregate JSON report.
+
+After excluding tool_revision, both nested reference summaries exactly match
+reference-summary-20261013T203510Z.json: 4,606 rungs, 17,874 instructions and the
+same symbol/alias/operand counts. This verifies repeatable aggregate results and
+the work-machine test/report/push cycle. It does not establish source byte identity
+or independently inspect the private saved files. No real export or private log
+was accessed here, and no local test rerun was needed for this report review.
+
+No additional work-machine run is needed for this checkpoint. The next proposed
+parser slice remains module/I/O declarations plus fixed aggregate gap reasons;
+its scope still needs agreement before implementation. Phase 1 remains active.
 
 ## Work-machine automation checkpoint (2026-10-13)
 
@@ -24,8 +43,8 @@ Validation: 155 application tests run, 154 passed and one existing Windows symli
 skip; all 139 helper tests passed. Independent review passed the 47 new tests
 without remaining blockers after corrections. An actual temporary-remote workflow
 also passed success, failed-test and malformed-source scenarios, verifying both
-successful and failed results are committed/pushed without private text. The next action is Tyler running
-the new script on the work machine and telling this chat when its report is pushed.
+successful and failed results are committed/pushed without private text. The work-machine
+run has now returned and is reviewed above.
 The proposed module/I/O parser extension below has not been started.
 
 ## Returned reference evidence (2026-10-13)
