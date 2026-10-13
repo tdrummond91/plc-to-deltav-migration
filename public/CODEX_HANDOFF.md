@@ -1,6 +1,29 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-12. Current activity: **bounded summary export implemented and locally validated on feat/summary-export-pc**, including the earlier source inventory. See [the summary review](docs/reviews/SUMMARY_EXPORT_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_SUMMARY_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-13. Current activity: **aggregate summary sync policy corrected on feat/summary-export-pc**. See [the summary review](docs/reviews/SUMMARY_EXPORT_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_SUMMARY_RUN.md) and [command usage](../python-parser/README.md).
+
+## Clarified sharing boundary (2026-10-13)
+
+Tyler defines confidential material as information that permits rebuilding the
+entire unit with data values, or more than 2% rung knowledge (D026). Aggregate
+summary counts and technical codes expose no individual rung logic or process
+values and are approved for repo sync. The previous private holding folder and
+per-report sharing gate were unnecessary for these reports.
+
+`plc summarize` now allows public/inspection/ output, records schema/policy v2
+and `sharing_status=aggregate_sync_allowed`, and omits the review-before-sharing
+warning. Its publisher validates and canonicalizes the bounded JSON before
+writing. Raw `inspect` inventories and source exports retain their private
+storage boundary. Future rung samples need separate coverage accounting; no
+rung-sample allowance or whole-unit reconstruction capability was added here.
+
+Validation: 59 application tests run, 58 passed, one existing Windows symlink
+skip. Independent review passed all 25 summary tests with no remaining blocker.
+Tyler reported a partial summary on the work machine, but its contents and test
+outcomes have not been returned. His existing v1 aggregate report can be copied
+to public/inspection/ and committed without rerunning the source. The updated
+work-machine procedure includes that handoff. Earlier review-gate statements
+below describe the superseded v1 policy, not a current approval requirement.
 
 ## Summary export checkpoint (2026-10-12)
 

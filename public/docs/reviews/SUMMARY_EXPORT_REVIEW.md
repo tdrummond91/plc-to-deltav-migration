@@ -1,5 +1,27 @@
 # Bounded summary export review
 
+## Policy correction, 2026-10-13
+
+Tyler clarified that confidentiality means rebuilding the entire unit with data
+values, or more than 2% rung knowledge. Count summaries contain no individual
+rung logic or process values; they are authorized for direct repo sync. The
+previous gate described below was unnecessarily restrictive for these reports.
+
+Current exports use schema/policy 2, exporter aggregate-summary-2 and
+sharing_status aggregate_sync_allowed. Public/inspection/ is an allowed summary
+destination, and CLI save notices no longer request sharing review. The writer
+now validates/canonicalizes the JSON independently of the CLI before publishing
+into the synced tree; size and overwrite protections remain. Private source
+inventory behavior is unchanged. Existing v1 reports need no source rerun.
+
+Tests: 59 application tests run, 58 passed, one preexisting Windows symlink skip.
+The new tests cover direct synced-folder publication and refusal of arbitrary
+data/oversized reports. An independent reviewer passed all 25 summary tests and
+confirmed hidden duplicate-key text is not written, with no blocking findings.
+The helper code is unchanged; its last 139-test baseline remains recorded below.
+
+## Original v1 implementation and evidence (historical)
+
 Date: 2026-10-12. Branch: **feat/summary-export-pc**, based on **79d865f**.
 Tested implementation: **ca9fcf8** (`feat(summary): add bounded L5X aggregate
 review export`). The branch includes the preceding source-inventory work.

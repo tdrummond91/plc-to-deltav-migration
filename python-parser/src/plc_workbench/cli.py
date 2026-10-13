@@ -37,14 +37,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     summarize = commands.add_parser(
         "summarize",
-        help="Generate a bounded count summary candidate for review before sharing.",
+        help="Generate a bounded aggregate summary for repository sync.",
         description=(
             "Capture and analyze one local L5X, then emit only the approved summary "
-            "schema. This is a counts-only candidate; review it before sharing. "
+            "schema. These aggregates are approved for this project's repository sync. "
             "No raw source identifiers, paths or logic belong in this summary."
         ),
         epilog=(
-            "Example: plc summarize example.L5X --output confidential/summary.json. "
+            "Example: plc summarize example.L5X --output public/inspection/summary.json. "
             "Omit --output for JSON on stdout. Shell redirection is outside path checks. "
             "Exit codes: 0 complete structural report, 1 failure, 2 usage, 3 partial coverage."
         ),
@@ -74,9 +74,9 @@ def _summarize(args: argparse.Namespace) -> int:
         else:
             publish_summary(args.output, rendered, input_path=args.file)
             notice = (
-                "Saved summary candidate; status: partial. Review before sharing."
+                "Saved aggregate summary; status: partial."
                 if partial else
-                "Saved summary candidate; status: complete. Review before sharing."
+                "Saved aggregate summary; status: complete."
             )
             print(notice, file=sys.stderr)
         return 3 if partial else 0

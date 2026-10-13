@@ -1,10 +1,13 @@
-"""Publish a reviewed-schema summary candidate without clobbering any file."""
+"""Publish a validated aggregate summary without clobbering any file."""
 
 from __future__ import annotations
 
 import os
+import json
 from pathlib import Path
 import tempfile
+
+from .summary import MAX_REPORT_BYTES, render_summary
 
 
 class SummaryOutputError(ValueError):
@@ -31,8 +34,9 @@ def _destination_path(output: Path, input_path: Path) -> Path:
         raise SummaryOutputError("Summary output cannot replace its input.")
     checkout = _checkout_root()
     if checkout is not None and destination.is_relative_to(checkout):
-        if not destination.is_relative_to(checkout / "confidential"):
-            raise SummaryOutputError("Summary output inside this checkout must be beneath confidential/.")
+        allowed = (checkout / "confidential", checkout / "public" / "inspection")
+        if not any(destination.is_relative_to(folder) for folder in allowed):
+            raise SummaryOutputError("Summary output inside this checkout must be beneath public/inspection/ or confidential/.")
     return destination
 
 
@@ -46,6 +50,15 @@ def publish_summary(output: Path, rendered: str, *, input_path: Path) -> None:
     """
     temporary: Path | None = None
     try:
+        # This entry point can write into the synced tree. Validate independently
+        # of the CLI and serialize canonical output rather than copying arbitrary
+        # caller text (including duplicate JSON keys or hidden extra fields).
+        if len(rendered.encode('utf-8')) > MAX_REPORT_BYTES:
+            raise SummaryOutputError('Summary exceeds its publication size limit.')
+        try:
+            rendered = render_summary(json.loads(rendered))
+        except (ValueError, TypeError, RecursionError) as exc:
+            raise SummaryOutputError('Only a validated aggregate summary can be published.') from exc
         destination = _destination_path(output, input_path)
         parent = destination.parent
         parent.mkdir(parents=True, exist_ok=True)

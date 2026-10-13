@@ -1,8 +1,9 @@
-"""Bounded aggregate publication candidate; never serialize private records here.
+"""Bounded aggregate report; never serialize private records here.
 
 Every output key and string comes from a fixed vocabulary, except a verified
-code revision supplied by the CLI. Counts describe source scale and still need
-local review before sharing. This is not a general redactor or anonymizer.
+code revision supplied by the CLI. Tyler authorizes these aggregates for repo
+sync: they contain no individual rung logic or process values. This policy does
+not authorize other source-derived artifacts or act as a general redactor.
 """
 from __future__ import annotations
 
@@ -40,14 +41,14 @@ TOTAL_METRICS = frozenset('''instruction_calls argument_slots nonempty_argument_
     expression_instruction_calls branch_groups branch_legs empty_branch_legs'''.split())
 MAX_METRICS = frozenset({'max_branch_depth', 'max_legs_in_group', 'height_lanes', 'width_instructions'})
 CONSTANTS = {
-    'schema_version': 1,
-    'policy_version': 1,
+    'schema_version': 2,
+    'policy_version': 2,
     'report_kind': 'l5x_aggregate_review_summary',
-    'exporter_version': 'aggregate-summary-1',
+    'exporter_version': 'aggregate-summary-2',
     'parser_version': 'source-inventory-1',
     'analysis_scope': 'source_structure_only',
     'semantic_analysis': 'not_implemented',
-    'sharing_status': 'local_review_required',
+    'sharing_status': 'aggregate_sync_allowed',
 }
 
 

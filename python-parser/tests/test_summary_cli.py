@@ -42,7 +42,7 @@ class SummaryCliTests(unittest.TestCase):
         with patch("plc_workbench.source.capture_snapshot", side_effect=AssertionError("must not read")):
             code, stdout, stderr = invoke(["summarize", "--help"])
             self.assertEqual(code, 0)
-            self.assertIn("review", stdout.lower())
+            self.assertIn("repository sync", stdout.lower())
             self.assertEqual(stderr, "")
             for arguments in (["summarize"], ["summarize", "missing.L5X", "--rung-id", "anything"]):
                 code, stdout, stderr = invoke(arguments)
@@ -75,7 +75,7 @@ class SummaryCliTests(unittest.TestCase):
             code, stdout, stderr = invoke(["summarize", str(source), "--output", str(output)])
             self.assertEqual(code, 0)
             self.assertEqual(stdout, "")
-            self.assertEqual(stderr, "Saved summary candidate; status: complete. Review before sharing.\n")
+            self.assertEqual(stderr, "Saved aggregate summary; status: complete.\n")
             rendered = output.read_text(encoding="utf-8")
             json.loads(rendered)
             self.assertNotIn("PRIVATE_", rendered)
@@ -90,7 +90,7 @@ class SummaryCliTests(unittest.TestCase):
             code, stdout, stderr = invoke(["summarize", str(source), "--output", str(output)])
             self.assertEqual(code, 3)
             self.assertEqual(stdout, "")
-            self.assertEqual(stderr, "Saved summary candidate; status: partial. Review before sharing.\n")
+            self.assertEqual(stderr, "Saved aggregate summary; status: partial.\n")
             self.assertIsInstance(json.loads(output.read_text(encoding="utf-8")), dict)
 
     def test_output_cannot_overwrite_input_or_existing_report(self) -> None:

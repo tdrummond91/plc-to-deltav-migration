@@ -4,7 +4,9 @@ Status: `plc inspect FILE [--format text|json] [--rung-id ID] [--workspace PATH]
 and `plc summarize FILE [--output NEW.json]` are implemented. See
 [current usage](../../../python-parser/README.md). Other commands and all reviewer
 interfaces below remain proposals. `inspect` emits private source evidence;
-`summarize` emits a bounded aggregate candidate requiring local sharing review.
+`summarize` emits bounded aggregates approved by Tyler for repository sync,
+including direct public/inspection/ output. The per-report gate was removed
+under D026; full private inventory behavior is unchanged.
 
 ## Preferred reviewer experience (2026-10-12)
 

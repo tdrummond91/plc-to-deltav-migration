@@ -25,8 +25,8 @@ uv run --project python-parser python -B -m unittest discover \
 Current baseline: 139 passing helper tests. Also run:
 uv run --project python-parser python -B -m unittest discover -s python-parser/tests -v
 
-Application baseline: 57 tests run, 56 pass, one Windows symlink-capability skip.
-These and the minimized_review public audit passed locally on 2026-10-12.
+Application baseline: 59 tests run, 58 pass, one Windows symlink-capability skip
+on 2026-10-13. The unchanged helper suite and public audit passed on 2026-10-12.
 For documentation-only changes, review the diff and links; do not describe an old
 test run as fresh execution.
 
@@ -138,11 +138,18 @@ translation providers and FHX generation remain later work.
 ## Completed aggregate slice and next action
 
 The bounded summary export is implemented as `plc summarize`. Follow the current
-work-machine procedure and inspect Tyler's returned, locally reviewed aggregate
+work-machine procedure and inspect Tyler's returned aggregate
 JSON before changing parser behavior based on real-export results. Do not request
 the private `plc inspect` output. Scoped symbol/alias and instruction-reference
 analysis can then support engineering interpretation; agree that next slice
 before expanding implementation.
+
+Tyler clarified confidentiality on 2026-10-13: unit reconstruction with data
+values, or more than 2% rung knowledge. Aggregate summaries contain no individual
+rung logic or process values and are approved for sync in public/inspection/.
+Do not reintroduce an extra per-report sharing gate. Current exports are schema/
+policy v2; already-generated v1 work-machine summaries remain valid feedback.
+The full `inspect` output still stays private. Read D026 and the current handoff.
 
 The historical allocation-limit finding above is fixed in the shared grammar.
 The new reader captures bytes once; the earlier two-pass public helper retains

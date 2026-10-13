@@ -16,18 +16,23 @@ The existing `tools/l5x_inspect/` publication helpers remain a separate workflow
 inventory. It contains approved count fields, routine-language and instruction
 totals, diagnostic counts and global ladder measurements. Unknown source labels
 are pooled into fixed withheld buckets. No source hashes, names, operands, XML
-paths, rung IDs or layouts are included. Reports still disclose aggregate scale
-and remain local review candidates, not automatic permission to publish.
+paths, rung IDs or layouts are included. Tyler has approved these aggregates for
+repository sync: they expose no individual rung logic or process values. His
+confidentiality boundary is unit reconstruction with data values, or more than
+2% rung knowledge. This command exports no rung samples and does not assess
+that threshold for other artifacts.
 
 ```bash
 uv run --project python-parser plc summarize "public/fixtures/synthetic/controller_demo.L5X"
 uv run --project python-parser plc summarize "confidential/plc-code/unit.L5X" \
-  --output "confidential/review-exports/summary-001.json"
+  --output "public/inspection/source-summary-001.json"
 ```
 
 Without `--output`, stdout is JSON. An explicit output creates a new UTF-8 JSON
 file and prints a fixed save notice to stderr. Existing files/symlinks are never
-overwritten, and output inside this checkout must remain under confidential/.
+overwritten. Output inside this checkout may be beneath public/inspection/ or
+confidential/. The publisher independently validates and canonicalizes the JSON
+before writing, so this path is not a general private-data copy mechanism.
 Publication uses a temporary sibling plus an atomic no-clobber hard link; an
 unsupported filesystem fails without publishing the candidate. Normal local
 NTFS storage is covered by the tests; network-share support is not assumed.
@@ -35,7 +40,7 @@ If temporary-file cleanup fails, a `.plc-summary-*.pending` file may remain.
 Only the requested final `.json` is the published candidate; a pending file is
 never a report to share.
 
-Summary schema/policy version 1 and exporter `aggregate-summary-1` accept only
+Summary schema/policy version 2 and exporter `aggregate-summary-2` accept only
 the source-inventory-1 contract. A complete validated report is capped at 32 KiB.
 All counts are strict nonnegative integers and reconcile across groups. Output
 cardinality does not grow with unrecognized source labels. The code revision
@@ -43,6 +48,11 @@ comes from this application's checkout, with a clean/modified/unavailable flag;
 it is not a source-data fingerprint. Modified includes tracked or untracked
 application sources/build metadata; docs and plant inputs are excluded. The
 command never accesses a network for revision collection.
+
+V2 records `sharing_status=aggregate_sync_allowed` and removes the old review
+warning. Existing v1 aggregate reports remain suitable for sync under Tyler's
+clarification; they do not require a fresh source run. Their old status string
+records the previous policy. Source-inventory schemas are unchanged.
 
 Exit codes match `inspect`: 0 structural completion, 3 partial coverage with a
 usable candidate, 1 failure, 2 usage. Parsed syntax is not understood engineering

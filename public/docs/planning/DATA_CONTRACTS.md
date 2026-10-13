@@ -2,11 +2,11 @@
 
 Status: updated 2026-10-12. The private source inventory and bounded aggregate summary have initial versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Implemented aggregate summary v1
+## Implemented aggregate summary v2 (2026-10-13)
 
 `plc_workbench.summary` builds and validates report_kind
-`l5x_aggregate_review_summary`, schema_version 1, policy_version 1 and
-exporter_version `aggregate-summary-1`. The accepted input is source-inventory-1.
+`l5x_aggregate_review_summary`, schema_version 2, policy_version 2 and
+exporter_version `aggregate-summary-2`. The accepted input is source-inventory-1.
 Its closed field vocabulary includes component counts, coverage dispositions,
 approved routine types, approved instruction totals, global ladder totals/maxima,
 diagnostic counts and fixed analysis limitations. Unlisted labels use pooled
@@ -18,8 +18,12 @@ Strict nonnegative integer checks and cross-field accounting run before renderin
 or publication. Complete reports cannot hide unknown-severity diagnostics or
 unsupported executable coverage. Known parser measurement bounds are enforced.
 Serialized UTF-8 JSON is capped at 32 KiB; report cardinality does not grow with
-distinct unknown labels. `sharing_status=local_review_required` remains explicit.
-These checks enforce this policy, not general confidentiality of aggregate scale.
+distinct unknown labels. `sharing_status=aggregate_sync_allowed` records Tyler's
+authorization to sync these aggregates. They contain no individual rung logic
+or process values. His boundary is unit reconstruction with data values, or more
+than 2% rung knowledge; this summary has no rung samples. V1 reports remain usable
+under that clarification without rerunning the source, although new exports and
+the current validator use v2. No editable-import compatibility is claimed.
 
 `tool_revision` contains this code checkout's 40-hex Git commit plus `clean`,
 `modified` or `unavailable`. Unavailable requires a null commit. Modified checks

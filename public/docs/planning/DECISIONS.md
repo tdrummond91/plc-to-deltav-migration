@@ -31,6 +31,7 @@ Scope revision 0.3 — 2026-10-12. Implementation proposals remain subject to th
 | D023 | Slow work-machine feedback may warrant up to three experiment branches | Branch from one agreed baseline, use -pc suffixes and comparable validation/reporting; consolidate after results |
 | D024 | Prefer sequential reviewer handoffs initially | One active editor and revision-bound handoff packages; validate returned changes against their base and flag stale copies; concurrent editing is a later option |
 | D025 | Sequential review does not prescribe participant order | Choose recipients per handoff; separate assignment/routing from the single-editor policy so future workflows can extend it |
+| D026 | Confidential means reconstructing the entire unit with data values, or more than 2% rung knowledge | Aggregate summaries with no individual rung logic or process values are approved for repository sync; remove the per-report sharing gate and allow public/inspection/ output. Raw exports and full inventories stay private. |
 
 D010 supersedes the earlier transition plan to retain a root plc-code ignore rule. The repository has confidential/, public/, and python-parser/ roles; confidential/ is ignored. D012's fresh-repository setup is complete: origin was fetched on 2026-10-12 and main matched origin/main at bafc410. D009 applies to the restricted work-machine environment, not every computer. D014 establishes the later PCSD/FHX scope while retaining D008's deferral of conversion implementation during source understanding.
 
@@ -70,7 +71,7 @@ from element names or claiming complete executable coverage. See
 
 ### Aggregate feedback implementation choices (2026-10-12)
 
-On feat/summary-export-pc, build the return report from a closed set of aggregate
+Original implementation on 2026-10-12 (sharing gate superseded by D026 on 2026-10-13): build the return report from a closed set of aggregate
 fields instead of redacting a copy of the private inventory. Reuse the existing
 instruction publication vocabulary, pool unknown labels and omit occurrence
 links/topology. Preserve structural partial status and explicit unimplemented

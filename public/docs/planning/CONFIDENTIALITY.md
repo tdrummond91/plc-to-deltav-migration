@@ -1,6 +1,17 @@
 # Confidential data, synthetic examples, and Git
 
-Status: updated 2026-10-12. Git initialization and the source inventory are implemented. The bounded aggregate-summary command is implemented on feat/summary-export-pc; later data exchange/redaction workflows remain proposals. No audit of the old repository's history is claimed.
+Status: updated 2026-10-13 with Tyler's clarified boundary. The bounded aggregate-summary command is implemented on feat/summary-export-pc; later data exchange/redaction workflows remain proposals. No audit of the old repository's history is claimed.
+
+## Confirmed confidentiality boundary
+
+Tyler defines confidential material here as information that enables rebuilding
+the entire unit with data values, or provides more than 2% rung knowledge.
+Aggregate counts and technical codes without individual rung logic or process
+values are approved for repository sync. Do not impose a separate sharing
+approval step on `plc summarize` reports solely because they came from a real L5X.
+Full exports and detailed inventories remain private. Future rung-sample outputs
+need their own coverage accounting; the aggregate exporter exposes no samples
+and does not certify the 2% threshold for other artifacts.
 
 ## Current layout and output boundary
 
@@ -17,9 +28,9 @@ repository/
 
 There is no need to rename or unpack the existing target backup for this plan. Paths are configuration, not hardcoded in source.
 
-All actual exports, working datasets, tag lists, glossary mappings, AI prompts/responses, checkpoints, reviewer spreadsheets, logs, and reports remain inside `confidential/`. This includes pseudonymized candidates until explicitly reviewed for sharing.
+Full source exports, detailed source inventories and engineering state that meet the boundary above remain inside `confidential/`. Bounded aggregate summaries belong in `public/inspection/` for sync. Software and generic tooling remain portable.
 
-Application workspaces and summary destinations resolve paths and restrict locations inside this checkout to confidential/. Explicit external private locations are also supported. Shared synthetic examples use an explicit development workflow and are never generated automatically from production data. These are local single-owner checks, not a security boundary against hostile concurrent filesystem changes; shell redirection is outside them.
+Private application workspaces resolve paths and restrict locations inside this checkout to confidential/. Validated aggregate summaries may also be saved under public/inspection/. Explicit external locations remain supported. Shared synthetic examples use an explicit development workflow. These are local single-owner checks, not a security boundary against hostile concurrent filesystem changes; shell redirection is outside them.
 
 ## Git ignore rules
 
@@ -89,8 +100,8 @@ Implemented aggregate feedback mode: `plc summarize` rebuilds a bounded fixed
 schema from generated counters. It omits source IDs/hashes, paths, raw fields,
 occurrence records and ladder topology; unknown instruction/language/diagnostic
 labels become pooled withheld counts. Known labels use explicit publication
-vocabularies. Counts and global measurements still reveal source scale, so the
-generated JSON remains in private storage until locally reviewed for sharing.
+vocabularies. Tyler has authorized counts and global measurements for sync;
+the generated JSON can go directly into public/inspection/.
 The code commit in its metadata identifies software, not plant source data.
 See [the work-machine procedure](../reviews/WORK_MACHINE_SUMMARY_RUN.md).
 
