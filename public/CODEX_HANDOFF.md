@@ -1,6 +1,32 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-13. Current activity: **first work-machine reference aggregate reviewed on feat/source-references-pc**. See [reference implementation review](docs/reviews/SOURCE_REFERENCES_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-13. Current activity: **one-command work-machine feedback on feat/source-references-pc**. See [runner implementation review](docs/reviews/WORK_CHECK_RUNNER_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md), [reference implementation review](docs/reviews/SOURCE_REFERENCES_REVIEW.md) and [command usage](../python-parser/README.md).
+
+## Work-machine automation checkpoint (2026-10-13)
+
+Tyler requested one script that pulls, tests, runs the current analysis and pushes
+results including test outcomes. `bash ./run-work-check.sh SOURCE.L5X` records
+the local source choice; later runs need only `bash ./run-work-check.sh`. The path
+stays in Git metadata. The script uses `git pull --ff-only`, locked dependencies,
+both test suites, one captured source snapshot, new private inventory/reference
+files and one closed aggregate report. It automatically commits/pushes only the
+new report, including failed test outcomes. Failed tests skip source analysis;
+partial usable analysis counts as successful workflow completion.
+
+No separate fetch step or manual report staging is required on the work machine.
+Real source, private records and detailed logs stay under confidential/. Shared
+reports include the tested commit, suite event counts and bounded code-only failed
+test IDs, plus reference/structural aggregates when analysis succeeds. Branch/HEAD
+or working-tree changes stop automatic publication/push; a rejected push preserves
+the local report commit. Read the runner review for the exact schema and tests.
+
+Validation: 155 application tests run, 154 passed and one existing Windows symlink
+skip; all 139 helper tests passed. Independent review passed the 47 new tests
+without remaining blockers after corrections. An actual temporary-remote workflow
+also passed success, failed-test and malformed-source scenarios, verifying both
+successful and failed results are committed/pushed without private text. The next action is Tyler running
+the new script on the work machine and telling this chat when its report is pushed.
+The proposed module/I/O parser extension below has not been started.
 
 ## Returned reference evidence (2026-10-13)
 

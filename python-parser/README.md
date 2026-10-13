@@ -52,7 +52,7 @@ counts, analysis coverage, and a nested `source_summary` using the existing v2
 contract. Code provenance is `source_summary.tool_revision`. It contains no names,
 values, source identities or individual reference links. Its new report kind is
 `l5x_reference_review_summary`, schema 1, policy 2, analyzer `source-references-1`.
-The publisher accepts only the two closed aggregate schemas and validates again
+The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
 
 Exit 3 means useful partial results were produced. Reference analysis can be
@@ -110,7 +110,36 @@ usable candidate, 1 failure, 2 usage. Parsed syntax is not understood engineerin
 purpose. See [the work-machine procedure](../public/docs/reviews/WORK_MACHINE_SUMMARY_RUN.md)
 for checkout, testing, generation and the exact artifact to return.
 
-## Run from Git Bash
+## Automated work-machine feedback
+
+From the repository root in Git Bash:
+
+```bash
+bash ./run-work-check.sh YOUR_READABLE_EXPORT.L5X
+# Later runs remember the source path on this machine:
+bash ./run-work-check.sh
+```
+
+The launcher pulls the current `-pc` branch with `git pull --ff-only` before
+loading the updated Python workflow through `uv run --locked`. Both unittest
+suites run in fresh processes; successful tests enable a single captured-source
+inventory/reference analysis and a new private workspace. A closed aggregate
+report includes test counts, bounded code-only failing test IDs, tested commit
+and the nested reference summary. Only that new report is staged/committed; the
+runner pushes normally to the matching origin branch. Failed tests are also
+reported, with source analysis skipped. Useful partial analysis exits 0; test or
+analysis failure exits 1 after publishing its result. Preflight/publication/Git
+failures stop without claiming completion.
+
+The saved source path lives in Git metadata. Logs and full results stay under
+`confidential/`; source and older output files are preserved. There is no extra
+per-report confirmation. Read the [work-machine procedure](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md)
+for prerequisites, output locations and recovery, and the
+[implementation review](../public/docs/reviews/WORK_CHECK_RUNNER_REVIEW.md) for the
+bounded report contract. This automates the currently implemented Phase 1 tools;
+it does not generate engineering classifications, PCSD or FHX.
+
+## Run individual commands from Git Bash
 
 From the repository root, with Python 3.12+ and `uv` available:
 

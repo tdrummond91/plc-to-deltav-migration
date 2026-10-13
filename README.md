@@ -45,6 +45,11 @@ On the work machine, Codex may inspect the project read-only and produce handoff
 
 ## Intended usage
 
+For the work-machine feedback cycle, run `bash ./run-work-check.sh SOURCE.L5X`
+once, then `bash ./run-work-check.sh` on later runs. It remembers the source path
+locally, pulls, runs both test suites, saves private analysis and commits/pushes
+the aggregate results. See the [one-command procedure](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
 The first available command is `plc inspect`, installed from `python-parser/`:
 
 ```bash
@@ -73,6 +78,6 @@ Repository roles:
 - `python-parser/`: application source, dependency files, and test code.
 - `confidential/`: actual exports and every derived private artifact.
 
-The full repository is the portable development bundle; `public/` complements the Python source rather than duplicating it. Generated production outputs never go to public automatically.
+The full repository is the portable development bundle; `public/` complements the Python source rather than duplicating it. The work-machine runner automatically publishes only its validated aggregate/test-results report; detailed production outputs stay private.
 
 For the new-copy workflow, read [fresh Git setup](public/docs/planning/GIT_FRESH_START.md).

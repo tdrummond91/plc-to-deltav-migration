@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/WORK_CHECK_RUNNER_REVIEW.md,
 public/docs/reviews/SOURCE_REFERENCES_REVIEW.md and
 public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md for the current
 feat/source-references-pc checkpoint. Then read
@@ -26,7 +27,7 @@ uv run --project python-parser python -B -m unittest discover \
 Current baseline: 139 passing helper tests. Also run:
 uv run --project python-parser python -B -m unittest discover -s python-parser/tests -v
 
-Use the final application test count and tested revision in SOURCE_REFERENCES_REVIEW.md;
+Use the final application test count and tested revision in WORK_CHECK_RUNNER_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -152,7 +153,13 @@ The first reference aggregate has now returned in 7328809 and validates: 98.26%
 of instruction signatures catalogued, 17,856 bound operand occurrences and only
 45 of 941 aliases bound. Tyler confirmed both work-machine suites passed. Read
 SOURCE_REFERENCES_REVIEW.md for all counters and exact structural reconciliation.
-The recommended next bounded slice is module/I/O declarations plus fixed aggregate
+Tyler then requested a one-command work-machine runner. That workflow is now
+implemented by run-work-check.sh: pull, both test suites, private analysis, then
+aggregate report-only commit/push. New work-check reports automatically carry test
+outcomes; do not ask Tyler to paste terminal output or manually stage reports.
+Read WORK_CHECK_RUNNER_REVIEW.md and the updated work-machine procedure first.
+
+The recommended next parser slice is module/I/O declarations plus fixed aggregate
 reasons for unresolved aliases/unsupported addresses. Existing public counts show
 104 InputTag, 65 OutputTag and 83 ConfigTag elements absent from the current symbol
 model; they do not prove the cause of every unresolved reference. Agree the next

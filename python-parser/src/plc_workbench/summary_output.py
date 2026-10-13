@@ -62,6 +62,9 @@ def publish_summary(output: Path, rendered: str, *, input_path: Path) -> None:
             if isinstance(payload, dict) and payload.get('report_kind') == 'l5x_reference_review_summary':
                 from .reference_summary import render_reference_summary
                 rendered = render_reference_summary(payload)
+            elif isinstance(payload, dict) and payload.get('report_kind') == 'l5x_work_machine_check':
+                from .work_check import render_work_check_report
+                rendered = render_work_check_report(payload)
             else:
                 rendered = render_summary(payload)
         except (ValueError, TypeError, RecursionError) as exc:

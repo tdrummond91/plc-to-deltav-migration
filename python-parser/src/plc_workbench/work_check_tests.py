@@ -1,0 +1,223 @@
+"""Run checkout tests and emit a bounded result without traceback content.
+
+The caller redirects the ordinary unittest stream to a private log. Only this
+module's closed result contract is eligible for inclusion in a shared report.
+Each suite runs in a fresh process because both test directories use top-level
+module names during discovery.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+import re
+import sys
+import tempfile
+from typing import Any, TextIO
+import unittest
+
+
+MAX_RESULT_BYTES = 8192
+MAX_FAILED_IDS = 20
+MAX_ID_LENGTH = 160
+_MAX_COUNT = 1_000_000_000
+_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+", re.ASCII)
+_FALLBACK_ID = "unittest.loader._FailedTest"
+_COUNT_KEYS = frozenset({
+    "tests_run", "failures", "errors", "skipped", "expected_failures", "unexpected_successes",
+})
+_RESULT_KEYS = frozenset({
+    "schema_version", "status", "counts", "failed_test_ids", "failure_ids_omitted",
+})
+
+
+def _count(value: object) -> bool:
+    return type(value) is int and 0 <= value <= _MAX_COUNT
+
+
+def _valid_id(value: object) -> bool:
+    return isinstance(value, str) and len(value) <= MAX_ID_LENGTH and _IDENTIFIER.fullmatch(value) is not None
+
+
+def validate_test_result(payload: object, *, allow_unavailable: bool = False) -> None:
+    """Reject extra fields, free text and inconsistent pass/fail accounting."""
+    invalid = "Invalid structured test result."
+    if not isinstance(payload, dict) or payload.keys() != _RESULT_KEYS:
+        raise ValueError(invalid)
+    if type(payload["schema_version"]) is not int or payload["schema_version"] != 1:
+        raise ValueError(invalid)
+    status = payload["status"]
+    if not isinstance(status, str):
+        raise ValueError(invalid)
+    identifiers = payload["failed_test_ids"]
+    omitted = payload["failure_ids_omitted"]
+    if (not isinstance(identifiers, list) or len(identifiers) > MAX_FAILED_IDS
+            or any(not _valid_id(value) for value in identifiers)
+            or len(set(identifiers)) != len(identifiers) or not _count(omitted)):
+        raise ValueError(invalid)
+    if status in {"runner_error", "not_run"}:
+        if not allow_unavailable or payload["counts"] is not None or identifiers or omitted:
+            raise ValueError(invalid)
+        return
+    if status not in {"passed", "failed"}:
+        raise ValueError(invalid)
+    counts = payload["counts"]
+    if not isinstance(counts, dict) or counts.keys() != _COUNT_KEYS or any(not _count(v) for v in counts.values()):
+        raise ValueError(invalid)
+    failures = counts["failures"] + counts["errors"] + counts["unexpected_successes"]
+    if status == "passed":
+        if failures or identifiers or omitted:
+            raise ValueError(invalid)
+    elif failures == 0 or not identifiers or len(identifiers) + omitted > failures:
+        raise ValueError(invalid)
+    if omitted and len(identifiers) != MAX_FAILED_IDS:
+        raise ValueError(invalid)
+    # Subtests are events, not separate tests: failures, errors and even skipped
+    # events can outnumber tests_run. Do not subtract them to invent pass counts.
+
+
+def unavailable_result(status: str) -> dict[str, Any]:
+    """Construct an explicit result for a suite which did not complete."""
+    if status not in {"runner_error", "not_run"}:
+        raise ValueError("Invalid unavailable test status.")
+    return {
+        "schema_version": 1, "status": status, "counts": None,
+        "failed_test_ids": [], "failure_ids_omitted": 0,
+    }
+
+
+def render_test_result(payload: object, *, allow_unavailable: bool = False) -> str:
+    validate_test_result(payload, allow_unavailable=allow_unavailable)
+    rendered = json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
+    if len(rendered.encode("utf-8")) > MAX_RESULT_BYTES:
+        raise ValueError("Structured test result exceeds its size limit.")
+    return rendered
+
+
+def _base_test_id(test: unittest.TestCase) -> str:
+    """Use a case's code identity, never an overridable id or subtest repr."""
+    case_type = type(test)
+    method = getattr(test, "_testMethodName", None)
+    if not isinstance(method, str) or not any(method in base.__dict__ for base in case_type.__mro__):
+        return _FALLBACK_ID
+    identifier = f"{case_type.__module__}.{case_type.__qualname__}.{method}"
+    return identifier if _valid_id(identifier) else _FALLBACK_ID
+
+
+class StructuredTestResult(unittest.TextTestResult):
+    """Capture only parent case identities for failed unittest events."""
+
+    def __init__(self, stream: TextIO, descriptions: bool, verbosity: int) -> None:
+        super().__init__(stream, descriptions, verbosity)
+        self.failed_case_ids: list[str] = []
+        self._seen_failed_ids: set[str] = set()
+        self.failure_ids_omitted = 0
+
+    def _record_failure(self, test: unittest.TestCase) -> None:
+        identifier = _base_test_id(test)
+        if identifier in self._seen_failed_ids:
+            return
+        self._seen_failed_ids.add(identifier)
+        if len(self.failed_case_ids) < MAX_FAILED_IDS:
+            self.failed_case_ids.append(identifier)
+        else:
+            self.failure_ids_omitted += 1
+
+    def addFailure(self, test: unittest.TestCase, err: tuple) -> None:
+        self._record_failure(test)
+        super().addFailure(test, err)
+
+    def addError(self, test: unittest.TestCase, err: tuple) -> None:
+        self._record_failure(test)
+        super().addError(test, err)
+
+    def addUnexpectedSuccess(self, test: unittest.TestCase) -> None:
+        self._record_failure(test)
+        super().addUnexpectedSuccess(test)
+
+    def addSubTest(self, test: unittest.TestCase, subtest: unittest.TestCase, err: tuple | None) -> None:
+        if err is not None:
+            self._record_failure(test)
+        super().addSubTest(test, subtest, err)
+
+    def as_payload(self) -> dict[str, Any]:
+        payload = {
+            "schema_version": 1,
+            "status": "passed" if self.wasSuccessful() else "failed",
+            "counts": {
+                "tests_run": self.testsRun,
+                "failures": len(self.failures),
+                "errors": len(self.errors),
+                "skipped": len(self.skipped),
+                "expected_failures": len(self.expectedFailures),
+                "unexpected_successes": len(self.unexpectedSuccesses),
+            },
+            "failed_test_ids": list(self.failed_case_ids),
+            "failure_ids_omitted": self.failure_ids_omitted,
+        }
+        validate_test_result(payload)
+        return payload
+
+
+def run_suite(suite: unittest.TestSuite, *, stream: TextIO) -> dict[str, Any]:
+    """Execute an already-discovered suite; stream is for private diagnostics."""
+    result = unittest.TextTestRunner(stream=stream, verbosity=2, resultclass=StructuredTestResult).run(suite)
+    return result.as_payload()
+
+
+def _checkout_root() -> Path:
+    location = Path(__file__).resolve()
+    for parent in location.parents:
+        if parent / "python-parser" / "src" / "plc_workbench" / "work_check_tests.py" == location:
+            return parent
+    raise ValueError("Test execution requires a source checkout.")
+
+
+def _publish_result(output: Path, payload: object) -> None:
+    """Atomically create a new result, never overwrite a prior run."""
+    encoded = render_test_result(payload).encode("utf-8")
+    temporary: Path | None = None
+    destination = output.expanduser()
+    if destination.suffix.lower() != ".json" or destination.exists() or destination.is_symlink():
+        raise ValueError("Test result requires a new JSON output file.")
+    destination = destination.resolve()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        descriptor, filename = tempfile.mkstemp(prefix=".plc-tests-", suffix=".pending", dir=destination.parent)
+        temporary = Path(filename)
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temporary, destination)
+    finally:
+        if temporary is not None:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Run a checkout test suite with bounded JSON results.")
+    parser.add_argument("--suite", choices=("application", "helpers"), required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    arguments = parser.parse_args(argv)
+    try:
+        root = _checkout_root()
+        directory = root / ("python-parser/tests" if arguments.suite == "application" else "tools/l5x_inspect/tests")
+        # Explicit top_level_dir makes discovery independent of the caller's cwd.
+        suite = unittest.TestLoader().discover(str(directory), top_level_dir=str(directory))
+        if suite.countTestCases() == 0:
+            raise ValueError("Test discovery found no tests.")
+        payload = run_suite(suite, stream=sys.stderr)
+        _publish_result(arguments.output, payload)
+    except (OSError, ValueError, RuntimeError, ImportError):
+        print("Could not complete the structured test run; inspect the private log.", file=sys.stderr)
+        return 2
+    return 0 if payload["status"] == "passed" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
