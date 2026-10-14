@@ -1,5 +1,12 @@
 # Codex handoff: PLC analysis workbench
 
+Current operational hold (2026-10-14): Tyler reported repeated endpoint-security
+alerts involving bash.exe after the work-machine check of `1419af7`. The local
+listener task is disabled and state is paused with no pending worker. Do not
+restore automatic execution while that report is under investigation. The run
+included listener Git/process-host regression tests in the application suite;
+the specific detection is unverified. Earlier restoration evidence below is history.
+
 Updated 2026-10-14. Current activity: **closed address-shape diagnostic implemented; next work-machine aggregate needed on feat/source-references-pc**. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Current address-shape checkpoint (2026-10-13)

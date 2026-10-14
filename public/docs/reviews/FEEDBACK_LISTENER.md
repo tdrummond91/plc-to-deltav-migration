@@ -6,8 +6,16 @@ using `bash ./run-work-check.sh` and does not need another service.
 
 ## Operation
 
-Monitoring restored 2026-10-14: the corrected scheduled task is enabled and the
-listener is unpaused. The first production check ran at 00:14:29 America/Chicago,
+Current hold (2026-10-14): after the restored poll described below, Tyler reported
+endpoint-security alerts involving bash.exe on the work machine. The development
+PC task is disabled again and listener state is paused with no pending worker.
+The returned check tested `1419af7`, including the Git/process-host listener
+regression tests. The alert rule and process attribution are not yet available;
+do not treat this as a confirmed false positive or resume automatic execution
+while the reported detection is being investigated.
+
+Earlier restoration on 2026-10-14: the corrected scheduled task was enabled and the
+listener was unpaused. The first production check ran at 00:14:29 America/Chicago,
 completed with `LastTaskResult=0` and saved `waiting_for_report`, `paused=false`
 and no pending claim. The verified GUI launcher is installed; the earlier
 terminal-takeover hold is closed. Earlier smoke tests and that hold are preserved
