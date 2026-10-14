@@ -129,6 +129,11 @@ This is enough evidence to design dedicated structural capture using coherent
 invented tests, but not to invent rack naming/alias targets or explain all
 99/320 missing roots. Check the official format before expanding root binding.
 
+The follow-up [rack-I/O investigation](RACK_IO_INVESTIGATION.md) now reproduces
+that declaration omission with invented data and records the official format
+basis. It recommends dedicated evidence and candidate matching before changing
+bindings; the actual 99/320 population remains unassigned.
+
 Independent review verified the report, exact count deltas and Git provenance.
 This return review changed documentation only; no full test suite was rerun.
 The implementation checks below remain their original evidence.

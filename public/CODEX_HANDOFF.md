@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `1195d40` tested `112ee82` and confirms the timer-placeholder fix: malformed operands 868 to 0, non-data 0 to 868, unsupported addresses 870 to 2, with unchanged source and root-binding counts. Both suites passed. No repeat work-machine check is needed for this slice. Next investigate the unresolved colon-root/I/O population using existing shared structure before requesting more evidence. Read [timer evidence and limits](docs/reviews/TIMER_PLACEHOLDER_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `1195d40` tested `112ee82` and confirms the timer-placeholder fix: malformed operands 868 to 0, non-data 0 to 868, unsupported addresses 870 to 2, with unchanged source and root-binding counts. Both suites passed. No repeat work-machine check is needed for this slice. The [rack-I/O investigation](docs/reviews/RACK_IO_INVESTIGATION.md) confirms an omitted-declaration gap using invented data and official format evidence. Next capture dedicated rack records and measure candidate matches before changing binding semantics. Read [timer evidence and limits](docs/reviews/TIMER_PLACEHOLDER_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -116,11 +116,21 @@ Tyler authorized one actual mystery operand; no further approval or invented-onl
 restriction applies to this sample. Work-check schema 2 still includes at most
 128 printable characters, a standard opcode and zero-based position, without
 rung/location IDs or neighbors. Known timer placeholders are skipped. No repeat
-run is needed for the confirmed fix. Next investigate 99 unresolved aliases and
-320 unresolved operand occurrences, all colon_root_not_declared. Their relation
-to 11 unsupported RackConnection elements is unproven; use existing shared
-structure and official format evidence before expanding recognition. Count-only
-source/reference summaries remain count-only.
+run is needed for the confirmed fix. The rack investigation has reproduced a
+source-model omission with coherent invented topology: two adapter references
+bind while three slot/alias occurrences remain unresolved; an in-memory ordinary
+connection control binds all five. Existing module tests pass all 38 cases.
+Official documentation supports dedicated rack declarations and individual slot
+names, but does not justify one universal backing-member mapping.
+
+The contribution to the real 99 unresolved aliases and 320 unresolved operand
+occurrences remains unmeasured. Next capture RackConnection/InAliasTag/OutAliasTag
+as distinct records, derive supported candidate roots and compare terminal missing
+roots under existing scope/alias rules. Publish bounded match/ambiguity/unavailable
+counts before changing bindings. Do not mark a rack alias with unknown backing
+as an ordinary terminal root_bound symbol. See [the investigation and fixture](docs/reviews/RACK_IO_INVESTIGATION.md).
+No production parser code or schema changed during this investigation; no new
+work-machine run is requested. Count-only summaries remain count-only.
 
 Timer-fix validation: 273 application/workflow tests passed (one symlink skip),
 with listener tests excluded. Two real temporary-checkout CLI runs each passed

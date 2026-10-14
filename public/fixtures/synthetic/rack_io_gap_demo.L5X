@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Independently invented parser investigation fixture; no plant data.
+  Not certified for Studio 5000 import or deployment.
+  The topology isolates XML declaration contexts. It does not establish an
+  actual hardware layout or the backing member for either rack alias tag.
+  The documentation-only Ethernet addresses are placeholders.
+-->
+<RSLogix5000Content SchemaRevision="1.0" TargetName="SyntheticRackGap" TargetType="Controller">
+  <Controller Name="SyntheticRackGap">
+    <Modules>
+      <Module Name="Local" ParentModule="Local" ParentModPortId="1">
+        <Ports>
+          <Port Id="1" Type="ICP" Address="0" Upstream="false"/>
+        </Ports>
+      </Module>
+      <Module Name="Bridge" ParentModule="Local" ParentModPortId="1">
+        <Ports>
+          <Port Id="1" Type="ICP" Address="2" Upstream="true"/>
+          <Port Id="2" Type="Ethernet" Address="192.0.2.1" Upstream="false"/>
+        </Ports>
+      </Module>
+      <Module Name="Remote" ParentModule="Bridge" ParentModPortId="2">
+        <Ports>
+          <Port Id="1" Type="Ethernet" Address="192.0.2.2" Upstream="true"/>
+          <Port Id="2" Type="ICP" Address="0" Upstream="false"/>
+        </Ports>
+        <Communications>
+          <Connections>
+            <Connection Name="AdapterData">
+              <InputTag/>
+              <OutputTag/>
+            </Connection>
+          </Connections>
+        </Communications>
+      </Module>
+      <Module Name="RackCard" ParentModule="Remote" ParentModPortId="2">
+        <Ports>
+          <Port Id="1" Type="ICP" Address="3" Upstream="true"/>
+        </Ports>
+        <Communications>
+          <ConfigTag/>
+          <Connections>
+            <RackConnection>
+              <InAliasTag/>
+              <OutAliasTag/>
+            </RackConnection>
+          </Connections>
+        </Communications>
+      </Module>
+    </Modules>
+    <Tags>
+      <Tag Name="ProbeAlias" TagType="Alias" AliasFor="Remote:3:I.Data.0"/>
+    </Tags>
+    <Programs>
+      <Program Name="SyntheticProbe">
+        <Routines>
+          <Routine Name="Probe" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N"><Text><![CDATA[XIC(Remote:3:I.Data.0);]]></Text></Rung>
+              <Rung Number="1" Type="N"><Text><![CDATA[XIC(ProbeAlias);]]></Text></Rung>
+              <Rung Number="2" Type="N"><Text><![CDATA[OTE(Remote:3:O.Data.0);]]></Text></Rung>
+              <Rung Number="3" Type="N"><Text><![CDATA[XIC(Remote:I);]]></Text></Rung>
+              <Rung Number="4" Type="N"><Text><![CDATA[OTE(Remote:O);]]></Text></Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+  </Controller>
+</RSLogix5000Content>

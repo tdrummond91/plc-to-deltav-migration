@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/RACK_IO_INVESTIGATION.md,
 public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md,
 public/docs/reviews/ADDRESS_SHAPE_REVIEW.md,
 public/docs/reviews/MODULE_IO_REVIEW.md,
@@ -97,14 +98,22 @@ Do not infer byte identity or timer configuration/effects from these aggregates.
 Current analyzer source-references-3 recognizes trimmed `?` only in valid
 three-argument TON/TOF/RTO preset/accumulator slots. Private reference schema 2,
 public reference schema 4, source aggregate 3 and work-check 2 remain current.
-Historical public reports remain readable. Next investigate undeclared colon
-roots: 99 aliases and 320 operand occurrences. Eleven unsupported RackConnection
-elements are a possible source-model gap, not a proven explanation for those
-references. Existing public structure records empty RackConnection/InAliasTag/
-OutAliasTag elements and scrubbed surrounding topology. Inspect the official
-format before deriving names/targets; dedicated structural records with coherent
-invented tests are a safer first rack slice. The earlier 868-spelling question
-is closed; do not repeat it or request another timer confirmation run.
+Historical public reports remain readable. RACK_IO_INVESTIGATION.md now records
+completed code/official-format investigation and a coherent invented rack fixture.
+The reader omits RackConnection/InAliasTag/OutAliasTag declarations. The fixture
+has three unresolved slot/alias occurrences and two bound adapter controls; an
+in-memory ordinary-connection control binds all five. Existing module suites
+passed 38 tests. No production parser code or schema changed.
+
+Next implement dedicated rack evidence and bounded candidate-match diagnostics
+for the 99 unresolved aliases and 320 operand occurrences. Their relationship to
+the 11 reported rack connections is still unmeasured; suffix/prefix/scope misses
+share the same reason. Match terminal missing roots through alias chains in the
+right scope, not just raw caller operands. Account for unsupported topology,
+ambiguity and unavailable candidates. Do not turn rack aliases into ordinary
+terminal symbols or infer a universal backing-member layout. Read the exact
+recommended slice and limits in RACK_IO_INVESTIGATION.md before implementation.
+No repeat timer confirmation or unchanged-parser run is requested.
 Continue work already authorized in the active session; stop for a decision
 when the evidence or a phase boundary needs Tyler's input.
 
