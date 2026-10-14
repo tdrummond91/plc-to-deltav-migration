@@ -11,6 +11,27 @@ using the local-only workflow below. Earlier restoration evidence is history.
 
 Updated 2026-10-14. Current baseline: **Phase 1 tooling consolidated on main; automatic work-machine synchronization/publication removed**. Next parser task: review the address-shape report already returned in `b58af78`. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
+## Development-only listener files (2026-10-14)
+
+Tyler requested that the work machine receive normal parser code without the
+development feedback listener. `feedback-listener.sh`, `tools/feedback_listener/`
+and `python-parser/tests/test_feedback_listener.py` are removed from tracking and
+explicitly ignored. Their existing development-PC files are preserved locally;
+the task remains disabled and paused. Fresh checkouts have no listener files,
+and pulling this removal deletes the previously tracked copies on other PCs.
+No parser or work-check command requires them. Listener documentation remains
+as historical evidence; its source is retained in the pre-squash archive tag.
+
+Do not re-add the local listener files to ordinary commits. A future maintained
+listener should have its own development-tool repository or distribution path.
+This removal neither restores the listener nor diagnoses the endpoint alert.
+
+Validation used a clean export of the staged tree with no listener files: all
+229 application/workflow tests (one existing Windows symlink skip) and 139 helper
+tests passed, and the work-check entry point remained available. All 11 removed
+files remain locally with unchanged Git-normalized contents. Independent review
+found no remaining dependency or packaging blockers.
+
 ## Git baseline consolidation (2026-10-14)
 
 Tyler requested one squash commit on `main` and retirement of the accumulated

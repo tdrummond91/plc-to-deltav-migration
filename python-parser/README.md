@@ -134,8 +134,9 @@ for checkout, testing, generation and the exact artifact to return.
 
 ## Local work-machine feedback
 
-The development listener remains disabled and paused. Manual parser checks are
-separate from that background service. Update or clone the code manually, then
+The development listener remains disabled and paused. Its files and test loader
+are ignored local development tools and are not included in normal checkouts.
+Manual parser checks are independent of that service. Update or clone the code manually, then
 run from the repository root in Git Bash:
 
 ```bash

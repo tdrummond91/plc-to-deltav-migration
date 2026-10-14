@@ -4,6 +4,11 @@ confidential/
 # Validated aggregate reports awaiting manual review and publication
 public/inspection/local/
 
+# Optional development-PC listener; never ship in work-machine checkouts
+/feedback-listener.sh
+/tools/feedback_listener/
+/python-parser/tests/test_feedback_listener.py
+
 # Python environments and caches
 .venv/
 venv/

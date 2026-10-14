@@ -1,5 +1,17 @@
 # Automatic work-machine feedback
 
+Current distribution (2026-10-14): this is historical documentation for an
+optional local development-PC tool. The launcher, `tools/feedback_listener/`
+and application test loader are now untracked and ignored so they are absent
+from work-machine checkouts. Existing files on the development PC were retained;
+the task remains disabled and paused. Normal parser commands have no dependency
+on these files. Installation/control commands below only apply to an existing
+local copy; do not install or restore it on the work machine.
+
+The last tracked implementation is preserved under
+`archive/phase1-before-squash-20261014`. Keeping this review does not re-enable
+the listener or establish a cause for the endpoint-security detection.
+
 Tyler explicitly authorized automatic checks and bounded follow-up development
 on 2026-10-13. This listener runs on the development PC. The work machine keeps
 using `bash ./run-work-check.sh` and does not need another service.
@@ -156,11 +168,11 @@ installation preserves state and permits retry if task registration failed after
 successful initialization. Incomplete/corrupted initialization is preserved for
 investigation; it is not silently replaced or treated as a working installation.
 
-Implementation: [poller](../../../tools/feedback_listener/listener.py),
-[native host](../../../tools/feedback_listener/windows_host.py),
-[GUI launcher verification](../../../tools/feedback_listener/windows_launcher.py),
-[worker instructions](../../../tools/feedback_listener/PROMPT.txt),
-[Windows installer](../../../tools/feedback_listener/install.ps1).
+Archived implementation: [poller](https://github.com/tdrummond91/plc-to-deltav-migration/blob/832090bdad42a26e685515bd996eaded2c69d6b6/tools/feedback_listener/listener.py),
+[native host](https://github.com/tdrummond91/plc-to-deltav-migration/blob/832090bdad42a26e685515bd996eaded2c69d6b6/tools/feedback_listener/windows_host.py),
+[GUI launcher verification](https://github.com/tdrummond91/plc-to-deltav-migration/blob/832090bdad42a26e685515bd996eaded2c69d6b6/tools/feedback_listener/windows_launcher.py),
+[worker instructions](https://github.com/tdrummond91/plc-to-deltav-migration/blob/832090bdad42a26e685515bd996eaded2c69d6b6/tools/feedback_listener/PROMPT.txt),
+[Windows installer](https://github.com/tdrummond91/plc-to-deltav-migration/blob/832090bdad42a26e685515bd996eaded2c69d6b6/tools/feedback_listener/install.ps1).
 
 ## Validation
 

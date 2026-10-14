@@ -6,8 +6,9 @@ editable corrections, PCSD and FHX generation are still later work.
 
 ## Manual runs
 
-The development listener remains disabled and paused; normal manual parser
-checks are separate from that service. Update or clone the code manually, then
+The development listener remains disabled and paused. Its files are excluded
+from the tracked project; normal manual parser checks do not require them.
+Update or clone the code manually, then
 open Git Bash in the repository root on `main` or a chosen development branch:
 
 ```bash

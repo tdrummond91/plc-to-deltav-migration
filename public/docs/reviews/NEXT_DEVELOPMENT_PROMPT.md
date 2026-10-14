@@ -15,6 +15,12 @@ paused pending the endpoint incident review. Tyler is proceeding with a fresh
 clone and normal manual parser checks using the local-only workflow below.
 Do not turn the listener hold into an approval requirement for manual parsing.
 
+The listener launcher, tools/feedback_listener/ and its application test loader
+are now ignored local development-PC files, removed from the tracked project.
+They must not ship to the work machine or be required for parser tests. Existing
+local copies remain disabled; source and operational evidence are archived.
+Do not restore them to tracking as part of normal parser development.
+
 The development history was squash-merged into main; documentation and evidence
 remain intact. The archive/phase1-before-squash-20261014 tag retains historical
 tested revisions. Start future work from main on a new -pc feature branch;
