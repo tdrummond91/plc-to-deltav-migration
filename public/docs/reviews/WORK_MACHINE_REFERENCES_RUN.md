@@ -1,6 +1,6 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. The next declared routine-candidate check is on
+Use **main** for the consolidated baseline. The next routine-metadata check is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
@@ -34,20 +34,24 @@ skip) and 139 helpers, and confirms all 26 MVM/SWPB signatures. Their 78 fields
 split into 52 bound roots, 16 literals and ten selectors; other counters stay
 unchanged. No repeat bit-only check is needed; see [the confirmed review](BIT_OPERATION_REVIEW.md).
 
-Latest evidence: `0a2610f` tested `9c56b50`, passed 308 application cases (one
+Shape evidence: `0a2610f` tested `9c56b50`, passed 308 application cases (one
 skip) and 139 helpers. JSR has 76 occurrences/163fields: 65 two-field second-zero
 and 11 three-field second-other calls. SBR has one field; RET has none. Every
 earlier counter is unchanged. A second field spelled zero does not establish
 its parameter role. See [the confirmed shape review](ROUTINE_CALL_SHAPE_REVIEW.md).
 
-The next check uses work-check schema 8 and reference/source schemas 10/4.
-`analysis.reference_summary.routine_targets` adds declared program-local JSR
-first-field candidate counts: total, by_status, unique_by_target_context and
-distinct_targets. Expect total=76 for the same export, with earlier binding,
-catalog, source, shape, alias/rack, flag and sample counters unchanged. Candidate
-distributions remain unknown until the run. Unique candidates are declaration
-matches; call validity and parameter roles remain unverified. See
-[the candidate review](ROUTINE_TARGET_REVIEW.md).
+Latest evidence: `7e15843` tested `3598710`, passed 325 application cases (one
+skip) and 139 helpers. All 76 JSRs have unique declared candidates covering
+66 distinct targets; all contexts remain not_analyzed. Earlier counters remain
+unchanged. See [the confirmed candidate review](ROUTINE_TARGET_REVIEW.md).
+
+The next check uses work-check schema 9 and reference/source schemas 11/4.
+`analysis.reference_summary.routine_target_metadata` adds exact program-Type
+provenance and target-language counts for unique calls, plus the program-Type
+subset for unknown context. Expect total=76 with every earlier count unchanged,
+including 76unique/66distinct/76unknown. New partitions remain unknown until the
+run; neither missing Type nor target-language metadata establishes runtime
+behavior. See [the metadata review](ROUTINE_METADATA_REVIEW.md).
 
 ## Manual runs
 
@@ -87,7 +91,7 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 8 and their tested SHA identifies which suite
+check. New reports use schema 9 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces

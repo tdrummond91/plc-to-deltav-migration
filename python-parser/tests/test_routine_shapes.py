@@ -198,10 +198,10 @@ class RoutineShapeTests(unittest.TestCase):
         source = inventory('JSR(PRIVATE_TARGET,0)SBR(A)RET(A);')
         nested = build_reference_summary(source, analyze_references(source))
         self.assertEqual((nested['schema_version'], nested['exporter_version'], nested['analyzer_version']),
-                         (10, 'reference-summary-10', 'source-references-8'))
+                         (11, 'reference-summary-11', 'source-references-8'))
         self.assertEqual(nested['routine_instruction_shapes'], build_routine_instruction_shapes(source))
         payload = report(source_bytes('JSR(PRIVATE_TARGET,0)SBR(A)RET(A);'))
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (8, 'work-check-8'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (9, 'work-check-9'))
         self.assertEqual(json.loads(work_check.render_work_check_report(payload)), payload)
         rendered = render_reference_summary(nested)
         self.assertNotIn('PRIVATE', rendered)

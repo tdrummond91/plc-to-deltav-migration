@@ -37,7 +37,7 @@ def report(data: bytes = SOURCE) -> dict:
         'failed_test_ids': [], 'failure_ids_omitted': 0,
     }
     return {
-        'schema_version': 8, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-8',
+        'schema_version': 9, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-9',
         'run_id': '20261014T180000Z-1234abcd', 'tool_revision': deepcopy(REVISION),
         'tests': {'application': deepcopy(result), 'helpers': deepcopy(result)},
         'analysis': {'status': nested['status'], 'failure_code': None, 'private_run_saved': True,
@@ -59,7 +59,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
         for private in ('PRIVATE_', 'rung_id', 'source_id', 'candidate_id', 'terminal_root'):
             self.assertNotIn(private, rendered)
         nested = payload['analysis']['reference_summary']
-        self.assertEqual((nested['schema_version'], nested['source_summary']['schema_version']), (10, 4))
+        self.assertEqual((nested['schema_version'], nested['source_summary']['schema_version']), (11, 4))
         self.assertNotIn('MysteryRack', render_reference_summary(nested))
 
     def test_schema2_rejects_new_kind_but_preserves_null_and_malformed(self) -> None:
@@ -79,6 +79,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
         nested = payload['analysis']['reference_summary']
         del nested['routine_instruction_shapes']
         del nested['routine_targets']
+        del nested['routine_target_metadata']
         self.assertEqual(nested['operands']['by_status'].pop('system_flag'), 0)
         nested.update(schema_version=4, exporter_version='reference-summary-4', analyzer_version='source-references-3')
         del nested['rack_candidates']

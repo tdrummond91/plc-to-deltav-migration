@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/ROUTINE_METADATA_REVIEW.md,
 public/docs/reviews/ROUTINE_TARGET_REVIEW.md,
 public/docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md,
 public/docs/reviews/BIT_OPERATION_REVIEW.md,
@@ -49,8 +50,8 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available, excluding the ignored listener
-loader on this development checkout. Work schemas 1/2/3/4/5/6/7 remain readable. Current
-schema 8 requires reference 10 and retains at most one authorized operand example.
+loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8 remain readable. Current
+schema 9 requires reference 11 and retains at most one authorized operand example.
 The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
@@ -72,10 +73,10 @@ uv run --project python-parser python -B -m unittest discover \
   -s tools/l5x_inspect/tests -v
 
 Current baseline: 139 passing helper tests. Also run the full development
-application command in ROUTINE_TARGET_REVIEW.md, which explicitly excludes the
+application command in ROUTINE_METADATA_REVIEW.md, which explicitly excludes the
 ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in ROUTINE_TARGET_REVIEW.md;
+Use the final application test count and tested revision in ROUTINE_METADATA_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -183,15 +184,26 @@ and 139 helpers. JSR=76/163fields: 65 two-field second-zero and 11 three-field
 second-other calls; SBR=1/onefield; RET=1/zerofields. Earlier counters are unchanged.
 This establishes shapes without InputCount or parameter roles.
 
-Current slice: private5/analyzer8, public10 and work8 add program-local declared
+Preceding slice: private5/analyzer8, public10 and work8 add program-local declared
 JSR first-field candidates. Existing tag/alias/operand/catalog/source/shape
 evidence stays unchanged. Static ASCII names use a separate routine namespace;
 self identity and explicit main/fault attributes provide limited context, other
 requires Normal, phase names are not guessed. Non-RLL target envelopes remain
 candidates. No call-validity, reachability or parameter claim is made. Read
-ROUTINE_TARGET_REVIEW.md. Next returned report should have 76 candidates; inspect
-status/context/distinct counts, which remain unknown until that run, before
-choosing further call/parameter interpretation. Partial remains expected.
+ROUTINE_TARGET_REVIEW.md. Returned `7e15843` tests clean `3598710`: 325
+application cases (one skip) and 139 helpers pass. There are 76 unique candidates,
+66 distinct targets and 76 not_analyzed contexts; earlier counters are unchanged.
+
+Current slice adds routine_target_metadata unique-call observations: exact
+program-Type provenance and target-language declarations, with a program-Type
+subset for unknown context. Public11/exporter11 keeps analyzer8/private5; work9
+requires reference11. Earlier contracts remain frozen/readable. Do not default
+missing Program.Type to Normal: the official example suggests it but no explicit
+default rule was verified. Program Sequence is a documented enum;
+EquipmentSequence remains unknown. Read ROUTINE_METADATA_REVIEW.md.
+Next report should preserve every earlier count and add metadata total76; its
+partitions remain unknown until returned. Choose further context/body analysis
+from that evidence, not guessed parameters. Partial remains expected.
 Continue authorized work until a specific evidence gap or phase boundary needs
 Tyler's input. Do not activate the listener or access confidential inputs.
 

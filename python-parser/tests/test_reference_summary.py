@@ -7,7 +7,8 @@ import json
 import unittest
 
 from plc_workbench.reference_summary import (
-    CONSTANTS, V8_CONSTANTS, V9_CONSTANTS, MAX_REPORT_BYTES, ReferenceSummaryError, build_reference_summary,
+    CONSTANTS, V8_CONSTANTS, V9_CONSTANTS, V10_CONSTANTS, MAX_REPORT_BYTES,
+    ReferenceSummaryError, build_reference_summary,
     render_reference_summary, validate_reference_summary,
 )
 from plc_workbench.references import analyze_references
@@ -58,9 +59,12 @@ class ReferenceSummaryTests(unittest.TestCase):
         historical.update(V8_CONSTANTS)
         del historical['routine_instruction_shapes']
         del historical['routine_targets']
+        del historical['routine_target_metadata']
         self.assertEqual(V8_CONSTANTS['analyzer_version'], 'source-references-7')
         self.assertEqual(CONSTANTS['analyzer_version'], 'source-references-8')
-        self.assertEqual(set(historical), set(current) - {'routine_instruction_shapes', 'routine_targets'})
+        self.assertEqual(set(historical), set(current) - {
+            'routine_instruction_shapes', 'routine_targets', 'routine_target_metadata',
+        })
         self.assertEqual(json.loads(render_reference_summary(historical)), historical)
         for base, changes in (
             (historical, {'schema_version': 9}),
@@ -81,15 +85,16 @@ class ReferenceSummaryTests(unittest.TestCase):
         historical = deepcopy(current)
         historical.update(V9_CONSTANTS)
         del historical['routine_targets']
+        del historical['routine_target_metadata']
         self.assertEqual(V9_CONSTANTS['analyzer_version'], 'source-references-7')
-        self.assertEqual(set(historical), set(current) - {'routine_targets'})
+        self.assertEqual(set(historical), set(current) - {'routine_targets', 'routine_target_metadata'})
         self.assertEqual(historical['routine_instruction_shapes'], current['routine_instruction_shapes'])
         self.assertEqual(json.loads(render_reference_summary(historical)), historical)
         historical['routine_targets'] = deepcopy(current['routine_targets'])
         with self.assertRaises(ReferenceSummaryError):
             validate_reference_summary(historical)
 
-    def test_v10_requires_target_counts_and_its_new_analyzer_metadata(self) -> None:
+    def test_current_requires_target_counts_and_analyzer_metadata(self) -> None:
         source = complete_inventory()
         current = build_reference_summary(source, analyze_references(source))
         for mutate in (
@@ -101,6 +106,65 @@ class ReferenceSummaryTests(unittest.TestCase):
             mutate(report)
             with self.subTest(mutate=mutate), self.assertRaises(ReferenceSummaryError):
                 validate_reference_summary(report)
+
+    def test_frozen_v10_preserves_candidates_and_rejects_new_metadata(self) -> None:
+        source = complete_inventory()
+        current = build_reference_summary(source, analyze_references(source))
+        historical = deepcopy(current)
+        historical.update(V10_CONSTANTS)
+        del historical['routine_target_metadata']
+        self.assertEqual(V10_CONSTANTS['analyzer_version'], CONSTANTS['analyzer_version'])
+        self.assertEqual(set(historical), set(current) - {'routine_target_metadata'})
+        self.assertEqual(historical['routine_targets'], current['routine_targets'])
+        self.assertEqual(json.loads(render_reference_summary(historical)), historical)
+        for base, changes in (
+            (historical, {'routine_target_metadata': current['routine_target_metadata']}),
+            (historical, {'exporter_version': CONSTANTS['exporter_version']}),
+            (current, {'schema_version': 10}),
+            (current, {'exporter_version': V10_CONSTANTS['exporter_version']}),
+        ):
+            report = deepcopy(base)
+            report.update(changes)
+            with self.subTest(changes=changes), self.assertRaises(ReferenceSummaryError):
+                validate_reference_summary(report)
+
+    def test_target_metadata_counts_calls_and_rejects_private_labels_or_inconsistent_partitions(self) -> None:
+        source = analyze_snapshot(snapshot_from_bytes(
+            b'<RSLogix5000Content><Controller Name="PRIVATE_CONTROLLER"><Programs>'
+            b'<Program Name="PRIVATE_PROGRAM"><Routines><Routine Name="PRIVATE_CALLER" Type="RLL">'
+            b'<RLLContent><Rung Number="0" Type="N"><Text>'
+            b'JSR(PRIVATE_TARGET)JSR(PRIVATE_TARGET)JSR(PRIVATE_MISSING);'
+            b'</Text></Rung></RLLContent></Routine>'
+            b'<Routine Name="PRIVATE_TARGET" Type="ST"/></Routines></Program>'
+            b'</Programs></Controller></RSLogix5000Content>'
+        ))
+        original = build_reference_summary(source, analyze_references(source))
+        metadata = original['routine_target_metadata']
+        self.assertEqual(original['routine_targets']['distinct_targets'], 1)
+        self.assertEqual(metadata['total'], 2)
+        self.assertEqual(metadata['by_program_type']['absent'], 2)
+        self.assertEqual(metadata['unclassified_context_by_program_type']['absent'], 2)
+        self.assertEqual(metadata['by_target_language']['ST'], 2)
+        rendered = render_reference_summary(original)
+        for forbidden in ('PRIVATE', source.snapshot['sha256'], 'program_id', 'target_routine_id'):
+            self.assertNotIn(forbidden, rendered)
+        for mutate in (
+            lambda m: m.update(total=1),
+            lambda m: m['by_program_type'].update(absent=1),
+            lambda m: m['by_target_language'].update(ST=1),
+            lambda m: m['unclassified_context_by_program_type'].update(absent=1),
+            lambda m: m['unclassified_context_by_program_type'].update(absent=0, explicit_normal=2),
+            lambda m: m.update(program_id='PRIVATE_PROGRAM'),
+            lambda m: m['by_program_type'].update(PRIVATE_TYPE=0),
+            lambda m: m['by_target_language'].update(PRIVATE_TYPE=0),
+            lambda m: m.update(program_type_semantics='analyzed'),
+            lambda m: m['by_program_type'].update(absent=True),
+        ):
+            report = deepcopy(original)
+            mutate(report['routine_target_metadata'])
+            with self.subTest(mutate=mutate), self.assertRaises(ReferenceSummaryError) as caught:
+                render_reference_summary(report)
+            self.assertNotIn('PRIVATE', str(caught.exception))
 
     def test_routine_target_counts_reject_invalid_types_partitions_bounds_and_private_labels(self) -> None:
         def candidate_report(*, single_routine: bool = False) -> dict:

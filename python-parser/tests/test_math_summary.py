@@ -65,7 +65,7 @@ class MathSummaryTests(unittest.TestCase):
         self.assertEqual(report['source_summary'], source_report)
         self.assertEqual((source.schema_version, source.parser_version), (3, 'source-inventory-3'))
         self.assertEqual((report['schema_version'], report['exporter_version'], report['analyzer_version']),
-                         (10, 'reference-summary-10', 'source-references-8'))
+                         (11, 'reference-summary-11', 'source-references-8'))
         self.assertEqual({key: report[key] for key in CONSTANTS}, CONSTANTS)
         self.assertEqual(report['source_summary']['schema_version'], 4)
         self.assertEqual(report['source_summary']['instructions']['counts'],
@@ -129,7 +129,7 @@ class MathSummaryTests(unittest.TestCase):
         self.assertEqual(historical['operands']['by_status']['system_flag'], 1)
         self.assertEqual(json.loads(render_reference_summary(historical)), historical)
         current = summary(inventory('XIC(S:FS)ABS(1,PRIVATE_MATH_OUTPUT);'))
-        self.assertEqual(set(current) - {'routine_instruction_shapes', 'routine_targets'}, set(historical))
+        self.assertEqual(set(current) - {'routine_instruction_shapes', 'routine_targets', 'routine_target_metadata'}, set(historical))
         self.assertEqual(current['operands']['by_status'].keys(), historical['operands']['by_status'].keys())
         for base, field, value in (
             (historical, 'schema_version', 7),
@@ -148,6 +148,7 @@ class MathSummaryTests(unittest.TestCase):
             report.update(constants)
             if constants['schema_version'] < 10:
                 del report['routine_targets']
+                del report['routine_target_metadata']
             if constants['schema_version'] < 9:
                 del report['routine_instruction_shapes']
             report['operands']['by_status'].update(literal=0, system_flag=1)

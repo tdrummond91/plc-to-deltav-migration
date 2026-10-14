@@ -37,7 +37,7 @@ class RackSummaryTests(unittest.TestCase):
         _, source, references, report = records()
         rack = report['rack_candidates']
         self.assertEqual((source.schema_version, references.schema_version), (3, 5))
-        self.assertEqual((report['schema_version'], report['source_summary']['schema_version']), (10, 4))
+        self.assertEqual((report['schema_version'], report['source_summary']['schema_version']), (11, 4))
         self.assertEqual(rack['declarations']['total'], 2)
         self.assertEqual(rack['declarations']['named'], 2)
         self.assertEqual(rack['declarations']['by_direction'], {'input': 1, 'output': 1})

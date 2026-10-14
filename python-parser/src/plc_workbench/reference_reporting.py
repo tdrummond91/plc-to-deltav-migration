@@ -6,6 +6,7 @@ import json
 
 from .models import InventoryResult
 from .references import ReferenceResult
+from .routine_metadata import build_routine_target_metadata
 from .routine_shapes import build_routine_instruction_shapes
 
 
@@ -93,6 +94,17 @@ def render_reference_text(result: ReferenceResult, *, inventory: InventoryResult
             f"target routine: {occurrence['target_routine_id'] or '(none)'}; "
             f"context: {occurrence['target_context']}",
         ])
+    if inventory is not None:
+        metadata = build_routine_target_metadata(inventory, payload['routine_targets'])
+        lines.extend([
+            "", "Unique JSR candidate metadata (call-weighted observations only):",
+            "Program Type semantics and target execution are not analyzed.",
+            "Missing, empty and explicit Type attributes are distinct; language envelopes do not prove executable bodies.",
+            f"  total: {metadata['total']}",
+        ])
+        for group in ('by_program_type', 'by_target_language', 'unclassified_context_by_program_type'):
+            lines.append(f"  {group}:")
+            lines.extend(f"    {bucket}: {count}" for bucket, count in metadata[group].items())
     lines.extend(["", "Rack logical-root candidates (backing mapping not analyzed):",
                   "Candidate matches do not change declared root bindings.",
                   "candidate_names_unavailable means matching is inconclusive."])

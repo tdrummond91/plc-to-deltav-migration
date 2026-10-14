@@ -108,7 +108,7 @@ reason counts, module naming origins/unavailable reasons, analysis coverage and
 a nested schema-4 `source_summary`, plus closed rack-candidate counts. Code provenance is
 `source_summary.tool_revision`. It contains no names, values, source identities
 or individual reference links. Its report kind is `l5x_reference_review_summary`,
-schema 10, policy 2, exporter `reference-summary-10`, analyzer `source-references-8`.
+schema 11, policy 2, exporter `reference-summary-11`, analyzer `source-references-8`.
 `operands.by_status.system_flag` counts recognized first-scan contact operands
 separately from ordinary bindings, literals and non-data roles.
 `routine_instruction_shapes` observes JSR/SBR/RET argument counts, with fixed
@@ -123,12 +123,20 @@ closed status/context counts and distinct-target count. It publishes no routine
 names or occurrence IDs. The shape profile's target_resolution=not_analyzed
 describes that profile only; candidate lookup and parameter interpretation remain
 separate. Reference9 stays frozen as analyzer7 and rejects the new field.
+`routine_target_metadata` observes program-Type provenance and target-language
+declarations for unique candidates, plus program-Type counts restricted to
+not_analyzed contexts. Missing, empty, known exact enums and unknown explicit
+values stay distinct; no omitted-Type default is assigned. Counts are weighted
+by calls, not distinct targets. Private text includes the same counts when
+inventory is supplied; private JSON/schema5/analyzer8 remain unchanged.
+Reference10 is frozen and rejects this new metadata field. See
+[the metadata review](../public/docs/reviews/ROUTINE_METADATA_REVIEW.md).
 `operands.malformed_address_shapes` partitions only malformed-address occurrences
 into seven fixed observational buckets, including a separate alias-target bucket.
 The diagnostic does not change address recognition or binding. See the
 [address-shape contract](../public/docs/reviews/ADDRESS_SHAPE_REVIEW.md).
 The validator also accepts reference schema 1/source schema 2 and reference
-schemas 2/3/4 with source schema 3, and references 5/6/7/8/9/10 with source 4. Historical
+schemas 2/3/4 with source schema 3, and references 5/6/7/8/9/10/11 with source 4. Historical
 status vocabularies remain exact; mixed version combinations are rejected.
 The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
@@ -222,7 +230,7 @@ same scope as the work-machine checks.
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. The feedback includes test counts, bounded
 code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 8 includes `diagnostic_sample`: one actual direct malformed
+Work-check schema 9 includes `diagnostic_sample`: one actual direct malformed
 operand, or a direct unresolved colon operand with no rack candidate when no
 eligible malformed sample exists. It retains at most 128 printable characters,
 a standard instruction and zero-based argument position; otherwise it is null.
@@ -238,9 +246,9 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema 8 and carries reference schema 10 with source
-schema 4 when analysis succeeds. Historical schema-1/2/3/4/5/6/7 reports remain readable;
-schemas 3/4/5/6/7 require references 5/6/7/8/9 respectively. The tested
+The outer report is schema 9 and carries reference schema 11 with source
+schema 4 when analysis succeeds. Historical schema-1/2/3/4/5/6/7/8 reports remain readable;
+schemas 3/4/5/6/7/8 require references 5/6/7/8/9/10 respectively. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
 `46467af` validated the local report-commit workflow. The later report in `349ee29`
@@ -275,10 +283,15 @@ two-field second-zero and 11 three-field second-other calls. SBR has one field;
 RET has none. All 308 application cases (one skip) and 139 helpers passed;
 earlier counters are unchanged. No parameter role follows from these shapes.
 
-The next run adds declared first-field candidate counts for 76 JSRs. Candidate
-statuses, contexts and distinct targets remain unknown until that report returns.
-Existing binding/catalog/source/shape counters should stay unchanged. Partial
-remains expected; a unique declaration candidate does not prove a valid call.
+Report `7e15843`, testing clean `3598710`, confirms 76 unique candidates,
+66 distinct targets and all contexts not_analyzed. All 325 application cases
+(one skip) and 139 helpers pass; earlier counts are unchanged. A unique
+declaration candidate does not prove a valid call or parameter role.
+
+The next run adds unique-candidate metadata total76 with program-Type and
+target-language partitions, including the unknown-context subset. Their
+distributions remain unknown until returned. Every existing count, including
+76unique/66distinct/76unknown, should stay unchanged. Partial remains expected.
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in

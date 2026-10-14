@@ -174,6 +174,19 @@ states from names or equate unique candidates with valid calls or reachability.
 Private rows retain snapshot provenance; public feedback uses closed counts.
 Read [the candidate contract and evidence](../reviews/ROUTINE_TARGET_REVIEW.md).
 
+### Observe missing program context before assigning a default (2026-10-14)
+
+Returned `7e15843` confirms 76 unique JSR declaration candidates and 66 distinct
+targets, but all 76 contexts remain not_analyzed. Existing counters are stable.
+The parser retains program attributes, and Rockwell's normal-program example
+omits Type; no explicit omitted-Type default was verified. Keep candidate/context
+results unchanged and derive closed unique-call program-Type/target-language
+counts, separating absent, empty, known enums and other explicit values. The
+unknown-context subset explains the gap without exposing labels or inventing
+Normal/phase roles. The official program sequence enum is Sequence, distinct
+from Routine.Type and an unknown EquipmentSequence spelling. See
+[evidence and contract](../reviews/ROUTINE_METADATA_REVIEW.md).
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?

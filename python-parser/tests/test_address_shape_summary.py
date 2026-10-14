@@ -58,6 +58,7 @@ def earlier_summary(current: dict, version: int) -> dict:
         raise ValueError('Expected a historical reference version.')
     report = deepcopy(current)
     del report['routine_targets']
+    del report['routine_target_metadata']
     if version < 9:
         del report['routine_instruction_shapes']
     report.update(schema_version=version, exporter_version=f'reference-summary-{version}')
@@ -186,7 +187,7 @@ class AddressShapeSummaryTests(unittest.TestCase):
         self.assertEqual(report['operands']['total'], 0)
         self.assertEqual(report['status'], 'complete')
         self.assertEqual((report['schema_version'], report['exporter_version'], report['analyzer_version']),
-                         (10, 'reference-summary-10', 'source-references-8'))
+                         (11, 'reference-summary-11', 'source-references-8'))
         self.assertEqual(report['source_summary']['schema_version'], 4)
 
     def test_renaming_values_and_rung_order_do_not_reveal_private_details(self) -> None:

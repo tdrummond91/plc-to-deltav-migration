@@ -39,6 +39,7 @@ def historical_report(current: dict, version: int) -> dict:
     """Represent a no-module fixture in each frozen contract's vocabulary."""
     result = deepcopy(current)
     del result['routine_targets']
+    del result['routine_target_metadata']
     if version < 9:
         del result['routine_instruction_shapes']
     result.update({1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS,
@@ -71,7 +72,7 @@ class SystemFlagSummaryTests(unittest.TestCase):
         source = inventory('XIC(S:FS)XIO( s:fS )XIC(S:FS);')
         report = summary(source)
         self.assertEqual((report['schema_version'], report['exporter_version'], report['analyzer_version']),
-                         (10, 'reference-summary-10', 'source-references-8'))
+                         (11, 'reference-summary-11', 'source-references-8'))
         self.assertEqual((source.schema_version, report['source_summary']['schema_version']), (3, 4))
         self.assertEqual(report['status'], 'complete')
         self.assertEqual(report['operands']['total'], 3)
@@ -193,7 +194,7 @@ class SystemFlagSummaryTests(unittest.TestCase):
             historical = historical_report(current, version)
             with self.subTest(version=version):
                 self.assertEqual({key: historical[key] for key in constants}, constants)
-                self.assertEqual(set(historical), set(current) - {'routine_instruction_shapes', 'routine_targets'})
+                self.assertEqual(set(historical), set(current) - {'routine_instruction_shapes', 'routine_targets', 'routine_target_metadata'})
                 self.assertEqual(historical['operands']['by_status'], current['operands']['by_status'])
                 self.assertEqual(historical['operands']['by_status']['system_flag'], 1)
                 self.assertEqual(json.loads(render_reference_summary(historical)), historical)

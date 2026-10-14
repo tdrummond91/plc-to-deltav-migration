@@ -24,6 +24,9 @@ from .routine_shapes import (
 from .routine_targets import (
     ROUTINE_TARGET_CONSTANTS, ROUTINE_TARGET_STATUSES, ROUTINE_TARGET_CONTEXTS,
 )
+from .routine_metadata import (
+    RoutineMetadataError, build_routine_target_metadata, validate_routine_target_metadata,
+)
 
 if TYPE_CHECKING:
     from .references import ReferenceResult
@@ -90,10 +93,14 @@ V9_CONSTANTS = V8_CONSTANTS | {
     'schema_version': 9,
     'exporter_version': 'reference-summary-9',
 }
-CONSTANTS = V9_CONSTANTS | {
+V10_CONSTANTS = V9_CONSTANTS | {
     'schema_version': 10,
     'exporter_version': 'reference-summary-10',
     'analyzer_version': 'source-references-8',
+}
+CONSTANTS = V10_CONSTANTS | {
+    'schema_version': 11,
+    'exporter_version': 'reference-summary-11',
 }
 _CORE_CONSTANTS = {key: V2_CONSTANTS[key] for key in (
     'schema_version', 'analyzer_version', 'analysis_scope', 'semantic_analysis',
@@ -462,11 +469,13 @@ def build_reference_summary(
             'rack_candidates': _rack_counts(core['rack_candidates']),
             'routine_instruction_shapes': build_routine_instruction_shapes(inventory),
             'routine_targets': _routine_target_counts(core['routine_targets']),
+            'routine_target_metadata': build_routine_target_metadata(inventory, core['routine_targets']),
             'coverage': {key: coverage[key] for key in sorted(_COVERAGE_KEYS)},
         }
         validate_reference_summary(summary)
         return summary
-    except (ReferenceError, RoutineShapeError, SummaryError, KeyError, TypeError, AttributeError, IndexError):
+    except (ReferenceError, RoutineShapeError, RoutineMetadataError, SummaryError,
+            KeyError, TypeError, AttributeError, IndexError):
         _invalid()
 
 
@@ -474,7 +483,7 @@ def validate_reference_summary(summary: dict[str, Any]) -> None:
     """Validate every field and all aggregate relationships at publication time."""
     try:
         _validate(summary)
-    except (RoutineShapeError, SummaryError, KeyError, TypeError, AttributeError, IndexError):
+    except (RoutineShapeError, RoutineMetadataError, SummaryError, KeyError, TypeError, AttributeError, IndexError):
         _invalid()
 
 
@@ -482,16 +491,18 @@ def _validate(summary: dict[str, Any]) -> None:
     if type(summary) is not dict:
         _invalid()
     version = summary.get('schema_version')
-    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}:
+    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}:
         _invalid()
     legacy = version == 1
     _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'}
           | (set() if legacy else {'module_io'}) | ({'rack_candidates'} if version >= 5 else set())
           | ({'routine_instruction_shapes'} if version >= 9 else set())
-          | ({'routine_targets'} if version >= 10 else set()))
+          | ({'routine_targets'} if version >= 10 else set())
+          | ({'routine_target_metadata'} if version >= 11 else set()))
     _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS,
                          4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: V6_CONSTANTS,
-                         7: V7_CONSTANTS, 8: V8_CONSTANTS, 9: V9_CONSTANTS, 10: CONSTANTS}[version])
+                         7: V7_CONSTANTS, 8: V8_CONSTANTS, 9: V9_CONSTANTS,
+                         10: V10_CONSTANTS, 11: CONSTANTS}[version])
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
         _invalid()
     source = summary['source_summary']
@@ -589,6 +600,11 @@ def _validate(summary: dict[str, Any]) -> None:
         )
     if version >= 10:
         _validate_routine_target_counts(summary)
+    if version >= 11:
+        validate_routine_target_metadata(
+            summary['routine_target_metadata'], routine_targets=summary['routine_targets'],
+            source_summary=source,
+        )
     incomplete = (
         source['status'] != 'complete'
         or coverage['instructions_catalogued'] != coverage['instructions_total']

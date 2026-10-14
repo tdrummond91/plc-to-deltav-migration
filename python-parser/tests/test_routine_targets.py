@@ -155,7 +155,7 @@ class RoutineTargetTests(unittest.TestCase):
                 self.assertIsNone(rows(forged)[0]['program_id'])
 
     def test_phase_sequence_missing_and_unknown_types_only_classify_explicit_context(self) -> None:
-        for attributes in ('Type="EquipmentPhase"', 'Type="EquipmentSequence"', '', 'Type="Unknown"'):
+        for attributes in ('Type="EquipmentPhase"', 'Type="Sequence"', 'Type="EquipmentSequence"', '', 'Type="Unknown"'):
             with self.subTest(attributes=attributes):
                 source = inventory(program('PRIVATE_P', routine('Running',
                     'JSR(Running)JSR(Entry)JSR(Handler)JSR(Stopping)JSR(Custom);'),
@@ -274,13 +274,13 @@ class RoutineTargetTests(unittest.TestCase):
         references = analyze_references(source)
         summary = build_reference_summary(source, references)
         rendered = render_reference_summary(summary)
-        self.assertEqual(summary['schema_version'], 10)
+        self.assertEqual(summary['schema_version'], 11)
         self.assertEqual(summary['analyzer_version'], 'source-references-8')
         for forbidden in ('PRIVATE_', source.snapshot['id'], source.snapshot['sha256'], 'raw_target_name',
                           'instruction_id', 'target_routine_id', 'caller_routine_id', 'program_id'):
             self.assertNotIn(forbidden, rendered)
         current = report(data)
-        self.assertEqual((current['schema_version'], current['workflow_version']), (8, 'work-check-8'))
+        self.assertEqual((current['schema_version'], current['workflow_version']), (9, 'work-check-9'))
         self.assertNotIn('PRIVATE_', work_check.render_work_check_report(current))
         frozen = json.loads(PREVIOUS_REPORT.read_text(encoding='utf-8'))
         self.assertEqual((frozen['schema_version'], frozen['analysis']['reference_summary']['schema_version']), (7, 9))

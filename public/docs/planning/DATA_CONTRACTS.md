@@ -2,7 +2,24 @@
 
 Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current JSR candidate contract (2026-10-14)
+## Current JSR candidate metadata contract (2026-10-14)
+
+Public reference11 / reference-summary-11 adds routine_target_metadata for unique
+candidate occurrences: fixed scope/semantics/execution metadata, total, exact
+program-Type and target-language partitions, plus program-Type counts restricted
+to unclassified contexts. Missing attributes, empty values and explicit known
+enums remain distinct. Unknown values are counted without labels. Counts are
+call-weighted and reconcile with unique candidates, existing unknown context,
+source languages and subset bounds. No body or default-Type interpretation is
+introduced. Reference10 is frozen and rejects this new field.
+
+Work9 / work-check-9 requires reference11; work8/reference10 and earlier pairings
+stay readable. Private5/analyzer8, source3/aggregate4 and manifest2 remain
+unchanged. Captured inventory and canonical private candidates derive the
+profile; private text adds the same counts while private JSON is unchanged.
+See [exact scope and validation](../reviews/ROUTINE_METADATA_REVIEW.md).
+
+## JSR candidate contract checkpoint (2026-10-14)
 
 Private reference schema5 / source-references-8 adds canonical routine_targets
 occurrences: instruction/rung/caller/program IDs, raw first field, status,

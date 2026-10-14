@@ -145,3 +145,21 @@ Markdown links in changed documentation resolve and git diff --check passes.
 Only invented
 fixtures and approved public reports are used; no project confidential input
 or listener execution occurred.
+
+## Returned candidate confirmation (2026-10-14)
+
+`7e15843` adds only
+[work-check-20261014T221436Z-721c15dd.json](../../inspection/work-check-20261014T221436Z-721c15dd.json)
+with tested clean `3598710` as parent. Both suites pass: 325 application cases
+(one skip), 139 helpers. All 76 JSRs have unique candidates, covering 66 distinct
+target declarations; other candidate statuses are zero. All target contexts are
+not_analyzed. Every earlier source/reference/shape/diagnostic count is unchanged;
+partial/private_run_saved and null sample are expected. This confirms scoped
+declaration lookup, not valid calls, parameter roles or export byte identity.
+
+The next observation-only slice adds unique-candidate program-Type provenance
+and target-language counts, including the unknown-context subset, to explain
+which metadata prevents context classification. It retains every existing
+private candidate and public count. Read [the metadata review](ROUTINE_METADATA_REVIEW.md)
+for current versions and next-run expectations. No repeat candidate-only check
+is needed.
