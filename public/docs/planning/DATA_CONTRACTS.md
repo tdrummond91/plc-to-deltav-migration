@@ -2,7 +2,26 @@
 
 Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current basic calculation signature contracts (2026-10-14)
+## Current bit-operation role contracts (2026-10-14)
+
+Private references remain schema 4 with analyzer source-references-7. MVM and
+SWPB each have three catalogued fields; SWPB argument 1 is non_data by positional
+order-mode role. Its nonempty raw value is preserved without enum/value
+validation. Arity/empty checks precede the role; data slots keep existing lexical
+root/literal rules. The shared predicate also excludes that slot from both
+diagnostic sample kinds before address parsing. No new private/public field key
+or operand status is added.
+
+Public reference schema 8 / reference-summary-8 requires source aggregate 4.
+Reference 7 is frozen as analyzer 6, with identical keys/status vocabulary.
+Prior versions, flag count bounds and rack mappings remain readable. Work6/
+reference8 is current; work3/5, work4/6 and work5/7 pairings remain frozen, and
+work1/2 supported nested-reference handling is unchanged. Private source schema
+3, source aggregate 4 and manifest 2 keep their layouts. Output paths, bounded
+sharing, local commits and manual pull/push stay unchanged. See
+[role evidence and validation](../reviews/BIT_OPERATION_REVIEW.md).
+
+## Basic calculation signature contract checkpoint (2026-10-14)
 
 Private inventory remains schema 3 / source-inventory-3; private references
 remain schema 4 with analyzer source-references-6. ABS/LN/SQR now have two

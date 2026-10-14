@@ -70,10 +70,15 @@ V6_CONSTANTS = V5_CONSTANTS | {
     'exporter_version': 'reference-summary-6',
     'analyzer_version': 'source-references-5',
 }
-CONSTANTS = V6_CONSTANTS | {
+V7_CONSTANTS = V6_CONSTANTS | {
     'schema_version': 7,
     'exporter_version': 'reference-summary-7',
     'analyzer_version': 'source-references-6',
+}
+CONSTANTS = V7_CONSTANTS | {
+    'schema_version': 8,
+    'exporter_version': 'reference-summary-8',
+    'analyzer_version': 'source-references-7',
 }
 _CORE_CONSTANTS = {key: V2_CONSTANTS[key] for key in (
     'schema_version', 'analyzer_version', 'analysis_scope', 'semantic_analysis',
@@ -414,13 +419,14 @@ def _validate(summary: dict[str, Any]) -> None:
     if type(summary) is not dict:
         _invalid()
     version = summary.get('schema_version')
-    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6, 7}:
+    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6, 7, 8}:
         _invalid()
     legacy = version == 1
     _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'}
           | (set() if legacy else {'module_io'}) | ({'rack_candidates'} if version >= 5 else set()))
     _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS,
-                         4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: V6_CONSTANTS, 7: CONSTANTS}[version])
+                         4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: V6_CONSTANTS,
+                         7: V7_CONSTANTS, 8: CONSTANTS}[version])
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
         _invalid()
     source = summary['source_summary']

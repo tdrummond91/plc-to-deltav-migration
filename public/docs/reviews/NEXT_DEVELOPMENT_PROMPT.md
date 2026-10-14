@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/BIT_OPERATION_REVIEW.md,
 public/docs/reviews/MATH_SIGNATURE_REVIEW.md,
 public/docs/reviews/SYSTEM_FLAG_REVIEW.md,
 public/docs/reviews/UNMATCHED_OPERAND_REVIEW.md,
@@ -46,8 +47,8 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available, excluding the ignored listener
-loader on this development checkout. Work schemas 1/2/3/4 remain readable. Current
-schema 5 requires reference 7 and retains at most one authorized operand example.
+loader on this development checkout. Work schemas 1/2/3/4/5 remain readable. Current
+schema 6 requires reference 8 and retains at most one authorized operand example.
 The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
@@ -69,10 +70,10 @@ uv run --project python-parser python -B -m unittest discover \
   -s tools/l5x_inspect/tests -v
 
 Current baseline: 139 passing helper tests. Also run the full development
-application command in MATH_SIGNATURE_REVIEW.md, which explicitly excludes the
+application command in BIT_OPERATION_REVIEW.md, which explicitly excludes the
 ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in MATH_SIGNATURE_REVIEW.md;
+Use the final application test count and tested revision in BIT_OPERATION_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -139,20 +140,34 @@ Report d247f87 tested clean d64ee4d, passed 269 application cases (one skip) and
 319, direct rack comparisons 1 to 0, sample null, with all other source/reference
 counters unchanged. No repeat flag-only check is needed.
 
-The current slice adds only ABS/LN/SQR two-field source/destination signatures
+The preceding calculation slice added only ABS/LN/SQR two-field source/destination signatures
 to existing lexical reference analysis. Private references stay schema4 with
 analyzer6; public references use schema7; work schema5 requires reference7.
 Source contracts and private manifest layout are unchanged. Public reference6
 and work4/reference6 remain readable under their frozen earlier contracts.
 Read MATH_SIGNATURE_REVIEW.md for exact primary evidence, validation and limits.
 
-Next compare the returned calculation report: if all 28 occurrences have their
-documented two-field signatures, catalogued instructions rise 17563 to 17591
-and unsupported instruction slots fall 653 to 597. Newly analyzed arguments
-determine actual root/literal/gap and alias-mediated rack totals. Source counts
-and declarations should remain stable; partial remains expected. Do not request
-the old address again or reimplement completed slices. Do not infer runtime
-math or valid destination access from lexical literal/root statuses.
+Report 4244cf5 tested clean a6a2a71, passed 286 application cases (one skip) and
+139 helpers, and confirms all 28 signatures and 56 bound slots. Catalogued rises
+17563 to 17591, root_bound 20178 to 20234 and unsupported instruction slots
+fall 653 to 597. All other source/reference counters stay unchanged. No repeat
+calculation-only check is needed.
+
+The current slice catalogs MVM/SWPB with three fields. SWPB argument 1 is an
+order-mode selector accounted as non_data by role before root/literal lookup;
+the shared predicate rejects it as either diagnostic sample kind regardless
+raw spelling. Arity/empty checks take priority. Mode values, masks, types,
+destination access, byte ordering and execution effects remain unvalidated.
+Private references are schema4/analyzer7; public references schema8; work6
+requires reference8. All prior metadata/field contracts remain readable.
+Read BIT_OPERATION_REVIEW.md for role evidence and exact validation.
+
+Next inspect the returned bit-operation delta: for 26 three-field occurrences,
+catalogued rises 17,591 to 17,617 and unsupported instruction slots fall 597 to 519.
+Ten nonempty mode fields raise non_data 868 to 878; 68 data fields determine actual
+root/literal/gap and alias-mediated counts. Source counts and declarations should
+stay stable; partial remains expected. Do not request old samples or reimplement
+completed slices. Do not infer runtime behavior from lexical classifications.
 Continue authorized work until a specific evidence gap or phase boundary needs
 Tyler's input. Do not activate the listener or access confidential inputs.
 

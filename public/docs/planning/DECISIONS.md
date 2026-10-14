@@ -127,6 +127,21 @@ appear when formerly unknown slots are analyzed. This is an implementation
 choice within authorized source understanding, not a final loop/class mapping.
 See [scope, primary sources and validation](../reviews/MATH_SIGNATURE_REVIEW.md).
 
+### Bit-operation argument roles (2026-10-14)
+
+After `4244cf5` confirmed the calculation catalog, select MVM/SWPB as the next
+small Phase 1 reference slice. Official neutral grammar documents three fields
+for each; SWPB's middle field is a list-item order selector. Classify that field
+as non_data by positional role and share the predicate with diagnostic sampling,
+so tag-like option text never becomes a binding or address example. Preserve
+raw selector values without validating allowed mode spelling or byte ordering.
+
+Reuse existing lexical root/literal rules for data fields; do not infer mask
+widths, types, destination access or effects. Freeze prior contracts and confirm
+the occurrence split using a normal work-machine aggregate. This is an authorized
+source-reference implementation choice, not a final process classification.
+See [primary evidence and validation](../reviews/BIT_OPERATION_REVIEW.md).
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?

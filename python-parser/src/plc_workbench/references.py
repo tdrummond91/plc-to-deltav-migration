@@ -45,7 +45,7 @@ UNSUPPORTED_ADDRESS_REASONS = frozenset({
 # into plausible-looking tag references. "address" also admits literal values.
 _ARITIES = {
     'XIC': 1, 'XIO': 1, 'OTE': 1, 'OTL': 1, 'OTU': 1, 'ONS': 1,
-    'MOV': 2, 'ADD': 3, 'SUB': 3, 'MUL': 3, 'DIV': 3,
+    'MOV': 2, 'MVM': 3, 'SWPB': 3, 'ADD': 3, 'SUB': 3, 'MUL': 3, 'DIV': 3,
     'ABS': 2, 'LN': 2, 'SQR': 2,
     'EQU': 2, 'NEQ': 2, 'LES': 2, 'LEQ': 2, 'GRT': 2, 'GEQ': 2,
     'LIM': 3, 'CLR': 1, 'CPT': 2, 'JMP': 1, 'LBL': 1,
@@ -91,7 +91,7 @@ class ReferenceResult:
     status: str
     rack_candidates: dict[str, Any]
     schema_version: int = 4
-    analyzer_version: str = 'source-references-6'
+    analyzer_version: str = 'source-references-7'
     analysis_scope: str = 'scoped_root_bindings'
     semantic_analysis: str = 'not_implemented'
     effect_analysis: str = 'not_implemented'
@@ -285,6 +285,16 @@ def _timer_placeholder(opcode: str, argument_index: int, raw_text: str) -> bool:
     return opcode.upper() in {'TON', 'TOF', 'RTO'} and argument_index in {1, 2} and raw_text.strip() == '?'
 
 
+def _swpb_order_mode(opcode: str, argument_index: int) -> bool:
+    """Identify SWPB's selector position without validating the selector value.
+
+    Callers check arity and empty slots separately. This is a positional role,
+    regardless of the operand's spelling; ASCII checking excludes lookalikes.
+    """
+    return (type(opcode) is str and opcode.isascii() and opcode.upper() == 'SWPB'
+            and type(argument_index) is int and argument_index == 1)
+
+
 def _system_flag(opcode: str, argument_index: int, raw_text: str) -> bool:
     """Recognize the direct S:FS operand; callers must check arity first.
 
@@ -359,6 +369,10 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
                     binding = _binding('argument_count_mismatch')
                 elif not value:
                     binding = _binding('empty')
+                elif _swpb_order_mode(instruction.opcode, index):
+                    # The order mode is a selector, not data. Retain its raw
+                    # spelling without checking a byte-order enumeration.
+                    binding = _binding('non_data')
                 elif instruction.opcode.upper() in {'JMP', 'LBL'}:
                     binding = _binding('non_data')
                 elif instruction.opcode.upper() == 'CPT' and index == 1:

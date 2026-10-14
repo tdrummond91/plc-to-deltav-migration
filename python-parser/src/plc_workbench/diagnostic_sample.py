@@ -13,7 +13,9 @@ from typing import Any
 
 from .ladder.syntax import Instruction, RungSyntaxError, parse_rung
 from .models import InventoryResult
-from .references import ReferenceResult, _ARITIES, _address, _literal, validate_references
+from .references import (
+    ReferenceResult, _ARITIES, _address, _literal, _swpb_order_mode, validate_references,
+)
 
 
 MAX_OPERAND_CHARS = 128
@@ -42,7 +44,7 @@ def validate_diagnostic_sample(value: Any) -> None:
     opcode, index, raw = value["opcode"], value["argument_index"], value["raw_text"]
     if (type(opcode) is not str or opcode not in _ARITIES or opcode in {"JMP", "LBL"}
             or type(index) is not int or not 0 <= index < _ARITIES[opcode]
-            or opcode == "CPT" and index == 1):
+            or opcode == "CPT" and index == 1 or _swpb_order_mode(opcode, index)):
         _invalid()
     if type(raw) is not str or not 1 <= len(raw) <= MAX_OPERAND_CHARS or not raw.isprintable():
         _invalid()

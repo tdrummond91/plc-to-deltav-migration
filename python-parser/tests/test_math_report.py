@@ -32,9 +32,9 @@ class MathReportTests(unittest.TestCase):
 
     def test_current_math_report_uses_new_pair_without_changing_source_contract(self) -> None:
         payload = report(MATH_SOURCE)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (5, 'work-check-5'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (6, 'work-check-6'))
         nested = payload['analysis']['reference_summary']
-        self.assertEqual((nested['schema_version'], nested['analyzer_version']), (7, 'source-references-6'))
+        self.assertEqual((nested['schema_version'], nested['analyzer_version']), (8, 'source-references-7'))
         self.assertEqual(nested['source_summary']['schema_version'], 4)
         self.assertEqual(nested['coverage']['instructions_catalogued'], 3)
         self.assertEqual(nested['operands']['by_status']['root_bound'], 5)
@@ -63,7 +63,7 @@ class MathReportTests(unittest.TestCase):
             saved, = (root / 'confidential/workspaces/work-check').glob('run-*')
             references = json.loads((saved / 'references.json').read_text(encoding='utf-8'))
             self.assertEqual((references['schema_version'], references['analyzer_version']),
-                             (4, 'source-references-6'))
+                             (4, 'source-references-7'))
             self.assertEqual([item['raw_text'] for item in references['operands']], ['A', 'A', '2', 'A', 'A', 'A'])
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), MATH_SOURCE)
             self.assertEqual(path.read_bytes(), MATH_SOURCE)

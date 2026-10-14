@@ -41,13 +41,13 @@ do not establish that the source project has an invalid tag.
 
 Private inventory schema 3 (`source-inventory-3`) includes module ports, ordinary
 connections, input/output/configuration tags and dedicated rack declarations
-without changing ordinary tag/alias totals. Reference schema 4 (`source-references-6`) includes the three ordinary I/O
+without changing ordinary tag/alias totals. Reference schema 4 (`source-references-7`) includes the three ordinary I/O
 symbol kinds and a fixed `reason` on unresolved/unsupported-address bindings.
 Reasons distinguish missing declared roots, qualified or dynamic addresses and
 other bounded syntax gaps; they do not claim to identify every gap's engineering
 cause. Raw declarations remain separate from inferred names.
 
-Analyzer `source-references-6` retains recognition of exact trimmed `?` only in the preset
+Analyzer `source-references-7` retains recognition of exact trimmed `?` only in the preset
 and accumulator slots (1/2) of valid three-argument TON/TOF/RTO instructions.
 These are `non_data` for root lookup; original text is preserved. No timer values,
 types, configuration or effects are validated. Root slots, aliases and other
@@ -66,6 +66,13 @@ not validate types, math domains, destination access or runtime behavior;
 recognized destination literals retain the existing catalog policy. Expressions,
 dynamic indices and wrong arity remain gaps. See
 [the calculation review](../public/docs/reviews/MATH_SIGNATURE_REVIEW.md).
+
+MVM/SWPB now have three catalogued fields. MVM source/mask/destination and SWPB
+source/destination use existing lexical lookup. SWPB's middle order-mode field
+is `non_data` by position, with its raw value retained and no mode-value or byte
+ordering validation. It cannot become an address sample, even if it resembles a
+tag or malformed address. Wrong arity and empty fields retain their gap handling.
+See [the bit-operation review](../public/docs/reviews/BIT_OPERATION_REVIEW.md).
 
 The private `rack_candidates` section lists supported individual rack roots and
 compares unresolved colon roots in three populations: aliases, direct operands
@@ -92,7 +99,7 @@ reason counts, module naming origins/unavailable reasons, analysis coverage and
 a nested schema-4 `source_summary`, plus closed rack-candidate counts. Code provenance is
 `source_summary.tool_revision`. It contains no names, values, source identities
 or individual reference links. Its report kind is `l5x_reference_review_summary`,
-schema 7, policy 2, exporter `reference-summary-7`, analyzer `source-references-6`.
+schema 8, policy 2, exporter `reference-summary-8`, analyzer `source-references-7`.
 `operands.by_status.system_flag` counts recognized first-scan contact operands
 separately from ordinary bindings, literals and non-data roles.
 `operands.malformed_address_shapes` partitions only malformed-address occurrences
@@ -100,7 +107,7 @@ into seven fixed observational buckets, including a separate alias-target bucket
 The diagnostic does not change address recognition or binding. See the
 [address-shape contract](../public/docs/reviews/ADDRESS_SHAPE_REVIEW.md).
 The validator also accepts reference schema 1/source schema 2 and reference
-schemas 2/3/4 with source schema 3, and references 5/6 with source 4. Historical
+schemas 2/3/4 with source schema 3, and references 5/6/7 with source 4. Historical
 status vocabularies remain exact; mixed version combinations are rejected.
 The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
@@ -194,7 +201,7 @@ same scope as the work-machine checks.
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. The feedback includes test counts, bounded
 code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 5 includes `diagnostic_sample`: one actual direct malformed
+Work-check schema 6 includes `diagnostic_sample`: one actual direct malformed
 operand, or a direct unresolved colon operand with no rack candidate when no
 eligible malformed sample exists. It retains at most 128 printable characters,
 a standard instruction and zero-based argument position; otherwise it is null.
@@ -202,16 +209,17 @@ Tyler authorized one mystery-address example; no rung, source location or
 neighboring logic is included. Selection is stable, excludes alias targets and
 inconclusive/candidate matches, and never truncates source text. Schema 2 rejects
 the `direct_unmatched_colon_operand` kind. Current reports reject recognized
-XIC/XIO `S:FS` as an unmatched sample. See the
+XIC/XIO `S:FS` as an unmatched sample, and SWPB order-mode slots as either kind.
+See the
 [follow-up review](../public/docs/reviews/UNMATCHED_OPERAND_REVIEW.md).
 It is saved to `public/inspection/work-check-<run-id>.json` and committed locally.
 Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema 5 and carries reference schema 7 with source
-schema 4 when analysis succeeds. Historical schema-1/2/3/4 reports remain readable;
-schema 3 requires reference 5 and schema 4 requires reference 6. The tested
+The outer report is schema 6 and carries reference schema 8 with source
+schema 4 when analysis succeeds. Historical schema-1/2/3/4/5 reports remain readable;
+schemas 3/4/5 require references 5/6/7 respectively. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
 `46467af` validated the local report-commit workflow. The later report in `349ee29`
@@ -229,11 +237,17 @@ comparisons 1 to 0 and a null sample. All 269 application cases (one skip) and
 flag-only check is needed. Partial remains expected. Logical candidate matches
 do not validate backing I/O maps or promote ordinary bindings.
 
-The next run checks 28 formerly uncatalogued ABS/LN/SQR instructions. If all use
-their documented two-field signatures, expect catalogued instructions 17,563 to
-17,591 and unsupported instruction slots 653 to 597. New root/literal/gap and
-alias-mediated occurrence counts depend on those operands. Source counts and
-declarations should stay stable. Partial remains expected.
+Report `4244cf5`, testing clean `a6a2a71`, confirms all 28 ABS/LN/SQR signatures
+and all 56 arguments bound to roots. Catalogued instructions rise 17,563 to
+17,591, root_bound rises 20,178 to 20,234 and unsupported instruction slots fall
+653 to 597. All 286 application cases (one skip) and 139 helpers passed; other
+counters are unchanged. No repeat calculation-only run is needed.
+
+The next run checks 26 MVM/SWPB occurrences. If all have three fields, expect
+catalogued instructions 17,591 to 17,617 and unsupported instruction slots 597
+to 519; if all ten selector slots are nonempty, non_data rises 868 to 878. The
+other 68 data slots determine new root/literal/gap and alias-mediated counts.
+Source counts and declarations should stay stable. Partial remains expected.
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in

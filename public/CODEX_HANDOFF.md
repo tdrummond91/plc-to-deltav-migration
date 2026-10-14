@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `d247f87` confirms first-scan recognition with one system flag, 319 unresolved operands and a null sample. Both suites passed; other source/reference counts are stable. The next slice catalogs two-field ABS/LN/SQR calculation references. For the unchanged export, expect 28 additional catalogued instructions and 56 fewer unsupported-instruction slots if all use the documented signature. Read [calculation scope and evidence](docs/reviews/MATH_SIGNATURE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `4244cf5` confirms all 28 new calculation signatures and 56 root-bound arguments, with both suites passing and other evidence stable. The next slice catalogs MVM/SWPB with three fields and accounts for SWPB's middle order-mode selector as non-data. For the unchanged export, expect 26 additional catalogued instructions and 78 fewer unsupported-instruction slots if all use the documented signature; ten nonempty mode slots should add ten non-data occurrences. Read [bit-operation roles and evidence](docs/reviews/BIT_OPERATION_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -95,7 +95,8 @@ excluding listener, Windows process-host, Bash bootstrap and Git-fixture tests.
 Full development unittest discovery remains available. Schema-1 reports remain
 readable; schema 2 adds the bounded sample, schema 3 adds an unmatched-colon
 fallback, schema 4 carries reference schema 6 with system-flag recognition,
-and current schema 5 carries reference 7 with the ABS/LN/SQR signature catalog.
+schema 5 carries reference 7 with the ABS/LN/SQR signature catalog, and current
+schema 6 carries reference 8 with MVM/SWPB roles.
 Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
@@ -132,11 +133,11 @@ unchanged; 26 XML elements across three paths are newly modeled and 11 warnings
 now describe unknown backing instead of omitted declarations. The sample is null.
 
 Current contracts: private inventory/reference schemas 3/4 with
-`source-inventory-3` / `source-references-6`; public source/reference schemas 4/7;
-work-check schema 5 and reference-run manifest schema 2. Historical public
+`source-inventory-3` / `source-references-7`; public source/reference schemas 4/8;
+work-check schema 6 and reference-run manifest schema 2. Historical public
 reports still validate with exact original status vocabularies. Work schema 3
-still requires reference 5 and work schema 4 requires reference 6. Read
-[calculation review](docs/reviews/MATH_SIGNATURE_REVIEW.md)
+still requires reference 5, work schema 4 requires reference 6, and work schema
+5 requires reference 7. Read [bit-operation review](docs/reviews/BIT_OPERATION_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 
 Rack validation: 316 development application/workflow tests passed (one existing
@@ -193,12 +194,12 @@ raw operands, aliases and private field layout remain intact. Datatype, domain,
 destination access, expression evaluation and runtime effects remain outside
 this scope. Private text explicitly explains lexical destination literals.
 
-Next compare the work-machine report against `d247f87`: if all 28 calculations
-have the documented two-field signatures, catalogued instructions should rise
-17,563 to 17,591 and unsupported instruction slots fall 653 to 597. Their newly
-analyzed slots determine the actual root/literal/gap and alias-mediated rack
-counts; do not predict those splits. Source counts and declarations should
-remain stable. See the calculation review for primary evidence and validation.
+Report `4244cf5`, testing clean `a6a2a71`, now confirms the predicted calculation
+delta: catalogued 17,563 to 17,591, root_bound 20,178 to 20,234 and unsupported
+instruction slots 653 to 597. All 56 new slots bound to roots, with every other
+source/reference counter unchanged. It passed 286 application cases (one skip)
+and 139 helpers, saved a private run and adds only its report with the tested
+revision as parent. No repeat calculation-only check is needed.
 
 Calculation validation: 382 development cases, OK with one existing symlink
 skip; listener loader excluded. Independent review found no remaining blockers,
@@ -208,6 +209,30 @@ and 139 helpers, saved the expected math delta and made only local report
 commits with no remote Git calls. The second run confirms a newly saved report
 does not break the historical fixture tests. All ten stored work reports remain
 readable. Commands and final artifact evidence are in the calculation review.
+
+The selected bit-operation slice adds MVM/SWPB three-field signatures. SWPB
+argument 1 is an order-mode selector, accounted as non_data before literal/root
+lookup. A shared predicate excludes that slot from both address sample kinds,
+regardless of its spelling. Arity/empty checks still take priority. Raw values
+and IDs are preserved; mask widths, mode values, types, byte ordering and runtime
+effects remain unvalidated. Other data fields use the existing lexical lookup.
+
+Next compare against `4244cf5`: for 26 documented three-field instructions,
+catalogued rises 17,591 to 17,617 and unsupported instruction slots fall 597 to
+519. Ten nonempty selector slots raise non_data 868 to 878. The other 68 data
+slots determine the actual root/literal/gap and alias-mediated occurrence split;
+do not predict that split or require unchanged operand populations. Source
+counts and declarations should stay stable. See the bit-operation review for
+primary role evidence, test results and the next bounded run.
+
+Bit-operation validation: 392 development cases, OK with one existing symlink
+skip; ignored listener loader excluded. Independent review passed all nine
+new bit cases with no blockers. Two actual disposable CLI runs each passed
+296 selected application cases (one skip) and 139 helpers, saved the exact
+synthetic role/count delta and made only local report commits. Traces show no
+fetch/pull/push, input and prior artifacts are preserved, and all 80 copied
+code/test/config files match final working bytes. Eleven stored work reports
+remain readable. Commands and artifact evidence are in the bit-operation review.
 
 Timer-fix validation: 273 application/workflow tests passed (one symlink skip),
 with listener tests excluded. Two real temporary-checkout CLI runs each passed

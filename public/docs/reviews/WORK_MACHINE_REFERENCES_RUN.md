@@ -1,6 +1,6 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. The next calculation-signature check is on
+Use **main** for the consolidated baseline. The next bit-operation role check is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
@@ -18,17 +18,23 @@ has no candidate. Ordinary bindings remain unchanged; backing maps are unverifie
 The address report: `7f5db96` tested `84dc393`, passed 241 application cases
 (one skip) and 139 helpers, and supplied `S:FS` at XIC argument 0. Other aggregate
 counts equal the preceding rack report. This is the built-in First Scan flag.
-Latest returned evidence: `d247f87` tested `d64ee4d`, passed 269 application cases
+First-scan evidence: `d247f87` tested `d64ee4d`, passed 269 application cases
 (one skip) and 139 helpers. It confirms one `system_flag`, unresolved operands
 320 to 319, direct rack comparisons 1 to 0 and sample null. Other counters stay
 unchanged. No repeat flag-only run is needed; see [the confirmed review](SYSTEM_FLAG_REVIEW.md).
 
-The next check uses work-check schema 5 and reference/source schemas 7/4. It
-catalogs ABS/LN/SQR calculation arguments. If all 28 occurrences have the documented
-two-field signatures, expect catalogued instructions 17,563 to 17,591 and
-unsupported instruction slots 653 to 597. New root/literal/gap and alias-mediated
-counts depend on those arguments. Source counts and declarations should stay
-stable. See [the calculation review](MATH_SIGNATURE_REVIEW.md).
+Latest evidence: `4244cf5` tested `a6a2a71`, passed 286 application cases (one
+skip) and 139 helpers, and confirms all 28 ABS/LN/SQR instructions plus 56 bound
+arguments. Catalogued rises 17,563 to 17,591, root_bound 20,178 to 20,234 and
+unsupported instruction slots fall 653 to 597; other counters are unchanged.
+No repeat math-only check is needed; see [the confirmed review](MATH_SIGNATURE_REVIEW.md).
+
+The next check uses work-check schema 6 and reference/source schemas 8/4. For
+26 three-field MVM/SWPB occurrences, expect catalogued instructions 17,591 to
+17,617 and unsupported instruction slots 597 to 519. Ten nonempty SWPB mode
+slots should raise non_data 868 to 878; the other 68 data slots determine new
+root/literal/gap and alias-mediated counts. Source counts and declarations
+should stay stable. See [the bit-operation review](BIT_OPERATION_REVIEW.md).
 
 ## Manual runs
 
@@ -68,7 +74,7 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 5 and their tested SHA identifies which suite
+check. New reports use schema 6 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
@@ -92,7 +98,8 @@ unknown syntax. It is limited to 128 printable characters, with no full rung,
 source filename/hash, routine, neighboring logic or individual reference links.
 The first eligible malformed operand has priority; otherwise a direct unresolved
 colon operand with no rack candidate can be selected. Aliases and inconclusive
-or matched rack lookups are excluded. Recognized first-scan flags do not qualify.
+or matched rack lookups are excluded. Recognized first-scan flags and SWPB
+order-mode selector slots do not qualify.
 Repeated unchanged runs select the same
 eligible example. Null means no eligible
 example was available or analysis did not succeed. The reference aggregate
@@ -161,6 +168,7 @@ Interpret the reference counters as follows:
   or a runtime model of first-scan behavior.
 - `non_data`: labels and recognized timer placeholders, without tag links. A
   timer placeholder supplies no value and does not validate timer configuration.
+  SWPB order-mode slots are also non-data by role; their mode value is unvalidated.
 
 Manual commands remain available in the [Python README](../../../python-parser/README.md).
 See [runner implementation and validation](WORK_CHECK_RUNNER_REVIEW.md) for the

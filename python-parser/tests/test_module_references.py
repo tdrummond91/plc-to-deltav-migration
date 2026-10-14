@@ -93,7 +93,7 @@ class ModuleReferenceTests(unittest.TestCase):
         self.assertEqual(result.aliases[0]['suffix'], '.Data.0')
         self.assertEqual(result.operands[0]['target_id'], input_symbol['id'])
         self.assertEqual(result.schema_version, 4)
-        self.assertEqual(result.analyzer_version, 'source-references-6')
+        self.assertEqual(result.analyzer_version, 'source-references-7')
         self.assertEqual(result.status, 'complete')
 
     def test_tag_module_collision_is_ambiguous_and_program_tag_still_shadows(self) -> None:

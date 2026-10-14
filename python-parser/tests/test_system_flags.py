@@ -49,7 +49,7 @@ class SystemFlagTests(unittest.TestCase):
         self.assertEqual(result.coverage['instructions_catalogued'], 2)
         self.assertEqual(result.coverage['operands_total'], 2)
         self.assertEqual(result.status, 'complete')
-        self.assertEqual((result.schema_version, result.analyzer_version), (4, 'source-references-6'))
+        self.assertEqual((result.schema_version, result.analyzer_version), (4, 'source-references-7'))
         self.assertEqual((source.schema_version, source.parser_version), (3, 'source-inventory-3'))
         for field in ('semantic_analysis', 'effect_analysis', 'member_validation'):
             self.assertEqual(getattr(result, field), 'not_implemented')
@@ -165,7 +165,7 @@ class SystemFlagTests(unittest.TestCase):
             with self.subTest(fields=fields), self.assertRaises(ReferenceError):
                 validate_references(source, changed)
         for schema, analyzer in ((3, 'source-references-4'), (4, 'source-references-4'),
-                                 (3, 'source-references-6'), (4, 'source-references-5'),
+                                 (3, 'source-references-6'), (4, 'source-references-5'), (4, 'source-references-6'),
                                  (2, 'source-references-3')):
             with self.subTest(schema=schema, analyzer=analyzer), self.assertRaises(ReferenceError):
                 validate_references(source, replace(result, schema_version=schema, analyzer_version=analyzer))

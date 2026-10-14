@@ -3,6 +3,25 @@
 Date: 2026-10-14. Branch: `feat/bounded-operand-example-pc`.
 Returned baseline: `d247f87`, testing clean `d64ee4d`.
 
+## Confirmed work-machine result
+
+[The follow-up report](../../inspection/work-check-20261014T195120Z-0b07d834.json)
+returned in `4244cf5`, testing clean `a6a2a71`, confirms the selected signatures.
+All 286 selected application cases (one skip) and 139 helpers passed. The commit
+adds only this report, has the tested revision as parent and records a clean
+code tree and saved private run. Work/reference/source versions are 5/7/4.
+
+An independent full comparison found exactly the expected changes: catalogued
+instructions rise 17,563 to 17,591, root-bound operands rise 20,178 to 20,234,
+and unsupported-instruction operand slots fall 653 to 597. All 56 newly analyzed
+slots bound to roots; literal and gap counts stayed unchanged. All other source,
+alias/rack, flag and sample evidence is identical, apart from intended contract,
+run, revision and test-count metadata. This confirms the reference classification
+without proving source byte identity, destination legality or runtime behavior.
+No repeat calculation-only run is needed. The following slice is
+[MVM/SWPB operand roles](BIT_OPERATION_REVIEW.md); the sections below preserve
+the calculation implementation checkpoint.
+
 ## Baseline and selected scope
 
 [The returned report](../../inspection/work-check-20261014T191741Z-2009d02d.json)
@@ -136,7 +155,8 @@ bytes. No project confidential data or listener execution was used.
 All 49 relative Markdown links in changed documentation resolve, and
 `git diff --check` passes. Historical report files remain untouched.
 
-For the unchanged export, if all 28 occurrences have the documented two-field
+The original prediction, now confirmed above, was that if all 28 occurrences
+have the documented two-field
 signature, expect catalogued instructions 17,563 to 17,591 and unsupported
 instruction operand slots 653 to 597. Their 56 newly analyzed slots will be
 partitioned into existing root/literal/gap statuses. The root/literal split

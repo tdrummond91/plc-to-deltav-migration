@@ -47,6 +47,7 @@ WORK_MACHINE_MODULES = {
         "test_unmatched_sample_report",
         "test_system_flags", "test_system_flag_summary", "test_system_flag_report",
         "test_math_references", "test_math_summary", "test_math_report",
+        "test_bit_operations",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",
