@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 
+from .models import InventoryResult
 from .references import ReferenceResult
+from .routine_shapes import build_routine_instruction_shapes
 
 
 def render_reference_json(result: ReferenceResult) -> str:
@@ -12,7 +14,7 @@ def render_reference_json(result: ReferenceResult) -> str:
     return json.dumps(result.to_dict(), indent=2, ensure_ascii=False) + "\n"
 
 
-def render_reference_text(result: ReferenceResult) -> str:
+def render_reference_text(result: ReferenceResult, *, inventory: InventoryResult | None = None) -> str:
     payload = result.to_dict()
     symbols = {item["id"]: item for item in payload["symbols"]}
 
@@ -40,6 +42,17 @@ def render_reference_text(result: ReferenceResult) -> str:
         "", "Coverage:",
     ]
     lines.extend(f"  {key}: {value}" for key, value in payload["coverage"].items())
+    if inventory is not None:
+        shapes = build_routine_instruction_shapes(inventory)
+        lines.extend([
+            "", "Parsed RLL routine instruction field shapes (observations only):",
+            "Parameter roles and routine target links are not analyzed.",
+            "Second-zero buckets mean the trimmed second field is exactly ASCII 0; its meaning is unknown.",
+        ])
+        for opcode, group in shapes['by_opcode'].items():
+            lines.append(f"  {opcode}: total={group['total']} argument_slots={group['argument_slots']} "
+                         f"noncanonical_spelling={group['noncanonical_spelling']}")
+            lines.extend(f"    {bucket}: {count}" for bucket, count in group['by_arity'].items())
     lines.extend(["", "Declarations:"])
     for symbol in payload["symbols"]:
         lines.extend([

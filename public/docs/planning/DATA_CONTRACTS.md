@@ -2,7 +2,31 @@
 
 Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current bit-operation role contracts (2026-10-14)
+## Current routine-instruction shape contract (2026-10-14)
+
+Public reference schema 9 / reference-summary-9 adds required closed
+routine_instruction_shapes. Analyzer source-references-7 and private reference
+schema 4 are unchanged because binding/catalog behavior did not change. Private
+source 3, source aggregate 4 and manifest 2 retain their layouts. Private text
+receives captured inventory and includes these observations; private JSON keeps
+the existing canonical result. Old renderer calls without inventory remain valid.
+
+The field has fixed scope/role/target metadata and JSR/SBR/RET opcode groups,
+each containing total, argument_slots, noncanonical_spelling and by_arity. JSR
+separates two/larger field counts by exact trimmed ASCII second text 0 versus
+other; SBR/RET group zero/one/two/larger fields. All are lexical observations,
+without parameter roles, target links or execution semantics. Counts reconcile
+to uppercase source labels plus observed noncanonical spellings, with one shared
+withheld-opcode budget. Arity/slot partitions and uncatalogued/unsupported-operand
+bounds prevent contradictory aggregates. No private labels/values/IDs are added.
+
+Versions 1 through 8 remain frozen and reject even an all-zero new field.
+Work7/reference9 is current; work3/5 through work6/8 remain paired as before.
+Work1/2 supported nested-reference handling, timer/flag/selector sample rules,
+bounded sharing, paths and manual pull/push are unchanged. See
+[exact fields, evidence and validation](../reviews/ROUTINE_CALL_SHAPE_REVIEW.md).
+
+## Bit-operation role contract checkpoint (2026-10-14)
 
 Private references remain schema 4 with analyzer source-references-7. MVM and
 SWPB each have three catalogued fields; SWPB argument 1 is non_data by positional

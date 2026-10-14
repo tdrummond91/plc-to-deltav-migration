@@ -99,15 +99,22 @@ reason counts, module naming origins/unavailable reasons, analysis coverage and
 a nested schema-4 `source_summary`, plus closed rack-candidate counts. Code provenance is
 `source_summary.tool_revision`. It contains no names, values, source identities
 or individual reference links. Its report kind is `l5x_reference_review_summary`,
-schema 8, policy 2, exporter `reference-summary-8`, analyzer `source-references-7`.
+schema 9, policy 2, exporter `reference-summary-9`, analyzer `source-references-7`.
 `operands.by_status.system_flag` counts recognized first-scan contact operands
 separately from ordinary bindings, literals and non-data roles.
+`routine_instruction_shapes` observes JSR/SBR/RET argument counts, with fixed
+arity buckets and exact second-zero text observations for JSR. These counts
+assign no parameter roles or routine targets; the binding catalog is unchanged.
+Case-normalized observations reconcile against source opcode/withheld counts.
+Private text reports include the same observations, including zero-field calls;
+private reference JSON keeps its existing schema. See
+[the routine-shape review](../public/docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md).
 `operands.malformed_address_shapes` partitions only malformed-address occurrences
 into seven fixed observational buckets, including a separate alias-target bucket.
 The diagnostic does not change address recognition or binding. See the
 [address-shape contract](../public/docs/reviews/ADDRESS_SHAPE_REVIEW.md).
 The validator also accepts reference schema 1/source schema 2 and reference
-schemas 2/3/4 with source schema 3, and references 5/6/7 with source 4. Historical
+schemas 2/3/4 with source schema 3, and references 5/6/7/8 with source 4. Historical
 status vocabularies remain exact; mixed version combinations are rejected.
 The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
@@ -201,7 +208,7 @@ same scope as the work-machine checks.
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. The feedback includes test counts, bounded
 code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 6 includes `diagnostic_sample`: one actual direct malformed
+Work-check schema 7 includes `diagnostic_sample`: one actual direct malformed
 operand, or a direct unresolved colon operand with no rack candidate when no
 eligible malformed sample exists. It retains at most 128 printable characters,
 a standard instruction and zero-based argument position; otherwise it is null.
@@ -217,9 +224,9 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema 6 and carries reference schema 8 with source
-schema 4 when analysis succeeds. Historical schema-1/2/3/4/5 reports remain readable;
-schemas 3/4/5 require references 5/6/7 respectively. The tested
+The outer report is schema 7 and carries reference schema 9 with source
+schema 4 when analysis succeeds. Historical schema-1/2/3/4/5/6 reports remain readable;
+schemas 3/4/5/6 require references 5/6/7/8 respectively. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
 `46467af` validated the local report-commit workflow. The later report in `349ee29`
@@ -243,11 +250,16 @@ and all 56 arguments bound to roots. Catalogued instructions rise 17,563 to
 653 to 597. All 286 application cases (one skip) and 139 helpers passed; other
 counters are unchanged. No repeat calculation-only run is needed.
 
-The next run checks 26 MVM/SWPB occurrences. If all have three fields, expect
-catalogued instructions 17,591 to 17,617 and unsupported instruction slots 597
-to 519; if all ten selector slots are nonempty, non_data rises 868 to 878. The
-other 68 data slots determine new root/literal/gap and alias-mediated counts.
-Source counts and declarations should stay stable. Partial remains expected.
+Report `08c2695`, testing clean `bdf09f1`, confirms all 26 MVM/SWPB signatures.
+Their 78 slots became 52 bound roots, 16 literals and ten selectors. Catalogued
+instructions rise to 17,617 and unsupported instruction slots fall to 519.
+All 296 application cases (one skip) and 139 helpers passed; other counters
+are unchanged. No repeat bit-operation-only check is needed.
+
+The next run observes routine-instruction shapes for JSR=76, SBR=1 and RET=1.
+Existing binding/catalog/source counters should stay unchanged. Field layouts
+are unknown until the report returns; do not infer parameter roles from a second
+field spelled zero. Partial remains expected.
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in

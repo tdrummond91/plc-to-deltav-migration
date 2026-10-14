@@ -37,7 +37,7 @@ class RackSummaryTests(unittest.TestCase):
         _, source, references, report = records()
         rack = report['rack_candidates']
         self.assertEqual((source.schema_version, references.schema_version), (3, 4))
-        self.assertEqual((report['schema_version'], report['source_summary']['schema_version']), (8, 4))
+        self.assertEqual((report['schema_version'], report['source_summary']['schema_version']), (9, 4))
         self.assertEqual(rack['declarations']['total'], 2)
         self.assertEqual(rack['declarations']['named'], 2)
         self.assertEqual(rack['declarations']['by_direction'], {'input': 1, 'output': 1})
@@ -166,7 +166,7 @@ class RackSummaryTests(unittest.TestCase):
             self.assertEqual((manifest['schema_version'], manifest['analyzer_version']), (2, 'source-references-7'))
             self.assertEqual(manifest['parser_version'], 'source-inventory-3')
             text = (run / 'references.txt').read_text(encoding='utf-8')
-            self.assertEqual(text, render_reference_text(references))
+            self.assertEqual(text, render_reference_text(references, inventory=source))
             self.assertIn('Remote:3:I', text)
             self.assertIn('backing mapping not analyzed', text)
             self.assertIn('matching is inconclusive', text)

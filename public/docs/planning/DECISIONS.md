@@ -142,6 +142,22 @@ the occurrence split using a normal work-machine aggregate. This is an authorize
 source-reference implementation choice, not a final process classification.
 See [primary evidence and validation](../reviews/BIT_OPERATION_REVIEW.md).
 
+### Observe routine-call fields before assigning roles (2026-10-14)
+
+After `08c2695` confirms bit-operation roles, choose a closed JSR/SBR/RET
+argument-shape diagnostic. Rockwell's RLL-neutral and structured-text tables
+show different layouts; generalized instruction help does not resolve that
+difference. Do not assume the second ladder field is InputCount or copy SBR
+parameter roles from structured text. Profile fixed arity bins and exact second
+zero text without publishing names, argument strings or occurrence links.
+
+Keep the binding catalog, analyzer and private JSON unchanged. Derive counts
+from captured instruction records and make them available in aggregate JSON
+and private text, including zero-field instructions. Confirm the real shape
+distribution before a scoped routine-link slice; target resolution stays separate
+from tag lookup and from execution/sequence interpretation. See
+[the evidence and validation](../reviews/ROUTINE_CALL_SHAPE_REVIEW.md).
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?

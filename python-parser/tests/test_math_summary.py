@@ -9,7 +9,7 @@ import unittest
 
 from plc_workbench.models import InventoryResult
 from plc_workbench.reference_summary import (
-    CONSTANTS, V6_CONSTANTS, V7_CONSTANTS, ReferenceSummaryError, build_reference_summary,
+    CONSTANTS, V6_CONSTANTS, V7_CONSTANTS, V8_CONSTANTS, ReferenceSummaryError, build_reference_summary,
     render_reference_summary, validate_reference_summary,
 )
 from plc_workbench.references import analyze_references
@@ -65,7 +65,7 @@ class MathSummaryTests(unittest.TestCase):
         self.assertEqual(report['source_summary'], source_report)
         self.assertEqual((source.schema_version, source.parser_version), (3, 'source-inventory-3'))
         self.assertEqual((report['schema_version'], report['exporter_version'], report['analyzer_version']),
-                         (8, 'reference-summary-8', 'source-references-7'))
+                         (9, 'reference-summary-9', 'source-references-7'))
         self.assertEqual({key: report[key] for key in CONSTANTS}, CONSTANTS)
         self.assertEqual(report['source_summary']['schema_version'], 4)
         self.assertEqual(report['source_summary']['instructions']['counts'],
@@ -129,7 +129,7 @@ class MathSummaryTests(unittest.TestCase):
         self.assertEqual(historical['operands']['by_status']['system_flag'], 1)
         self.assertEqual(json.loads(render_reference_summary(historical)), historical)
         current = summary(inventory('XIC(S:FS)ABS(1,PRIVATE_MATH_OUTPUT);'))
-        self.assertEqual(current.keys(), historical.keys())
+        self.assertEqual(set(current) - {'routine_instruction_shapes'}, set(historical))
         self.assertEqual(current['operands']['by_status'].keys(), historical['operands']['by_status'].keys())
         for base, field, value in (
             (historical, 'schema_version', 7),
@@ -143,9 +143,11 @@ class MathSummaryTests(unittest.TestCase):
             report[field] = value
             with self.subTest(field=field, value=value), self.assertRaises(ReferenceSummaryError):
                 validate_reference_summary(report)
-        for constants in (V6_CONSTANTS, V7_CONSTANTS, CONSTANTS):
+        for constants in (V6_CONSTANTS, V7_CONSTANTS, V8_CONSTANTS, CONSTANTS):
             report = summary(inventory('ABS(1,PRIVATE_MATH_OUTPUT);'))
             report.update(constants)
+            if constants['schema_version'] < 9:
+                del report['routine_instruction_shapes']
             report['operands']['by_status'].update(literal=0, system_flag=1)
             with self.subTest(version=constants['schema_version']), self.assertRaises(ReferenceSummaryError):
                 validate_reference_summary(report)

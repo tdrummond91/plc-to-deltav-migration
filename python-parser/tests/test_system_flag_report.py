@@ -30,9 +30,9 @@ class SystemFlagReportTests(unittest.TestCase):
 
     def test_current_report_classifies_flag_and_has_no_mystery_sample(self) -> None:
         payload = report(SOURCE.replace(b'MysteryRack:7:I.Data[2].3', b'S:FS'))
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (6, 'work-check-6'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (7, 'work-check-7'))
         nested = payload['analysis']['reference_summary']
-        self.assertEqual((nested['schema_version'], nested['analyzer_version']), (8, 'source-references-7'))
+        self.assertEqual((nested['schema_version'], nested['analyzer_version']), (9, 'source-references-7'))
         self.assertEqual(nested['operands']['by_status']['system_flag'], 1)
         self.assertEqual(nested['operands']['by_status']['unresolved'], 0)
         self.assertEqual(nested['rack_candidates']['matches']['direct_operands']['total'], 0)

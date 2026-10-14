@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md,
 public/docs/reviews/BIT_OPERATION_REVIEW.md,
 public/docs/reviews/MATH_SIGNATURE_REVIEW.md,
 public/docs/reviews/SYSTEM_FLAG_REVIEW.md,
@@ -47,8 +48,8 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available, excluding the ignored listener
-loader on this development checkout. Work schemas 1/2/3/4/5 remain readable. Current
-schema 6 requires reference 8 and retains at most one authorized operand example.
+loader on this development checkout. Work schemas 1/2/3/4/5/6 remain readable. Current
+schema 7 requires reference 9 and retains at most one authorized operand example.
 The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
@@ -70,10 +71,10 @@ uv run --project python-parser python -B -m unittest discover \
   -s tools/l5x_inspect/tests -v
 
 Current baseline: 139 passing helper tests. Also run the full development
-application command in BIT_OPERATION_REVIEW.md, which explicitly excludes the
+application command in ROUTINE_CALL_SHAPE_REVIEW.md, which explicitly excludes the
 ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in BIT_OPERATION_REVIEW.md;
+Use the final application test count and tested revision in ROUTINE_CALL_SHAPE_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -153,7 +154,7 @@ Report 4244cf5 tested clean a6a2a71, passed 286 application cases (one skip) and
 fall 653 to 597. All other source/reference counters stay unchanged. No repeat
 calculation-only check is needed.
 
-The current slice catalogs MVM/SWPB with three fields. SWPB argument 1 is an
+The preceding bit slice catalogs MVM/SWPB with three fields. SWPB argument 1 is an
 order-mode selector accounted as non_data by role before root/literal lookup;
 the shared predicate rejects it as either diagnostic sample kind regardless
 raw spelling. Arity/empty checks take priority. Mode values, masks, types,
@@ -162,12 +163,25 @@ Private references are schema4/analyzer7; public references schema8; work6
 requires reference8. All prior metadata/field contracts remain readable.
 Read BIT_OPERATION_REVIEW.md for role evidence and exact validation.
 
-Next inspect the returned bit-operation delta: for 26 three-field occurrences,
-catalogued rises 17,591 to 17,617 and unsupported instruction slots fall 597 to 519.
-Ten nonempty mode fields raise non_data 868 to 878; 68 data fields determine actual
-root/literal/gap and alias-mediated counts. Source counts and declarations should
-stay stable; partial remains expected. Do not request old samples or reimplement
-completed slices. Do not infer runtime behavior from lexical classifications.
+Report 08c2695 tested clean bdf09f1, passed 296 application cases (one skip) and
+139 helpers, and confirms all 26 signatures: catalogue 17,591 to 17,617;
+unsupported slots 597 to 519; 52 newly bound roots, 16 literals and ten selectors.
+Every other source/reference counter is unchanged. No repeat bit-only check
+is needed. Do not infer runtime behavior from these lexical classifications.
+
+The current slice observes JSR/SBR/RET argument shapes without changing binding
+or catalog rules. Official RLL-neutral and ST tables differ, so no parameter
+roles or routine links are assigned. Public reference9 adds closed shape counts;
+private reference4/analyzer7, source3/aggregate4 and manifest2 stay unchanged.
+Work7 requires reference9; work6/reference8 and all earlier contracts remain
+readable. Private text receives captured inventory, including zero-field calls;
+private JSON keeps the canonical result. Read ROUTINE_CALL_SHAPE_REVIEW.md.
+
+Next inspect field distributions for JSR=76, SBR=1 and RET=1 while all existing
+binding/catalog/source/alias/rack/sample counters stay unchanged. Exact second
+zero text is an observation, not proven InputCount. Use this evidence before
+scoped routine links or a further bounded format clarification. Partial remains
+expected; do not request old samples or reimplement completed slices.
 Continue authorized work until a specific evidence gap or phase boundary needs
 Tyler's input. Do not activate the listener or access confidential inputs.
 

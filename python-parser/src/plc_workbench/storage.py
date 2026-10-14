@@ -123,7 +123,7 @@ def save_run(
             from .reference_reporting import render_reference_json, render_reference_text
             contents.update({
                 "references.json": render_reference_json(references).encode("utf-8"),
-                "references.txt": render_reference_text(references).encode("utf-8"),
+                "references.txt": render_reference_text(references, inventory=result).encode("utf-8"),
             })
         artifacts = {
             name: _write_artifact(destination, run_dir, name, data)

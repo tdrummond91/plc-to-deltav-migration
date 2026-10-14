@@ -8,7 +8,7 @@ from pathlib import Path
 import unittest
 
 from plc_workbench.reference_summary import (
-    LEGACY_CONSTANTS, V2_CONSTANTS, V3_CONSTANTS, V4_CONSTANTS, V5_CONSTANTS, V6_CONSTANTS, V7_CONSTANTS,
+    LEGACY_CONSTANTS, V2_CONSTANTS, V3_CONSTANTS, V4_CONSTANTS, V5_CONSTANTS, V6_CONSTANTS, V7_CONSTANTS, V8_CONSTANTS,
     ReferenceSummaryError, build_reference_summary, render_reference_summary,
     validate_reference_summary,
 )
@@ -38,8 +38,9 @@ def summary(source):
 def historical_report(current: dict, version: int) -> dict:
     """Represent a no-module fixture in each frozen contract's vocabulary."""
     result = deepcopy(current)
+    del result['routine_instruction_shapes']
     result.update({1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS,
-                   4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: V6_CONSTANTS, 7: V7_CONSTANTS}[version])
+                   4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: V6_CONSTANTS, 7: V7_CONSTANTS, 8: V8_CONSTANTS}[version])
     if version < 6:
         if result['operands']['by_status'].pop('system_flag') != 0:
             raise ValueError('Historical fixture cannot downgrade recognized system flags.')
@@ -67,7 +68,7 @@ class SystemFlagSummaryTests(unittest.TestCase):
         source = inventory('XIC(S:FS)XIO( s:fS )XIC(S:FS);')
         report = summary(source)
         self.assertEqual((report['schema_version'], report['exporter_version'], report['analyzer_version']),
-                         (8, 'reference-summary-8', 'source-references-7'))
+                         (9, 'reference-summary-9', 'source-references-7'))
         self.assertEqual((source.schema_version, report['source_summary']['schema_version']), (3, 4))
         self.assertEqual(report['status'], 'complete')
         self.assertEqual(report['operands']['total'], 3)
@@ -183,17 +184,19 @@ class SystemFlagSummaryTests(unittest.TestCase):
                 with self.assertRaises(ReferenceSummaryError):
                     validate_reference_summary(hybrid)
 
-    def test_frozen_v6_and_v7_keep_system_flags_and_exact_metadata(self) -> None:
+    def test_frozen_v6_through_v8_keep_system_flags_and_exact_metadata(self) -> None:
         current = summary(inventory('XIC(S:FS);'))
-        for version, constants in ((6, V6_CONSTANTS), (7, V7_CONSTANTS)):
+        for version, constants in ((6, V6_CONSTANTS), (7, V7_CONSTANTS), (8, V8_CONSTANTS)):
             historical = historical_report(current, version)
             with self.subTest(version=version):
                 self.assertEqual({key: historical[key] for key in constants}, constants)
-                self.assertEqual(historical.keys(), current.keys())
+                self.assertEqual(set(historical), set(current) - {'routine_instruction_shapes'})
                 self.assertEqual(historical['operands']['by_status'], current['operands']['by_status'])
                 self.assertEqual(historical['operands']['by_status']['system_flag'], 1)
                 self.assertEqual(json.loads(render_reference_summary(historical)), historical)
             for key in ('schema_version', 'exporter_version', 'analyzer_version'):
+                if historical[key] == current[key]:
+                    continue
                 hybrid = deepcopy(historical)
                 hybrid[key] = current[key]
                 with self.subTest(version=version, key=key), self.assertRaises(ReferenceSummaryError):

@@ -7,7 +7,7 @@ import json
 import unittest
 
 from plc_workbench.reference_summary import (
-    MAX_REPORT_BYTES, ReferenceSummaryError, build_reference_summary,
+    CONSTANTS, V8_CONSTANTS, MAX_REPORT_BYTES, ReferenceSummaryError, build_reference_summary,
     render_reference_summary, validate_reference_summary,
 )
 from plc_workbench.references import analyze_references
@@ -51,6 +51,29 @@ def complete_inventory():
 
 
 class ReferenceSummaryTests(unittest.TestCase):
+    def test_frozen_v8_keeps_exact_old_fields_and_analyzer_metadata(self) -> None:
+        source = complete_inventory()
+        current = build_reference_summary(source, analyze_references(source))
+        historical = deepcopy(current)
+        historical.update(V8_CONSTANTS)
+        del historical['routine_instruction_shapes']
+        self.assertEqual(V8_CONSTANTS['analyzer_version'], 'source-references-7')
+        self.assertEqual(CONSTANTS['analyzer_version'], V8_CONSTANTS['analyzer_version'])
+        self.assertEqual(set(historical), set(current) - {'routine_instruction_shapes'})
+        self.assertEqual(json.loads(render_reference_summary(historical)), historical)
+        for base, changes in (
+            (historical, {'schema_version': 9}),
+            (historical, {'exporter_version': 'reference-summary-9'}),
+            (current, {'schema_version': 8}),
+            (current, {'exporter_version': 'reference-summary-8'}),
+            (historical, {'analyzer_version': 'source-references-8'}),
+            (current, {'analyzer_version': 'source-references-8'}),
+        ):
+            report = deepcopy(base)
+            report.update(changes)
+            with self.subTest(changes=changes), self.assertRaises(ReferenceSummaryError):
+                validate_reference_summary(report)
+
     def test_private_details_and_source_identity_do_not_cross_boundary(self) -> None:
         source = inventory()
         references = analyze_references(source)

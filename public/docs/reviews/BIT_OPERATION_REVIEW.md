@@ -3,6 +3,25 @@
 Date: 2026-10-14. Branch: `feat/bounded-operand-example-pc`.
 Returned baseline: `4244cf5`, testing clean `a6a2a71`.
 
+## Confirmed work-machine result
+
+[The returned bit-operation report](../../inspection/work-check-20261014T205025Z-cc9c4184.json)
+returned in `08c2695`, testing clean `bdf09f1`, confirms all 26 new signatures.
+It passed 296 application cases (one skip) and 139 helpers, saved a private run
+and adds only the report with the tested revision as parent. Work/reference/
+source versions are 6/8/4.
+
+Independent comparison found the predicted changes: catalogued instructions
+17,591 to 17,617, unsupported instruction slots 597 to 519, root_bound 20,234 to
+20,286, literals 2,517 to 2,533 and non_data 868 to 878. Thus 78 newly accounted
+slots split into 52 bound roots, 16 literals and ten selectors. All other source,
+alias/rack, flag, sample and diagnostic evidence stayed unchanged apart from
+intentional contract, run, revision and test-count metadata. This confirms
+lexical classification without proving source byte identity or runtime behavior.
+No repeat bit-operation-only run is needed. The following slice is
+[routine-instruction argument shapes](ROUTINE_CALL_SHAPE_REVIEW.md); the sections
+below preserve the bit-operation implementation checkpoint.
+
 ## Returned evidence and selected scope
 
 [The returned calculation report](../../inspection/work-check-20261014T195120Z-0b07d834.json)
@@ -132,7 +151,8 @@ No project confidential data or listener execution was used.
 All 54 relative Markdown links in changed documentation resolve, and
 `git diff --check` passes. Historical report files remain untouched.
 
-For the same export, if all 26 occurrences have their documented three fields,
+The original prediction, now confirmed above, was that if all 26 occurrences
+have their documented three fields,
 expect catalogued instructions 17,591 to 17,617 and unsupported-instruction
 operand slots 597 to 519. If all ten selector slots are nonempty, non_data rises
 868 to 878. The remaining 68 newly analyzed data slots can be roots, literals

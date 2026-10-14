@@ -143,8 +143,8 @@ def _references(args: argparse.Namespace) -> int:
                 publish_summary(args.output, rendered, input_path=args.file)
                 print(f"Saved aggregate reference summary; status: {result.status}.", file=sys.stderr)
         else:
-            renderer = render_reference_json if args.format == "json" else render_reference_text
-            rendered = renderer(result)
+            rendered = (render_reference_json(result) if args.format == "json"
+                        else render_reference_text(result, inventory=inventory))
             if args.workspace is not None:
                 saved = save_run(args.workspace, snapshot, inventory, references=result)
                 print(f"Saved private reference run: {saved}", file=sys.stderr)

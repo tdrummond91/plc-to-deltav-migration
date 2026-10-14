@@ -18,6 +18,9 @@ from .references import (
     ReferenceError, _address, validate_references,
 )
 from .summary import SummaryError, build_summary, validate_summary
+from .routine_shapes import (
+    RoutineShapeError, build_routine_instruction_shapes, validate_routine_instruction_shapes,
+)
 
 if TYPE_CHECKING:
     from .references import ReferenceResult
@@ -75,10 +78,14 @@ V7_CONSTANTS = V6_CONSTANTS | {
     'exporter_version': 'reference-summary-7',
     'analyzer_version': 'source-references-6',
 }
-CONSTANTS = V7_CONSTANTS | {
+V8_CONSTANTS = V7_CONSTANTS | {
     'schema_version': 8,
     'exporter_version': 'reference-summary-8',
     'analyzer_version': 'source-references-7',
+}
+CONSTANTS = V8_CONSTANTS | {
+    'schema_version': 9,
+    'exporter_version': 'reference-summary-9',
 }
 _CORE_CONSTANTS = {key: V2_CONSTANTS[key] for key in (
     'schema_version', 'analyzer_version', 'analysis_scope', 'semantic_analysis',
@@ -399,11 +406,12 @@ def build_reference_summary(
                          'malformed_address_shapes': _malformed_address_shapes(operands)},
             'module_io': _module_io_counts(symbols),
             'rack_candidates': _rack_counts(core['rack_candidates']),
+            'routine_instruction_shapes': build_routine_instruction_shapes(inventory),
             'coverage': {key: coverage[key] for key in sorted(_COVERAGE_KEYS)},
         }
         validate_reference_summary(summary)
         return summary
-    except (ReferenceError, SummaryError, KeyError, TypeError, AttributeError, IndexError):
+    except (ReferenceError, RoutineShapeError, SummaryError, KeyError, TypeError, AttributeError, IndexError):
         _invalid()
 
 
@@ -411,7 +419,7 @@ def validate_reference_summary(summary: dict[str, Any]) -> None:
     """Validate every field and all aggregate relationships at publication time."""
     try:
         _validate(summary)
-    except (SummaryError, KeyError, TypeError, AttributeError, IndexError):
+    except (RoutineShapeError, SummaryError, KeyError, TypeError, AttributeError, IndexError):
         _invalid()
 
 
@@ -419,14 +427,15 @@ def _validate(summary: dict[str, Any]) -> None:
     if type(summary) is not dict:
         _invalid()
     version = summary.get('schema_version')
-    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6, 7, 8}:
+    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6, 7, 8, 9}:
         _invalid()
     legacy = version == 1
     _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'}
-          | (set() if legacy else {'module_io'}) | ({'rack_candidates'} if version >= 5 else set()))
+          | (set() if legacy else {'module_io'}) | ({'rack_candidates'} if version >= 5 else set())
+          | ({'routine_instruction_shapes'} if version >= 9 else set()))
     _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS,
                          4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: V6_CONSTANTS,
-                         7: V7_CONSTANTS, 8: CONSTANTS}[version])
+                         7: V7_CONSTANTS, 8: V8_CONSTANTS, 9: CONSTANTS}[version])
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
         _invalid()
     source = summary['source_summary']
@@ -515,6 +524,13 @@ def _validate(summary: dict[str, Any]) -> None:
                        for opcode in ('XIC', 'XIO', 'withheld'))
         if system_flags > contacts or system_flags > coverage['instructions_catalogued']:
             _invalid()
+    if version >= 9:
+        validate_routine_instruction_shapes(
+            summary['routine_instruction_shapes'], source_summary=source,
+            instructions_catalogued=coverage['instructions_catalogued'],
+            operands_total=operands['total'],
+            unsupported_instruction_slots=operands['by_status']['unsupported_instruction'],
+        )
     incomplete = (
         source['status'] != 'complete'
         or coverage['instructions_catalogued'] != coverage['instructions_total']

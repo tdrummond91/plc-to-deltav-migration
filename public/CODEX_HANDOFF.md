@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `4244cf5` confirms all 28 new calculation signatures and 56 root-bound arguments, with both suites passing and other evidence stable. The next slice catalogs MVM/SWPB with three fields and accounts for SWPB's middle order-mode selector as non-data. For the unchanged export, expect 26 additional catalogued instructions and 78 fewer unsupported-instruction slots if all use the documented signature; ten nonempty mode slots should add ten non-data occurrences. Read [bit-operation roles and evidence](docs/reviews/BIT_OPERATION_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `08c2695` confirms all 26 bit-operation signatures: 52 bound roots, 16 literals and ten selectors, with both suites passing and other evidence stable. The next slice observes JSR/SBR/RET argument shapes because official ladder-neutral and structured-text layouts differ. Existing bindings/catalog counts stay unchanged; no parameter roles or routine links are assigned. Read [routine-shape scope and evidence](docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -96,7 +96,8 @@ Full development unittest discovery remains available. Schema-1 reports remain
 readable; schema 2 adds the bounded sample, schema 3 adds an unmatched-colon
 fallback, schema 4 carries reference schema 6 with system-flag recognition,
 schema 5 carries reference 7 with the ABS/LN/SQR signature catalog, and current
-schema 6 carries reference 8 with MVM/SWPB roles.
+schema 6 carries reference 8 with MVM/SWPB roles. Current schema 7 carries
+reference 9 with observation-only routine-instruction shapes.
 Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
@@ -133,11 +134,13 @@ unchanged; 26 XML elements across three paths are newly modeled and 11 warnings
 now describe unknown backing instead of omitted declarations. The sample is null.
 
 Current contracts: private inventory/reference schemas 3/4 with
-`source-inventory-3` / `source-references-7`; public source/reference schemas 4/8;
-work-check schema 6 and reference-run manifest schema 2. Historical public
+`source-inventory-3` / `source-references-7`; public source/reference schemas 4/9;
+work-check schema 7 and reference-run manifest schema 2. The analyzer/private
+JSON remain unchanged by this diagnostic. Historical public
 reports still validate with exact original status vocabularies. Work schema 3
 still requires reference 5, work schema 4 requires reference 6, and work schema
-5 requires reference 7. Read [bit-operation review](docs/reviews/BIT_OPERATION_REVIEW.md)
+5 requires reference 7 and work schema 6 requires reference 8. Read
+[routine-shape review](docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 
 Rack validation: 316 development application/workflow tests passed (one existing
@@ -217,13 +220,12 @@ regardless of its spelling. Arity/empty checks still take priority. Raw values
 and IDs are preserved; mask widths, mode values, types, byte ordering and runtime
 effects remain unvalidated. Other data fields use the existing lexical lookup.
 
-Next compare against `4244cf5`: for 26 documented three-field instructions,
-catalogued rises 17,591 to 17,617 and unsupported instruction slots fall 597 to
-519. Ten nonempty selector slots raise non_data 868 to 878. The other 68 data
-slots determine the actual root/literal/gap and alias-mediated occurrence split;
-do not predict that split or require unchanged operand populations. Source
-counts and declarations should stay stable. See the bit-operation review for
-primary role evidence, test results and the next bounded run.
+Report `08c2695`, testing clean `bdf09f1`, confirms that exact bit-operation
+prediction: catalogued rises 17,591 to 17,617 and unsupported instruction slots
+fall 597 to 519. The 78 slots split into 52 bound roots, 16 literals and ten
+selectors. All other source/reference counters are unchanged. It passed 296
+application cases (one skip) and 139 helpers, saved a private run and adds only
+its report with the tested revision as parent. No repeat bit-only run is needed.
 
 Bit-operation validation: 392 development cases, OK with one existing symlink
 skip; ignored listener loader excluded. Independent review passed all nine
@@ -233,6 +235,32 @@ synthetic role/count delta and made only local report commits. Traces show no
 fetch/pull/push, input and prior artifacts are preserved, and all 80 copied
 code/test/config files match final working bytes. Eleven stored work reports
 remain readable. Commands and artifact evidence are in the bit-operation review.
+
+The current routine-shape diagnostic profiles successful RLL JSR/SBR/RET fields
+without changing the binding catalog, analyzer or private JSON. It adds fixed
+arity bins, exact trimmed second-zero observations for JSR and case/withheld
+reconciliation. Official RLL/ST tables differ, so zero text is not a validated
+InputCount and no target/parameter/sequence roles are inferred. Private text
+uses captured inventory to include zero-field SBR/RET calls, while the old
+renderer API remains available. No source reread is introduced.
+
+Next inspect the returned shape groups for JSR=76, SBR=1 and RET=1, with all
+existing binding/source/catalog/alias/rack/sample counters unchanged. Their
+field distribution is unproven until the run. Use that evidence before choosing
+scoped routine links or a further bounded format clarification. Partial remains
+expected; do not request repeated bit/math-only checks. See the routine-shape
+review for exact contracts, primary sources and validation.
+
+Routine-shape validation: 404 development cases, OK with one existing symlink
+skip; listener loader excluded. Independent review passed 68 focused cases with
+no blockers. Two actual synthetic CLI script runs each passed 308 application
+cases (one skip) and 139 helpers; a direct text CLI check returned expected
+partial exit 3. Both script reports use work7/reference9/source4; private
+inventory/reference/manifest stay3/4/2 with analyzer7, and saved text includes
+zero-field calls. Binding and
+catalog behavior remains unchanged. Report-only local commits, no remote Git
+commands, source/prior-output preservation and artifact hashes were verified.
+Twelve stored work reports remain readable; see the routine-shape review.
 
 Timer-fix validation: 273 application/workflow tests passed (one symlink skip),
 with listener tests excluded. Two real temporary-checkout CLI runs each passed
