@@ -36,10 +36,18 @@ def sample(raw_text: str = "?", *, opcode: str = "TON", argument_index: int = 1)
 
 
 class DiagnosticSampleTests(unittest.TestCase):
-    def test_timer_placeholder_is_one_exact_operand_without_neighboring_context(self) -> None:
-        source = inventory(["TON(Timer,?,654321)OTE(PRIVATE_NEIGHBOR);"])
+    def test_known_timer_placeholders_are_skipped_but_historical_samples_validate(self) -> None:
+        source = inventory(["TON(Timer,?,?);", "TOF(Timer,?,?);", "RTO(Timer,?,?);"])
+        self.assertIsNone(build_diagnostic_sample(source, analyze_references(source)))
+        validate_diagnostic_sample(sample())
+        source = inventory(["TON(Timer,?,?);", "XIC(Next?);"])
+        self.assertEqual(build_diagnostic_sample(source, analyze_references(source)),
+                         sample("Next?", opcode="XIC", argument_index=0))
+
+    def test_malformed_operand_is_one_exact_operand_without_neighboring_context(self) -> None:
+        source = inventory(["TON(Timer,Preset?,654321)OTE(PRIVATE_NEIGHBOR);"])
         value = build_diagnostic_sample(source, analyze_references(source))
-        self.assertEqual(value, sample())
+        self.assertEqual(value, sample("Preset?"))
         validate_diagnostic_sample(value)
         rendered = json.dumps(value)
         for excluded in ("Timer", "654321", "PRIVATE_", "84739.125", source.snapshot["id"],
@@ -55,11 +63,11 @@ class DiagnosticSampleTests(unittest.TestCase):
                 self.assertEqual(value, sample(raw, opcode="MOV", argument_index=0))
 
     def test_first_eligible_operand_is_stable_across_repeated_runs(self) -> None:
-        source = inventory(["ton(Timer,?,99);", "XIC(#Later);", "MOV(First?,Second?);"])
+        source = inventory(["ton(Timer,Preset?,99);", "XIC(#Later);", "MOV(First?,Second?);"])
         references = analyze_references(source)
         source_before, references_before = source.to_dict(), references.to_dict()
         for _ in range(4):
-            self.assertEqual(build_diagnostic_sample(source, references), sample())
+            self.assertEqual(build_diagnostic_sample(source, references), sample("Preset?"))
         self.assertEqual(source.to_dict(), source_before)
         self.assertEqual(references.to_dict(), references_before)
 
@@ -71,10 +79,10 @@ class DiagnosticSampleTests(unittest.TestCase):
     def test_overlong_or_nonprintable_operands_are_skipped_without_truncation(self) -> None:
         long_raw = "?" * (MAX_OPERAND_CHARS + 1)
         source = inventory([f"XIC({long_raw});", "XIC(Name?\tOther);", "XIC(Name?\nOther);",
-                            "TON(Timer,?,0);"])
+                            "TON(Timer,Preset?,0);"])
         references = analyze_references(source)
         self.assertEqual(sum(row["reason"] == "malformed_address" for row in references.operands), 4)
-        self.assertEqual(build_diagnostic_sample(source, references), sample())
+        self.assertEqual(build_diagnostic_sample(source, references), sample("Preset?"))
         no_bounded = inventory([f"XIC({long_raw});", "XIC(Name?\tOther);"])
         self.assertIsNone(build_diagnostic_sample(no_bounded, analyze_references(no_bounded)))
 
@@ -127,7 +135,7 @@ class DiagnosticSampleTests(unittest.TestCase):
                 validate_diagnostic_sample(sample(raw))
 
     def test_forged_reference_records_are_rejected_before_selection(self) -> None:
-        source = inventory(["TON(Timer,?,0);", "XIC(Other?);"])
+        source = inventory(["TON(Timer,Preset?,0);", "XIC(Other?);"])
         original = analyze_references(source)
         mutations = [
             lambda value: value.operands[1].update(raw_text="PRIVATE_FORGED?"),

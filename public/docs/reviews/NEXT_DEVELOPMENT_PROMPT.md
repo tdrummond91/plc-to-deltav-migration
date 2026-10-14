@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md,
 public/docs/reviews/ADDRESS_SHAPE_REVIEW.md,
 public/docs/reviews/MODULE_IO_REVIEW.md,
 public/docs/reviews/WORK_CHECK_RUNNER_REVIEW.md,
@@ -85,8 +86,15 @@ public/inspection/work-check-20261014T072717Z-4d71aaff.json. Both validate; all
 that one actual mystery operand is within the sharing boundary. Schema 2 now
 adds diagnostic_sample, separate from count-only reference summaries: at most one
 exact operand of 128 printable characters with standard opcode/argument index.
-Read BOUNDED_OPERAND_SAMPLE_REVIEW.md. Next work-machine run should return that
-example; inspect it before changing recognition. Do not infer that all 868 have
+Read BOUNDED_OPERAND_SAMPLE_REVIEW.md and TIMER_PLACEHOLDER_REVIEW.md. Returned
+report 349ee29 tested 2851dbd, passed 166 application cases (one skip) and 139
+helpers, and supplied `?` at TON argument 1. The new analyzer source-references-3
+recognizes trimmed `?` only in preset/accumulator slots of valid three-argument
+TON/TOF/RTO instructions. Private references stay schema 2; public reference
+schema is now 4, source aggregate stays 3 and work-check stays 2. Keep historical
+public schemas readable. Next work-machine run on feat/bounded-operand-example-pc
+measures how many of the 868 cases it resolves; compare counts before claiming
+all are covered. No timer values or behavior are inferred. Do not infer that all 868 have
 the same syntax from one example, and do not require invented-only evidence for
 this authorized bounded sample. No full rung or surrounding plant context is added.
 Continue work already authorized in the active session; stop for a decision
@@ -264,8 +272,8 @@ Tyler clarified confidentiality on 2026-10-13: unit reconstruction with data
 values, or more than 2% rung knowledge. Aggregate summaries contain no individual
 rung logic or process values and are approved for sync in public/inspection/.
 The current requirement for manual report review/publication controls the runner;
-it does not change which aggregate fields are approved for sharing. New source/reference
-aggregates use schemas 3/2 with policy 2. The validator retains the preceding
+it does not change which aggregate fields are approved for sharing. Current source/reference
+aggregates use schemas 3/4 with policy 2 (the earlier module slice used 3/2). The validator retains the preceding
 source schema 2 and reference schema 1 with its schema-2 source; hybrid versions
 are rejected. Already-generated v1 source summaries remain historical feedback.
 The full `inspect` output still stays private. Read D026 and the current handoff.

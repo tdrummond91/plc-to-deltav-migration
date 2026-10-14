@@ -71,7 +71,7 @@ class ModuleSummaryTests(unittest.TestCase):
         report = build_reference_summary(inventory, analyze_references(inventory), revision=REVISION)
         source = report['source_summary']
         self.assertEqual((source['schema_version'], source['parser_version']), (3, 'source-inventory-2'))
-        self.assertEqual((report['schema_version'], report['analyzer_version']), (3, 'source-references-2'))
+        self.assertEqual((report['schema_version'], report['analyzer_version']), (4, 'source-references-3'))
         expected = {'module_ports': 2, 'module_connections': 3, 'module_input_tags': 3,
                     'module_output_tags': 1, 'module_config_tags': 1}
         self.assertEqual({key: source['counts'][key] for key in expected}, expected)

@@ -1,8 +1,16 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. This remains Phase 1:
+Use **main** for the consolidated baseline. The current timer follow-up is on
+**feat/bounded-operand-example-pc**; stay on that branch for its next check. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
+
+Current returned evidence: `349ee29` tested `2851dbd`, passed 166 application
+cases (one skip) and 139 helpers, and returned `?` at TON argument 1. The new
+reference schema 4 recognizes only the bounded timer slots. The next check
+will measure the change in the 868 malformed occurrences; see
+[TIMER_PLACEHOLDER_REVIEW.md](TIMER_PLACEHOLDER_REVIEW.md) for conditional counts.
+The work-check envelope remains schema 2 with nested source schema 3.
 
 ## Manual runs
 
@@ -120,7 +128,9 @@ Interpret the reference counters as follows:
 - `unsupported_instruction`, `unsupported_expression`, `unsupported_address`:
   private evidence was retained but this slice did not interpret it.
 - `alias_cycle`, `alias_depth_limit`: alias traversal could not complete.
-- `literal` and `non_data`: recognized values/label positions, without tag links.
+- `literal`: recognized literal values, without tag links.
+- `non_data`: labels and recognized timer placeholders, without tag links. A
+  timer placeholder supplies no value and does not validate timer configuration.
 
 Manual commands remain available in the [Python README](../../../python-parser/README.md).
 See [runner implementation and validation](WORK_CHECK_RUNNER_REVIEW.md) for the
@@ -133,10 +143,12 @@ Actual names, topology and per-reference detail remain in the private reports.
 See [module/I/O review](MODULE_IO_REVIEW.md) for comparison targets and
 [listener operation](FEEDBACK_LISTENER.md) for its local status controls.
 
-The report returned in `46467af` confirms the previous reference schema 3 results:
-all 868 malformed operands are `other_form`. The next run adds one actual
-operand example under schema 2 to guide investigation; the count summaries and
-parser recognition do not change. See [bounded sample review](BOUNDED_OPERAND_SAMPLE_REVIEW.md).
+The report returned in `349ee29` confirms the previous reference schema 3 counts:
+all 868 malformed operands are `other_form`. It supplies `?` at TON argument 1.
+The next run uses reference schema 4 to measure the new timer-slot recognition.
+Each recognized slot moves from malformed/unsupported-address to `non_data`;
+do not assume all 868 move until the report returns. The outer work-check stays
+schema 2. See [timer review](TIMER_PLACEHOLDER_REVIEW.md) for the expected comparison.
 These seven closed counters partition the malformed-address operand total;
 they do not change parsing or binding. Alias-target failures have their own
 bucket, and direct spellings are grouped by fixed precedence. Those counters

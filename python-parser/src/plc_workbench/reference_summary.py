@@ -49,14 +49,21 @@ V2_CONSTANTS = LEGACY_CONSTANTS | {
     'exporter_version': 'reference-summary-2',
     'analyzer_version': 'source-references-2',
 }
-CONSTANTS = V2_CONSTANTS | {
+V3_CONSTANTS = V2_CONSTANTS | {
     'schema_version': 3,
     'exporter_version': 'reference-summary-3',
+}
+CONSTANTS = V3_CONSTANTS | {
+    'schema_version': 4,
+    'exporter_version': 'reference-summary-4',
+    'analyzer_version': 'source-references-3',
 }
 _CORE_CONSTANTS = {key: V2_CONSTANTS[key] for key in (
     'schema_version', 'analyzer_version', 'analysis_scope', 'semantic_analysis',
     'effect_analysis', 'member_validation',
 )}
+# Private record layout stays at v2; timer slot recognition changes the analyzer.
+_CORE_CONSTANTS['analyzer_version'] = CONSTANTS['analyzer_version']
 _COVERAGE_KEYS = frozenset({'rungs_total', 'rungs_analyzed', 'instructions_total',
                             'instructions_catalogued'})
 _CORE_COVERAGE_KEYS = _COVERAGE_KEYS | {
@@ -317,12 +324,12 @@ def _validate(summary: dict[str, Any]) -> None:
     if type(summary) is not dict:
         _invalid()
     version = summary.get('schema_version')
-    if type(version) is not int or version not in {1, 2, 3}:
+    if type(version) is not int or version not in {1, 2, 3, 4}:
         _invalid()
     legacy = version == 1
     _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'}
           | (set() if legacy else {'module_io'}))
-    _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: CONSTANTS}[version])
+    _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS, 4: CONSTANTS}[version])
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
         _invalid()
     source = summary['source_summary']
@@ -348,7 +355,7 @@ def _validate(summary: dict[str, Any]) -> None:
         _invalid()
     for name, allowed in (('aliases', ALIAS_STATUSES), ('operands', OPERAND_STATUSES)):
         group = summary[name]
-        has_shapes = version == 3 and name == 'operands'
+        has_shapes = version in {3, 4} and name == 'operands'
         _keys(group, {'total', 'by_status'} | (set() if legacy else {'by_reason'})
               | ({'malformed_address_shapes'} if has_shapes else set()))
         _count(group['total'])

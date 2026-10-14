@@ -356,6 +356,7 @@ class ReferenceTests(unittest.TestCase):
         result = analyze_references(source)
         changes = [
             {'schema_version': True}, {'analyzer_version': 'PRIVATE_UNKNOWN_VERSION'},
+            {'analyzer_version': 'source-references-2'},
             {'semantic_analysis': 'implemented'}, {'effect_analysis': 'implemented'},
             {'member_validation': 'implemented'}, {'analysis_scope': 'everything'},
             {'status': 'partial'}, {'operands': tuple(result.operands)},

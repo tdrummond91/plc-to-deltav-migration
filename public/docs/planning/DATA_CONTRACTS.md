@@ -1,6 +1,6 @@
 # Data contracts, traceability, and checkpoints
 
-Status: updated 2026-10-13. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
+Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
 ## Work-machine feedback schema 2 (2026-10-14)
 
@@ -11,13 +11,36 @@ integer `argument_index`, and one exact printable `raw_text` operand of at most
 128 characters. It is generated from validated direct-malformed references in
 the captured snapshot; alias failures and non-address roles are excluded.
 Failed/unrun analysis requires null. A sample must reconcile with a positive
-direct-malformed count and an observed instruction opcode in reference schema 3.
+direct-malformed count and an observed instruction opcode in reference schema 3 or 4.
+Schema 4 rejects known timer placeholders as mystery samples; schema 3 retains
+its original interpretation for historical feedback.
 
 Tyler authorized this one actual operand to investigate otherwise unidentified
 syntax. No rung/source identifiers, surrounding logic or other values are added.
-Source/reference summaries remain count-only at schemas 3/3. Work-check schema 1
+Source/reference summaries remain count-only at current schemas 3/4. Work-check schema 1
 still validates under its exact original keys and cannot contain a sample. The
 publication limit remains 32 KiB. See the [review and limits](../reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md).
+
+## Timer recognition update (2026-10-14)
+
+Private reference schema remains 2; the current analyzer is `source-references-3`.
+For valid three-argument TON/TOF/RTO signatures, exact trimmed `?` in slots 1/2
+is `non_data` for address lookup. Raw text and occurrence links remain intact.
+This supplies no timer value and validates no configuration, datatype or effect.
+Other roles and alias targets retain their prior handling. The ordinary address
+grammar is unchanged. Current canonical validation requires the new analyzer;
+this is not an editable import/migration path for saved private runs.
+
+Public reference schema 4 / `reference-summary-4` records `source-references-3`
+with the same fields as schema 3. Private manifest schema 2, source aggregate
+schema 3 and work-check schema 2 remain unchanged. Public readers accept exact
+reference schemas 1/2/3/4, including their original analyzer constants, and
+work-check schemas 1/2. Non-null work samples require reference schema 3 or 4.
+No sample field is added to count-only reference summaries. See
+[the timer evidence and validation](../reviews/TIMER_PLACEHOLDER_REVIEW.md).
+
+The following v2/v3 sections preserve their original behavior and provenance;
+this update supersedes their statements about the current analyzer/exporter.
 
 ## Implemented root-reference analysis v2 (2026-10-13)
 

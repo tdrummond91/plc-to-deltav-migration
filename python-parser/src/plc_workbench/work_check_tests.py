@@ -42,7 +42,7 @@ WORK_MACHINE_MODULES = {
         "test_address_shape_summary", "test_cli", "test_diagnostic_sample", "test_module_io",
         "test_module_references", "test_module_source", "test_module_summary",
         "test_reference_summary", "test_references", "test_source", "test_storage",
-        "test_summary", "test_summary_output",
+        "test_summary", "test_summary_output", "test_timer_placeholders",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

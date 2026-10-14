@@ -22,7 +22,7 @@ from uuid import uuid4
 
 from .diagnostic_sample import build_diagnostic_sample, validate_diagnostic_sample
 from .reference_summary import build_reference_summary, validate_reference_summary
-from .references import analyze_references
+from .references import _timer_placeholder, analyze_references
 from .source import analyze_snapshot, capture_snapshot
 from .storage import save_run
 from .work_check_tests import unavailable_result, validate_test_result
@@ -114,10 +114,15 @@ def validate_work_check_report(report: Any) -> None:
             if analysis["status"] != "partial":
                 _invalid()
             nested = analysis["reference_summary"]
+            # Keep historical samples readable under their original analyzer,
+            # but a current report cannot label a recognized slot as malformed.
+            if nested["schema_version"] == 4 and _timer_placeholder(
+                    sample["opcode"], sample["argument_index"], sample["raw_text"]):
+                _invalid()
             operands = nested["operands"]
             # Samples are direct operands, never a caller hiding an alias-target
-            # failure. Version 3's histogram provides that reconciliation.
-            if (nested["schema_version"] != 3
+            # failure. Schemas 3 and 4 carry the required shape histogram.
+            if (nested["schema_version"] not in {3, 4}
                     or operands["by_reason"]["unsupported_address"]["malformed_address"]
                     <= operands["malformed_address_shapes"]["alias_target_failure"]
                     or nested["source_summary"]["instructions"]["counts"].get(sample["opcode"], 0) == 0):

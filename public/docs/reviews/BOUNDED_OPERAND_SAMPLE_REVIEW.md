@@ -93,3 +93,13 @@ The new tests exercise deterministic selection, alias/role exclusion, bounds,
 single-operand grammar, forged-reference rejection, unchanged count-only output,
 null/failure cases, schema compatibility, exact sample publication and captured
 snapshot reuse. The selected suite still runs under its process/network guard.
+
+## Returned sample and follow-up (2026-10-14)
+
+Report `work-check-20261014T075024Z-a11d87b8.json`, returned in `349ee29`,
+tested clean `2851dbd`: 166 application cases (one skip) and all 139 helpers
+passed. Aggregate counts match the prior report except code revision. The sample
+is `?` at TON argument 1. The preceding request to obtain that sample is complete.
+See [the timer follow-up](TIMER_PLACEHOLDER_REVIEW.md) for the narrow recognition
+rule, version change, tests and next measurement. One sample does not prove all
+868 malformed occurrences share this syntax.

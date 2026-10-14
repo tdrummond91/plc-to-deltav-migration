@@ -88,7 +88,7 @@ class ReferenceResult:
     coverage: dict[str, str | int]
     status: str
     schema_version: int = 2
-    analyzer_version: str = 'source-references-2'
+    analyzer_version: str = 'source-references-3'
     analysis_scope: str = 'scoped_root_bindings'
     semantic_analysis: str = 'not_implemented'
     effect_analysis: str = 'not_implemented'
@@ -277,6 +277,11 @@ class _Resolver:
         return _binding('root_bound', first_id, symbol.id, suffix, chain)
 
 
+def _timer_placeholder(opcode: str, argument_index: int, raw_text: str) -> bool:
+    """Identify a non-address timer slot; callers must check the signature first."""
+    return opcode.upper() in {'TON', 'TOF', 'RTO'} and argument_index in {1, 2} and raw_text.strip() == '?'
+
+
 def analyze_references(inventory: InventoryResult) -> ReferenceResult:
     """Bind explicit catalogued operand roots to snapshot declaration IDs.
 
@@ -343,6 +348,11 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
                     binding = _binding('non_data')
                 elif instruction.opcode.upper() == 'CPT' and index == 1:
                     binding = _binding('unsupported_expression')
+                elif _timer_placeholder(instruction.opcode, index, value):
+                    # This is an exported lexical placeholder in a timer's
+                    # preset/accumulated slot, not a tag or an inferred value.
+                    # Arity and the timer-root slot remain separately checked.
+                    binding = _binding('non_data')
                 elif _literal(value):
                     binding = _binding('literal')
                 else:

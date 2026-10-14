@@ -56,7 +56,9 @@ def earlier_summary(current: dict, version: int) -> dict:
     """Represent this no-module invented input using the previous public contracts."""
     report = deepcopy(current)
     report.update(schema_version=version, exporter_version=f'reference-summary-{version}')
-    del report['operands']['malformed_address_shapes']
+    report['analyzer_version'] = 'source-references-1' if version == 1 else 'source-references-2'
+    if version in (1, 2):
+        del report['operands']['malformed_address_shapes']
     if version == 1:
         report['analyzer_version'] = 'source-references-1'
         del report['module_io']
@@ -153,7 +155,7 @@ class AddressShapeSummaryTests(unittest.TestCase):
             self.assertIsNone(row['symbol_id'])
             self.assertIsNone(row['target_id'])
         self.assertEqual(report['status'], 'partial')
-        self.assertEqual((references.schema_version, references.analyzer_version), (2, 'source-references-2'))
+        self.assertEqual((references.schema_version, references.analyzer_version), (2, 'source-references-3'))
         self.assertEqual(source.to_dict(), source_before)
         self.assertEqual(references.to_dict(), references_before)
 
@@ -165,7 +167,7 @@ class AddressShapeSummaryTests(unittest.TestCase):
         self.assertEqual(report['operands']['total'], 0)
         self.assertEqual(report['status'], 'complete')
         self.assertEqual((report['schema_version'], report['exporter_version'], report['analyzer_version']),
-                         (3, 'reference-summary-3', 'source-references-2'))
+                         (4, 'reference-summary-4', 'source-references-3'))
         self.assertEqual(report['source_summary']['schema_version'], 3)
 
     def test_renaming_values_and_rung_order_do_not_reveal_private_details(self) -> None:
@@ -238,12 +240,12 @@ class AddressShapeSummaryTests(unittest.TestCase):
 
     def test_legacy_versions_validate_without_inventing_shape_evidence(self) -> None:
         current = summary(inventory(['XIC(#A);']))
-        for version in (1, 2):
+        for version in (1, 2, 3):
             report = earlier_summary(current, version)
             with self.subTest(version=version):
                 validate_reference_summary(report)
                 self.assertEqual(json.loads(render_reference_summary(report)), report)
-                self.assertNotIn('malformed_address_shapes', report['operands'])
+                self.assertEqual('malformed_address_shapes' in report['operands'], version == 3)
                 validate_work_check_report(work_report(report))
 
     def test_version_hybrids_and_shape_fields_on_legacy_reports_are_rejected(self) -> None:
@@ -254,7 +256,7 @@ class AddressShapeSummaryTests(unittest.TestCase):
             with self.subTest(version=version), self.assertRaises(ReferenceSummaryError):
                 validate_reference_summary(report)
         for replacement in ({'schema_version': 2}, {'exporter_version': 'reference-summary-2'},
-                            {'analyzer_version': 'source-references-3'}, {'schema_version': True},
+                            {'analyzer_version': 'source-references-2'}, {'schema_version': True},
                             {'source_summary': earlier_summary(current, 1)['source_summary']}):
             report = deepcopy(current)
             report.update(replacement)

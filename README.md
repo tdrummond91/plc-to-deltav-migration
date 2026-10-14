@@ -1,6 +1,6 @@
 # PLC analysis workbench
 
-Status: updated 2026-10-14. The baseline includes source inventory, module/I/O declarations, conservative module-root naming, scoped tag/alias bindings and address-shape diagnostics. Phase 1 remains in progress. The report returned in `46467af` validates the local commit workflow and unchanged parser counts. Work-check schema 2 adds one user-authorized actual mystery-operand example to investigate the remaining unknown syntax. See [bounded sample evidence](public/docs/reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md). The editor, engineering interpretation, PCSD and FHX stages remain planned.
+Status: updated 2026-10-14. Phase 1 remains in progress: source inventory, module/I/O declarations, scoped tag/alias bindings and syntax diagnostics. The report returned in `349ee29` identifies `?` in TON's preset slot. A narrow timer-placeholder rule is now implemented on `feat/bounded-operand-example-pc`; the next work-machine report will measure how many of the 868 malformed occurrences it resolves. See [timer evidence and limits](public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md). The editor, engineering interpretation, PCSD and FHX stages remain planned.
 
 The development listener remains disabled and paused. Manual work-machine checks
 automatically commit the validated feedback report locally; fetching, pulling

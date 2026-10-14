@@ -39,11 +39,17 @@ do not establish that the source project has an invalid tag.
 
 Private inventory schema 2 (`source-inventory-2`) adds module ports, ordinary
 connections and input/output/configuration tag records without changing ordinary
-tag/alias totals. Reference schema 2 (`source-references-2`) adds those three I/O
+tag/alias totals. Reference schema 2 (now `source-references-3`) includes those three I/O
 symbol kinds and a fixed `reason` on unresolved/unsupported-address bindings.
 Reasons distinguish missing declared roots, qualified or dynamic addresses and
 other bounded syntax gaps; they do not claim to identify every gap's engineering
 cause. Raw declarations remain separate from inferred names.
+
+Analyzer `source-references-3` recognizes exact trimmed `?` only in the preset
+and accumulator slots (1/2) of valid three-argument TON/TOF/RTO instructions.
+These are `non_data` for root lookup; original text is preserved. No timer values,
+types, configuration or effects are validated. Root slots, aliases and other
+instructions keep their existing gap handling. See [the timer review](../public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md).
 
 Both text and JSON reports are private. The workspace option creates a NEW run
 containing the existing snapshot/inventory/overview, plus `references.json` and
@@ -63,13 +69,13 @@ reason counts, module naming origins/unavailable reasons, analysis coverage and
 a nested schema-3 `source_summary`. Code provenance is
 `source_summary.tool_revision`. It contains no names, values, source identities
 or individual reference links. Its report kind is `l5x_reference_review_summary`,
-schema 3, policy 2, exporter `reference-summary-3`, analyzer `source-references-2`.
+schema 4, policy 2, exporter `reference-summary-4`, analyzer `source-references-3`.
 `operands.malformed_address_shapes` partitions only malformed-address occurrences
 into seven fixed observational buckets, including a separate alias-target bucket.
 The diagnostic does not change address recognition or binding. See the
 [address-shape contract](../public/docs/reviews/ADDRESS_SHAPE_REVIEW.md).
 The validator also accepts reference schema 1/source schema 2 and reference
-schema 2/source schema 3; mixed version combinations are rejected.
+schemas 2 and 3/source schema 3; mixed version combinations are rejected.
 The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
 
@@ -172,12 +178,13 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema 2 and carries reference schema 3 with source
+The outer report is schema 2 and carries reference schema 4 with source
 schema 3 when analysis succeeds. Historical schema-1 reports remain readable. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
-`46467af` validated the local report-commit workflow. A new run with schema 2
-will return the one operand example needed to investigate unknown syntax.
+`46467af` validated the local report-commit workflow. The later report in `349ee29`
+returned `?` at TON argument 1. The next run measures the new timer rule; known
+placeholders are skipped when choosing a remaining mystery sample.
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in

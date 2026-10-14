@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. The returned report in `46467af` validates the workflow and unchanged parser counts. Work-check schema 2 adds one authorized actual mystery operand to identify the remaining syntax. See [bounded sample review](docs/reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `349ee29` tested `2851dbd` and identified `?` at TON argument 1. The narrow timer-placeholder fix is implemented on `feat/bounded-operand-example-pc`; await the next work-machine report before claiming how many of the 868 occurrences it resolves. Read [timer evidence and limits](docs/reviews/TIMER_PLACEHOLDER_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -96,25 +96,37 @@ Full development unittest discovery remains available. Schema-1 reports remain
 readable; schema 2 adds the bounded sample. Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
-The latest report is `public/inspection/work-check-20261014T072717Z-4d71aaff.json`,
-returned in `46467af`, testing clean `bd846fa`. It validates, reports 152
-application cases (one skip) and 139 helper cases with no failures, and records
-partial analysis with a private run saved. The report-only commit's parent is
-the tested revision. All source/reference data match the preceding report except
-the code revision: 868 malformed operand occurrences are still `other_form`.
+The latest report is `public/inspection/work-check-20261014T075024Z-a11d87b8.json`,
+returned in `349ee29`, testing clean `2851dbd`. It validates, reports 166
+application cases (one skip) and 139 helper cases with no failures/errors, and
+records partial analysis with a private run saved. The report-only commit's
+parent is the tested revision. All source/reference counts match the preceding
+report except code revision: 868 malformed operands remain `other_form`. The
+authorized sample is exactly `?` at TON argument 1.
 
-Tyler clarified that an actual individual mystery operand does not reconstruct
-the unit and fits the sharing boundary. Do not require invented-only examples or
-further approval for this authorized sample. Work-check schema 2 includes one
-nullable `diagnostic_sample`: standard opcode, zero-based argument position and
-at most 128 printable characters of exact operand text. It selects the first
-eligible direct malformed occurrence deterministically from validated records.
-It includes no full rung, location/IDs, neighbors or other values. Count-only
-source/reference summaries and parser recognition remain unchanged. Next action:
-run the ordinary work check and push the report manually so the example can guide
-a bounded parser fix. See [contract and evidence](docs/reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md).
+The new analyzer recognizes trimmed `?` only in preset/accumulator slots of
+valid three-argument TON/TOF/RTO instructions as `non_data` for root lookup.
+Raw text is preserved; timer settings and effects are unverified. Private
+reference schema stays 2 with `source-references-3`; public reference schema is
+4 with source schema 3; work-check schema stays 2. Historical public reports
+remain readable. See [timer review](docs/reviews/TIMER_PLACEHOLDER_REVIEW.md).
 
-Sample validation: 259 application/workflow tests passed (one existing symlink
+Tyler authorized one actual mystery operand; no further approval or invented-only
+restriction applies to this sample. Work-check schema 2 still includes at most
+128 printable characters, a standard opcode and zero-based position, without
+rung/location IDs or neighbors. Known timer placeholders are skipped. Next:
+pull this branch on the work machine, run the check and manually push its locally
+committed report. Compare the disposition changes before generalizing to all
+868 occurrences. Count-only source/reference summaries remain count-only.
+
+Timer-fix validation: 273 application/workflow tests passed (one symlink skip),
+with listener tests excluded. Two real temporary-checkout CLI runs each passed
+177 selected application and 139 helper cases, validated null/remaining-gap
+samples, preserved private raw slots and made report-only local commits. All six
+stored work reports validate unchanged. Independent review confirmed no remaining
+blockers. Details and reproducible commands are in the timer review above.
+
+Historical sample validation: 259 application/workflow tests passed (one existing symlink
 skip), with listener tests excluded. Two temporary-checkout CLI runs passed
 166 selected application and 139 helper tests each, emitted the same one sample,
 committed only their report, and preserved the source and prior outputs. All

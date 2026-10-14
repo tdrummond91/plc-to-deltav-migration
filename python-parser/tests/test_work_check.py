@@ -129,9 +129,31 @@ class ReportTests(unittest.TestCase):
 
 
 class DiagnosticReportTests(unittest.TestCase):
+    def test_returned_schema3_timer_sample_remains_readable_unchanged(self) -> None:
+        path = Path(__file__).resolve().parents[2] / "public/inspection/work-check-20261014T075024Z-a11d87b8.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(payload["analysis"]["reference_summary"]["schema_version"], 3)
+        self.assertEqual(payload["diagnostic_sample"], {
+            "kind": "direct_malformed_operand", "opcode": "TON", "argument_index": 1, "raw_text": "?",
+        })
+        self.assertEqual(json.loads(work_check.render_work_check_report(payload)), payload)
+
+    def test_current_analysis_excludes_timer_placeholders_from_sample(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            source = root / "toy.L5X"
+            source.write_bytes(SOURCE.replace(b"NOP();", b"TON(ToyTimer,?,?);"))
+            result = work_check._analyze(root, source, root, {"commit": COMMIT, "worktree": "clean"})
+            self.assertIsNone(result["diagnostic_sample"])
+            nested = result["reference_summary"]
+            self.assertEqual(nested["schema_version"], 4)
+            self.assertEqual(nested["analyzer_version"], "source-references-3")
+            self.assertEqual(nested["operands"]["by_status"]["non_data"], 2)
+            self.assertEqual(nested["operands"]["by_reason"]["unsupported_address"]["malformed_address"], 0)
+
     def sample_report(self) -> dict:
         from plc_workbench.diagnostic_sample import build_diagnostic_sample
-        inventory = analyze_snapshot(snapshot_from_bytes(SOURCE.replace(b"NOP();", b"TON(ToyTimer,?,?);")))
+        inventory = analyze_snapshot(snapshot_from_bytes(SOURCE.replace(b"NOP();", b"TON(ToyTimer,Preset?,?);")))
         references = analyze_references(inventory)
         nested = build_reference_summary(inventory, references, revision={"commit": COMMIT, "worktree": "clean"})
         payload = report()
@@ -143,11 +165,24 @@ class DiagnosticReportTests(unittest.TestCase):
     def test_v2_sample_round_trips_through_publication(self) -> None:
         from plc_workbench.summary_output import publish_summary
         payload = self.sample_report()
-        self.assertEqual(payload["diagnostic_sample"]["raw_text"], "?")
+        self.assertEqual(payload["diagnostic_sample"]["raw_text"], "Preset?")
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder) / "report.json"
             publish_summary(output, work_check.render_work_check_report(payload), input_path=Path(folder) / "toy.L5X")
             self.assertEqual(json.loads(output.read_text()), payload)
+
+    def test_schema4_rejects_recognized_timer_sample_despite_other_malformed_operands(self) -> None:
+        for raw in ("?", " ? "):
+            for index in (1, 2):
+                payload = self.sample_report()
+                payload["diagnostic_sample"].update(raw_text=raw, argument_index=index)
+                with self.subTest(raw=raw, index=index), self.assertRaises(ValueError):
+                    work_check.validate_work_check_report(payload)
+                # Same vocabulary was legitimately malformed under analyzer 2.
+                nested = payload["analysis"]["reference_summary"]
+                nested.update(schema_version=3, exporter_version="reference-summary-3",
+                              analyzer_version="source-references-2")
+                work_check.validate_work_check_report(payload)
 
     def test_v1_and_v2_null_sample_are_supported_without_rewriting_history(self) -> None:
         legacy = report()
@@ -191,12 +226,12 @@ class DiagnosticReportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve()
             source = root / "toy.L5X"
-            source.write_bytes(SOURCE.replace(b"NOP();", b"TON(ToyTimer,?,?);"))
+            source.write_bytes(SOURCE.replace(b"NOP();", b"TON(ToyTimer,Preset?,?);"))
             with patch.object(work_check, "capture_snapshot", wraps=work_check.capture_snapshot) as capture:
                 result = work_check._analyze(root, source, root, {"commit": COMMIT, "worktree": "clean"})
             capture.assert_called_once_with(source)
             self.assertEqual(result["diagnostic_sample"], {
-                "kind": "direct_malformed_operand", "opcode": "TON", "argument_index": 1, "raw_text": "?",
+                "kind": "direct_malformed_operand", "opcode": "TON", "argument_index": 1, "raw_text": "Preset?",
             })
             self.assertNotIn("ToyTimer", json.dumps(result))
 
