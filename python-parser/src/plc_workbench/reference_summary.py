@@ -65,10 +65,15 @@ V5_CONSTANTS = V4_CONSTANTS | {
     'exporter_version': 'reference-summary-5',
     'analyzer_version': 'source-references-4',
 }
-CONSTANTS = V5_CONSTANTS | {
+V6_CONSTANTS = V5_CONSTANTS | {
     'schema_version': 6,
     'exporter_version': 'reference-summary-6',
     'analyzer_version': 'source-references-5',
+}
+CONSTANTS = V6_CONSTANTS | {
+    'schema_version': 7,
+    'exporter_version': 'reference-summary-7',
+    'analyzer_version': 'source-references-6',
 }
 _CORE_CONSTANTS = {key: V2_CONSTANTS[key] for key in (
     'schema_version', 'analyzer_version', 'analysis_scope', 'semantic_analysis',
@@ -409,13 +414,13 @@ def _validate(summary: dict[str, Any]) -> None:
     if type(summary) is not dict:
         _invalid()
     version = summary.get('schema_version')
-    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6}:
+    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6, 7}:
         _invalid()
     legacy = version == 1
     _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'}
           | (set() if legacy else {'module_io'}) | ({'rack_candidates'} if version >= 5 else set()))
     _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS,
-                         4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: CONSTANTS}[version])
+                         4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: V6_CONSTANTS, 7: CONSTANTS}[version])
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
         _invalid()
     source = summary['source_summary']
@@ -439,7 +444,7 @@ def _validate(summary: dict[str, Any]) -> None:
             or symbols['unnamed'] > symbols['total']
             or 2 * symbols['ambiguous_groups'] > symbols['total'] - symbols['unnamed']):
         _invalid()
-    operand_statuses = OPERAND_STATUSES if version == 6 else LEGACY_OPERAND_STATUSES
+    operand_statuses = OPERAND_STATUSES if version >= 6 else LEGACY_OPERAND_STATUSES
     for name, allowed in (('aliases', ALIAS_STATUSES), ('operands', operand_statuses)):
         group = summary[name]
         has_shapes = version >= 3 and name == 'operands'
@@ -493,7 +498,7 @@ def _validate(summary: dict[str, Any]) -> None:
             or coverage['instructions_catalogued'] > coverage['instructions_total']
             or operands['total'] != source['ladder_metrics']['totals']['argument_slots']):
         _invalid()
-    if version == 6:
+    if version >= 6:
         system_flags = operands['by_status']['system_flag']
         # Source v4 preserves opcode spelling and publishes only exact uppercase
         # vocabulary. Its withheld bucket can include lowercase contacts, so it

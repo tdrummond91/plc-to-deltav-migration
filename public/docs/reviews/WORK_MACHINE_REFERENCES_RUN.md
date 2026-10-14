@@ -1,6 +1,6 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. The next first-scan classification check is on
+Use **main** for the consolidated baseline. The next calculation-signature check is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
@@ -15,13 +15,20 @@ Rack evidence: `9597f18` tested `9d159e0`, passed 220 application cases
 and 319 alias-mediated occurrences have unique candidates. One direct operand
 has no candidate. Ordinary bindings remain unchanged; backing maps are unverified.
 
-Latest returned evidence: `7f5db96` tested `84dc393`, passed 241 application cases
+The address report: `7f5db96` tested `84dc393`, passed 241 application cases
 (one skip) and 139 helpers, and supplied `S:FS` at XIC argument 0. Other aggregate
 counts equal the preceding rack report. This is the built-in First Scan flag.
-The next check uses work-check schema 4 and reference/source schemas 6/4. Expect
-one `system_flag`, unresolved operands 320 to 319, direct rack comparisons 1 to 0,
-and a null diagnostic sample. Alias candidate matches and root bindings should
-stay unchanged. See [the implementation and evidence](SYSTEM_FLAG_REVIEW.md).
+Latest returned evidence: `d247f87` tested `d64ee4d`, passed 269 application cases
+(one skip) and 139 helpers. It confirms one `system_flag`, unresolved operands
+320 to 319, direct rack comparisons 1 to 0 and sample null. Other counters stay
+unchanged. No repeat flag-only run is needed; see [the confirmed review](SYSTEM_FLAG_REVIEW.md).
+
+The next check uses work-check schema 5 and reference/source schemas 7/4. It
+catalogs ABS/LN/SQR calculation arguments. If all 28 occurrences have the documented
+two-field signatures, expect catalogued instructions 17,563 to 17,591 and
+unsupported instruction slots 653 to 597. New root/literal/gap and alias-mediated
+counts depend on those arguments. Source counts and declarations should stay
+stable. See [the calculation review](MATH_SIGNATURE_REVIEW.md).
 
 ## Manual runs
 
@@ -61,7 +68,7 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 4 and their tested SHA identifies which suite
+check. New reports use schema 5 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces

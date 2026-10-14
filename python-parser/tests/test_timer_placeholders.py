@@ -48,7 +48,7 @@ class TimerPlaceholderTests(unittest.TestCase):
         self.assertEqual(result.coverage["instructions_catalogued"], 3)
         self.assertEqual(result.status, "complete")
         self.assertEqual(result.schema_version, 4)
-        self.assertEqual(result.analyzer_version, "source-references-5")
+        self.assertEqual(result.analyzer_version, "source-references-6")
         self.assertEqual(result.analysis_scope, "scoped_root_bindings")
         for field in ("semantic_analysis", "effect_analysis", "member_validation"):
             self.assertEqual(getattr(result, field), "not_implemented")
@@ -149,7 +149,7 @@ class TimerPlaceholderTests(unittest.TestCase):
                 changed.operands[1].update(mutation)
                 with self.assertRaises(ReferenceError):
                     validate_references(source, changed)
-        for previous in ("source-references-2", "source-references-3"):
+        for previous in ("source-references-2", "source-references-3", "source-references-5"):
             with self.subTest(analyzer_version=previous), self.assertRaises(ReferenceError):
                 validate_references(source, replace(result, analyzer_version=previous))
 

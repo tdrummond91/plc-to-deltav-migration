@@ -3,6 +3,24 @@
 Date: 2026-10-14. Branch: `feat/bounded-operand-example-pc`.
 Returned baseline: `7f5db96`, testing clean `84dc393`.
 
+## Confirmed work-machine result
+
+[The follow-up report](../../inspection/work-check-20261014T191741Z-2009d02d.json)
+returned in `d247f87`, testing clean `d64ee4d`, confirms this fix. All 269 selected
+application cases (one skip) and 139 helpers passed, with no failures/errors.
+Its commit changes only the report, has the tested revision as parent and records
+a saved private run. Work/reference/source versions are 4/6/4.
+
+Exactly the predicted evidence changes: system_flag is 1, unresolved operands
+fall 320 to 319 (also the unresolved colon reason), direct rack comparisons and
+their no-candidate count fall 1 to 0, and the diagnostic sample is null. Root
+bindings, alias/rack candidate counts, source counts and all other reference
+counters are unchanged. Full comparison excludes only the intentional contract
+metadata and code revision. This confirms classification without proving source
+byte identity or runtime first-scan behavior. No repeat flag-only check is needed.
+The following slice is [basic calculation signatures](MATH_SIGNATURE_REVIEW.md);
+the implementation/version/test sections below preserve this flag checkpoint.
+
 ## Returned evidence and interpretation
 
 [The returned work report](../../inspection/work-check-20261014T183844Z-26f5b84a.json)
@@ -130,7 +148,7 @@ validation. No project confidential input or listener execution was used.
 All 42 relative Markdown links in changed documentation resolve, and
 `git diff --check` passes. Historical report files remain untouched.
 
-For the same export, the next report should show system_flag=1, unresolved
+The original prediction, now confirmed above, was system_flag=1, unresolved
 operands 320 to 319, direct rack comparisons 1 to 0, and a null diagnostic sample.
 Root-bound operands (20,178), unresolved aliases (99), their unique rack matches
 (99), and alias-mediated candidate matches (319) should stay unchanged. All

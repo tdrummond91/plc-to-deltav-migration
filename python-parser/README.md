@@ -41,13 +41,13 @@ do not establish that the source project has an invalid tag.
 
 Private inventory schema 3 (`source-inventory-3`) includes module ports, ordinary
 connections, input/output/configuration tags and dedicated rack declarations
-without changing ordinary tag/alias totals. Reference schema 4 (`source-references-5`) includes the three ordinary I/O
+without changing ordinary tag/alias totals. Reference schema 4 (`source-references-6`) includes the three ordinary I/O
 symbol kinds and a fixed `reason` on unresolved/unsupported-address bindings.
 Reasons distinguish missing declared roots, qualified or dynamic addresses and
 other bounded syntax gaps; they do not claim to identify every gap's engineering
 cause. Raw declarations remain separate from inferred names.
 
-Analyzer `source-references-5` retains recognition of exact trimmed `?` only in the preset
+Analyzer `source-references-6` retains recognition of exact trimmed `?` only in the preset
 and accumulator slots (1/2) of valid three-argument TON/TOF/RTO instructions.
 These are `non_data` for root lookup; original text is preserved. No timer values,
 types, configuration or effects are validated. Root slots, aliases and other
@@ -59,6 +59,13 @@ with no declared-tag link. Raw evidence is preserved; aliases, suffixes, other
 instructions and other `S:` names keep their existing handling. This does not
 model initialization effects or when the flag is true. See
 [the system-flag review](../public/docs/reviews/SYSTEM_FLAG_REVIEW.md).
+
+Valid two-field ABS/LN/SQR instructions now reuse the existing root/literal
+lookup for source and destination arguments. These lexical classifications do
+not validate types, math domains, destination access or runtime behavior;
+recognized destination literals retain the existing catalog policy. Expressions,
+dynamic indices and wrong arity remain gaps. See
+[the calculation review](../public/docs/reviews/MATH_SIGNATURE_REVIEW.md).
 
 The private `rack_candidates` section lists supported individual rack roots and
 compares unresolved colon roots in three populations: aliases, direct operands
@@ -85,7 +92,7 @@ reason counts, module naming origins/unavailable reasons, analysis coverage and
 a nested schema-4 `source_summary`, plus closed rack-candidate counts. Code provenance is
 `source_summary.tool_revision`. It contains no names, values, source identities
 or individual reference links. Its report kind is `l5x_reference_review_summary`,
-schema 6, policy 2, exporter `reference-summary-6`, analyzer `source-references-5`.
+schema 7, policy 2, exporter `reference-summary-7`, analyzer `source-references-6`.
 `operands.by_status.system_flag` counts recognized first-scan contact operands
 separately from ordinary bindings, literals and non-data roles.
 `operands.malformed_address_shapes` partitions only malformed-address occurrences
@@ -93,7 +100,7 @@ into seven fixed observational buckets, including a separate alias-target bucket
 The diagnostic does not change address recognition or binding. See the
 [address-shape contract](../public/docs/reviews/ADDRESS_SHAPE_REVIEW.md).
 The validator also accepts reference schema 1/source schema 2 and reference
-schemas 2/3/4 with source schema 3, and reference 5 with source 4. Historical
+schemas 2/3/4 with source schema 3, and references 5/6 with source 4. Historical
 status vocabularies remain exact; mixed version combinations are rejected.
 The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
@@ -187,7 +194,7 @@ same scope as the work-machine checks.
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. The feedback includes test counts, bounded
 code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 4 includes `diagnostic_sample`: one actual direct malformed
+Work-check schema 5 includes `diagnostic_sample`: one actual direct malformed
 operand, or a direct unresolved colon operand with no rack candidate when no
 eligible malformed sample exists. It retains at most 128 printable characters,
 a standard instruction and zero-based argument position; otherwise it is null.
@@ -202,9 +209,9 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema 4 and carries reference schema 6 with source
-schema 4 when analysis succeeds. Historical schema-1/2/3 reports remain readable;
-schema 3 still requires reference 5. The tested
+The outer report is schema 5 and carries reference schema 7 with source
+schema 4 when analysis succeeds. Historical schema-1/2/3/4 reports remain readable;
+schema 3 requires reference 5 and schema 4 requires reference 6. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
 `46467af` validated the local report-commit workflow. The later report in `349ee29`
@@ -214,13 +221,19 @@ with unchanged root bindings. Both suites passed; no repeat run is needed for
 this fix. Known placeholders are skipped when choosing a remaining mystery sample.
 
 Report `9597f18` confirmed 15 named rack roots, matching all 99 unresolved aliases
-and 319 alias-mediated operands. Report `7f5db96` tested `84dc393`, passed 241
-application cases (one skip) and 139 helpers, and identified the one unmatched
-direct operand as `S:FS` in XIC. Other aggregates stayed unchanged. The next run
-checks the new classification: expected system_flag=1, unresolved operands
-320 to 319, direct rack comparisons 1 to 0 and a null sample. Partial remains
-expected. Logical candidate matches do not validate backing I/O maps or promote
-ordinary bindings.
+and 319 alias-mediated operands. Report `7f5db96` identified the one unmatched
+direct operand as `S:FS` in XIC. Report `d247f87`, testing clean `d64ee4d`, confirms
+its recognition: system_flag=1, unresolved operands 320 to 319, direct rack
+comparisons 1 to 0 and a null sample. All 269 application cases (one skip) and
+139 helpers passed. Other source/reference counters stayed unchanged. No repeat
+flag-only check is needed. Partial remains expected. Logical candidate matches
+do not validate backing I/O maps or promote ordinary bindings.
+
+The next run checks 28 formerly uncatalogued ABS/LN/SQR instructions. If all use
+their documented two-field signatures, expect catalogued instructions 17,563 to
+17,591 and unsupported instruction slots 653 to 597. New root/literal/gap and
+alias-mediated occurrence counts depend on those operands. Source counts and
+declarations should stay stable. Partial remains expected.
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in

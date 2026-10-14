@@ -8,7 +8,7 @@ from pathlib import Path
 import unittest
 
 from plc_workbench.reference_summary import (
-    LEGACY_CONSTANTS, V2_CONSTANTS, V3_CONSTANTS, V4_CONSTANTS, V5_CONSTANTS,
+    LEGACY_CONSTANTS, V2_CONSTANTS, V3_CONSTANTS, V4_CONSTANTS, V5_CONSTANTS, V6_CONSTANTS,
     ReferenceSummaryError, build_reference_summary, render_reference_summary,
     validate_reference_summary,
 )
@@ -36,11 +36,13 @@ def summary(source):
 
 
 def historical_report(current: dict, version: int) -> dict:
-    """Represent the no-module/no-system-flag fixture in each frozen contract."""
+    """Represent a no-module fixture in each frozen contract's vocabulary."""
     result = deepcopy(current)
     result.update({1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS,
-                   4: V4_CONSTANTS, 5: V5_CONSTANTS}[version])
-    del result['operands']['by_status']['system_flag']
+                   4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: V6_CONSTANTS}[version])
+    if version < 6:
+        if result['operands']['by_status'].pop('system_flag') != 0:
+            raise ValueError('Historical fixture cannot downgrade recognized system flags.')
     if version < 5:
         del result['rack_candidates']
         result['source_summary'].update(SOURCE_V3_CONSTANTS)
@@ -65,7 +67,7 @@ class SystemFlagSummaryTests(unittest.TestCase):
         source = inventory('XIC(S:FS)XIO( s:fS )XIC(S:FS);')
         report = summary(source)
         self.assertEqual((report['schema_version'], report['exporter_version'], report['analyzer_version']),
-                         (6, 'reference-summary-6', 'source-references-5'))
+                         (7, 'reference-summary-7', 'source-references-6'))
         self.assertEqual((source.schema_version, report['source_summary']['schema_version']), (3, 4))
         self.assertEqual(report['status'], 'complete')
         self.assertEqual(report['operands']['total'], 3)

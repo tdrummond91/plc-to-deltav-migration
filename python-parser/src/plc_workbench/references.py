@@ -46,6 +46,7 @@ UNSUPPORTED_ADDRESS_REASONS = frozenset({
 _ARITIES = {
     'XIC': 1, 'XIO': 1, 'OTE': 1, 'OTL': 1, 'OTU': 1, 'ONS': 1,
     'MOV': 2, 'ADD': 3, 'SUB': 3, 'MUL': 3, 'DIV': 3,
+    'ABS': 2, 'LN': 2, 'SQR': 2,
     'EQU': 2, 'NEQ': 2, 'LES': 2, 'LEQ': 2, 'GRT': 2, 'GEQ': 2,
     'LIM': 3, 'CLR': 1, 'CPT': 2, 'JMP': 1, 'LBL': 1,
     'TON': 3, 'TOF': 3, 'RTO': 3, 'OSF': 2, 'OSR': 2, 'RES': 1,
@@ -90,7 +91,7 @@ class ReferenceResult:
     status: str
     rack_candidates: dict[str, Any]
     schema_version: int = 4
-    analyzer_version: str = 'source-references-5'
+    analyzer_version: str = 'source-references-6'
     analysis_scope: str = 'scoped_root_bindings'
     semantic_analysis: str = 'not_implemented'
     effect_analysis: str = 'not_implemented'

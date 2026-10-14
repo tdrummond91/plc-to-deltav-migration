@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/MATH_SIGNATURE_REVIEW.md,
 public/docs/reviews/SYSTEM_FLAG_REVIEW.md,
 public/docs/reviews/UNMATCHED_OPERAND_REVIEW.md,
 public/docs/reviews/RACK_CANDIDATE_REVIEW.md,
@@ -45,8 +46,8 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available, excluding the ignored listener
-loader on this development checkout. Work schemas 1/2/3 remain readable. Current
-schema 4 requires reference 6 and retains at most one authorized operand example.
+loader on this development checkout. Work schemas 1/2/3/4 remain readable. Current
+schema 5 requires reference 7 and retains at most one authorized operand example.
 The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
@@ -68,10 +69,10 @@ uv run --project python-parser python -B -m unittest discover \
   -s tools/l5x_inspect/tests -v
 
 Current baseline: 139 passing helper tests. Also run the full development
-application command in SYSTEM_FLAG_REVIEW.md, which explicitly excludes the
+application command in MATH_SIGNATURE_REVIEW.md, which explicitly excludes the
 ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in SYSTEM_FLAG_REVIEW.md;
+Use the final application test count and tested revision in MATH_SIGNATURE_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -133,10 +134,25 @@ public references schema6, work-check schema4; source and manifest are unchanged
 Historical status vocabularies and samples remain readable under their original
 contracts. Current samples reject recognized S:FS even if other gaps remain.
 
-Next inspect the work-machine delta: system_flag=1, unresolved operands 320 to
-319, direct rack comparisons 1 to 0, sample null, with ordinary bindings and
-alias rack candidates unchanged. Partial remains expected. Do not request
-the same address again or reimplement the selector/timer/rack slices.
+Report d247f87 tested clean d64ee4d, passed 269 application cases (one skip) and
+139 helpers, and confirms that delta: system_flag=1, unresolved operands 320 to
+319, direct rack comparisons 1 to 0, sample null, with all other source/reference
+counters unchanged. No repeat flag-only check is needed.
+
+The current slice adds only ABS/LN/SQR two-field source/destination signatures
+to existing lexical reference analysis. Private references stay schema4 with
+analyzer6; public references use schema7; work schema5 requires reference7.
+Source contracts and private manifest layout are unchanged. Public reference6
+and work4/reference6 remain readable under their frozen earlier contracts.
+Read MATH_SIGNATURE_REVIEW.md for exact primary evidence, validation and limits.
+
+Next compare the returned calculation report: if all 28 occurrences have their
+documented two-field signatures, catalogued instructions rise 17563 to 17591
+and unsupported instruction slots fall 653 to 597. Newly analyzed arguments
+determine actual root/literal/gap and alias-mediated rack totals. Source counts
+and declarations should remain stable; partial remains expected. Do not request
+the old address again or reimplement completed slices. Do not infer runtime
+math or valid destination access from lexical literal/root statuses.
 Continue authorized work until a specific evidence gap or phase boundary needs
 Tyler's input. Do not activate the listener or access confidential inputs.
 

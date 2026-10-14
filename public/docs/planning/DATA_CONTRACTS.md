@@ -2,7 +2,25 @@
 
 Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current first-scan system-flag contracts (2026-10-14)
+## Current basic calculation signature contracts (2026-10-14)
+
+Private inventory remains schema 3 / source-inventory-3; private references
+remain schema 4 with analyzer source-references-6. ABS/LN/SQR now have two
+catalogued source/destination fields using the existing lexical lookup rules.
+No private field layout changes. Public reference schema 7 / reference-summary-7
+has the same fields/status vocabulary and source-schema-4 pairing as version 6,
+with the updated analyzer constant. Version 6 is frozen as analyzer 5, including
+its system-flag count bounds. All prior reference contracts remain readable.
+
+Work schema 5 / work-check-5 requires reference 7 after successful analysis.
+Work3/reference5 and work4/reference6 retain exact earlier pairings; work1/2
+retain supported nested-reference handling. Known flags/timer placeholders stay
+excluded from current mystery samples. Source aggregate 4, manifest 2, sharing
+fields, sample bound, output paths and manual pull/push remain unchanged.
+Lexical destination literals do not prove valid destination access, datatype,
+math domain or execution effects. See [scope and validation](../reviews/MATH_SIGNATURE_REVIEW.md).
+
+## First-scan system-flag contract checkpoint (2026-10-14)
 
 Private inventory remains schema 3 / `source-inventory-3`. Private references
 are schema 4 / `source-references-5`; public reference schema 6 /
@@ -25,7 +43,7 @@ actual roles. Alias status keys do not change. Reference schemas 1 through 5
 retain exact old status keys, rejecting even a zero `system_flag` field.
 Reference 1 requires source 2; references 2/3/4 require source 3; 5/6 require 4.
 
-Current work schema 4 / `work-check-4` requires reference 6 after successful
+At this checkpoint, work schema 4 / `work-check-4` requires reference 6 after successful
 analysis. Historical work schema 3 still requires reference 5, including its
 original S:FS mystery sample. Work schemas 1/2 retain their previous acceptance
 of supported nested reference summaries; schema 2 remains malformed-kind only.

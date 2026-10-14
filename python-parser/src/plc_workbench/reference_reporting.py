@@ -29,6 +29,7 @@ def render_reference_text(result: ReferenceResult) -> str:
         f"Analyzer: {payload['analyzer_version']}",
         "Scope: declared root bindings in catalogued ladder operands.",
         "root_bound identifies a declaration; members, array bounds and access are not validated.",
+        "ABS/LN/SQR slots receive lexical root/literal classification; math, domains, types and destination access are not validated.",
         "system_flag identifies the direct S:FS instruction operand in XIC/XIO.",
         "No runtime first-scan value or execution behavior is simulated.",
         "Read/write effects and engineering purpose have not been analyzed.",

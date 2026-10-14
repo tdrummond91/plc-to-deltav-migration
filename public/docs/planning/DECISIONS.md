@@ -111,6 +111,22 @@ coverage before choosing broader expression, module, call or instruction-effect
 analysis. These are implementation choices within the authorized slice, not a
 final PCSD schema or an expansion of the source-sharing policy.
 
+### Basic calculation catalog extension (2026-10-14)
+
+After `d247f87` confirmed first-scan classification, choose ABS/LN/SQR as a
+small Phase 1 reference slice. The returned public histogram contains 28 such
+instructions. Official neutral-text grammar specifies two source/destination
+fields, allowing reuse of the existing lexical catalog without private examples
+or a math-expression parser. Preserve raw evidence and existing literal rules;
+do not imply valid destination access, types, domains or execution behavior.
+
+Version the changed analyzer/catalog and freeze prior public contracts. Verify
+synthetic lookup/publication/persistence and a real work-machine aggregate before
+claiming production counts. Additional alias-mediated occurrence counts may
+appear when formerly unknown slots are analyzed. This is an implementation
+choice within authorized source understanding, not a final loop/class mapping.
+See [scope, primary sources and validation](../reviews/MATH_SIGNATURE_REVIEW.md).
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?

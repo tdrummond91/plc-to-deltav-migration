@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `7f5db96` identifies the remaining direct mystery operand as `S:FS` in XIC. Both suites passed and other aggregates match the prior rack report. The analyzer now recognizes this exact role as `system_flag`, separately from declared tags. The next work-machine check should show one system flag, unresolved operands 320 to 319, direct rack comparisons 1 to 0 and a null sample; rack alias candidates and ordinary root bindings should stay unchanged. Read [implementation and evidence](docs/reviews/SYSTEM_FLAG_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `d247f87` confirms first-scan recognition with one system flag, 319 unresolved operands and a null sample. Both suites passed; other source/reference counts are stable. The next slice catalogs two-field ABS/LN/SQR calculation references. For the unchanged export, expect 28 additional catalogued instructions and 56 fewer unsupported-instruction slots if all use the documented signature. Read [calculation scope and evidence](docs/reviews/MATH_SIGNATURE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -94,7 +94,8 @@ Work-machine test execution uses explicit parser/helper module allowlists,
 excluding listener, Windows process-host, Bash bootstrap and Git-fixture tests.
 Full development unittest discovery remains available. Schema-1 reports remain
 readable; schema 2 adds the bounded sample, schema 3 adds an unmatched-colon
-fallback, and schema 4 carries reference schema 6 with system-flag recognition.
+fallback, schema 4 carries reference schema 6 with system-flag recognition,
+and current schema 5 carries reference 7 with the ABS/LN/SQR signature catalog.
 Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
@@ -131,10 +132,11 @@ unchanged; 26 XML elements across three paths are newly modeled and 11 warnings
 now describe unknown backing instead of omitted declarations. The sample is null.
 
 Current contracts: private inventory/reference schemas 3/4 with
-`source-inventory-3` / `source-references-5`; public source/reference schemas 4/6;
-work-check schema 4 and reference-run manifest schema 2. Historical public
+`source-inventory-3` / `source-references-6`; public source/reference schemas 4/7;
+work-check schema 5 and reference-run manifest schema 2. Historical public
 reports still validate with exact original status vocabularies. Work schema 3
-still requires reference 5. Read [system-flag review](docs/reviews/SYSTEM_FLAG_REVIEW.md)
+still requires reference 5 and work schema 4 requires reference 6. Read
+[calculation review](docs/reviews/MATH_SIGNATURE_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 
 Rack validation: 316 development application/workflow tests passed (one existing
@@ -168,9 +170,13 @@ XIC/XIO instructions. Raw evidence is preserved; no synthetic tag is created.
 Aliases, other roles, suffixes and other S names retain their previous handling.
 No runtime first-scan effects are modeled. Current reports reject it as a mystery
 sample; historical returned samples remain readable. See the system-flag review
-for official sources, boundary tests and final validation. A new work-machine
-run is needed to verify this classification delta; do not request the same
-address again. Partial analysis remains expected.
+for official sources, boundary tests and final validation. Report `d247f87`,
+testing clean `d64ee4d`, now confirms the exact predicted change: one system
+flag, unresolved 320 to 319, direct rack comparisons 1 to 0, sample null, all
+other source/reference counters unchanged. It passed 269 application cases
+(one skip) and 139 helpers, saved a private run and changes only its report
+with the tested revision as parent. No repeat flag-only run or mystery-address
+request is needed. Partial analysis remains expected.
 
 System-flag validation: 365 development application/workflow cases passed (one
 existing symlink skip), excluding the ignored listener loader. Independent review
@@ -180,6 +186,28 @@ preserved synthetic artifacts/rack counts, emitted one system flag and a null
 sample, and made report-only local commits with no remote Git calls. All nine
 stored work reports validate unchanged. Commands and evidence are in the
 system-flag review.
+
+The selected calculation slice adds only ABS/LN/SQR with two catalogued
+source/destination slots using existing lexical root/literal rules. Source IDs,
+raw operands, aliases and private field layout remain intact. Datatype, domain,
+destination access, expression evaluation and runtime effects remain outside
+this scope. Private text explicitly explains lexical destination literals.
+
+Next compare the work-machine report against `d247f87`: if all 28 calculations
+have the documented two-field signatures, catalogued instructions should rise
+17,563 to 17,591 and unsupported instruction slots fall 653 to 597. Their newly
+analyzed slots determine the actual root/literal/gap and alias-mediated rack
+counts; do not predict those splits. Source counts and declarations should
+remain stable. See the calculation review for primary evidence and validation.
+
+Calculation validation: 382 development cases, OK with one existing symlink
+skip; listener loader excluded. Independent review found no remaining blockers,
+and its historical sample-contract coverage recommendation is retained. Two
+actual synthetic CLI runs each passed 286 selected application cases (one skip)
+and 139 helpers, saved the expected math delta and made only local report
+commits with no remote Git calls. The second run confirms a newly saved report
+does not break the historical fixture tests. All ten stored work reports remain
+readable. Commands and final artifact evidence are in the calculation review.
 
 Timer-fix validation: 273 application/workflow tests passed (one symlink skip),
 with listener tests excluded. Two real temporary-checkout CLI runs each passed
