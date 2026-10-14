@@ -24,7 +24,7 @@ MAX_EXPANDED_EVIDENCE_CHARS = 8_000_000
 OPERAND_STATUSES = frozenset({
     'root_bound', 'unresolved', 'ambiguous', 'alias_cycle', 'alias_depth_limit',
     'unsupported_address', 'unsupported_expression', 'literal', 'non_data',
-    'unsupported_instruction', 'argument_count_mismatch', 'empty',
+    'unsupported_instruction', 'argument_count_mismatch', 'empty', 'system_flag',
 })
 ALIAS_STATUSES = frozenset({
     'root_bound', 'unresolved', 'ambiguous', 'alias_cycle', 'alias_depth_limit',
@@ -89,8 +89,8 @@ class ReferenceResult:
     coverage: dict[str, str | int]
     status: str
     rack_candidates: dict[str, Any]
-    schema_version: int = 3
-    analyzer_version: str = 'source-references-4'
+    schema_version: int = 4
+    analyzer_version: str = 'source-references-5'
     analysis_scope: str = 'scoped_root_bindings'
     semantic_analysis: str = 'not_implemented'
     effect_analysis: str = 'not_implemented'
@@ -284,6 +284,18 @@ def _timer_placeholder(opcode: str, argument_index: int, raw_text: str) -> bool:
     return opcode.upper() in {'TON', 'TOF', 'RTO'} and argument_index in {1, 2} and raw_text.strip() == '?'
 
 
+def _system_flag(opcode: str, argument_index: int, raw_text: str) -> bool:
+    """Recognize the direct S:FS operand; callers must check arity first.
+
+    This lexical rule supplies no runtime first-scan value or execution model.
+    ASCII checking prevents Unicode case folding from inventing PLC keywords.
+    """
+    value = raw_text.strip()
+    return (opcode.isascii() and opcode.upper() in {'XIC', 'XIO'}
+            and type(argument_index) is int and argument_index == 0
+            and value.isascii() and value.upper() == 'S:FS')
+
+
 def analyze_references(inventory: InventoryResult) -> ReferenceResult:
     """Bind explicit catalogued operand roots to snapshot declaration IDs.
 
@@ -355,6 +367,10 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
                     # preset/accumulated slot, not a tag or an inferred value.
                     # Arity and the timer-root slot remain separately checked.
                     binding = _binding('non_data')
+                elif _system_flag(instruction.opcode, index, value):
+                    # S:FS is a system flag in these direct contact roles, not
+                    # a root declaration. Alias targets still use the resolver.
+                    binding = _binding('system_flag')
                 elif _literal(value):
                     binding = _binding('literal')
                 else:
@@ -376,7 +392,7 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
     partial = (inventory.status != 'complete' or resolver.ambiguous or resolver.unnamed
                or instructions_catalogued != instructions_total
                or any(row['status'] != 'root_bound' for row in aliases)
-               or any(row['status'] not in {'root_bound', 'literal', 'non_data'} for row in operands))
+               or any(row['status'] not in {'root_bound', 'literal', 'non_data', 'system_flag'} for row in operands))
     try:
         rack_candidates = build_rack_candidates(inventory, aliases, operands)
     except RackCandidateError:

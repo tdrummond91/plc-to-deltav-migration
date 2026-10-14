@@ -45,6 +45,7 @@ WORK_MACHINE_MODULES = {
         "test_reference_summary", "test_references", "test_source", "test_storage",
         "test_summary", "test_summary_output", "test_timer_placeholders",
         "test_unmatched_sample_report",
+        "test_system_flags", "test_system_flag_summary", "test_system_flag_report",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

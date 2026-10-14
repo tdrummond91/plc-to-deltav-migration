@@ -2,10 +2,42 @@
 
 Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Rack candidate contracts (2026-10-14)
+## Current first-scan system-flag contracts (2026-10-14)
 
-Current private inventory is schema 3 / `source-inventory-3`; private references
-are schema 3 / `source-references-4`. Dedicated `module_rack_connection`,
+Private inventory remains schema 3 / `source-inventory-3`. Private references
+are schema 4 / `source-references-5`; public reference schema 6 /
+`reference-summary-6` requires unchanged source schema 4. Reference-run manifests
+remain schema 2 with current analyzer metadata. These versions supersede the
+historical checkpoints below; rack and timer behavior is retained.
+
+Only direct exact trimmed ASCII `S:FS`, ignoring letter case, in valid
+one-argument XIC/XIO instructions receives operand status `system_flag`.
+Raw evidence and source IDs remain unchanged. Its symbol/target IDs and reason
+are null, with empty alias chain/suffix. Aliases, other roles and suffixes keep
+their prior handling. This identifies the First Scan flag without simulating it.
+
+Public `operands.by_status.system_flag` is a strict nonnegative count included
+in total reconciliation and the completed operand-analysis statuses. It cannot
+exceed catalogued instructions or named XIC + XIO + withheld occurrences.
+Source schema 4 preserves opcode spelling, so lowercase contacts are withheld;
+this public upper bound is conservative. Canonical private reanalysis proves
+actual roles. Alias status keys do not change. Reference schemas 1 through 5
+retain exact old status keys, rejecting even a zero `system_flag` field.
+Reference 1 requires source 2; references 2/3/4 require source 3; 5/6 require 4.
+
+Current work schema 4 / `work-check-4` requires reference 6 after successful
+analysis. Historical work schema 3 still requires reference 5, including its
+original S:FS mystery sample. Work schemas 1/2 retain their previous acceptance
+of supported nested reference summaries; schema 2 remains malformed-kind only.
+Current samples reject recognized XIC/XIO S:FS as unmatched even when another
+direct operand remains unmatched. Selection, the single 128-character sample
+bound, private output paths and local report commits are unchanged. Pull/push
+remain manual. See [evidence and validation](../reviews/SYSTEM_FLAG_REVIEW.md).
+
+## Rack candidate contract checkpoint (2026-10-14)
+
+This slice introduced private inventory schema 3 / `source-inventory-3` and
+private references schema 3 / `source-references-4`. Dedicated `module_rack_connection`,
 `module_rack_input_alias` and `module_rack_output_alias` records preserve raw
 attributes, XML locators, parent IDs and controller scope. They do not enter
 ordinary symbols or tag/alias totals. Rack connection backing is always marked
@@ -45,11 +77,11 @@ aliases. No names, IDs, addresses or individual source relationships are shared.
 Exact historical source schemas 2/3 and reference schemas 1/2/3/4 remain readable.
 Reference 1 requires source 2; reference 2/3/4 require source 3; reference 5 requires
 source 4. Current canonical private validation requires the current versions.
-Work-check now uses schema 3 as described below; reference-run manifest stays schema 2 with updated
+Work-check subsequently used schema 3 as described below; reference-run manifest stays schema 2 with updated
 parser/analyzer metadata. The timer behavior described below is retained.
 See [implementation, precedence and tests](../reviews/RACK_CANDIDATE_REVIEW.md).
 
-## Work-machine feedback schema 3 (2026-10-14)
+## Historical work-machine feedback schema 3 (2026-10-14)
 
 `l5x_work_machine_check` / `work-check-3` keeps the same top-level fields as schema
 2 and requires reference aggregate 5 / source aggregate 4 after successful

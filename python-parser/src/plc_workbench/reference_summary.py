@@ -26,9 +26,10 @@ MAX_REPORT_BYTES = 32 * 1024
 MAX_COUNT = 10**12
 LEGACY_SYMBOL_KINDS = frozenset({'tag', 'aoi_local_tag', 'aoi_parameter'})
 SYMBOL_KINDS = LEGACY_SYMBOL_KINDS | frozenset(MODULE_IO_KINDS)
+LEGACY_OPERAND_STATUSES = OPERAND_STATUSES - {'system_flag'}
 REASONS_BY_STATUS = {'unresolved': frozenset(UNRESOLVED_REASONS),
                      'unsupported_address': frozenset(UNSUPPORTED_ADDRESS_REASONS)}
-COMPLETE_OPERAND_STATUSES = frozenset({'root_bound', 'literal', 'non_data'})
+COMPLETE_OPERAND_STATUSES = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
 MALFORMED_ADDRESS_SHAPES = frozenset({
     'alias_target_failure', 'leading_hash_static_address', 'leading_hash_other',
     'contains_brackets', 'contains_colon', 'contains_dot', 'other_form',
@@ -59,16 +60,21 @@ V4_CONSTANTS = V3_CONSTANTS | {
     'exporter_version': 'reference-summary-4',
     'analyzer_version': 'source-references-3',
 }
-CONSTANTS = V4_CONSTANTS | {
+V5_CONSTANTS = V4_CONSTANTS | {
     'schema_version': 5,
     'exporter_version': 'reference-summary-5',
     'analyzer_version': 'source-references-4',
+}
+CONSTANTS = V5_CONSTANTS | {
+    'schema_version': 6,
+    'exporter_version': 'reference-summary-6',
+    'analyzer_version': 'source-references-5',
 }
 _CORE_CONSTANTS = {key: V2_CONSTANTS[key] for key in (
     'schema_version', 'analyzer_version', 'analysis_scope', 'semantic_analysis',
     'effect_analysis', 'member_validation',
 )}
-_CORE_CONSTANTS['schema_version'] = 3
+_CORE_CONSTANTS['schema_version'] = 4
 _CORE_CONSTANTS['analyzer_version'] = CONSTANTS['analyzer_version']
 _COVERAGE_KEYS = frozenset({'rungs_total', 'rungs_analyzed', 'instructions_total',
                             'instructions_catalogued'})
@@ -403,18 +409,18 @@ def _validate(summary: dict[str, Any]) -> None:
     if type(summary) is not dict:
         _invalid()
     version = summary.get('schema_version')
-    if type(version) is not int or version not in {1, 2, 3, 4, 5}:
+    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6}:
         _invalid()
     legacy = version == 1
     _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'}
-          | (set() if legacy else {'module_io'}) | ({'rack_candidates'} if version == 5 else set()))
+          | (set() if legacy else {'module_io'}) | ({'rack_candidates'} if version >= 5 else set()))
     _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS,
-                         4: V4_CONSTANTS, 5: CONSTANTS}[version])
+                         4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: CONSTANTS}[version])
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
         _invalid()
     source = summary['source_summary']
     validate_summary(source)
-    if source['schema_version'] != (2 if legacy else 4 if version == 5 else 3):
+    if source['schema_version'] != (2 if legacy else 4 if version >= 5 else 3):
         _invalid()
     source_counts = source['counts']
     symbols = summary['symbols']
@@ -433,9 +439,10 @@ def _validate(summary: dict[str, Any]) -> None:
             or symbols['unnamed'] > symbols['total']
             or 2 * symbols['ambiguous_groups'] > symbols['total'] - symbols['unnamed']):
         _invalid()
-    for name, allowed in (('aliases', ALIAS_STATUSES), ('operands', OPERAND_STATUSES)):
+    operand_statuses = OPERAND_STATUSES if version == 6 else LEGACY_OPERAND_STATUSES
+    for name, allowed in (('aliases', ALIAS_STATUSES), ('operands', operand_statuses)):
         group = summary[name]
-        has_shapes = version in {3, 4, 5} and name == 'operands'
+        has_shapes = version >= 3 and name == 'operands'
         _keys(group, {'total', 'by_status'} | (set() if legacy else {'by_reason'})
               | ({'malformed_address_shapes'} if has_shapes else set()))
         _count(group['total'])
@@ -471,7 +478,7 @@ def _validate(summary: dict[str, Any]) -> None:
             _invalid()
     aliases = summary['aliases']
     operands = summary['operands']
-    if version == 5:
+    if version >= 5:
         _validate_rack_counts(summary)
     if not (source_counts['aliases'] <= aliases['total']
             <= source_counts['aliases'] + source_counts['aoi_parameters'] + source_counts['aoi_local_tags']):
@@ -486,6 +493,17 @@ def _validate(summary: dict[str, Any]) -> None:
             or coverage['instructions_catalogued'] > coverage['instructions_total']
             or operands['total'] != source['ladder_metrics']['totals']['argument_slots']):
         _invalid()
+    if version == 6:
+        system_flags = operands['by_status']['system_flag']
+        # Source v4 preserves opcode spelling and publishes only exact uppercase
+        # vocabulary. Its withheld bucket can include lowercase contacts, so it
+        # broadens this public upper bound. Only the publisher's canonical
+        # private reanalysis proves actual roles; these counts cannot distinguish
+        # a lowercase contact from another withheld instruction.
+        contacts = sum(source['instructions']['counts'].get(opcode, 0)
+                       for opcode in ('XIC', 'XIO', 'withheld'))
+        if system_flags > contacts or system_flags > coverage['instructions_catalogued']:
+            _invalid()
     incomplete = (
         source['status'] != 'complete'
         or coverage['instructions_catalogued'] != coverage['instructions_total']

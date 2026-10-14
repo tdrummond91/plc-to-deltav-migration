@@ -3,6 +3,12 @@
 Date: 2026-10-14. Branch: `feat/bounded-operand-example-pc`.
 Returned baseline: `9597f18`, testing clean `9d159e0`.
 
+Returned follow-up: `7f5db96` tested `84dc393`; 241 application cases (one skip)
+and 139 helpers passed. Aggregate counts are unchanged and the sample is `S:FS`
+in XIC argument 0. The pending sample request below is complete. See
+[SYSTEM_FLAG_REVIEW.md](SYSTEM_FLAG_REVIEW.md) for the official interpretation,
+narrow system-flag recognition and next validation step.
+
 ## Confirmed rack result
 
 [The returned report](../../inspection/work-check-20261014T175611Z-c63b79cc.json)

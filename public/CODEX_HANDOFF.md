@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `9597f18` confirms 15 named rack candidates: all 99 unresolved aliases and 319 alias-mediated operands have unique candidates; one direct operand has no candidate. Both suites passed. The next check adds that one address to the existing bounded sample so its spelling can be investigated. Existing bindings remain unchanged. Read [returned evidence and follow-up](docs/reviews/UNMATCHED_OPERAND_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `7f5db96` identifies the remaining direct mystery operand as `S:FS` in XIC. Both suites passed and other aggregates match the prior rack report. The analyzer now recognizes this exact role as `system_flag`, separately from declared tags. The next work-machine check should show one system flag, unresolved operands 320 to 319, direct rack comparisons 1 to 0 and a null sample; rack alias candidates and ordinary root bindings should stay unchanged. Read [implementation and evidence](docs/reviews/SYSTEM_FLAG_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -93,7 +93,9 @@ Independent review found no remaining blockers; see the current
 Work-machine test execution uses explicit parser/helper module allowlists,
 excluding listener, Windows process-host, Bash bootstrap and Git-fixture tests.
 Full development unittest discovery remains available. Schema-1 reports remain
-readable; schema 2 adds the bounded sample, and schema 3 adds an unmatched-colon fallback. Consult the tested revision for historical suite scope
+readable; schema 2 adds the bounded sample, schema 3 adds an unmatched-colon
+fallback, and schema 4 carries reference schema 6 with system-flag recognition.
+Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
 The confirmed timer report is `public/inspection/work-check-20261014T162634Z-2a7e40fe.json`,
@@ -128,10 +130,11 @@ run and changed only the feedback JSON. Ordinary source/reference counters are
 unchanged; 26 XML elements across three paths are newly modeled and 11 warnings
 now describe unknown backing instead of omitted declarations. The sample is null.
 
-Current contracts: private inventory/reference schemas 3/3 with
-`source-inventory-3` / `source-references-4`; public source/reference schemas 4/5;
-work-check schema 3 and reference-run manifest schema 2. Historical public
-reports still validate. Read [rack review](docs/reviews/RACK_CANDIDATE_REVIEW.md)
+Current contracts: private inventory/reference schemas 3/4 with
+`source-inventory-3` / `source-references-5`; public source/reference schemas 4/6;
+work-check schema 4 and reference-run manifest schema 2. Historical public
+reports still validate with exact original status vocabularies. Work schema 3
+still requires reference 5. Read [system-flag review](docs/reviews/SYSTEM_FLAG_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 
 Rack validation: 316 development application/workflow tests passed (one existing
@@ -150,9 +153,33 @@ share individual rack names/relationships. The implemented follow-up retains one
 sample total, choosing the first eligible malformed operand, then the first
 unmatched direct colon operand only when no malformed sample qualifies. It
 requires canonical direct no-candidate evidence and preserves exact raw text.
-Schema 2 rejects the new kind; schema 3 requires current reference schema 5.
-See [follow-up review](docs/reviews/UNMATCHED_OPERAND_REVIEW.md). A new work-machine
-run is needed only for the remaining address, not another timer/rack confirmation.
+Schema 2 rejects the new kind; historical schema 3 requires reference schema 5.
+See [follow-up review](docs/reviews/UNMATCHED_OPERAND_REVIEW.md).
+
+Report `7f5db96`, testing clean `84dc393`, completes that one-address request:
+`S:FS` at XIC argument 0. Its commit changes only the report, its tested revision
+is its parent, 241 application cases (one skip) and 139 helpers passed, and a
+private run was saved. All nested aggregate counts equal the preceding report
+after excluding code revision; this does not establish source byte identity.
+
+Rockwell identifies this as the First Scan flag. The implemented rule recognizes
+only direct exact trimmed ASCII S:FS, ignoring case, in valid one-argument
+XIC/XIO instructions. Raw evidence is preserved; no synthetic tag is created.
+Aliases, other roles, suffixes and other S names retain their previous handling.
+No runtime first-scan effects are modeled. Current reports reject it as a mystery
+sample; historical returned samples remain readable. See the system-flag review
+for official sources, boundary tests and final validation. A new work-machine
+run is needed to verify this classification delta; do not request the same
+address again. Partial analysis remains expected.
+
+System-flag validation: 365 development application/workflow cases passed (one
+existing symlink skip), excluding the ignored listener loader. Independent review
+passed 99 focused cases with no blockers. Two actual disposable-checkout CLI
+runs each passed 269 selected application cases (one skip) and 139 helpers,
+preserved synthetic artifacts/rack counts, emitted one system flag and a null
+sample, and made report-only local commits with no remote Git calls. All nine
+stored work reports validate unchanged. Commands and evidence are in the
+system-flag review.
 
 Timer-fix validation: 273 application/workflow tests passed (one symlink skip),
 with listener tests excluded. Two real temporary-checkout CLI runs each passed

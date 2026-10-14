@@ -146,27 +146,29 @@ class DiagnosticReportTests(unittest.TestCase):
             result = work_check._analyze(root, source, root, {"commit": COMMIT, "worktree": "clean"})
             self.assertIsNone(result["diagnostic_sample"])
             nested = result["reference_summary"]
-            self.assertEqual(nested["schema_version"], 5)
-            self.assertEqual(nested["analyzer_version"], "source-references-4")
+            self.assertEqual(nested["schema_version"], 6)
+            self.assertEqual(nested["analyzer_version"], "source-references-5")
             self.assertEqual(nested["operands"]["by_status"]["non_data"], 2)
             self.assertEqual(nested["operands"]["by_reason"]["unsupported_address"]["malformed_address"], 0)
 
-    def sample_report(self, reference_version: int = 5) -> dict:
+    def sample_report(self, reference_version: int = 6) -> dict:
         from plc_workbench.diagnostic_sample import build_diagnostic_sample
         inventory = analyze_snapshot(snapshot_from_bytes(SOURCE.replace(b"NOP();", b"TON(ToyTimer,Preset?,?);")))
         references = analyze_references(inventory)
         nested = build_reference_summary(inventory, references, revision={"commit": COMMIT, "worktree": "clean"})
-        if reference_version in (3, 4):
+        if reference_version in (3, 4, 5):
+            self.assertEqual(nested['operands']['by_status'].pop('system_flag'), 0)
             nested.update(schema_version=reference_version,
                           exporter_version=f"reference-summary-{reference_version}",
                           analyzer_version=f"source-references-{reference_version - 1}")
+        if reference_version in (3, 4):
             del nested["rack_candidates"]
             source = nested["source_summary"]
             source.update(schema_version=3, exporter_version="aggregate-summary-3",
                           parser_version="source-inventory-2")
             for key in ("module_rack_connections", "module_rack_input_aliases", "module_rack_output_aliases"):
                 del source["counts"][key]
-        elif reference_version != 5:
+        elif reference_version not in (5, 6):
             raise ValueError("Unsupported diagnostic fixture version.")
         payload = report()
         payload.update(schema_version=2, workflow_version="work-check-2", status="partial",
@@ -184,7 +186,7 @@ class DiagnosticReportTests(unittest.TestCase):
             self.assertEqual(json.loads(output.read_text()), payload)
 
     def test_current_and_schema4_reject_recognized_timer_samples_but_schema3_preserves_them(self) -> None:
-        for version in (3, 4, 5):
+        for version in (3, 4, 5, 6):
             for raw in ("?", " ? "):
                 for index in (1, 2):
                     payload = self.sample_report(version)

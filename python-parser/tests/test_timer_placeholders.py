@@ -47,8 +47,8 @@ class TimerPlaceholderTests(unittest.TestCase):
         self.assertEqual(result.coverage["operands_total"], 9)
         self.assertEqual(result.coverage["instructions_catalogued"], 3)
         self.assertEqual(result.status, "complete")
-        self.assertEqual(result.schema_version, 3)
-        self.assertEqual(result.analyzer_version, "source-references-4")
+        self.assertEqual(result.schema_version, 4)
+        self.assertEqual(result.analyzer_version, "source-references-5")
         self.assertEqual(result.analysis_scope, "scoped_root_bindings")
         for field in ("semantic_analysis", "effect_analysis", "member_validation"):
             self.assertEqual(getattr(result, field), "not_implemented")

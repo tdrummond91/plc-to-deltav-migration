@@ -54,14 +54,18 @@ def summary(source):
 
 def earlier_summary(current: dict, version: int) -> dict:
     """Represent this no-module invented input using the previous public contracts."""
-    if version not in (1, 2, 3, 4):
+    if version not in (1, 2, 3, 4, 5):
         raise ValueError('Expected a historical reference version.')
     report = deepcopy(current)
     report.update(schema_version=version, exporter_version=f'reference-summary-{version}')
     report['analyzer_version'] = {
         1: 'source-references-1', 2: 'source-references-2',
-        3: 'source-references-2', 4: 'source-references-3',
+        3: 'source-references-2', 4: 'source-references-3', 5: 'source-references-4',
     }[version]
+    if report['operands']['by_status'].pop('system_flag') != 0:
+        raise ValueError('Historical fixture cannot downgrade recognized system flags.')
+    if version == 5:
+        return report
     del report['rack_candidates']
     source = report['source_summary']
     source.update(schema_version=3, exporter_version='aggregate-summary-3',
@@ -165,7 +169,7 @@ class AddressShapeSummaryTests(unittest.TestCase):
             self.assertIsNone(row['symbol_id'])
             self.assertIsNone(row['target_id'])
         self.assertEqual(report['status'], 'partial')
-        self.assertEqual((references.schema_version, references.analyzer_version), (3, 'source-references-4'))
+        self.assertEqual((references.schema_version, references.analyzer_version), (4, 'source-references-5'))
         self.assertEqual(source.to_dict(), source_before)
         self.assertEqual(references.to_dict(), references_before)
 
@@ -177,7 +181,7 @@ class AddressShapeSummaryTests(unittest.TestCase):
         self.assertEqual(report['operands']['total'], 0)
         self.assertEqual(report['status'], 'complete')
         self.assertEqual((report['schema_version'], report['exporter_version'], report['analyzer_version']),
-                         (5, 'reference-summary-5', 'source-references-4'))
+                         (6, 'reference-summary-6', 'source-references-5'))
         self.assertEqual(report['source_summary']['schema_version'], 4)
 
     def test_renaming_values_and_rung_order_do_not_reveal_private_details(self) -> None:
@@ -250,13 +254,13 @@ class AddressShapeSummaryTests(unittest.TestCase):
 
     def test_legacy_versions_validate_without_inventing_shape_evidence(self) -> None:
         current = summary(inventory(['XIC(#A);']))
-        for version in (1, 2, 3, 4):
+        for version in (1, 2, 3, 4, 5):
             report = earlier_summary(current, version)
             with self.subTest(version=version):
                 validate_reference_summary(report)
                 self.assertEqual(json.loads(render_reference_summary(report)), report)
-                self.assertEqual('malformed_address_shapes' in report['operands'], version in (3, 4))
-                self.assertNotIn('rack_candidates', report)
+                self.assertEqual('malformed_address_shapes' in report['operands'], version in (3, 4, 5))
+                self.assertEqual('rack_candidates' in report, version == 5)
                 validate_work_check_report(work_report(report))
 
     def test_version_hybrids_and_shape_fields_on_legacy_reports_are_rejected(self) -> None:

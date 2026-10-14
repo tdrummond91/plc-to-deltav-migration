@@ -21,7 +21,7 @@ REVISION = {'commit': 'a' * 40, 'worktree': 'clean'}
 SOURCE = b'''<RSLogix5000Content><Controller Name="PRIVATE_CONTROLLER">
 <Tags><Tag Name="A" TagType="Base"/></Tags><Programs><Program Name="PRIVATE_PROGRAM">
 <Routines><Routine Name="PRIVATE_ROUTINE" Type="RLL"><RLLContent>
-<Rung Number="907"><Comment>PRIVATE_COMMENT</Comment>
+<Rung Number="907" Type="N"><Comment>PRIVATE_COMMENT</Comment>
 <Text>XIC(MysteryRack:7:I.Data[2].3)OTE(A);</Text></Rung>
 </RLLContent></Routine></Routines></Program></Programs></Controller></RSLogix5000Content>'''
 
@@ -37,7 +37,7 @@ def report(data: bytes = SOURCE) -> dict:
         'failed_test_ids': [], 'failure_ids_omitted': 0,
     }
     return {
-        'schema_version': 3, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-3',
+        'schema_version': 4, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-4',
         'run_id': '20261014T180000Z-1234abcd', 'tool_revision': deepcopy(REVISION),
         'tests': {'application': deepcopy(result), 'helpers': deepcopy(result)},
         'analysis': {'status': nested['status'], 'failure_code': None, 'private_run_saved': True,
@@ -59,7 +59,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
         for private in ('PRIVATE_', 'rung_id', 'source_id', 'candidate_id', 'terminal_root'):
             self.assertNotIn(private, rendered)
         nested = payload['analysis']['reference_summary']
-        self.assertEqual((nested['schema_version'], nested['source_summary']['schema_version']), (5, 4))
+        self.assertEqual((nested['schema_version'], nested['source_summary']['schema_version']), (6, 4))
         self.assertNotIn('MysteryRack', render_reference_summary(nested))
 
     def test_schema2_rejects_new_kind_but_preserves_null_and_malformed(self) -> None:
@@ -77,6 +77,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
     def test_current_envelope_requires_current_rack_reference_contract(self) -> None:
         payload = report()
         nested = payload['analysis']['reference_summary']
+        self.assertEqual(nested['operands']['by_status'].pop('system_flag'), 0)
         nested.update(schema_version=4, exporter_version='reference-summary-4', analyzer_version='source-references-3')
         del nested['rack_candidates']
         source = nested['source_summary']

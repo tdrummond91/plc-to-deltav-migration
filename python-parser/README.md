@@ -41,17 +41,24 @@ do not establish that the source project has an invalid tag.
 
 Private inventory schema 3 (`source-inventory-3`) includes module ports, ordinary
 connections, input/output/configuration tags and dedicated rack declarations
-without changing ordinary tag/alias totals. Reference schema 3 (`source-references-4`) includes the three ordinary I/O
+without changing ordinary tag/alias totals. Reference schema 4 (`source-references-5`) includes the three ordinary I/O
 symbol kinds and a fixed `reason` on unresolved/unsupported-address bindings.
 Reasons distinguish missing declared roots, qualified or dynamic addresses and
 other bounded syntax gaps; they do not claim to identify every gap's engineering
 cause. Raw declarations remain separate from inferred names.
 
-Analyzer `source-references-4` retains recognition of exact trimmed `?` only in the preset
+Analyzer `source-references-5` retains recognition of exact trimmed `?` only in the preset
 and accumulator slots (1/2) of valid three-argument TON/TOF/RTO instructions.
 These are `non_data` for root lookup; original text is preserved. No timer values,
 types, configuration or effects are validated. Root slots, aliases and other
 instructions keep their existing gap handling. See [the timer review](../public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md).
+
+Direct exact trimmed ASCII `S:FS`, ignoring letter case, in valid one-argument
+XIC/XIO instructions is recognized as `system_flag`. It is the First Scan flag,
+with no declared-tag link. Raw evidence is preserved; aliases, suffixes, other
+instructions and other `S:` names keep their existing handling. This does not
+model initialization effects or when the flag is true. See
+[the system-flag review](../public/docs/reviews/SYSTEM_FLAG_REVIEW.md).
 
 The private `rack_candidates` section lists supported individual rack roots and
 compares unresolved colon roots in three populations: aliases, direct operands
@@ -78,13 +85,16 @@ reason counts, module naming origins/unavailable reasons, analysis coverage and
 a nested schema-4 `source_summary`, plus closed rack-candidate counts. Code provenance is
 `source_summary.tool_revision`. It contains no names, values, source identities
 or individual reference links. Its report kind is `l5x_reference_review_summary`,
-schema 5, policy 2, exporter `reference-summary-5`, analyzer `source-references-4`.
+schema 6, policy 2, exporter `reference-summary-6`, analyzer `source-references-5`.
+`operands.by_status.system_flag` counts recognized first-scan contact operands
+separately from ordinary bindings, literals and non-data roles.
 `operands.malformed_address_shapes` partitions only malformed-address occurrences
 into seven fixed observational buckets, including a separate alias-target bucket.
 The diagnostic does not change address recognition or binding. See the
 [address-shape contract](../public/docs/reviews/ADDRESS_SHAPE_REVIEW.md).
 The validator also accepts reference schema 1/source schema 2 and reference
-schemas 2/3/4 with source schema 3; mixed version combinations are rejected.
+schemas 2/3/4 with source schema 3, and reference 5 with source 4. Historical
+status vocabularies remain exact; mixed version combinations are rejected.
 The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
 
@@ -177,22 +187,24 @@ same scope as the work-machine checks.
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. The feedback includes test counts, bounded
 code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 3 includes `diagnostic_sample`: one actual direct malformed
+Work-check schema 4 includes `diagnostic_sample`: one actual direct malformed
 operand, or a direct unresolved colon operand with no rack candidate when no
 eligible malformed sample exists. It retains at most 128 printable characters,
 a standard instruction and zero-based argument position; otherwise it is null.
 Tyler authorized one mystery-address example; no rung, source location or
 neighboring logic is included. Selection is stable, excludes alias targets and
 inconclusive/candidate matches, and never truncates source text. Schema 2 rejects
-the new `direct_unmatched_colon_operand` kind. See the
+the `direct_unmatched_colon_operand` kind. Current reports reject recognized
+XIC/XIO `S:FS` as an unmatched sample. See the
 [follow-up review](../public/docs/reviews/UNMATCHED_OPERAND_REVIEW.md).
 It is saved to `public/inspection/work-check-<run-id>.json` and committed locally.
 Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema 3 and carries reference schema 5 with source
-schema 4 when analysis succeeds. Historical schema-1/2 reports remain readable. The tested
+The outer report is schema 4 and carries reference schema 6 with source
+schema 4 when analysis succeeds. Historical schema-1/2/3 reports remain readable;
+schema 3 still requires reference 5. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
 `46467af` validated the local report-commit workflow. The later report in `349ee29`
@@ -202,9 +214,13 @@ with unchanged root bindings. Both suites passed; no repeat run is needed for
 this fix. Known placeholders are skipped when choosing a remaining mystery sample.
 
 Report `9597f18` confirmed 15 named rack roots, matching all 99 unresolved aliases
-and 319 alias-mediated operands. One direct operand has no candidate; the next
-run targets that one spelling with the new fallback. Logical candidate matches
-do not validate backing I/O maps or promote ordinary bindings.
+and 319 alias-mediated operands. Report `7f5db96` tested `84dc393`, passed 241
+application cases (one skip) and 139 helpers, and identified the one unmatched
+direct operand as `S:FS` in XIC. Other aggregates stayed unchanged. The next run
+checks the new classification: expected system_flag=1, unresolved operands
+320 to 319, direct rack comparisons 1 to 0 and a null sample. Partial remains
+expected. Logical candidate matches do not validate backing I/O maps or promote
+ordinary bindings.
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in

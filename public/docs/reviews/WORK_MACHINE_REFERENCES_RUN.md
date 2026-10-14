@@ -1,6 +1,6 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. The next unmatched-address check is on
+Use **main** for the consolidated baseline. The next first-scan classification check is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
@@ -10,14 +10,18 @@ cases (one skip) and 139 helpers, and confirms malformed addresses 868 to 0,
 non-data 0 to 868, and unsupported addresses 870 to 2. Other source/reference
 counters are unchanged; the diagnostic sample is null. See
 [TIMER_PLACEHOLDER_REVIEW.md](TIMER_PLACEHOLDER_REVIEW.md) for results and limits.
-Latest returned evidence: `9597f18` tested `9d159e0`, passed 220 application cases
+Rack evidence: `9597f18` tested `9d159e0`, passed 220 application cases
 (one skip) and 139 helpers. All 15 rack roots are named; all 99 unresolved aliases
 and 319 alias-mediated occurrences have unique candidates. One direct operand
 has no candidate. Ordinary bindings remain unchanged; backing maps are unverified.
 
-The next check uses work-check schema 3 with unchanged reference/source schemas
-5/4. It adds that one unmatched address to the existing bounded sample if its
-text fits the limits. See [the follow-up review](UNMATCHED_OPERAND_REVIEW.md).
+Latest returned evidence: `7f5db96` tested `84dc393`, passed 241 application cases
+(one skip) and 139 helpers, and supplied `S:FS` at XIC argument 0. Other aggregate
+counts equal the preceding rack report. This is the built-in First Scan flag.
+The next check uses work-check schema 4 and reference/source schemas 6/4. Expect
+one `system_flag`, unresolved operands 320 to 319, direct rack comparisons 1 to 0,
+and a null diagnostic sample. Alias candidate matches and root bindings should
+stay unchanged. See [the implementation and evidence](SYSTEM_FLAG_REVIEW.md).
 
 ## Manual runs
 
@@ -57,7 +61,7 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 3 and their tested SHA identifies which suite
+check. New reports use schema 4 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
@@ -81,7 +85,8 @@ unknown syntax. It is limited to 128 printable characters, with no full rung,
 source filename/hash, routine, neighboring logic or individual reference links.
 The first eligible malformed operand has priority; otherwise a direct unresolved
 colon operand with no rack candidate can be selected. Aliases and inconclusive
-or matched rack lookups are excluded. Repeated unchanged runs select the same
+or matched rack lookups are excluded. Recognized first-scan flags do not qualify.
+Repeated unchanged runs select the same
 eligible example. Null means no eligible
 example was available or analysis did not succeed. The reference aggregate
 is at `analysis.reference_summary`, with the structural summary nested beneath
@@ -145,6 +150,8 @@ Interpret the reference counters as follows:
   private evidence was retained but this slice did not interpret it.
 - `alias_cycle`, `alias_depth_limit`: alias traversal could not complete.
 - `literal`: recognized literal values, without tag links.
+- `system_flag`: exact direct `S:FS` in a valid XIC/XIO contact, without tag links
+  or a runtime model of first-scan behavior.
 - `non_data`: labels and recognized timer placeholders, without tag links. A
   timer placeholder supplies no value and does not validate timer configuration.
 
@@ -162,7 +169,7 @@ See [module/I/O review](MODULE_IO_REVIEW.md) for comparison targets and
 The report returned in `349ee29` supplied `?` at TON argument 1. Report `1195d40`
 now confirms schema-4 timer-slot recognition: malformed occurrences fall 868 to
 zero while non-data rises by 868. Only two dynamic-index unsupported addresses
-remain. The outer work-check stays schema 2. See [timer review](TIMER_PLACEHOLDER_REVIEW.md)
+remain. That historical check used outer schema 2. See [timer review](TIMER_PLACEHOLDER_REVIEW.md)
 for the complete comparison and remaining Phase 1 gaps.
 These seven closed counters partition the malformed-address operand total;
 they do not change parsing or binding. Alias-target failures have their own

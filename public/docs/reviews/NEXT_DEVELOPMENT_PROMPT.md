@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/SYSTEM_FLAG_REVIEW.md,
 public/docs/reviews/UNMATCHED_OPERAND_REVIEW.md,
 public/docs/reviews/RACK_CANDIDATE_REVIEW.md,
 public/docs/reviews/RACK_IO_INVESTIGATION.md,
@@ -43,9 +44,10 @@ confidential/ and must not be shared.
 
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
-development unittest discovery remains available. The work-check envelope stays
-readable for schema 1; new schema-2 reports include one authorized actual operand
-example. The tested SHA identifies the suite implementation and scope.
+development unittest discovery remains available, excluding the ignored listener
+loader on this development checkout. Work schemas 1/2/3 remain readable. Current
+schema 4 requires reference 6 and retains at most one authorized operand example.
+The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
 
@@ -65,10 +67,11 @@ For implementation/review involving helper behavior, run the existing tests:
 uv run --project python-parser python -B -m unittest discover \
   -s tools/l5x_inspect/tests -v
 
-Current baseline: 139 passing helper tests. Also run:
-uv run --project python-parser python -B -m unittest discover -s python-parser/tests -v
+Current baseline: 139 passing helper tests. Also run the full development
+application command in SYSTEM_FLAG_REVIEW.md, which explicitly excludes the
+ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in MODULE_IO_REVIEW.md;
+Use the final application test count and tested revision in SYSTEM_FLAG_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -97,9 +100,11 @@ unsupported-address 870 to 2; all other source/reference counters unchanged
 and sample null. No repeat work-machine run is needed to confirm this fix.
 Do not infer byte identity or timer configuration/effects from these aggregates.
 
-The rack slice is now implemented: private inventory/reference schemas 3/3,
+The rack slice introduced private inventory/reference schemas 3/3,
 source-inventory-3/source-references-4, public source/reference schemas 4/5,
-work-check3 and manifest2 (the original rack slice used work-check2). Read RACK_CANDIDATE_REVIEW.md for final validation.
+and manifest2 (the original rack slice used work-check2). The current system-flag
+slice below supersedes these reference/work-check versions. Read
+RACK_CANDIDATE_REVIEW.md for rack validation.
 Dedicated rack declarations and separate candidate diagnostics preserve ordinary
 bindings. Public counts partition unresolved aliases, direct operands and
 alias-mediated operands. Matching uses the terminal failed target and scope.
@@ -112,13 +117,26 @@ has no candidate. It tested clean `9d159e0`, passed 220 application cases (one s
 and 139 helpers, with source/reference counters unchanged except intended rack
 capture/diagnostics. This measures logical candidate matches, not backing maps.
 
-The one-address follow-up is implemented: work-check schema 3 retains one bounded
+The completed one-address follow-up used work-check schema 3 with one bounded
 sample, prioritizing eligible malformed operands before a direct unresolved colon
 operand with canonical no_candidate_match evidence. The four fields and 128-character
 bound stay unchanged; old schema 2 rejects the new kind. Private contracts and
-count-only reference/source schemas stay 3/3 and 5/4 respectively. Read the review
-for validation. Next inspect that address after the new work-machine run returns;
-do not reimplement the selector or request another timer/rack-only confirmation.
+count-only reference/source schemas stayed 3/3 and 5/4 respectively.
+
+Report 7f5db96 tested clean 84dc393, passed 241 application cases (one skip) and
+139 helpers, and returned S:FS at XIC argument 0. Other aggregates are unchanged.
+The first-scan rule is now implemented and documented in SYSTEM_FLAG_REVIEW.md:
+direct exact trimmed ASCII S:FS, ignoring case, in valid one-argument XIC/XIO
+receives system_flag status. Raw evidence is preserved, with no declared-tag
+binding or runtime simulation. Private references now use schema4/analyzer5,
+public references schema6, work-check schema4; source and manifest are unchanged.
+Historical status vocabularies and samples remain readable under their original
+contracts. Current samples reject recognized S:FS even if other gaps remain.
+
+Next inspect the work-machine delta: system_flag=1, unresolved operands 320 to
+319, direct rack comparisons 1 to 0, sample null, with ordinary bindings and
+alias rack candidates unchanged. Partial remains expected. Do not request
+the same address again or reimplement the selector/timer/rack slices.
 Continue authorized work until a specific evidence gap or phase boundary needs
 Tyler's input. Do not activate the listener or access confidential inputs.
 
