@@ -10,6 +10,26 @@ public/docs/reviews/SOURCE_INVENTORY_REVIEW.md first for the implemented
 snapshot-bound source inventory on feat/source-inventory-pc, then
 public/docs/reviews/STAGE_5_CODE_REVIEW.md.
 
+Current instruction (2026-10-14): keep the development listener disabled and
+paused pending the endpoint incident review. Tyler is proceeding with a fresh
+clone and normal manual parser checks using the local-only workflow below.
+Do not turn the listener hold into an approval requirement for manual parsing.
+
+The updated work-machine runner operates on the already checked out clean `-pc`
+branch. It never fetches, pulls, stages, commits or pushes, and requires no
+matching upstream. It saves a validated aggregate to Git-ignored
+public/inspection/local/work-check-<run-id>.json. Code updates and publication
+are manual: review the aggregate, copy or move only its JSON into
+public/inspection/, then explicitly stage, commit and push. Private log folders,
+source and workspaces remain under confidential/ and must not be shared.
+
+Work-machine suites now use explicit parser/helper allowlists, excluding
+listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
+development unittest discovery remains available. The work-check envelope stays
+schema 1, and the tested SHA identifies the suite implementation and scope.
+Older instructions below that describe automatic Git publication or broader
+work-machine tests are historical and superseded by this paragraph.
+
 Then read the 2026-10-12 scope in public/docs/planning/DECISIONS.md,
 ROADMAP.md, ARCHITECTURE.md and DATA_CONTRACTS.md. The five product phases
 are distinct from the completed helper stages and earlier technical milestones.
@@ -36,16 +56,17 @@ For documentation-only changes, review the diff and links; do not describe an ol
 test run as fresh execution.
 
 The module/I/O slice is implemented and its returned work-machine report is
-reviewed in MODULE_IO_REVIEW.md. Tyler has explicitly authorized the feedback
-listener; implementation fde4fc2 is installed on the development PC and its
-scheduled launch check passed. Consult FEEDBACK_LISTENER.md for concrete behavior
-and verification, and the local status command for current monitoring/worker state.
+reviewed in MODULE_IO_REVIEW.md. The feedback listener remains installed but
+disabled and paused under the current hold. Consult FEEDBACK_LISTENER.md for
+concrete behavior, verification and current operational history.
 The first follow-up has implemented a closed address-shape histogram for operands
 outside the current grammar, without changing resolution. Reference aggregate
 schema 3 adds seven fixed counters; private contracts, source aggregate and outer
 work-check schema are unchanged. Read ADDRESS_SHAPE_REVIEW.md for precedence,
-alias-target handling, compatibility, validation and limits. The next action is
-one work-machine `bash ./run-work-check.sh` to return the new diagnostic. Compare
+alias-target handling, compatibility, validation and limits. The diagnostic report
+already returned in b58af78 as
+public/inspection/work-check-20261014T051259Z-72d3ad4c.json and awaits parser
+analysis. Review that aggregate before requesting another run. Compare
 against the prior 868 malformed-address cases; do not predict their shape from
 the old counts. If the returned buckets cannot support a bounded next step, stop
 for a specific work-machine investigation without requesting private evidence.
@@ -168,10 +189,11 @@ The first reference aggregate has now returned in 7328809 and validates: 98.26%
 of instruction signatures catalogued, 17,856 bound operand occurrences and only
 45 of 941 aliases bound. Tyler confirmed both work-machine suites passed. Read
 SOURCE_REFERENCES_REVIEW.md for all counters and exact structural reconciliation.
-Tyler then requested a one-command work-machine runner. That workflow is now
-implemented by run-work-check.sh: pull, both test suites, private analysis, then
-aggregate report-only commit/push. New work-check reports automatically carry test
-outcomes; do not ask Tyler to paste terminal output or manually stage reports.
+Tyler then requested a one-command work-machine runner. Its original workflow
+was pull, both test suites, private analysis, then aggregate report-only
+commit/push. That automatic Git behavior is superseded by the current local-save
+workflow at the top of this prompt. Work-check reports carry test outcomes;
+publication now requires manual review and explicit Git actions.
 Read WORK_CHECK_RUNNER_REVIEW.md and the updated work-machine procedure first.
 
 The runner's first two work-machine reports have returned in ad2ec8b and f38d81e.
@@ -209,8 +231,9 @@ unsupported syntax and never request private addresses or source/reference
 reports here. Root binding still does not validate members, types, effects,
 alarm consequences, control loops or equipment/sequence classifications.
 
-Tyler has explicitly authorized the listener; implementation and review are complete.
-Process each new work report once, continue only agreed work and stop for user
+Tyler previously authorized the listener; the current operational hold supersedes
+activation instructions. Keep it disabled and paused. Its designed workflow is to
+process each new work report once, continue only agreed work and stop for user
 questions, investigation or phase decisions. Avoid overlapping repository writers
 and loops triggered by the development agent's own pushes. Activation must be
 verified and recorded in FEEDBACK_LISTENER.md, not assumed from authorization.
@@ -221,7 +244,8 @@ finish before taking over. Its dedicated worker must not pause its own listener.
 Tyler clarified confidentiality on 2026-10-13: unit reconstruction with data
 values, or more than 2% rung knowledge. Aggregate summaries contain no individual
 rung logic or process values and are approved for sync in public/inspection/.
-Do not reintroduce an extra per-report sharing gate. New source/reference
+The current requirement for manual report review/publication controls the runner;
+it does not change which aggregate fields are approved for sharing. New source/reference
 aggregates use schemas 3/2 with policy 2. The validator retains the preceding
 source schema 2 and reference schema 1 with its schema-2 source; hybrid versions
 are rejected. Already-generated v1 source summaries remain historical feedback.

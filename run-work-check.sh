@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# Keep this bootstrap small: Python is loaded only after the pull completes.
+# Run the already checked-out code; repository synchronization is manual.
 set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     cat <<'USAGE'
 Usage: bash ./run-work-check.sh [SOURCE.L5X]
 
-Pull, run both test suites, analyze the local source, and push aggregate results.
+Run parser tests, analyze the local source, and save results locally.
+No automatic fetch, pull, staging, commit or push. Review before sharing manually.
 A bare filename is found under confidential/plc-code/. An explicit path also works.
 The first run needs a source; later runs remember its path on this machine only.
-Run on a clean branch ending in -pc with its matching origin upstream.
+Run on a clean branch ending in -pc. No upstream connection is required.
 USAGE
     exit 0
 fi
@@ -40,18 +41,9 @@ if [[ "$branch" != *-pc ]]; then
     printf '%s\n' 'The work-check branch must end in -pc.' >&2
     exit 1
 fi
-upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}')" || {
-    printf '%s\n' 'This branch needs its matching origin upstream.' >&2
-    exit 1
-}
-if [[ "$upstream" != "origin/$branch" ]]; then
-    printf '%s\n' 'This branch must track the same branch name on origin.' >&2
-    exit 1
-fi
 command -v uv >/dev/null || {
     printf '%s\n' 'Install uv and make it available in Git Bash before running this script.' >&2
     exit 1
 }
 
-git pull --ff-only
 exec uv run --project python-parser --locked python -B -m plc_workbench.work_check "$@"

@@ -27,6 +27,14 @@ def fail(test: unittest.TestCase) -> None:
 
 
 class WorkCheckTestsTests(unittest.TestCase):
+    def selected_module(self, root: Path, source: str) -> dict[str, tuple[str, ...]]:
+        name = "work_machine_selected_fixture"
+        directory = root / "python-parser/tests"
+        directory.mkdir(parents=True)
+        (directory / f"{name}.py").write_text(source, encoding="utf-8")
+        self.addCleanup(driver.sys.modules.pop, name, None)
+        return {"application": (name,)}
+
     def test_counts_include_all_unittest_outcomes(self) -> None:
         def error(test: unittest.TestCase) -> None:
             raise RuntimeError("PRIVATE_SENTINEL error")
@@ -198,22 +206,106 @@ class WorkCheckTestsTests(unittest.TestCase):
             self.assertEqual(output.read_text(encoding="utf-8"), "earlier result")
             self.assertEqual(list(output.parent.iterdir()), [output])
 
+    def test_work_machine_selection_excludes_process_and_workflow_modules(self) -> None:
+        excluded = {
+            "test_feedback_listener", "test_revision", "test_work_check", "test_work_check_bootstrap",
+            "test_work_check_tests", "test_summary_cli", "test_reference_cli",
+        }
+        selected = set(driver.WORK_MACHINE_MODULES["application"])
+        self.assertFalse(selected & excluded)
+        self.assertIn("test_source", selected)
+        self.assertIn("test_references", selected)
+        self.assertIn("test_rung_syntax", driver.WORK_MACHINE_MODULES["helpers"])
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            modules = self.selected_module(root, "import unittest\n"
+                "class Selected(unittest.TestCase):\n    def test_parser(self):\n        pass\n")
+            directory = root / "python-parser/tests"
+            marker = root / "unexpected-import.txt"
+            for name in excluded | {"test_future_unreviewed"}:
+                (directory / f"{name}.py").write_text(
+                    f"from pathlib import Path\nPath({str(marker)!r}).write_text('imported')\n"
+                    "raise AssertionError('Excluded module imported')\n", encoding="utf-8")
+            package = directory / "test_unreviewed_package"
+            package.mkdir()
+            (package / "__init__.py").write_text(
+                f"from pathlib import Path\nPath({str(marker)!r}).write_text('imported package')\n",
+                encoding="utf-8")
+            with patch.object(driver, "WORK_MACHINE_MODULES", modules), \
+                    patch.object(driver.unittest.TestLoader, "discover", side_effect=AssertionError("No discovery")):
+                payload = driver.run_suite(driver._load_work_machine_suite(root, "application"), stream=io.StringIO())
+            self.assertEqual(payload["status"], "passed")
+            self.assertEqual(payload["counts"]["tests_run"], 1)
+            self.assertFalse(marker.exists())
+
+    def test_selected_suites_do_not_spawn_processes_or_open_sockets(self) -> None:
+        # Developer-only boundary test: catch new process/network fixtures added
+        # inside an already allowlisted module as well as new module selection.
+        root = driver._checkout_root()
+        for name in ("application", "helpers"):
+            with self.subTest(suite=name), \
+                    patch("subprocess.Popen", side_effect=AssertionError("Parser tests must not launch processes")) as process, \
+                    patch("socket.socket", side_effect=AssertionError("Parser tests must not open sockets")) as connection:
+                stream = io.StringIO()
+                suite = driver._load_work_machine_suite(root, name)
+                payload = driver.run_suite(suite, stream=stream)
+                self.assertEqual(payload["status"], "passed", stream.getvalue())
+                process.assert_not_called()
+                connection.assert_not_called()
+
+    def test_selected_module_test_failure_is_recorded(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            modules = self.selected_module(root, "import unittest\n"
+                "class Selected(unittest.TestCase):\n    def test_parser(self):\n"
+                "        self.fail('PRIVATE_SENTINEL')\n")
+            output = root / "result.json"
+            with patch.object(driver, "WORK_MACHINE_MODULES", modules), \
+                    patch.object(driver, "_checkout_root", return_value=root), \
+                    patch.object(driver.sys, "stderr", io.StringIO()):
+                self.assertEqual(driver.main(["--suite", "application", "--output", str(output)]), 1)
+            payload = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(payload["counts"]["failures"], 1)
+            self.assertNotIn("PRIVATE_SENTINEL", driver.render_test_result(payload))
+
+    def test_selected_module_import_failure_is_recorded(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            modules = self.selected_module(root, "raise ImportError('PRIVATE_SENTINEL')\n")
+            with patch.object(driver, "WORK_MACHINE_MODULES", modules):
+                suite = driver._load_work_machine_suite(root, "application")
+                payload = driver.run_suite(suite, stream=io.StringIO())
+            self.assertEqual(payload["status"], "failed")
+            self.assertEqual(payload["counts"]["errors"], 1)
+            self.assertEqual(payload["failed_test_ids"], ["unittest.loader._FailedTest"])
+
+    def test_empty_selected_module_or_missing_module_cannot_report_success(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            modules = self.selected_module(root, "# No tests in this module.\n")
+            output = root / "result.json"
+            for selection in (modules, {"application": ("work_machine_missing_fixture",)}, {"application": ()}):
+                with self.subTest(selection=selection), patch.object(driver, "WORK_MACHINE_MODULES", selection), \
+                        patch.object(driver, "_checkout_root", return_value=root), \
+                        patch.object(driver.sys, "stderr", io.StringIO()):
+                    self.assertEqual(driver.main(["--suite", "application", "--output", str(output)]), 2)
+                self.assertFalse(output.exists())
+
     def test_main_runs_requested_suite_at_checkout_root(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "result.json"
             suite = unittest.TestSuite([case({"test_success": lambda test: None})("test_success")])
-            with patch.object(driver.unittest.TestLoader, "discover", return_value=suite) as discover:
+            with patch.object(driver, "_load_work_machine_suite", return_value=suite) as load:
                 with patch.object(driver.sys, "stderr", io.StringIO()):
                     self.assertEqual(driver.main(["--suite", "helpers", "--output", str(output)]), 0)
-            expected = str(driver._checkout_root() / "tools/l5x_inspect/tests")
-            discover.assert_called_once_with(expected, top_level_dir=expected)
+            load.assert_called_once_with(driver._checkout_root(), "helpers")
             self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["status"], "passed")
 
     def test_main_records_failed_suite_and_returns_one(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "result.json"
             suite = unittest.TestSuite([case({"test_failure": fail})("test_failure")])
-            with patch.object(driver.unittest.TestLoader, "discover", return_value=suite):
+            with patch.object(driver, "_load_work_machine_suite", return_value=suite):
                 with patch.object(driver.sys, "stderr", io.StringIO()):
                     self.assertEqual(driver.main(["--suite", "application", "--output", str(output)]), 1)
             self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["status"], "failed")
@@ -224,7 +316,7 @@ class WorkCheckTestsTests(unittest.TestCase):
             for discovery in (unittest.TestSuite(), RuntimeError("PRIVATE_SENTINEL")):
                 kwargs = {"side_effect": discovery} if isinstance(discovery, Exception) else {"return_value": discovery}
                 stream = io.StringIO()
-                with patch.object(driver.unittest.TestLoader, "discover", **kwargs), patch.object(driver.sys, "stderr", stream):
+                with patch.object(driver, "_load_work_machine_suite", **kwargs), patch.object(driver.sys, "stderr", stream):
                     self.assertEqual(driver.main(["--suite", "application", "--output", str(output)]), 2)
                 self.assertFalse(output.exists())
                 self.assertNotIn("PRIVATE_SENTINEL", stream.getvalue())

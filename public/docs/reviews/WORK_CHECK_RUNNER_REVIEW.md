@@ -1,5 +1,48 @@
 # Work-machine automation review
 
+## Current behavior: local work-machine results (2026-10-14)
+
+Tyler removed automatic synchronization and publication from the work-machine
+workflow. The launcher now uses the already checked out clean `-pc` branch; it
+does not fetch, pull, stage, commit or push, and matching origin/upstream setup
+is no longer required. Code updates and report publication are manual actions.
+
+The runner saves its validated aggregate at Git-ignored
+`public/inspection/local/work-check-<run-id>.json`. The selected source path stays
+in Git metadata; private logs and analysis artifacts retain their existing
+`confidential/` locations. Review the aggregate, then manually copy or move only
+its JSON into `public/inspection/` and explicitly stage, commit and push when
+ready. The private log folder and engineering workspace are not shared artifacts.
+
+Work-machine suites use explicit parser/helper module allowlists. Listener,
+Windows process-host, Bash bootstrap and Git-fixture tests are excluded there;
+full unittest discovery remains available on the development PC. The aggregate
+envelope remains schema 1 and carries the tested SHA, allowing historical suite
+scope to be identified from the corresponding revision. Reduced counts do not
+mean tests were skipped or failed inside the selected suites.
+
+The address-shape report returned in `b58af78` and awaits parser analysis. The
+development listener remains disabled and paused pending the endpoint-security
+incident review. Tyler is proceeding with a fresh clone and normal manual parser
+checks. These code changes do not establish the detection's cause. The sections below preserve the original
+implementation and its evidence; their automatic pull/commit/push behavior and
+broad work-machine test scope are superseded by this section.
+
+Fresh validation of the local-only revision: all **53 focused tests** passed
+(24 workflow, eight bootstrap and 21 suite-selection/results tests). The selected
+work-machine suites passed with **152 application tests, including one existing
+Windows symlink-capability skip, and 139 helper tests**. The guard regression runs
+these selected suites with `subprocess.Popen` and `socket.socket` blocked.
+
+Two real CLI runs in a disposable clean checkout used an independently invented
+L5X and an unreachable origin. Both saved valid schema-1 reports and private
+outputs with unchanged HEAD and a clean worktree. The source and earlier report
+were preserved, and the second run reused the remembered source selection.
+Independent review found no remaining blockers. These checks establish the
+revised workflow's behavior; they do not diagnose the endpoint detection.
+
+## Original implementation and validation history
+
 Date: 2026-10-13. Branch: `feat/source-references-pc`. Baseline: `5ea6b8d`,
 which records the returned reference aggregate and Tyler's confirmation that
 both work-machine suites passed. This slice automates the existing Phase 1

@@ -1,7 +1,8 @@
-"""Run the work-machine checks after the Bash launcher has pulled the branch.
+"""Run local parser checks and analysis using the already checked-out code.
 
 Source data, saved engineering records and raw test output remain private. Only
-closed aggregate reports are staged, committed and pushed by this workflow.
+closed aggregate reports are saved locally for manual review and sharing.
+This workflow never fetches, pulls, stages, commits or pushes.
 """
 from __future__ import annotations
 
@@ -120,7 +121,7 @@ def _private_failure(path: Path, details: bytes | str | None = None) -> None:
 
 def _git(root: Path, *arguments: str, logs: Path | None = None) -> str:
     # Do not inherit alternate work-tree/index settings. Preserve the user's
-    # normal Git and SSH configuration for the explicitly requested push.
+    # normal Git configuration for local revision checks.
     environment = {key: value for key, value in os.environ.items() if key.upper() not in _GIT_REPOSITORY_OVERRIDES}
     try:
         result = subprocess.run(
@@ -132,7 +133,7 @@ def _git(root: Path, *arguments: str, logs: Path | None = None) -> str:
     except (OSError, UnicodeError, subprocess.SubprocessError) as exc:
         if logs is not None:
             _private_failure(logs / "git.log", getattr(exc, "stderr", None))
-        action = arguments[0] if arguments and arguments[0] in {"add", "commit", "push", "status", "rev-parse", "symbolic-ref", "diff-tree"} else "operation"
+        action = arguments[0] if arguments and arguments[0] in {"status", "rev-parse", "symbolic-ref"} else "operation"
         message = f"Git {action} failed; existing files and commits were preserved."
         if logs is not None:
             message += " See git.log in the local logs folder if available."
@@ -152,18 +153,15 @@ def _branch(root: Path) -> str:
     branch = _git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
     if not branch.endswith("-pc") or branch in {"main", "master"}:
         raise WorkCheckError("The work-machine check requires a feature branch ending in -pc.")
-    if _git(root, "rev-parse", "--abbrev-ref", "@{upstream}") != f"origin/{branch}":
-        raise WorkCheckError("The feature branch must track its matching origin branch.")
     return branch
 
 
-def _check_pinned(root: Path, branch: str, commit: str, report_path: str | None = None) -> None:
+def _check_pinned(root: Path, branch: str, commit: str) -> None:
     if _branch(root) != branch or _git(root, "rev-parse", "HEAD") != commit:
-        raise WorkCheckError("The checked branch or commit changed; results were preserved without automatic commit.")
+        raise WorkCheckError("The checked branch or commit changed; local results were preserved for review.")
     status = _git(root, "status", "--porcelain=v1", "-z", "--untracked-files=all")
-    allowed = {""} if report_path is None else {f"?? {report_path}\0", f"A  {report_path}\0"}
-    if status not in allowed:
-        raise WorkCheckError("Unrelated working-tree changes were found; results were preserved without automatic commit.")
+    if status:
+        raise WorkCheckError("Working-tree changes were found; local results were preserved for review.")
 
 
 def _config_path(root: Path) -> Path:
@@ -278,7 +276,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
 
 
 def run_check(root: Path, supplied_source: str | None) -> int:
-    """Run on an already pulled checkout. This function never fetches or pulls."""
+    """Save local results without changing Git history or contacting a remote."""
     branch = _branch(root)
     commit = _git(root, "rev-parse", "HEAD")
     _check_pinned(root, branch, commit)
@@ -291,7 +289,7 @@ def run_check(root: Path, supplied_source: str | None) -> int:
     print(f"Local logs: {logs}", flush=True)
     results: dict[str, Any] = {}
     for suite in ("application", "helpers"):
-        print(f"Running {suite} tests...", flush=True)
+        print(f"Running {suite} parser tests (work-machine selection)...", flush=True)
         results[suite] = _run_suite(root, logs, suite)
         result = results[suite]
         count = result["counts"]["tests_run"] if result["counts"] is not None else 0
@@ -308,29 +306,18 @@ def run_check(root: Path, supplied_source: str | None) -> int:
     report = dict(_CONSTANTS, run_id=run_id, tool_revision=revision, tests=results, analysis=analysis, status=status)
     rendered = render_work_check_report(report)
     _check_pinned(root, branch, commit)
-    relative_report = f"public/inspection/work-check-{run_id}.json"
+    relative_report = f"public/inspection/local/work-check-{run_id}.json"
     from .summary_output import publish_summary
     publish_summary(root / relative_report, rendered, input_path=source)
-    _check_pinned(root, branch, commit, relative_report)
-    _git(root, "add", "--", relative_report, logs=logs)
-    _check_pinned(root, branch, commit, relative_report)
-    _git(root, "commit", "--only", "-m", "test(workflow): record work-machine check", "--", relative_report, logs=logs)
-    saved_commit = _git(root, "rev-parse", "HEAD")
-    _check_pinned(root, branch, saved_commit)
-    if (_git(root, "rev-parse", "HEAD^") != commit
-            or _git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD") != relative_report):
-        raise WorkCheckError("Commit history changed unexpectedly; the local report was preserved without pushing.")
-    try:
-        _git(root, "push", "origin", f"{saved_commit}:refs/heads/{branch}", logs=logs)
-    except WorkCheckError:
-        raise WorkCheckError("Push failed. Results are committed locally; see git.log in the local logs folder if available. Resolve the remote update and push normally. Do not force-push.") from None
-    print(f"Pushed work-machine report: {relative_report}", flush=True)
+    _check_pinned(root, branch, commit)
+    print(f"Saved work-machine report locally: {relative_report}", flush=True)
+    print("Nothing was staged, committed or pushed. Review the aggregate before sharing it manually.", flush=True)
     print(f"Check status: {status}. Raw logs and engineering records remain under confidential/.", flush=True)
     return 1 if status == "failed" else 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run work-machine tests and analysis after the launcher pulls the feature branch.")
+    parser = argparse.ArgumentParser(description="Run local parser tests and analysis without automatic Git synchronization.")
     parser.add_argument("source", nargs="?", help="L5X filename under confidential/plc-code, or an explicit path. Saved locally for later runs.")
     arguments = parser.parse_args(argv)
     try:

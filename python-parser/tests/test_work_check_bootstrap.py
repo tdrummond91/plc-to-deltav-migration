@@ -117,7 +117,7 @@ git rev-parse HEAD > "$WORK_CHECK_CAPTURE_HEAD"
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(self.arguments_log.exists())
 
-    def test_pull_updates_checkout_before_uv_and_preserves_argument_boundaries(self) -> None:
+    def test_uses_local_checkout_without_pulling_and_preserves_argument_boundaries(self) -> None:
         old_head = self._git("rev-parse", "HEAD", cwd=self.worker)
         (self.seed / "remote-update.txt").write_text("synthetic remote change\n", encoding="utf-8")
         self._git("add", "remote-update.txt")
@@ -129,16 +129,16 @@ git rev-parse HEAD > "$WORK_CHECK_CAPTURE_HEAD"
         result = self._run("folder with spaces/invented unit.L5X", "literal-dollar-$value")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.head_log.read_text(encoding="utf-8").strip(), remote_head)
+        self.assertEqual(self.head_log.read_text(encoding="utf-8").strip(), old_head)
+        self.assertEqual(self._git("rev-parse", "HEAD", cwd=self.worker), old_head)
         arguments = self.arguments_log.read_bytes().decode("utf-8").split("\0")[:-1]
         self.assertEqual(arguments, [
             "run", "--project", "python-parser", "--locked", "python", "-B", "-m",
             "plc_workbench.work_check", "folder with spaces/invented unit.L5X", "literal-dollar-$value",
         ])
-        self.assertEqual(self._commands().count("pull"), 1)
-        self.assertNotIn("fetch", self._commands())
+        self.assertTrue(set(self._commands()) <= {"rev-parse", "status", "symbolic-ref"})
 
-    def test_local_changes_stop_before_pull_or_uv(self) -> None:
+    def test_local_changes_stop_before_uv(self) -> None:
         (self.worker / "local-notes.txt").write_text("synthetic local work", encoding="utf-8")
         result = self._run("invented.L5X")
         self.assertNotEqual(result.returncode, 0)
@@ -147,26 +147,24 @@ git rev-parse HEAD > "$WORK_CHECK_CAPTURE_HEAD"
         self.assertNotIn("pull", self._commands())
         self.assertEqual((self.worker / "local-notes.txt").read_text(encoding="utf-8"), "synthetic local work")
 
-    def test_wrong_upstream_stops_before_pull_or_uv(self) -> None:
+    def test_different_upstream_does_not_block_local_analysis(self) -> None:
         self._git("branch", "wrong-upstream-pc")
         self._git("push", "origin", "wrong-upstream-pc")
         self._git("fetch", "origin", cwd=self.worker)
         self._git("branch", "--set-upstream-to=origin/wrong-upstream-pc", cwd=self.worker)
         result = self._run("invented.L5X")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("same branch name", result.stderr)
-        self.assertFalse(self.arguments_log.exists())
-        self.assertNotIn("pull", self._commands())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(self.arguments_log.exists())
+        self.assertTrue(set(self._commands()) <= {"rev-parse", "status", "symbolic-ref"})
 
-    def test_missing_upstream_stops_before_pull_or_uv(self) -> None:
+    def test_missing_upstream_does_not_block_local_analysis(self) -> None:
         self._git("branch", "--unset-upstream", cwd=self.worker)
         result = self._run("invented.L5X")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("matching origin upstream", result.stderr)
-        self.assertFalse(self.arguments_log.exists())
-        self.assertNotIn("pull", self._commands())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(self.arguments_log.exists())
+        self.assertTrue(set(self._commands()) <= {"rev-parse", "status", "symbolic-ref"})
 
-    def test_branch_without_pc_suffix_stops_before_pull_or_uv(self) -> None:
+    def test_branch_without_pc_suffix_stops_before_uv(self) -> None:
         self._git("switch", "-c", "feature-other-machine", cwd=self.worker)
         result = self._run("invented.L5X")
         self.assertNotEqual(result.returncode, 0)
@@ -174,7 +172,7 @@ git rev-parse HEAD > "$WORK_CHECK_CAPTURE_HEAD"
         self.assertFalse(self.arguments_log.exists())
         self.assertNotIn("pull", self._commands())
 
-    def test_detached_head_stops_before_pull_or_uv(self) -> None:
+    def test_detached_head_stops_before_uv(self) -> None:
         self._git("switch", "--detach", cwd=self.worker)
         result = self._run("invented.L5X")
         self.assertNotEqual(result.returncode, 0)
@@ -182,12 +180,12 @@ git rev-parse HEAD > "$WORK_CHECK_CAPTURE_HEAD"
         self.assertFalse(self.arguments_log.exists())
         self.assertNotIn("pull", self._commands())
 
-    def test_pull_failure_does_not_launch_uv(self) -> None:
+    def test_unreachable_origin_does_not_block_local_analysis(self) -> None:
         self._git("remote", "set-url", "origin", str(self.base / "missing-remote.git"), cwd=self.worker)
         result = self._run("invented.L5X")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(self._commands().count("pull"), 1)
-        self.assertFalse(self.arguments_log.exists())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(set(self._commands()) <= {"rev-parse", "status", "symbolic-ref"})
+        self.assertTrue(self.arguments_log.exists())
 
 
 if __name__ == "__main__":

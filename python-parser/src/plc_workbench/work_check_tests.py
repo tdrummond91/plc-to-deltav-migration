@@ -1,9 +1,13 @@
-"""Run checkout tests and emit a bounded result without traceback content.
+"""Run audited parser tests and emit a bounded result without traceback content.
 
 The caller redirects the ordinary unittest stream to a private log. Only this
 module's closed result contract is eligible for inclusion in a shared report.
-Each suite runs in a fresh process because both test directories use top-level
-module names during discovery.
+Work-machine runs import only the explicit module allowlists below. New test
+modules require review before joining this scope. Listener/host, Bash/bootstrap,
+Git/work-check automation, revision integration and CLI tests that invoke Git
+metadata collection are development-only. Ordinary full unittest discovery is
+unchanged. Each selected suite runs in a fresh process because the test
+directories use top-level module names.
 """
 from __future__ import annotations
 
@@ -30,6 +34,21 @@ _COUNT_KEYS = frozenset({
 _RESULT_KEYS = frozenset({
     "schema_version", "status", "counts", "failed_test_ids", "failure_ids_omitted",
 })
+# Audited for subprocess/network fixtures: these cases use invented inputs,
+# memory buffers or temporary local files. The summary modules also exercise
+# pure work-check report validation; they never execute that workflow.
+WORK_MACHINE_MODULES = {
+    "application": (
+        "test_address_shape_summary", "test_cli", "test_module_io",
+        "test_module_references", "test_module_source", "test_module_summary",
+        "test_reference_summary", "test_references", "test_source", "test_storage",
+        "test_summary", "test_summary_output",
+    ),
+    "helpers": (
+        "test_minimize_l5x", "test_profile_values", "test_review_regressions",
+        "test_rung_inventory", "test_rung_syntax", "test_summarize_xml", "test_write_skeleton",
+    ),
+}
 
 
 def _count(value: object) -> bool:
@@ -174,6 +193,32 @@ def _checkout_root() -> Path:
     raise ValueError("Test execution requires a source checkout.")
 
 
+def _load_work_machine_suite(root: Path, name: str) -> unittest.TestSuite:
+    """Load exact reviewed modules, without discovering or importing others."""
+    directory = root / ("python-parser/tests" if name == "application" else "tools/l5x_inspect/tests")
+    loader = unittest.TestLoader()
+    selected = unittest.TestSuite()
+    original_path = list(sys.path)
+    sys.path.insert(0, str(directory))
+    try:
+        for module_name in WORK_MACHINE_MODULES[name]:
+            module_path = directory / f"{module_name}.py"
+            if not module_path.is_file():
+                raise ValueError("A selected test module is missing.")
+            cached = sys.modules.get(module_name)
+            if cached is not None and Path(getattr(cached, "__file__", "")).resolve() != module_path.resolve():
+                raise ValueError("A selected test module was loaded from another directory.")
+            tests = loader.loadTestsFromName(module_name)
+            if tests.countTestCases() == 0:
+                raise ValueError("A selected test module contains no tests.")
+            selected.addTests(tests)
+    finally:
+        sys.path[:] = original_path
+    if selected.countTestCases() == 0:
+        raise ValueError("No parser tests were selected.")
+    return selected
+
+
 def _publish_result(output: Path, payload: object) -> None:
     """Atomically create a new result, never overwrite a prior run."""
     encoded = render_test_result(payload).encode("utf-8")
@@ -200,17 +245,15 @@ def _publish_result(output: Path, payload: object) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run a checkout test suite with bounded JSON results.")
+    parser = argparse.ArgumentParser(description="Run audited local parser tests with bounded JSON results.")
     parser.add_argument("--suite", choices=("application", "helpers"), required=True)
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args(argv)
     try:
         root = _checkout_root()
-        directory = root / ("python-parser/tests" if arguments.suite == "application" else "tools/l5x_inspect/tests")
-        # Explicit top_level_dir makes discovery independent of the caller's cwd.
-        suite = unittest.TestLoader().discover(str(directory), top_level_dir=str(directory))
+        suite = _load_work_machine_suite(root, arguments.suite)
         if suite.countTestCases() == 0:
-            raise ValueError("Test discovery found no tests.")
+            raise ValueError("No parser tests were selected.")
         payload = run_suite(suite, stream=sys.stderr)
         _publish_result(arguments.output, payload)
     except (OSError, ValueError, RuntimeError, ImportError):

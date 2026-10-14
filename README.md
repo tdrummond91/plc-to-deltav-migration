@@ -1,12 +1,16 @@
 # PLC analysis workbench
 
-Status: updated 2026-10-13. Phase 1 now includes module/I/O declarations, conservative module-root naming, scoped tag/alias bindings and fixed gap-reason counts on `feat/source-references-pc`. See [module/I/O implementation evidence](public/docs/reviews/MODULE_IO_REVIEW.md) for scope, validation and limitations. The editor, engineering interpretation, PCSD and FHX stages remain planned.
+Status: updated 2026-10-14. Phase 1 now includes module/I/O declarations, conservative module-root naming, scoped tag/alias bindings and aggregate address-shape diagnostics on `feat/source-references-pc`. The latest work-machine report returned in `b58af78` and awaits parser analysis. See [module/I/O implementation evidence](public/docs/reviews/MODULE_IO_REVIEW.md) for scope, validation and limitations. The editor, engineering interpretation, PCSD and FHX stages remain planned.
+
+The development listener remains disabled and paused. Manual work-machine checks
+save results locally; the runner does not fetch, pull, stage, commit or push.
 
 The aim is a reusable tool for migrating several units from L5X source analysis through editable engineering records and PCSD to class-based DeltaV FHX. FHX input must also support producing a PCSD. Phase 1 analyzes L5X in two parallel paths: reports for reading and understanding the source, and editable engineering files for organizing and mapping it. Both need source traceability. Other routine languages, including SFC, remain visible even before detailed analysis is implemented.
 
 The [feedback listener](public/docs/reviews/FEEDBACK_LISTENER.md) can check for
 returned work-machine reports and run one bounded Codex follow-up in a separate
-checkout. Its schedule and state are local to the development PC. Use
+checkout. Its schedule and state are local to the development PC; it is currently
+disabled pending the incident review. Use
 `bash ./feedback-listener.sh status` to inspect an installed listener.
 
 Start with [CODEX_HANDOFF.md](CODEX_HANDOFF.md). Read [the architecture](public/docs/planning/ARCHITECTURE.md), then [the implementation roadmap](public/docs/planning/ROADMAP.md).
@@ -50,10 +54,12 @@ On the work machine, Codex may inspect the project read-only and produce handoff
 
 ## Intended usage
 
-For the work-machine feedback cycle, run `bash ./run-work-check.sh SOURCE.L5X`
-once, then `bash ./run-work-check.sh` on later runs. It remembers the source path
-locally, pulls, runs both test suites, saves private analysis and commits/pushes
-the aggregate results. See the [one-command procedure](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+`run-work-check.sh` accepts a source
+filename on the first run and remembers it locally for later runs. It tests the
+already checked out clean `-pc` branch using explicit parser/helper test lists,
+saves private analysis and writes a validated aggregate under the Git-ignored
+`public/inspection/local/` folder. Updating code and publishing a reviewed report
+are manual actions. See the [work-machine procedure](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
 The first available command is `plc inspect`, installed from `python-parser/`:
 
@@ -87,6 +93,6 @@ Repository roles:
 - `python-parser/`: application source, dependency files, and test code.
 - `confidential/`: actual exports and every derived private artifact.
 
-The full repository is the portable development bundle; `public/` complements the Python source rather than duplicating it. The work-machine runner automatically publishes only its validated aggregate/test-results report; detailed production outputs stay private.
+The full repository is the portable development bundle; `public/` complements the Python source rather than duplicating it. The work-machine runner saves its validated aggregate/test-results report locally. Only a manually reviewed aggregate may be copied or moved from `public/inspection/local/` to `public/inspection/` and explicitly staged, committed and pushed. Detailed production outputs and raw logs stay private.
 
 For the new-copy workflow, read [fresh Git setup](public/docs/planning/GIT_FRESH_START.md).

@@ -1,18 +1,23 @@
-# Work-machine check: one command
+# Work-machine check: local results and manual publication
 
 Use the existing **feat/source-references-pc** branch. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
 
-## First run
+## Manual runs
 
-Open Git Bash in the repository. Pull once to receive the new script, then supply
-the readable export's local filename (replace YOUR_READABLE_EXPORT.L5X):
+The development listener remains disabled and paused; normal manual parser
+checks are separate from that service. Update or clone the code manually, then
+open Git Bash in the repository root on the `-pc` branch:
 
 ```bash
-git pull --ff-only
 bash ./run-work-check.sh YOUR_READABLE_EXPORT.L5X
+# Later runs in this checkout remember the source path:
+bash ./run-work-check.sh
 ```
+
+The first run accepts the readable export's local filename or path. A fresh
+clone has no remembered source selection, so supply it again on that first run.
 
 A bare filename is looked up under `confidential/plc-code/`. An explicit relative
 or absolute path also works; quote paths with spaces. The selected path is shown
@@ -21,29 +26,27 @@ script never embeds it in the shared report. Use the readable export that produc
 summary-002 and the returned reference summary: 4,606 rungs, 17,874 instructions,
 6,307 tags, 120 modules and no encoded regions.
 
-## Every later run
+The script uses the code already checked out and locked Python dependencies. It
+runs explicit parser/helper test allowlists in separate processes, analyzes the
+saved source and writes local reports. It never fetches, pulls, stages, commits
+or pushes. Passing a different filename/path replaces the machine-local source
+selection for future runs.
 
-```bash
-bash ./run-work-check.sh
-```
+Git, Git Bash and uv must already be available. The checkout must be clean and
+on a branch ending in `-pc`; an upstream and GitHub authentication are not required
+by the runner. Local changes stop the script without discarding anything.
+Dependency setup may still use uv's configured package sources.
 
-The script pulls with `git pull --ff-only`, uses the locked Python dependencies,
-runs both test suites in separate processes, analyzes the saved source and writes
-the current reports. It then commits and pushes the new aggregate result to the
-same branch. There is no separate fetch command or manual staging step. Passing
-a different filename/path replaces the machine-local selection for future runs.
-
-Git, Git Bash, uv and working GitHub authentication must already be available.
-The checkout must be clean, on a branch ending in `-pc`, with its matching branch
-on origin as upstream. Local changes or divergent history stop the script without
-discarding anything. A failed push leaves the report committed locally; resolve
-the reported Git problem and push normally. Do not force-push.
+The work-machine test lists exclude listener, Windows process-host, Bash
+bootstrap and Git-fixture tests. Full unittest discovery remains the development
+check. The report retains schema 1 and its tested SHA identifies which suite
+implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
 
 | Location | Contents |
 |---|---|
-| `public/inspection/work-check-<run-id>.json` | Automatically committed/pushed: tested code revision, both suites' counts/statuses and bounded failed test IDs, analysis status and the reference/structural aggregate |
+| `public/inspection/local/work-check-<run-id>.json` | Git-ignored local aggregate: tested code revision, both suites' counts/statuses and bounded failed test IDs, analysis status and the reference/structural aggregate |
 | `confidential/work-checks/<run-id>/` | Local test logs and structured results; analysis exception details if needed |
 | `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt and manifest.json |
 | Git metadata `plc-work-check.json` | Local remembered source path; not committed or pushed |
@@ -57,7 +60,16 @@ The public report contains no source filename, names, values, source hashes,
 per-rung examples, raw logs or individual reference links. The reference aggregate
 is at `analysis.reference_summary`, with the structural summary nested beneath
 `source_summary`. The top-level `tool_revision` identifies the tested code commit;
-the report's own later Git commit is intentionally different.
+any later manually created report commit is intentionally different.
+
+## Manual review and publication
+
+Review the saved aggregate. To share a result,
+manually copy or move only its final JSON from `public/inspection/local/` into
+`public/inspection/`, then explicitly stage, commit and push that file. Leaving
+the report in `local/` keeps it excluded from ordinary Git staging. Do not share
+the private log folder, workspace, source export or temporary pending files.
+The runner does not perform any of these publication actions.
 
 ## Reading completion and failures
 
@@ -67,16 +79,16 @@ means usable results with gaps, not a failed save. A complete result also refers
 only to the implemented analysis scope, not all process behavior.
 
 If either suite fails, both suites are still attempted, source analysis is skipped,
-and the test-results report is committed/pushed. The script exits 1 after reporting
+and the test-results report is saved locally. The script exits 1 after reporting
 that failure. Analysis failures also produce a failed report with a fixed reason
-code; detailed diagnostics remain local. Pull/setup/source-selection errors occur
+code; detailed diagnostics remain local. Setup/source-selection errors occur
 before the check and do not produce a test-results report. Changes to the branch,
-commit or tracked/untracked files during the run stop automatic publication or push.
+commit or tracked/untracked files during the run stop normal completion.
 
-Once it says **Pushed work-machine report**, the authorized development-PC listener
-can process the new aggregate when that PC is awake and monitoring. No copied
-terminal output, manual test summary or proprietary source is needed. A Git/setup
-failure may need a short description if no report reached GitHub.
+A local save does not send anything to the development PC. A report becomes
+available there only after manual publication. No copied terminal output,
+manual test summary or proprietary source is needed. The listener remains
+disabled; do not assume it will process a newly published result automatically.
 
 Interpret the reference counters as follows:
 
@@ -103,7 +115,9 @@ Actual names, topology and per-reference detail remain in the private reports.
 See [module/I/O review](MODULE_IO_REVIEW.md) for comparison targets and
 [listener operation](FEEDBACK_LISTENER.md) for its local status controls.
 
-The next run adds reference schema 3 with `operands.malformed_address_shapes`.
+The report returned in `b58af78` already contains reference schema 3 with
+`operands.malformed_address_shapes` and awaits parser analysis. No new run is
+needed merely to obtain that diagnostic.
 These seven closed counters partition the malformed-address operand total;
 they do not change parsing or binding. Alias-target failures have their own
 bucket, and direct spellings are grouped by fixed precedence. Actual addresses,

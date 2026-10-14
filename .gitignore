@@ -1,6 +1,9 @@
 # Actual plant inputs and all derived plant artifacts
 confidential/
 
+# Validated aggregate reports awaiting manual review and publication
+public/inspection/local/
+
 # Python environments and caches
 .venv/
 venv/

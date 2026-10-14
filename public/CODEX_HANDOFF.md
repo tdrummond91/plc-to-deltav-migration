@@ -1,20 +1,58 @@
 # Codex handoff: PLC analysis workbench
 
-Current operational hold (2026-10-14): Tyler reported repeated endpoint-security
+Current listener hold (2026-10-14): Tyler reported repeated endpoint-security
 alerts involving bash.exe after the work-machine check of `1419af7`. The local
 listener task is disabled and state is paused with no pending worker. Do not
-restore automatic execution while that report is under investigation. The run
+restore automatic listener execution while that report is under investigation. The run
 included listener Git/process-host regression tests in the application suite;
-the specific detection is unverified. Earlier restoration evidence below is history.
+the specific detection is unverified and these changes do not prove its cause
+resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
+using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current activity: **closed address-shape diagnostic implemented; next work-machine aggregate needed on feat/source-references-pc**. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current activity: **remove automatic work-machine synchronization/publication; review the address-shape report already returned in b58af78 on feat/source-references-pc**. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
-## Current address-shape checkpoint (2026-10-13)
+## Current work-machine workflow (2026-10-14)
 
-Listener monitoring restored (2026-10-14): the corrected scheduled task is enabled
-and the listener is unpaused. Its first production poll after restoration ran at
+Work-machine recovery: its screenshot showed missing `.git/HEAD` and other
+repository files. Tyler deleted the old checkout, then confirmed another old
+folder contains the private inputs and is proceeding with a fresh clone. Keep
+that backup intact; a fresh checkout needs its source selection supplied again.
+
+Tyler's latest instruction supersedes the automatic pull/commit/push workflow
+below. The work-machine launcher uses the already checked out clean `-pc` branch
+and never fetches, pulls, stages, commits or pushes. No matching upstream is
+required. It saves the validated aggregate under Git-ignored
+`public/inspection/local/work-check-<run-id>.json`. Source selection remains in
+Git metadata, and private logs/artifacts retain their `confidential/` locations.
+
+Code updates and publication are separate manual actions. Review a local
+aggregate before manually copying or moving only that JSON into
+`public/inspection/` and explicitly staging, committing and pushing it. Never
+include the private log folder or engineering workspace. Existing approval of
+the bounded aggregate's contents is unchanged; publication is now manual.
+
+Work-machine test execution uses explicit parser/helper module allowlists,
+excluding listener, Windows process-host, Bash bootstrap and Git-fixture tests.
+Full development unittest discovery remains available. The schema-1 envelope
+and tested SHA are retained; consult that revision for historical suite scope
+instead of treating reduced suite totals as a regression.
+
+The latest report is `public/inspection/work-check-20261014T051259Z-72d3ad4c.json`,
+returned in `b58af78`. Its address-shape evidence awaits parser analysis. Review
+that existing aggregate before requesting any new work-machine evidence. Leave
+the development listener disabled and paused. Manual parser execution remains
+under Tyler's control and is not gated on restoring the listener.
+
+The checkpoints below retain prior implementation and validation evidence.
+Earlier activation and automatic-publication instructions are superseded by
+this current workflow and operational hold.
+
+## Historical address-shape checkpoint (2026-10-13)
+
+Historical listener restoration (subsequently reversed): the corrected scheduled task was enabled
+and the listener was unpaused. Its first production poll after restoration ran at
 00:14:29 America/Chicago, returned `LastTaskResult=0` and saved
-`waiting_for_report` with no pending claim. Five-minute and logon checks are active.
+`waiting_for_report` with no pending claim. Five-minute and logon checks were active.
 Tyler's existing authorization covers automatic monitoring; the earlier hold for
 terminal takeover is closed. Check live local status before interactive edits.
 
@@ -39,8 +77,8 @@ Fresh validation: 274 application tests (273 passed, one existing symlink skip),
 139 helper tests passed, independent review with no remaining blockers and a
 successful real scheduled worker with passive Terminal-tab observation.
 Global settings and parser contracts are unchanged. Inspect local listener status
-before interactive edits; the latest development result remains the address-shape
-slice below, awaiting its work-machine aggregate.
+before interactive edits. This validation preceded the report returned in
+`b58af78` and the current operational hold.
 
 The automatic worker verified event b06e7dc and the selected report's exact blob,
 validated it and the preceding report, and confirmed no suite/analysis failure.
@@ -66,8 +104,9 @@ and found no remaining blockers. The real launcher also passed in a disposable
 checkout/local remote with invented input, validated schema 1/3/3 aggregate,
 private artifact hashes and independently verified report-only push. Full
 evidence is in ADDRESS_SHAPE_REVIEW.md.
-Next work-machine action: run `bash ./run-work-check.sh` once on the existing
-branch. The runner pulls, tests and returns the schema-3 histogram automatically.
+The requested schema-3 histogram has since returned in `b58af78`; its analysis
+is the next parser task after the workflow changes. No rerun is needed merely to
+obtain it.
 Compare the same input's statuses/reasons and the histogram total with the prior
 868 count; no improvement in binding counts is expected from this diagnostic.
 Do not infer the new histogram from this earlier report. If its closed buckets

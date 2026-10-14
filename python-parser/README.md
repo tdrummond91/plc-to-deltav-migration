@@ -132,40 +132,52 @@ usable candidate, 1 failure, 2 usage. Parsed syntax is not understood engineerin
 purpose. See [the work-machine procedure](../public/docs/reviews/WORK_MACHINE_SUMMARY_RUN.md)
 for checkout, testing, generation and the exact artifact to return.
 
-## Automated work-machine feedback
+## Local work-machine feedback
 
-From the repository root in Git Bash:
+The development listener remains disabled and paused. Manual parser checks are
+separate from that background service. Update or clone the code manually, then
+run from the repository root in Git Bash:
 
 ```bash
 bash ./run-work-check.sh YOUR_READABLE_EXPORT.L5X
-# Later runs remember the source path on this machine:
+# Later runs in this checkout remember the source path:
 bash ./run-work-check.sh
 ```
 
-The launcher pulls the current `-pc` branch with `git pull --ff-only` before
-loading the updated Python workflow through `uv run --locked`. Both unittest
-suites run in fresh processes; successful tests enable a single captured-source
-inventory/reference analysis and a new private workspace. A closed aggregate
-report includes test counts, bounded code-only failing test IDs, tested commit
-and the nested reference summary. Only that new report is staged/committed; the
-runner pushes normally to the matching origin branch. Failed tests are also
-reported, with source analysis skipped. Useful partial analysis exits 0; test or
-analysis failure exits 1 after publishing its result. Preflight/publication/Git
-failures stop without claiming completion.
+The launcher uses the code already checked out on a
+clean branch ending in `-pc`. It never fetches, pulls, stages, commits or pushes,
+and does not require an upstream branch. Code updates are a separate manual
+action. The first run accepts a source filename/path; later runs reuse the
+selection saved in this checkout's Git metadata.
 
-The outer work-check report remains schema 1 and now carries reference schema 3
-with source schema 3 when analysis succeeds. Existing work-check reports with the
-previous nested versions remain readable. After updating this branch, the next
-work-machine run needs only `bash ./run-work-check.sh`; it publishes the new
-address-shape counters alongside the existing module/I/O and gap-reason counts.
+The application and helper checks use explicit module allowlists in fresh
+processes. Work-machine checks exclude listener, Windows process-host, Bash
+bootstrap and Git-fixture tests. Full unittest discovery remains available for
+development validation; its test totals must not be compared as if it had the
+same scope as the work-machine checks.
 
-The saved source path lives in Git metadata. Logs and full results stay under
-`confidential/`; source and older output files are preserved. There is no extra
-per-report confirmation. Read the [work-machine procedure](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md)
-for prerequisites, output locations and recovery, and the
-[implementation review](../public/docs/reviews/WORK_CHECK_RUNNER_REVIEW.md) for the
-bounded report contract. This automates the currently implemented Phase 1 tools;
-it does not generate engineering classifications, PCSD or FHX.
+Successful tests enable a single captured-source inventory/reference analysis
+and a new private workspace. A closed aggregate includes test counts, bounded
+code-only failing test IDs, the tested commit and the nested reference summary.
+It is saved to Git-ignored `public/inspection/local/work-check-<run-id>.json`.
+Failed tests also produce a local report and skip source analysis. Useful partial
+analysis exits 0; test or analysis failure exits 1 after saving the report.
+Preflight or save failures stop without claiming completion.
+
+The outer report remains schema 1 and carries reference schema 3 with source
+schema 3 when analysis succeeds. Existing reports remain readable. The tested
+SHA identifies the implementation and therefore its suite scope; historical
+reports may include the broader development suites. The latest work-machine
+aggregate returned in `b58af78` and awaits parser analysis; a rerun is not needed
+just to obtain its address-shape counters.
+
+Review the local aggregate before sharing. Manually copy or move only that JSON
+into `public/inspection/`, then explicitly stage, commit and push it when ready.
+Raw logs, full results, source and older outputs stay under `confidential/` and
+must not be included. Read the [work-machine procedure](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md)
+for output locations and the [implementation review](../public/docs/reviews/WORK_CHECK_RUNNER_REVIEW.md)
+for the bounded report contract. This runs the implemented Phase 1 tools; it does
+not generate engineering classifications, PCSD or FHX.
 
 ## Run individual commands from Git Bash
 
