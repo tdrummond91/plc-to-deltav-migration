@@ -47,8 +47,8 @@ class TimerPlaceholderTests(unittest.TestCase):
         self.assertEqual(result.coverage["operands_total"], 9)
         self.assertEqual(result.coverage["instructions_catalogued"], 3)
         self.assertEqual(result.status, "complete")
-        self.assertEqual(result.schema_version, 2)
-        self.assertEqual(result.analyzer_version, "source-references-3")
+        self.assertEqual(result.schema_version, 3)
+        self.assertEqual(result.analyzer_version, "source-references-4")
         self.assertEqual(result.analysis_scope, "scoped_root_bindings")
         for field in ("semantic_analysis", "effect_analysis", "member_validation"):
             self.assertEqual(getattr(result, field), "not_implemented")
@@ -149,8 +149,9 @@ class TimerPlaceholderTests(unittest.TestCase):
                 changed.operands[1].update(mutation)
                 with self.assertRaises(ReferenceError):
                     validate_references(source, changed)
-        with self.assertRaises(ReferenceError):
-            validate_references(source, replace(result, analyzer_version="source-references-2"))
+        for previous in ("source-references-2", "source-references-3"):
+            with self.subTest(analyzer_version=previous), self.assertRaises(ReferenceError):
+                validate_references(source, replace(result, analyzer_version=previous))
 
     def test_count_only_summary_counts_placeholder_slots_without_erasing_other_gaps(self) -> None:
         source = inventory("TON(TimerRoot,?,?)XIC(?);")

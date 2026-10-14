@@ -146,16 +146,28 @@ class DiagnosticReportTests(unittest.TestCase):
             result = work_check._analyze(root, source, root, {"commit": COMMIT, "worktree": "clean"})
             self.assertIsNone(result["diagnostic_sample"])
             nested = result["reference_summary"]
-            self.assertEqual(nested["schema_version"], 4)
-            self.assertEqual(nested["analyzer_version"], "source-references-3")
+            self.assertEqual(nested["schema_version"], 5)
+            self.assertEqual(nested["analyzer_version"], "source-references-4")
             self.assertEqual(nested["operands"]["by_status"]["non_data"], 2)
             self.assertEqual(nested["operands"]["by_reason"]["unsupported_address"]["malformed_address"], 0)
 
-    def sample_report(self) -> dict:
+    def sample_report(self, reference_version: int = 5) -> dict:
         from plc_workbench.diagnostic_sample import build_diagnostic_sample
         inventory = analyze_snapshot(snapshot_from_bytes(SOURCE.replace(b"NOP();", b"TON(ToyTimer,Preset?,?);")))
         references = analyze_references(inventory)
         nested = build_reference_summary(inventory, references, revision={"commit": COMMIT, "worktree": "clean"})
+        if reference_version in (3, 4):
+            nested.update(schema_version=reference_version,
+                          exporter_version=f"reference-summary-{reference_version}",
+                          analyzer_version=f"source-references-{reference_version - 1}")
+            del nested["rack_candidates"]
+            source = nested["source_summary"]
+            source.update(schema_version=3, exporter_version="aggregate-summary-3",
+                          parser_version="source-inventory-2")
+            for key in ("module_rack_connections", "module_rack_input_aliases", "module_rack_output_aliases"):
+                del source["counts"][key]
+        elif reference_version != 5:
+            raise ValueError("Unsupported diagnostic fixture version.")
         payload = report()
         payload.update(schema_version=2, workflow_version="work-check-2", status="partial",
                        diagnostic_sample=build_diagnostic_sample(inventory, references))
@@ -171,18 +183,19 @@ class DiagnosticReportTests(unittest.TestCase):
             publish_summary(output, work_check.render_work_check_report(payload), input_path=Path(folder) / "toy.L5X")
             self.assertEqual(json.loads(output.read_text()), payload)
 
-    def test_schema4_rejects_recognized_timer_sample_despite_other_malformed_operands(self) -> None:
-        for raw in ("?", " ? "):
-            for index in (1, 2):
-                payload = self.sample_report()
-                payload["diagnostic_sample"].update(raw_text=raw, argument_index=index)
-                with self.subTest(raw=raw, index=index), self.assertRaises(ValueError):
-                    work_check.validate_work_check_report(payload)
-                # Same vocabulary was legitimately malformed under analyzer 2.
-                nested = payload["analysis"]["reference_summary"]
-                nested.update(schema_version=3, exporter_version="reference-summary-3",
-                              analyzer_version="source-references-2")
-                work_check.validate_work_check_report(payload)
+    def test_current_and_schema4_reject_recognized_timer_samples_but_schema3_preserves_them(self) -> None:
+        for version in (3, 4, 5):
+            for raw in ("?", " ? "):
+                for index in (1, 2):
+                    payload = self.sample_report(version)
+                    payload["diagnostic_sample"].update(raw_text=raw, argument_index=index)
+                    with self.subTest(version=version, raw=raw, index=index):
+                        if version == 3:
+                            # This vocabulary was legitimately malformed under analyzer 2.
+                            work_check.validate_work_check_report(payload)
+                        else:
+                            with self.assertRaises(ValueError):
+                                work_check.validate_work_check_report(payload)
 
     def test_v1_and_v2_null_sample_are_supported_without_rewriting_history(self) -> None:
         legacy = report()

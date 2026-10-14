@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/RACK_CANDIDATE_REVIEW.md,
 public/docs/reviews/RACK_IO_INVESTIGATION.md,
 public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md,
 public/docs/reviews/ADDRESS_SHAPE_REVIEW.md,
@@ -95,27 +96,23 @@ unsupported-address 870 to 2; all other source/reference counters unchanged
 and sample null. No repeat work-machine run is needed to confirm this fix.
 Do not infer byte identity or timer configuration/effects from these aggregates.
 
-Current analyzer source-references-3 recognizes trimmed `?` only in valid
-three-argument TON/TOF/RTO preset/accumulator slots. Private reference schema 2,
-public reference schema 4, source aggregate 3 and work-check 2 remain current.
-Historical public reports remain readable. RACK_IO_INVESTIGATION.md now records
-completed code/official-format investigation and a coherent invented rack fixture.
-The reader omits RackConnection/InAliasTag/OutAliasTag declarations. The fixture
-has three unresolved slot/alias occurrences and two bound adapter controls; an
-in-memory ordinary-connection control binds all five. Existing module suites
-passed 38 tests. No production parser code or schema changed.
+The rack slice is now implemented: private inventory/reference schemas 3/3,
+source-inventory-3/source-references-4, public source/reference schemas 4/5,
+work-check2 and manifest2. Read RACK_CANDIDATE_REVIEW.md for final validation.
+Dedicated rack declarations and separate candidate diagnostics preserve ordinary
+bindings. Public counts partition unresolved aliases, direct operands and
+alias-mediated operands. Matching uses the terminal failed target and scope.
+Candidates with unknown backing are never ordinary terminal root_bound symbols;
+unsupported topology/content/attributes and ambiguity remain explicit.
 
-Next implement dedicated rack evidence and bounded candidate-match diagnostics
-for the 99 unresolved aliases and 320 operand occurrences. Their relationship to
-the 11 reported rack connections is still unmeasured; suffix/prefix/scope misses
-share the same reason. Match terminal missing roots through alias chains in the
-right scope, not just raw caller operands. Account for unsupported topology,
-ambiguity and unavailable candidates. Do not turn rack aliases into ordinary
-terminal symbols or infer a universal backing-member layout. Read the exact
-recommended slice and limits in RACK_IO_INVESTIGATION.md before implementation.
-No repeat timer confirmation or unchanged-parser run is requested.
-Continue work already authorized in the active session; stop for a decision
-when the evidence or a phase boundary needs Tyler's input.
+Next obtain the new work-machine report to measure the relationship to 99
+unresolved aliases and 320 operands. The invented fixture has two named roots,
+one unique alias match, two direct matches and one alias-mediated match; this is
+not a prediction for the plant. The existing timer fix is already confirmed.
+Do not reimplement this slice or request another unchanged-parser timer run.
+After the report returns, validate it and continue authorized work until a
+specific evidence gap or phase boundary needs Tyler's input. No listener
+activation, private data access or broader sample authorization is needed.
 
 Keep parsing and analysis reusable by both CLI and a future GUI.
 Preserve source mappings and account for unsupported content.

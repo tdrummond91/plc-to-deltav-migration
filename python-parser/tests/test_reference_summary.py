@@ -127,7 +127,7 @@ class ReferenceSummaryTests(unittest.TestCase):
         with self.assertRaises(ReferenceSummaryError):
             build_reference_summary(inventory('DIFFERENT_SECRET'), references)
         for field, value in (
-            ('schema_version', True), ('schema_version', 3),
+            ('schema_version', True), ('schema_version', 2),
             ('analyzer_version', 'PRIVATE_VERSION'), ('analysis_scope', 'PRIVATE_SCOPE'),
             ('semantic_analysis', 'implemented'), ('effect_analysis', 'implemented'),
             ('member_validation', 'implemented'), ('status', 'PRIVATE_STATUS'),

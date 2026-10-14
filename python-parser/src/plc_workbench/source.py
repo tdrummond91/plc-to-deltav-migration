@@ -147,12 +147,15 @@ _ENTITY_KINDS = {
     'Port': 'module_port', 'Connection': 'module_connection',
     'InputTag': 'module_input_tag', 'OutputTag': 'module_output_tag',
     'ConfigTag': 'module_config_tag',
+    'RackConnection': 'module_rack_connection',
+    'InAliasTag': 'module_rack_input_alias', 'OutAliasTag': 'module_rack_output_alias',
 }
 _SCOPES = {'controller', 'program', 'aoi'}
 # These module declarations commonly have identity through their source position
 # and attributes other than Name. Keep that evidence without inventing a name.
 _OPTIONALLY_NAMED_KINDS = {
     'module_port', 'module_input_tag', 'module_output_tag', 'module_config_tag',
+    'module_rack_connection', 'module_rack_input_alias', 'module_rack_output_alias',
 }
 # These envelopes are traversed by this slice. All other paths are accounted as
 # generic preserved XML, not claimed invalid or interpreted. Exact bytes remain
@@ -175,6 +178,8 @@ _DECLARATION_PARENTS = {
     'Port': 'Ports', 'Connection': 'Connections',
     'InputTag': 'module_connection', 'OutputTag': 'module_connection',
     'ConfigTag': 'Communications',
+    'RackConnection': 'Connections',
+    'InAliasTag': 'module_rack_connection', 'OutAliasTag': 'module_rack_connection',
 }
 
 
@@ -223,6 +228,7 @@ def analyze_snapshot(snapshot: SourceSnapshot) -> InventoryResult:
         'aoi_local_tags', 'aoi_parameters', 'aliases', 'routines', 'rungs', 'instructions',
         'module_ports', 'module_connections', 'module_input_tags',
         'module_output_tags', 'module_config_tags',
+        'module_rack_connections', 'module_rack_input_aliases', 'module_rack_output_aliases',
     )})
     count_key = {
         'controller': 'controllers', 'module': 'modules', 'task': 'tasks',
@@ -232,6 +238,9 @@ def analyze_snapshot(snapshot: SourceSnapshot) -> InventoryResult:
         'module_port': 'module_ports', 'module_connection': 'module_connections',
         'module_input_tag': 'module_input_tags', 'module_output_tag': 'module_output_tags',
         'module_config_tag': 'module_config_tags',
+        'module_rack_connection': 'module_rack_connections',
+        'module_rack_input_alias': 'module_rack_input_aliases',
+        'module_rack_output_alias': 'module_rack_output_aliases',
     }
     # Roles only propagate through supported parents. A familiar element name in
     # a vendor extension is evidence, not automatically a source declaration.
@@ -281,16 +290,27 @@ def analyze_snapshot(snapshot: SourceSnapshot) -> InventoryResult:
             if kind == 'encoded_region':
                 diagnose('encoded_content', node, entity.id,
                          'Encoded content is preserved in the snapshot and has not been analyzed.')
+            elif kind == 'module_rack_connection':
+                diagnose('module_rack_backing_not_analyzed', node, entity.id,
+                         'Rack declarations are inventoried; backing members and channel mapping are not analyzed.')
             elif not entity.name and kind not in _OPTIONALLY_NAMED_KINDS:
                 diagnose('entity_name_missing', node, entity.id,
                          'An inventoried declaration or reference has no Name value.')
+            if kind in {'module_rack_connection', 'module_rack_input_alias', 'module_rack_output_alias'}:
+                expected_children = {'InAliasTag', 'OutAliasTag'} if kind == 'module_rack_connection' else set()
+                if node.text.strip() or any(nodes[i].name not in expected_children for i in node.children):
+                    # The source bytes retain the content. Tie a bounded shape
+                    # warning to this record so naming cannot mistake it for an
+                    # empty rack declaration solely from its attributes.
+                    diagnose('module_rack_content_not_analyzed', node, entity.id,
+                             'Rack declaration has text or child content outside the supported empty form.')
         elif index not in roles:
             generic_paths[node.path] += 1
-            if node.name == 'RackConnection' and parent_role == 'Connections':
+            if node.name == 'RackConnection':
                 parent = ancestor(index, {'module'})
                 diagnose('module_rack_connection_not_analyzed', node,
                          parent.id if parent else None,
-                         'Rack connection XML is preserved but has no dedicated interpretation in this slice.')
+                         'Rack connection XML is outside a supported source container; it was not inventoried.')
             elif node.name in _ENTITY_KINDS and node.name not in {'Parameter', 'LocalTag'}:
                 diagnose('declaration_context_not_analyzed', node, None,
                          'Declaration-like XML is outside a supported source container; it was not inventoried.')

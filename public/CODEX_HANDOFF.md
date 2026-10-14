@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `1195d40` tested `112ee82` and confirms the timer-placeholder fix: malformed operands 868 to 0, non-data 0 to 868, unsupported addresses 870 to 2, with unchanged source and root-binding counts. Both suites passed. No repeat work-machine check is needed for this slice. The [rack-I/O investigation](docs/reviews/RACK_IO_INVESTIGATION.md) confirms an omitted-declaration gap using invented data and official format evidence. Next capture dedicated rack records and measure candidate matches before changing binding semantics. Read [timer evidence and limits](docs/reviews/TIMER_PLACEHOLDER_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. The confirmed timer correction remains intact. Dedicated rack declaration capture and bounded candidate diagnostics are now implemented on `feat/bounded-operand-example-pc`; the next work-machine run measures their relationship to the remaining 99 unresolved aliases and 320 operands. Existing bindings are unchanged. Read [rack implementation and validation](docs/reviews/RACK_CANDIDATE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -105,32 +105,41 @@ fall 868 to 0; non_data rises 0 to 868; unsupported-address falls 870 to 2.
 The sample is null. All other source/reference counters are unchanged. This
 confirms the predicted classification change without proving source byte identity.
 
-The new analyzer recognizes trimmed `?` only in preset/accumulator slots of
-valid three-argument TON/TOF/RTO instructions as `non_data` for root lookup.
-Raw text is preserved; timer settings and effects are unverified. Private
-reference schema stays 2 with `source-references-3`; public reference schema is
-4 with source schema 3; work-check schema stays 2. Historical public reports
-remain readable. See [timer review](docs/reviews/TIMER_PLACEHOLDER_REVIEW.md).
+The confirmed timer behavior recognizes trimmed `?` only in preset/accumulator
+slots of valid three-argument TON/TOF/RTO instructions as `non_data` for root
+lookup. Raw text is preserved; timer settings and effects remain unverified.
+No repeat timer-only confirmation is needed.
 
-Tyler authorized one actual mystery operand; no further approval or invented-only
-restriction applies to this sample. Work-check schema 2 still includes at most
-128 printable characters, a standard opcode and zero-based position, without
-rung/location IDs or neighbors. Known timer placeholders are skipped. No repeat
-run is needed for the confirmed fix. The rack investigation has reproduced a
-source-model omission with coherent invented topology: two adapter references
-bind while three slot/alias occurrences remain unresolved; an in-memory ordinary
-connection control binds all five. Existing module tests pass all 38 cases.
-Official documentation supports dedicated rack declarations and individual slot
-names, but does not justify one universal backing-member mapping.
+The rack slice now captures RackConnection/InAliasTag/OutAliasTag separately,
+derives conservative candidate roots and compares terminal missing roots under
+existing scope/alias rules. Private references show candidates and occurrence
+links; public summaries expose closed counts only. Unique matches do not become
+ordinary terminal `root_bound` symbols because backing members are unexamined.
+`candidate_names_unavailable` means matching is inconclusive, not that those
+unnamed declarations correspond to the missing roots. Invented topology confirms
+two candidate roots, one matching alias, two direct and one alias-mediated operand
+matches, while ordinary bindings remain two bound and three unresolved operands.
+The real 99/320 relationship remains unmeasured until the next work-machine run.
 
-The contribution to the real 99 unresolved aliases and 320 unresolved operand
-occurrences remains unmeasured. Next capture RackConnection/InAliasTag/OutAliasTag
-as distinct records, derive supported candidate roots and compare terminal missing
-roots under existing scope/alias rules. Publish bounded match/ambiguity/unavailable
-counts before changing bindings. Do not mark a rack alias with unknown backing
-as an ordinary terminal root_bound symbol. See [the investigation and fixture](docs/reviews/RACK_IO_INVESTIGATION.md).
-No production parser code or schema changed during this investigation; no new
-work-machine run is requested. Count-only summaries remain count-only.
+Current contracts: private inventory/reference schemas 3/3 with
+`source-inventory-3` / `source-references-4`; public source/reference schemas 4/5;
+work-check schema 2 and reference-run manifest schema 2. Historical public
+reports still validate. Read [rack review](docs/reviews/RACK_CANDIDATE_REVIEW.md)
+for scope, version mapping, validation and the next report comparison.
+
+Rack validation: 316 development application/workflow tests passed (one existing
+symlink skip), including 43 new rack cases. The ignored listener loader was
+excluded. Independent review found no remaining blockers after strengthening
+mandatory warning and alias-mediated status reconciliation. Historical reports
+remain readable. Final disposable-checkout workflow validation passed 220 selected
+application cases (one skip) and 139 helpers, saved private synthetic artifacts,
+made a report-only local commit and made no remote Git calls. See the rack review
+for reproducible checks and exact scope.
+
+Tyler's one actual mystery operand remains authorized: at most 128 printable
+characters, a standard opcode and zero-based position, without rung/location IDs
+or neighbors. Known timer placeholders are skipped. The rack slice does not
+expand that sample or share individual rack names/relationships.
 
 Timer-fix validation: 273 application/workflow tests passed (one symlink skip),
 with listener tests excluded. Two real temporary-checkout CLI runs each passed

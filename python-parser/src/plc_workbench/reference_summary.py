@@ -12,6 +12,7 @@ from typing import Any, TYPE_CHECKING
 
 from .models import InventoryResult
 from .module_io import MODULE_IO_KINDS, NAME_ORIGINS, NAME_REASONS
+from .rack_candidates import RACK_MATCH_STATUSES, RACK_NAME_ORIGINS, RACK_NAME_REASONS
 from .references import (
     ALIAS_STATUSES, OPERAND_STATUSES, UNRESOLVED_REASONS, UNSUPPORTED_ADDRESS_REASONS,
     ReferenceError, _address, validate_references,
@@ -53,16 +54,21 @@ V3_CONSTANTS = V2_CONSTANTS | {
     'schema_version': 3,
     'exporter_version': 'reference-summary-3',
 }
-CONSTANTS = V3_CONSTANTS | {
+V4_CONSTANTS = V3_CONSTANTS | {
     'schema_version': 4,
     'exporter_version': 'reference-summary-4',
     'analyzer_version': 'source-references-3',
+}
+CONSTANTS = V4_CONSTANTS | {
+    'schema_version': 5,
+    'exporter_version': 'reference-summary-5',
+    'analyzer_version': 'source-references-4',
 }
 _CORE_CONSTANTS = {key: V2_CONSTANTS[key] for key in (
     'schema_version', 'analyzer_version', 'analysis_scope', 'semantic_analysis',
     'effect_analysis', 'member_validation',
 )}
-# Private record layout stays at v2; timer slot recognition changes the analyzer.
+_CORE_CONSTANTS['schema_version'] = 3
 _CORE_CONSTANTS['analyzer_version'] = CONSTANTS['analyzer_version']
 _COVERAGE_KEYS = frozenset({'rungs_total', 'rungs_analyzed', 'instructions_total',
                             'instructions_catalogued'})
@@ -197,6 +203,78 @@ def _module_io_counts(symbols: list[dict[str, Any]]) -> dict[str, Any]:
             'by_name_origin': origins, 'unavailable_by_reason': reasons}
 
 
+def _rack_counts(evidence: dict[str, Any]) -> dict[str, Any]:
+    """Count canonical private candidates without copying names or links."""
+    candidates = evidence['candidates']
+    origins = dict.fromkeys(sorted(RACK_NAME_ORIGINS), 0)
+    reasons = dict.fromkeys(sorted(RACK_NAME_REASONS), 0)
+    directions = {'input': 0, 'output': 0}
+    for candidate in candidates:
+        origins[candidate['name_origin']] += 1
+        directions[candidate['direction']] += 1
+        if candidate['name_origin'] == 'unavailable':
+            reasons[candidate['reason']] += 1
+    return {
+        'analysis_scope': 'rack_logical_root_candidates',
+        'backing_mapping': 'not_analyzed',
+        'declarations': {
+            'total': len(candidates), 'by_direction': directions,
+            'named': len(candidates) - origins['unavailable'],
+            'by_name_origin': origins, 'unavailable_by_reason': reasons,
+        },
+        'matches': {
+            name: {'total': len(evidence['matches'][name]),
+                   'by_status': _status_counts(evidence['matches'][name], frozenset(RACK_MATCH_STATUSES))}
+            for name in ('aliases', 'direct_operands', 'alias_operands')
+        },
+    }
+
+
+def _validate_rack_counts(summary: dict[str, Any]) -> None:
+    rack = summary['rack_candidates']
+    _keys(rack, {'analysis_scope', 'backing_mapping', 'declarations', 'matches'})
+    _constants(rack, {'analysis_scope': 'rack_logical_root_candidates', 'backing_mapping': 'not_analyzed'})
+    declarations = rack['declarations']
+    _keys(declarations, {'total', 'by_direction', 'named', 'by_name_origin', 'unavailable_by_reason'})
+    _count(declarations['total'])
+    _count(declarations['named'])
+    _counts(declarations['by_direction'], {'input', 'output'})
+    _counts(declarations['by_name_origin'], frozenset(RACK_NAME_ORIGINS))
+    _counts(declarations['unavailable_by_reason'], frozenset(RACK_NAME_REASONS))
+    counts = summary['source_summary']['counts']
+    unavailable = declarations['by_name_origin']['unavailable']
+    if (declarations['by_direction'] != {
+            'input': counts['module_rack_input_aliases'], 'output': counts['module_rack_output_aliases']}
+            or sum(declarations['by_direction'].values()) != declarations['total']
+            or sum(declarations['by_name_origin'].values()) != declarations['total']
+            or declarations['named'] + unavailable != declarations['total']
+            or sum(declarations['unavailable_by_reason'].values()) != unavailable):
+        _invalid()
+    matches = rack['matches']
+    _keys(matches, {'aliases', 'direct_operands', 'alias_operands'})
+    for group in matches.values():
+        _keys(group, {'total', 'by_status'})
+        _count(group['total'])
+        _counts(group['by_status'], frozenset(RACK_MATCH_STATUSES))
+        statuses = group['by_status']
+        if (sum(statuses.values()) != group['total']
+                or ((statuses['unique_candidate'] or statuses['outside_visible_scope'])
+                    and not declarations['named'])
+                or (statuses['ambiguous_candidate'] and declarations['named'] < 2)
+                or (statuses['candidate_names_unavailable'] and not unavailable)):
+            _invalid()
+    if (matches['aliases']['total'] != summary['aliases']['by_reason']['unresolved']['colon_root_not_declared']
+            or matches['direct_operands']['total'] + matches['alias_operands']['total']
+            != summary['operands']['by_reason']['unresolved']['colon_root_not_declared']):
+        _invalid()
+    # Every alias-mediated occurrence repeats the terminal alias's own missing
+    # root and lookup scope, so that status must also exist among alias records.
+    for status in RACK_MATCH_STATUSES:
+        if (matches['alias_operands']['by_status'][status]
+                and not matches['aliases']['by_status'][status]):
+            _invalid()
+
+
 def build_reference_summary(
     inventory: InventoryResult,
     references: ReferenceResult,
@@ -215,7 +293,7 @@ def build_reference_summary(
         validate_references(inventory, references)
         core = references.to_dict()
         _keys(core, set(_CORE_CONSTANTS) | {
-            'snapshot', 'symbols', 'aliases', 'operands', 'coverage', 'status',
+            'snapshot', 'symbols', 'aliases', 'operands', 'coverage', 'status', 'rack_candidates',
         })
         _constants(core, _CORE_CONSTANTS)
         if type(core['snapshot']) is not dict or core['snapshot'] != inventory.snapshot:
@@ -304,6 +382,7 @@ def build_reference_summary(
                          'by_reason': _reason_counts(operands),
                          'malformed_address_shapes': _malformed_address_shapes(operands)},
             'module_io': _module_io_counts(symbols),
+            'rack_candidates': _rack_counts(core['rack_candidates']),
             'coverage': {key: coverage[key] for key in sorted(_COVERAGE_KEYS)},
         }
         validate_reference_summary(summary)
@@ -324,17 +403,18 @@ def _validate(summary: dict[str, Any]) -> None:
     if type(summary) is not dict:
         _invalid()
     version = summary.get('schema_version')
-    if type(version) is not int or version not in {1, 2, 3, 4}:
+    if type(version) is not int or version not in {1, 2, 3, 4, 5}:
         _invalid()
     legacy = version == 1
     _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'}
-          | (set() if legacy else {'module_io'}))
-    _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS, 4: CONSTANTS}[version])
+          | (set() if legacy else {'module_io'}) | ({'rack_candidates'} if version == 5 else set()))
+    _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS,
+                         4: V4_CONSTANTS, 5: CONSTANTS}[version])
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
         _invalid()
     source = summary['source_summary']
     validate_summary(source)
-    if source['schema_version'] != (2 if legacy else 3):
+    if source['schema_version'] != (2 if legacy else 4 if version == 5 else 3):
         _invalid()
     source_counts = source['counts']
     symbols = summary['symbols']
@@ -355,7 +435,7 @@ def _validate(summary: dict[str, Any]) -> None:
         _invalid()
     for name, allowed in (('aliases', ALIAS_STATUSES), ('operands', OPERAND_STATUSES)):
         group = summary[name]
-        has_shapes = version in {3, 4} and name == 'operands'
+        has_shapes = version in {3, 4, 5} and name == 'operands'
         _keys(group, {'total', 'by_status'} | (set() if legacy else {'by_reason'})
               | ({'malformed_address_shapes'} if has_shapes else set()))
         _count(group['total'])
@@ -391,6 +471,8 @@ def _validate(summary: dict[str, Any]) -> None:
             _invalid()
     aliases = summary['aliases']
     operands = summary['operands']
+    if version == 5:
+        _validate_rack_counts(summary)
     if not (source_counts['aliases'] <= aliases['total']
             <= source_counts['aliases'] + source_counts['aoi_parameters'] + source_counts['aoi_local_tags']):
         _invalid()

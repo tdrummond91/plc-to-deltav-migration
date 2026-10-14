@@ -14,6 +14,7 @@ from typing import Any
 
 from .models import EntityRecord, InventoryResult
 from .module_io import MODULE_IO_KINDS, ModuleIOError, derive_module_io_names
+from .rack_candidates import RackCandidateError, build_rack_candidates
 
 MAX_OPERANDS = 250_000
 MAX_ALIAS_DEPTH = 64
@@ -87,8 +88,9 @@ class ReferenceResult:
     operands: list[dict[str, Any]]
     coverage: dict[str, str | int]
     status: str
-    schema_version: int = 2
-    analyzer_version: str = 'source-references-3'
+    rack_candidates: dict[str, Any]
+    schema_version: int = 3
+    analyzer_version: str = 'source-references-4'
     analysis_scope: str = 'scoped_root_bindings'
     semantic_analysis: str = 'not_implemented'
     effect_analysis: str = 'not_implemented'
@@ -289,7 +291,7 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
     assembled in target-to-caller order, not validated addresses. Root binding
     deliberately does not prove that an instruction accepts the given value.
     """
-    if inventory.parser_version != 'source-inventory-2' or inventory.schema_version != 2:
+    if inventory.parser_version != 'source-inventory-3' or inventory.schema_version != 3:
         raise ReferenceError('Unsupported source inventory version.')
     operand_total = sum(len(instruction.arguments) for rung in inventory.rungs
                         if rung.parse_status == 'parsed' for instruction in rung.instructions)
@@ -375,8 +377,12 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
                or instructions_catalogued != instructions_total
                or any(row['status'] != 'root_bound' for row in aliases)
                or any(row['status'] not in {'root_bound', 'literal', 'non_data'} for row in operands))
+    try:
+        rack_candidates = build_rack_candidates(inventory, aliases, operands)
+    except RackCandidateError:
+        raise ReferenceError('Rack candidate analysis could not complete within its evidence contract.') from None
     return ReferenceResult(dict(inventory.snapshot), symbols, aliases, operands,
-                           coverage, 'partial' if partial else 'complete')
+                           coverage, 'partial' if partial else 'complete', rack_candidates)
 
 
 def _strict_record_match(expected: dict[str, Any], actual: dict[str, Any]) -> bool:

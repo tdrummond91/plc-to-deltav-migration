@@ -5,6 +5,11 @@ The work-machine evidence is [report 1195d40](../../inspection/work-check-202610
 This investigation changes documentation and adds an independently invented
 fixture. It does not change parser behavior, result schemas or Git automation.
 
+Implementation follow-up: dedicated rack capture and separate candidate-match
+diagnostics are now implemented. See [RACK_CANDIDATE_REVIEW.md](RACK_CANDIDATE_REVIEW.md)
+for current contracts, local validation and the pending work-machine run. The
+investigation below retains the original pre-implementation evidence and limits.
+
 ## Finding
 
 There is a demonstrated source-model gap: the reader does not create declarations

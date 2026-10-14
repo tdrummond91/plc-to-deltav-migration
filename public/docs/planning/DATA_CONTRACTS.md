@@ -2,7 +2,56 @@
 
 Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
+## Rack candidate contracts (2026-10-14)
+
+Current private inventory is schema 3 / `source-inventory-3`; private references
+are schema 3 / `source-references-4`. Dedicated `module_rack_connection`,
+`module_rack_input_alias` and `module_rack_output_alias` records preserve raw
+attributes, XML locators, parent IDs and controller scope. They do not enter
+ordinary symbols or tag/alias totals. Rack connection backing is always marked
+not analyzed. Unexpected text/children produce a bounded diagnostic attached to
+the exact record; raw content remains in the private snapshot.
+
+Private reference field `rack_candidates` contains `candidates` and `matches`.
+Candidate rows have source_id, connection_id, module_id, scope_id, direction,
+name, name_origin, reason and backing_status (`not_analyzed`). Names use checked
+topology only for attribute-free, supported-content declarations with an ICP
+first edge. No adapter backing member or runtime behavior is inferred.
+Match groups are aliases, direct_operands and alias_operands; each row retains
+source_id, terminal_root, lookup_scope_id, status, candidate_id and candidate_count.
+The terminal failed alias target determines lookup scope. A unique candidate
+does not change an unresolved binding into root_bound.
+
+Match statuses are unique_candidate, ambiguous_candidate,
+candidate_names_unavailable, outside_visible_scope and no_candidate_match.
+Visible exact matches take priority, then visible unavailable names, then exact
+names elsewhere. Unavailable names indicate inconclusive matching, not a proven
+relationship. Only a unique match retains candidate_id. New private evidence is
+bounded to 8M retained string characters, including repeated source links.
+
+Public source schema 4 / `aggregate-summary-4` adds module_rack_connections,
+module_rack_input_aliases and module_rack_output_aliases. The mandatory backing
+warning count equals rack connections, with at least that many warning-severity
+diagnostics. Public reference schema 5 / `reference-summary-5` requires source
+schema 4 and adds the closed `rack_candidates` object:
+analysis_scope=`rack_logical_root_candidates`, backing_mapping=`not_analyzed`,
+declarations and matches. Declarations contain total, named, by_direction,
+by_name_origin and unavailable_by_reason. Each match group contains total and
+by_status. Declaration counts reconcile to source counts; alias matches equal
+unresolved colon aliases; direct plus alias-mediated matches equal unresolved
+colon operands. Every positive alias-mediated status requires that status among
+aliases. No names, IDs, addresses or individual source relationships are shared.
+
+Exact historical source schemas 2/3 and reference schemas 1/2/3/4 remain readable.
+Reference 1 requires source 2; reference 2/3/4 require source 3; reference 5 requires
+source 4. Current canonical private validation requires the current versions.
+Work-check stays schema 2, and reference-run manifest stays schema 2 with updated
+parser/analyzer metadata. The timer behavior described below is retained.
+See [implementation, precedence and tests](../reviews/RACK_CANDIDATE_REVIEW.md).
+
 ## Work-machine feedback schema 2 (2026-10-14)
+
+The rack contract above supersedes historical version numbers below.
 
 `l5x_work_machine_check` / `work-check-2` adds required nullable
 `diagnostic_sample` alongside the existing analysis/test envelope. A non-null
@@ -11,17 +60,20 @@ integer `argument_index`, and one exact printable `raw_text` operand of at most
 128 characters. It is generated from validated direct-malformed references in
 the captured snapshot; alias failures and non-address roles are excluded.
 Failed/unrun analysis requires null. A sample must reconcile with a positive
-direct-malformed count and an observed instruction opcode in reference schema 3 or 4.
-Schema 4 rejects known timer placeholders as mystery samples; schema 3 retains
+direct-malformed count and an observed instruction opcode in reference schema 3/4/5.
+Schemas 4/5 reject known timer placeholders as mystery samples; schema 3 retains
 its original interpretation for historical feedback.
 
 Tyler authorized this one actual operand to investigate otherwise unidentified
 syntax. No rung/source identifiers, surrounding logic or other values are added.
-Source/reference summaries remain count-only at current schemas 3/4. Work-check schema 1
+Source/reference summaries remain count-only at current schemas 4/5. Work-check schema 1
 still validates under its exact original keys and cannot contain a sample. The
 publication limit remains 32 KiB. See the [review and limits](../reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md).
 
 ## Timer recognition update (2026-10-14)
+
+This checkpoint records the timer slice before the rack contract above. Its
+recognition rules remain current; its version numbers are historical.
 
 Private reference schema remains 2; the current analyzer is `source-references-3`.
 For valid three-argument TON/TOF/RTO signatures, exact trimmed `?` in slots 1/2

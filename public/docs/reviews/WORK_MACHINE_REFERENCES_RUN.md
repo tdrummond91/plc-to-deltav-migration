@@ -1,7 +1,7 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. The current timer follow-up is on
-**feat/bounded-operand-example-pc** and is now confirmed; no repeat check is needed. This remains Phase 1:
+Use **main** for the consolidated baseline. The next rack-candidate check is on
+**feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
 
@@ -10,7 +10,10 @@ cases (one skip) and 139 helpers, and confirms malformed addresses 868 to 0,
 non-data 0 to 868, and unsupported addresses 870 to 2. Other source/reference
 counters are unchanged; the diagnostic sample is null. See
 [TIMER_PLACEHOLDER_REVIEW.md](TIMER_PLACEHOLDER_REVIEW.md) for results and limits.
-The work-check envelope remains schema 2 with reference/source schemas 4/3.
+The new rack slice keeps work-check schema 2 and emits reference/source schemas
+5/4. It needs a work-machine run to measure candidate matches for the remaining
+99 unresolved aliases and 320 operand occurrences. Ordinary binding counts stay
+unchanged for an unchanged export. See [rack review](RACK_CANDIDATE_REVIEW.md).
 
 ## Manual runs
 
@@ -63,7 +66,7 @@ implementation ran; older reports can therefore have a broader test scope.
 | Git metadata `plc-work-check.json` | Local remembered source path; not committed or pushed |
 
 Open `overview.txt` for the source overview and `references.txt` for declarations,
-alias chains and operand occurrences. Their JSON counterparts preserve structured
+alias chains, operand occurrences and rack candidate lookups. Their JSON counterparts preserve structured
 records and source links for later analysis. Every run gets new output locations;
 the original source and previous runs are preserved.
 
@@ -77,6 +80,12 @@ example was available or analysis did not succeed. The reference aggregate
 is at `analysis.reference_summary`, with the structural summary nested beneath
 `source_summary`. The top-level `tool_revision` identifies the tested code commit;
 the automatically created report commit is intentionally different.
+
+`analysis.reference_summary.rack_candidates` is the new comparison section.
+It counts named/unavailable rack declarations and match statuses separately for
+aliases, direct operands and alias-mediated operands. `unique_candidate` is a
+possible logical declaration with unexamined backing; `candidate_names_unavailable`
+is inconclusive. Do not expect `root_bound` to increase in this diagnostic slice.
 
 ## Manual review and publication
 

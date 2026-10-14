@@ -34,22 +34,31 @@ instruction roles are not guessed. Module InputTag/OutputTag/ConfigTag declarati
 now participate in root lookup. Explicit names or conservative ICP/Ethernet
 module/port topology supply the name; private symbols retain `name_origin` and
 `name_reason`. Missing or ambiguous topology leaves an unnamed declaration.
-RackConnection mappings remain unsupported and explicitly diagnosed. These gaps
+RackConnection declarations are inventoried separately; backing mappings remain
+unverified. Private rack candidates compare missing logical roots without
+changing ordinary bindings. These gaps
 do not establish that the source project has an invalid tag.
 
-Private inventory schema 2 (`source-inventory-2`) adds module ports, ordinary
-connections and input/output/configuration tag records without changing ordinary
-tag/alias totals. Reference schema 2 (now `source-references-3`) includes those three I/O
+Private inventory schema 3 (`source-inventory-3`) includes module ports, ordinary
+connections, input/output/configuration tags and dedicated rack declarations
+without changing ordinary tag/alias totals. Reference schema 3 (`source-references-4`) includes the three ordinary I/O
 symbol kinds and a fixed `reason` on unresolved/unsupported-address bindings.
 Reasons distinguish missing declared roots, qualified or dynamic addresses and
 other bounded syntax gaps; they do not claim to identify every gap's engineering
 cause. Raw declarations remain separate from inferred names.
 
-Analyzer `source-references-3` recognizes exact trimmed `?` only in the preset
+Analyzer `source-references-4` retains recognition of exact trimmed `?` only in the preset
 and accumulator slots (1/2) of valid three-argument TON/TOF/RTO instructions.
 These are `non_data` for root lookup; original text is preserved. No timer values,
 types, configuration or effects are validated. Root slots, aliases and other
 instructions keep their existing gap handling. See [the timer review](../public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md).
+
+The private `rack_candidates` section lists supported individual rack roots and
+compares unresolved colon roots in three populations: aliases, direct operands
+and alias-mediated operands. Exact candidates remain separate from normal
+bindings. Unavailable candidate names mean matching is inconclusive; a candidate
+match does not establish the backing adapter/member layout. Public summaries
+publish only fixed counts. See [rack contracts and tests](../public/docs/reviews/RACK_CANDIDATE_REVIEW.md).
 
 Both text and JSON reports are private. The workspace option creates a NEW run
 containing the existing snapshot/inventory/overview, plus `references.json` and
@@ -66,16 +75,16 @@ uv run --project python-parser plc reference-summary "confidential/plc-code/unit
 
 This approved aggregate includes fixed symbol-kind, alias/operand status and
 reason counts, module naming origins/unavailable reasons, analysis coverage and
-a nested schema-3 `source_summary`. Code provenance is
+a nested schema-4 `source_summary`, plus closed rack-candidate counts. Code provenance is
 `source_summary.tool_revision`. It contains no names, values, source identities
 or individual reference links. Its report kind is `l5x_reference_review_summary`,
-schema 4, policy 2, exporter `reference-summary-4`, analyzer `source-references-3`.
+schema 5, policy 2, exporter `reference-summary-5`, analyzer `source-references-4`.
 `operands.malformed_address_shapes` partitions only malformed-address occurrences
 into seven fixed observational buckets, including a separate alias-target bucket.
 The diagnostic does not change address recognition or binding. See the
 [address-shape contract](../public/docs/reviews/ADDRESS_SHAPE_REVIEW.md).
 The validator also accepts reference schema 1/source schema 2 and reference
-schemas 2 and 3/source schema 3; mixed version combinations are rejected.
+schemas 2/3/4 with source schema 3; mixed version combinations are rejected.
 The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
 
@@ -115,10 +124,10 @@ If temporary-file cleanup fails, a `.plc-summary-*.pending` file may remain.
 Only the requested final `.json` is the published candidate; a pending file is
 never a report to share.
 
-New summaries use schema 3, policy 2 and exporter `aggregate-summary-3`, built from
-the source-inventory-2 contract. Counts now include module ports, ordinary
-connections and input/output/configuration tags. The validator retains support
-for the previous schema-2 source aggregate and rejects mixed version fields.
+New summaries use schema 4, policy 2 and exporter `aggregate-summary-4`, built from
+the source-inventory-3 contract. Counts include module ports, ordinary
+connections, input/output/configuration tags and dedicated rack declarations.
+The validator retains source aggregate schemas 2/3 and rejects mixed version fields.
 A complete validated report is capped at 32 KiB.
 All counts are strict nonnegative integers and reconcile across groups. Output
 cardinality does not grow with unrecognized source labels. The code revision
@@ -178,8 +187,8 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema 2 and carries reference schema 4 with source
-schema 3 when analysis succeeds. Historical schema-1 reports remain readable. The tested
+The outer report is schema 2 and carries reference schema 5 with source
+schema 4 when analysis succeeds. Historical schema-1 reports remain readable. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
 `46467af` validated the local report-commit workflow. The later report in `349ee29`

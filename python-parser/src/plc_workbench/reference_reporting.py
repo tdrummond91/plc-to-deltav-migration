@@ -59,6 +59,24 @@ def render_reference_text(result: ReferenceResult) -> str:
             f"    declaration: {label(operand['symbol_id'])}",
             f"    terminal root: {label(operand['target_id'])}; suffix: {operand['suffix']}",
         ])
+    lines.extend(["", "Rack logical-root candidates (backing mapping not analyzed):",
+                  "Candidate matches do not change declared root bindings.",
+                  "candidate_names_unavailable means matching is inconclusive."])
+    for candidate in payload["rack_candidates"]["candidates"]:
+        lines.extend([
+            f"  {candidate['source_id']}: {candidate['name'] or '(unavailable)'} "
+            f"direction={candidate['direction']} scope={candidate['scope_id']}",
+            f"    module: {candidate['module_id']}; connection: {candidate['connection_id']}",
+            f"    name origin: {candidate['name_origin']}; reason: {candidate['reason'] or '(none)'}",
+        ])
+    for group, matches in payload["rack_candidates"]["matches"].items():
+        lines.append(f"  Candidate lookups: {group}")
+        for match in matches:
+            lines.extend([
+                f"    {match['source_id']}: {match['terminal_root']} -> {match['status']}",
+                f"      lookup scope: {match['lookup_scope_id']}; count: {match['candidate_count']}; "
+                f"candidate: {match['candidate_id'] or '(none)'}",
+            ])
     lines.extend([
         "", "Repeated uses remain separate occurrences linked to the source inventory.",
         "IDs apply to this exact snapshot and are not persistent engineering-object IDs.",

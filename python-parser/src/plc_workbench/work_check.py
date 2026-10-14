@@ -116,13 +116,13 @@ def validate_work_check_report(report: Any) -> None:
             nested = analysis["reference_summary"]
             # Keep historical samples readable under their original analyzer,
             # but a current report cannot label a recognized slot as malformed.
-            if nested["schema_version"] == 4 and _timer_placeholder(
+            if nested["schema_version"] in {4, 5} and _timer_placeholder(
                     sample["opcode"], sample["argument_index"], sample["raw_text"]):
                 _invalid()
             operands = nested["operands"]
             # Samples are direct operands, never a caller hiding an alias-target
-            # failure. Schemas 3 and 4 carry the required shape histogram.
-            if (nested["schema_version"] not in {3, 4}
+            # failure. Schemas 3 through 5 carry the required shape histogram.
+            if (nested["schema_version"] not in {3, 4, 5}
                     or operands["by_reason"]["unsupported_address"]["malformed_address"]
                     <= operands["malformed_address_shapes"]["alias_target_failure"]
                     or nested["source_summary"]["instructions"]["counts"].get(sample["opcode"], 0) == 0):
