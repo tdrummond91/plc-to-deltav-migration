@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/ADDRESS_SHAPE_REVIEW.md,
 public/docs/reviews/MODULE_IO_REVIEW.md,
 public/docs/reviews/WORK_CHECK_RUNNER_REVIEW.md,
 public/docs/reviews/SOURCE_REFERENCES_REVIEW.md and
@@ -39,10 +40,15 @@ reviewed in MODULE_IO_REVIEW.md. Tyler has explicitly authorized the feedback
 listener; implementation fde4fc2 is installed on the development PC and its
 scheduled launch check passed. Consult FEEDBACK_LISTENER.md for concrete behavior
 and verification, and the local status command for current monitoring/worker state.
-The latest returned report is selected for its first follow-up; no extra work-machine
-run is needed to trigger that work. The next bounded parser candidate is a closed
-aggregate address-shape breakdown for 868 operands outside the current address
-grammar. Establish evidence with invented examples before changing resolution.
+The first follow-up has implemented a closed address-shape histogram for operands
+outside the current grammar, without changing resolution. Reference aggregate
+schema 3 adds seven fixed counters; private contracts, source aggregate and outer
+work-check schema are unchanged. Read ADDRESS_SHAPE_REVIEW.md for precedence,
+alias-target handling, compatibility, validation and limits. The next action is
+one work-machine `bash ./run-work-check.sh` to return the new diagnostic. Compare
+against the prior 868 malformed-address cases; do not predict their shape from
+the old counts. If the returned buckets cannot support a bounded next step, stop
+for a specific work-machine investigation without requesting private evidence.
 Continue work already authorized in the active session; stop for a decision
 when the evidence or a phase boundary needs Tyler's input.
 

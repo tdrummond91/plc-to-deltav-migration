@@ -178,17 +178,13 @@ mismatches appear.
 
 ## Next bounded work
 
-Tyler explicitly authorized a listener after this result returned. Listener
-implementation is in progress; see the forthcoming FEEDBACK_LISTENER.md for
-the implementation and verified activation status. This note does not claim that
-a background monitor is active.
-
-After that workflow is complete, prioritize evidence for the 868 addresses
-outside the current grammar. Design a closed aggregate address-shape breakdown
-and independently invented examples before broadening resolution. Preserve
-qualified/dynamic and missing-root gaps as separate cases. If the aggregate
-cannot distinguish the required syntax, stop for bounded work-machine
+The authorized listener's first follow-up implemented the closed aggregate
+address-shape breakdown described in [ADDRESS_SHAPE_REVIEW.md](ADDRESS_SHAPE_REVIEW.md).
+The work machine now needs one `bash ./run-work-check.sh` run to supply those
+counts. The existing 868 malformed-address cases cannot be classified from this
+report. Qualified/dynamic and missing-root gaps remain separate. If the new
+aggregate cannot distinguish the required syntax, stop for bounded work-machine
 investigation instead of requesting raw addresses, reference records or logs.
 Rack mappings are another bounded candidate, but their relationship to remaining
-unresolved roots is unproven. No parser change or extra work-machine run is
-required just to review this returned report. Phase 1 remains active.
+unresolved roots is unproven. No resolution change is justified by this report
+alone. Phase 1 remains active.

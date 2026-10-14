@@ -73,7 +73,8 @@ code; detailed diagnostics remain local. Pull/setup/source-selection errors occu
 before the check and do not produce a test-results report. Changes to the branch,
 commit or tracked/untracked files during the run stop automatic publication or push.
 
-Once it says **Pushed work-machine report**, tell this chat it finished. No copied
+Once it says **Pushed work-machine report**, the authorized development-PC listener
+can process the new aggregate when that PC is awake and monitoring. No copied
 terminal output, manual test summary or proprietary source is needed. A Git/setup
 failure may need a short description if no report reached GitHub.
 
@@ -99,5 +100,13 @@ The module/I/O update adds `module_io` naming/provenance counts and fixed reason
 counts under both `aliases` and `operands`. Source module ports, connections and
 input/output/config declarations are counted separately from ordinary tags.
 Actual names, topology and per-reference detail remain in the private reports.
-See [module/I/O review](MODULE_IO_REVIEW.md) for comparison targets. Nothing is
-automatically monitoring GitHub yet; continue telling this chat when a run finishes.
+See [module/I/O review](MODULE_IO_REVIEW.md) for comparison targets and
+[listener operation](FEEDBACK_LISTENER.md) for its local status controls.
+
+The next run adds reference schema 3 with `operands.malformed_address_shapes`.
+These seven closed counters partition the malformed-address operand total;
+they do not change parsing or binding. Alias-target failures have their own
+bucket, and direct spellings are grouped by fixed precedence. Actual addresses,
+values and individual relationships remain private. Compare the histogram sum
+with the previous 868 occurrences and review any change in existing statuses or
+reasons before interpreting the new counts. See [address-shape review](ADDRESS_SHAPE_REVIEW.md).

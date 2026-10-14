@@ -63,9 +63,13 @@ reason counts, module naming origins/unavailable reasons, analysis coverage and
 a nested schema-3 `source_summary`. Code provenance is
 `source_summary.tool_revision`. It contains no names, values, source identities
 or individual reference links. Its report kind is `l5x_reference_review_summary`,
-schema 2, policy 2, exporter `reference-summary-2`, analyzer `source-references-2`.
-The validator also accepts the previous reference schema 1 with source schema 2;
-mixed version combinations are rejected.
+schema 3, policy 2, exporter `reference-summary-3`, analyzer `source-references-2`.
+`operands.malformed_address_shapes` partitions only malformed-address occurrences
+into seven fixed observational buckets, including a separate alias-target bucket.
+The diagnostic does not change address recognition or binding. See the
+[address-shape contract](../public/docs/reviews/ADDRESS_SHAPE_REVIEW.md).
+The validator also accepts reference schema 1/source schema 2 and reference
+schema 2/source schema 3; mixed version combinations are rejected.
 The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
 
@@ -149,11 +153,11 @@ reported, with source analysis skipped. Useful partial analysis exits 0; test or
 analysis failure exits 1 after publishing its result. Preflight/publication/Git
 failures stop without claiming completion.
 
-The outer work-check report remains schema 1 and now carries reference schema 2
+The outer work-check report remains schema 1 and now carries reference schema 3
 with source schema 3 when analysis succeeds. Existing work-check reports with the
 previous nested versions remain readable. After updating this branch, the next
 work-machine run needs only `bash ./run-work-check.sh`; it publishes the new
-module/I/O and gap-reason counters for comparison with the prior run.
+address-shape counters alongside the existing module/I/O and gap-reason counts.
 
 The saved source path lives in Git metadata. Logs and full results stay under
 `confidential/`; source and older output files are preserved. There is no extra

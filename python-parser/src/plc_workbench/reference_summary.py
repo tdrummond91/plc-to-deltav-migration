@@ -14,7 +14,7 @@ from .models import InventoryResult
 from .module_io import MODULE_IO_KINDS, NAME_ORIGINS, NAME_REASONS
 from .references import (
     ALIAS_STATUSES, OPERAND_STATUSES, UNRESOLVED_REASONS, UNSUPPORTED_ADDRESS_REASONS,
-    ReferenceError, validate_references,
+    ReferenceError, _address, validate_references,
 )
 from .summary import SummaryError, build_summary, validate_summary
 
@@ -28,6 +28,10 @@ SYMBOL_KINDS = LEGACY_SYMBOL_KINDS | frozenset(MODULE_IO_KINDS)
 REASONS_BY_STATUS = {'unresolved': frozenset(UNRESOLVED_REASONS),
                      'unsupported_address': frozenset(UNSUPPORTED_ADDRESS_REASONS)}
 COMPLETE_OPERAND_STATUSES = frozenset({'root_bound', 'literal', 'non_data'})
+MALFORMED_ADDRESS_SHAPES = frozenset({
+    'alias_target_failure', 'leading_hash_static_address', 'leading_hash_other',
+    'contains_brackets', 'contains_colon', 'contains_dot', 'other_form',
+})
 LEGACY_CONSTANTS = {
     'schema_version': 1,
     'policy_version': 2,
@@ -40,12 +44,16 @@ LEGACY_CONSTANTS = {
     'member_validation': 'not_implemented',
     'sharing_status': 'aggregate_sync_allowed',
 }
-CONSTANTS = LEGACY_CONSTANTS | {
+V2_CONSTANTS = LEGACY_CONSTANTS | {
     'schema_version': 2,
     'exporter_version': 'reference-summary-2',
     'analyzer_version': 'source-references-2',
 }
-_CORE_CONSTANTS = {key: CONSTANTS[key] for key in (
+CONSTANTS = V2_CONSTANTS | {
+    'schema_version': 3,
+    'exporter_version': 'reference-summary-3',
+}
+_CORE_CONSTANTS = {key: V2_CONSTANTS[key] for key in (
     'schema_version', 'analyzer_version', 'analysis_scope', 'semantic_analysis',
     'effect_analysis', 'member_validation',
 )}
@@ -127,6 +135,37 @@ def _reason_counts(records: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
             counts[status][reason] += 1
         elif reason is not None:
             _invalid()
+    return counts
+
+
+def _malformed_address_shapes(operands: list[dict[str, Any]]) -> dict[str, int]:
+    """Partition verified malformed operand occurrences into closed observations.
+
+    Precedence is alias failure, leading hash, brackets, colon, dot, other.
+    An alias failure describes its target, not the caller's spelling. A single
+    leading hash is tested against the existing address recognizer after removal;
+    that observation neither admits the prefix nor binds the resulting address.
+    No strings, lengths, distinct identities or per-occurrence links are emitted.
+    """
+    counts = dict.fromkeys(sorted(MALFORMED_ADDRESS_SHAPES), 0)
+    for operand in operands:
+        if operand['status'] != 'unsupported_address' or operand['reason'] != 'malformed_address':
+            continue
+        value = operand['raw_text'].strip()
+        if operand['alias_chain']:
+            shape = 'alias_target_failure'
+        elif value.startswith('#'):
+            parsed, _ = _address(value[1:])
+            shape = 'leading_hash_static_address' if parsed is not None else 'leading_hash_other'
+        elif '[' in value or ']' in value:
+            shape = 'contains_brackets'
+        elif ':' in value:
+            shape = 'contains_colon'
+        elif '.' in value:
+            shape = 'contains_dot'
+        else:
+            shape = 'other_form'
+        counts[shape] += 1
     return counts
 
 
@@ -255,7 +294,8 @@ def build_reference_summary(
             'aliases': {'total': len(aliases), 'by_status': _status_counts(aliases, ALIAS_STATUSES),
                         'by_reason': _reason_counts(aliases)},
             'operands': {'total': len(operands), 'by_status': _status_counts(operands, OPERAND_STATUSES),
-                         'by_reason': _reason_counts(operands)},
+                         'by_reason': _reason_counts(operands),
+                         'malformed_address_shapes': _malformed_address_shapes(operands)},
             'module_io': _module_io_counts(symbols),
             'coverage': {key: coverage[key] for key in sorted(_COVERAGE_KEYS)},
         }
@@ -276,10 +316,13 @@ def validate_reference_summary(summary: dict[str, Any]) -> None:
 def _validate(summary: dict[str, Any]) -> None:
     if type(summary) is not dict:
         _invalid()
-    legacy = type(summary.get('schema_version')) is int and summary['schema_version'] == 1
+    version = summary.get('schema_version')
+    if type(version) is not int or version not in {1, 2, 3}:
+        _invalid()
+    legacy = version == 1
     _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'}
           | (set() if legacy else {'module_io'}))
-    _constants(summary, LEGACY_CONSTANTS if legacy else CONSTANTS)
+    _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: CONSTANTS}[version])
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
         _invalid()
     source = summary['source_summary']
@@ -305,7 +348,9 @@ def _validate(summary: dict[str, Any]) -> None:
         _invalid()
     for name, allowed in (('aliases', ALIAS_STATUSES), ('operands', OPERAND_STATUSES)):
         group = summary[name]
-        _keys(group, {'total', 'by_status'} | (set() if legacy else {'by_reason'}))
+        has_shapes = version == 3 and name == 'operands'
+        _keys(group, {'total', 'by_status'} | (set() if legacy else {'by_reason'})
+              | ({'malformed_address_shapes'} if has_shapes else set()))
         _count(group['total'])
         _counts(group['by_status'], allowed)
         if sum(group['by_status'].values()) != group['total']:
@@ -316,6 +361,13 @@ def _validate(summary: dict[str, Any]) -> None:
                 _counts(group['by_reason'][status], reasons)
                 if sum(group['by_reason'][status].values()) != group['by_status'][status]:
                     _invalid()
+        if has_shapes:
+            shapes = group['malformed_address_shapes']
+            _counts(shapes, MALFORMED_ADDRESS_SHAPES)
+            if sum(shapes.values()) != group['by_reason']['unsupported_address']['malformed_address']:
+                _invalid()
+            if shapes['alias_target_failure'] and not summary['aliases']['by_reason']['unsupported_address']['malformed_address']:
+                _invalid()
     if not legacy:
         module_io = summary['module_io']
         _keys(module_io, {'total', 'named', 'by_name_origin', 'unavailable_by_reason'})

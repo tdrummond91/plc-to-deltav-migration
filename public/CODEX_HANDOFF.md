@@ -1,6 +1,42 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-13. Current activity: **returned module/I/O report reviewed; feedback listener implemented and installed on the development PC for feat/source-references-pc**. See [module/I/O review](docs/reviews/MODULE_IO_REVIEW.md) for the tested revision and returned evidence, [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) for runner usage, and [command usage](../python-parser/README.md).
+Updated 2026-10-13. Current activity: **closed address-shape diagnostic implemented; next work-machine aggregate needed on feat/source-references-pc**. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+
+## Current address-shape checkpoint (2026-10-13)
+
+The automatic worker verified event b06e7dc and the selected report's exact blob,
+validated it and the preceding report, and confirmed no suite/analysis failure.
+The selected report tests clean 6585443; the preceding one tests clean ad2ec8b.
+The module/I/O improvements and remaining 868 malformed-address occurrences
+reconcile with the comparison below. These counts do not identify source syntax,
+prove source byte identity or justify a grammar change.
+
+The bounded follow-up adds `operands.malformed_address_shapes` to public reference
+schema 3 (`reference-summary-3`, policy 2). Seven fixed counters partition only
+operand occurrences with `unsupported_address` / `malformed_address`. Alias-target
+failures are separated from direct operand spellings. The other counters observe
+a leading hash (with or without a remainder accepted by the existing static
+address recognizer), brackets, colon, dot, or other form, in documented precedence.
+No names, values, lengths, source hashes or per-occurrence records are published.
+Parsing and binding behavior, private inventory/references 2/2, source aggregate 3
+and the work-check envelope 1 are unchanged. Reference aggregates 1/2 still validate
+under their exact historical contracts. The listener itself is unchanged.
+
+Fresh validation: 246 application tests (245 passed, one existing Windows symlink
+skip), all 139 helper tests passed; independent review passed 37 focused tests
+and found no remaining blockers. The real launcher also passed in a disposable
+checkout/local remote with invented input, validated schema 1/3/3 aggregate,
+private artifact hashes and independently verified report-only push. Full
+evidence is in ADDRESS_SHAPE_REVIEW.md.
+Next work-machine action: run `bash ./run-work-check.sh` once on the existing
+branch. The runner pulls, tests and returns the schema-3 histogram automatically.
+Compare the same input's statuses/reasons and the histogram total with the prior
+868 count; no improvement in binding counts is expected from this diagnostic.
+Do not infer the new histogram from this earlier report. If its closed buckets
+cannot support a bounded syntax investigation, record the specific work-machine
+question and stop; never request private addresses, inventories or logs.
+Phase 1 remains active; engineering classifications, corrections, PCSD/FHX,
+services and deployment remain outside this slice.
 
 ## Current module/I/O checkpoint (2026-10-13)
 

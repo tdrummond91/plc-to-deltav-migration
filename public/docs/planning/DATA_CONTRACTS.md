@@ -54,7 +54,7 @@ Ordinary source-inventory runs retain their existing schema-1 manifest.
 `reference_summary` reconstructs only fixed aggregate fields: symbol kinds,
 alias/operand disposition and reason counts, module naming counts, coverage and
 the structural schema-3 report as source_summary. Its report_kind is
-l5x_reference_review_summary, schema 2, policy 2 and exporter reference-summary-2.
+l5x_reference_review_summary, schema 3, policy 2 and exporter reference-summary-3.
 Each aliases/operands `by_reason` group includes the complete fixed unresolved
 and unsupported-address vocabularies; each reason total must equal the matching
 status count. `module_io` contains `total`, `named`, `by_name_origin` and
@@ -68,10 +68,28 @@ Closed-key/type/count validation runs again at publication;
 private records, arbitrary labels, added fields and source identities are rejected.
 The whole report is capped at 32 KiB and approved for sync under D026.
 
+Reference aggregate schema 3 adds only `operands.malformed_address_shapes`.
+The fixed zero-filled keys, in classification precedence, are
+`alias_target_failure`, `leading_hash_static_address`, `leading_hash_other`,
+`contains_brackets`, `contains_colon`, `contains_dot`, `other_form`.
+Only occurrences with final status `unsupported_address` and reason
+`malformed_address` enter this partition. A nonempty verified alias chain uses
+the alias bucket, avoiding a claim about the caller's spelling. For a direct
+leading hash, removing exactly one hash and passing the remainder to the existing
+static-address recognizer selects the static/other bucket. Bracket means either
+square-bracket character. The remaining tests inspect colon, then dot, then fall
+back to other. The counters are mutually exclusive occurrences, not distinct
+strings or evidence of valid syntax, dimensions, types or engineering purpose.
+Their sum must equal the malformed-address reason count. A positive alias-target
+bucket requires at least one malformed-address alias. No source-dependent keys,
+examples, lengths, hashes, ordering or occurrence links are emitted.
+Private reference schema/analyzer remain 2/source-references-2.
+
 Public validation also accepts the previous reference schema 1 with its nested
-source schema 2. New schema 2 requires source schema 3; mixed version fields or
+source schema 2 and reference schema 2 with source schema 3 (without shape fields).
+New reference schema 3 also requires source schema 3; mixed version fields or
 nested versions are rejected. The outer work-check schema stays 1 and accepts
-either supported nested reference version. This is aggregate read compatibility,
+all three supported nested reference versions. This is aggregate read compatibility,
 not an editable-data import or private-run migration.
 
 See [module/I/O review](../reviews/MODULE_IO_REVIEW.md) and the
