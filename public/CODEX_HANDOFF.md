@@ -4,6 +4,13 @@ Updated 2026-10-13. Current activity: **closed address-shape diagnostic implemen
 
 ## Current address-shape checkpoint (2026-10-13)
 
+Listener operational hold (2026-10-13): Tyler reported terminal takeover again
+after f18b34b. The Windows scheduled task is disabled and listener state is paused;
+no listener worker was running when inspected. Automatic checks are stopped.
+Do not resume from earlier success notes: the prior foreground-window test did
+not check selection changes inside an existing Terminal window. The exact
+offending command/tab and timing are still being identified with Tyler.
+
 Listener maintenance: Tyler reported terminal interruptions from background work.
 The listener launch now gives ordinary Windows descendants a hidden console and
 disables notifications only for the unattended worker. The nested-process test

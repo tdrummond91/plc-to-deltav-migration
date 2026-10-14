@@ -6,6 +6,12 @@ using `bash ./run-work-check.sh` and does not need another service.
 
 ## Operation
 
+Operational hold recorded 2026-10-13: Tyler reported continued terminal takeover
+after f18b34b. The installed task is disabled and listener state is paused, so
+automatic checks are stopped. No listener worker remained at inspection. Keep
+monitoring off until the offending command and launch path are identified and
+verified; the checks below document the earlier attempts, not a resolved issue.
+
 Windows Task Scheduler checks every five minutes while Tyler is logged in and
 the PC is awake, and also checks at logon. It uses a dedicated checkout under
 `%LOCALAPPDATA%/PLCWorkbench/feedback-listener/checkout`. It never pulls or edits
@@ -153,7 +159,7 @@ These installation facts are not a live status display. Use
 report and local run-log location. The paused launch check alone does not verify
 the scheduled environment's Git authentication or a completed development run.
 
-## Silent execution correction (2026-10-13)
+## Silent execution attempt and recurring issue (2026-10-13)
 
 Tyler reported the listener opening/focusing a terminal during other work. The
 listener was idle after successfully pushing the address-shape slice at 833f900;
@@ -185,3 +191,13 @@ Background instructions now explicitly prohibit opening GUI applications and
 identify Windows shell choices to avoid the system32 WSL launcher. This fix does
 not attempt to suppress an application that deliberately opens its own GUI.
 Check local status after deployment for current monitoring state.
+
+Tyler subsequently reported that the command still opens and takes over Terminal.
+On inspection, Terminal uses `windowingBehavior=useExisting`. The earlier WinEvent
+test watched top-level foreground changes and window-show events, not which tab
+was selected inside an existing window; its success did not establish that no
+tab takeover occurred. The task was disabled and the listener paused. Current
+process inspection found no active listener or worker. The exact command/title
+and whether it occurs while this chat is idle have been requested from Tyler.
+No terminal preferences, account permissions or unrelated processes were changed.
+No replacement console host was deployed without identifying the failing path.
