@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/UNMATCHED_OPERAND_REVIEW.md,
 public/docs/reviews/RACK_CANDIDATE_REVIEW.md,
 public/docs/reviews/RACK_IO_INVESTIGATION.md,
 public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md,
@@ -98,21 +99,28 @@ Do not infer byte identity or timer configuration/effects from these aggregates.
 
 The rack slice is now implemented: private inventory/reference schemas 3/3,
 source-inventory-3/source-references-4, public source/reference schemas 4/5,
-work-check2 and manifest2. Read RACK_CANDIDATE_REVIEW.md for final validation.
+work-check3 and manifest2 (the original rack slice used work-check2). Read RACK_CANDIDATE_REVIEW.md for final validation.
 Dedicated rack declarations and separate candidate diagnostics preserve ordinary
 bindings. Public counts partition unresolved aliases, direct operands and
 alias-mediated operands. Matching uses the terminal failed target and scope.
 Candidates with unknown backing are never ordinary terminal root_bound symbols;
 unsupported topology/content/attributes and ambiguity remain explicit.
 
-Next obtain the new work-machine report to measure the relationship to 99
-unresolved aliases and 320 operands. The invented fixture has two named roots,
-one unique alias match, two direct matches and one alias-mediated match; this is
-not a prediction for the plant. The existing timer fix is already confirmed.
-Do not reimplement this slice or request another unchanged-parser timer run.
-After the report returns, validate it and continue authorized work until a
-specific evidence gap or phase boundary needs Tyler's input. No listener
-activation, private data access or broader sample authorization is needed.
+Report `9597f18` now confirms all 15 rack roots are named; all 99 unresolved aliases
+and 319 alias-mediated occurrences have unique candidates; one direct occurrence
+has no candidate. It tested clean `9d159e0`, passed 220 application cases (one skip)
+and 139 helpers, with source/reference counters unchanged except intended rack
+capture/diagnostics. This measures logical candidate matches, not backing maps.
+
+The one-address follow-up is implemented: work-check schema 3 retains one bounded
+sample, prioritizing eligible malformed operands before a direct unresolved colon
+operand with canonical no_candidate_match evidence. The four fields and 128-character
+bound stay unchanged; old schema 2 rejects the new kind. Private contracts and
+count-only reference/source schemas stay 3/3 and 5/4 respectively. Read the review
+for validation. Next inspect that address after the new work-machine run returns;
+do not reimplement the selector or request another timer/rack-only confirmation.
+Continue authorized work until a specific evidence gap or phase boundary needs
+Tyler's input. Do not activate the listener or access confidential inputs.
 
 Keep parsing and analysis reusable by both CLI and a future GUI.
 Preserve source mappings and account for unsupported content.

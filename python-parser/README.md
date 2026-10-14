@@ -177,18 +177,22 @@ same scope as the work-machine checks.
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. The feedback includes test counts, bounded
 code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 2 also includes `diagnostic_sample`: at most one actual direct
-malformed operand (128 printable characters maximum), standard instruction and
-zero-based argument position, or null when no eligible sample is available.
-Tyler authorized this example to investigate unknown syntax; no rung, source
-location or neighboring logic is included.
+Work-check schema 3 includes `diagnostic_sample`: one actual direct malformed
+operand, or a direct unresolved colon operand with no rack candidate when no
+eligible malformed sample exists. It retains at most 128 printable characters,
+a standard instruction and zero-based argument position; otherwise it is null.
+Tyler authorized one mystery-address example; no rung, source location or
+neighboring logic is included. Selection is stable, excludes alias targets and
+inconclusive/candidate matches, and never truncates source text. Schema 2 rejects
+the new `direct_unmatched_colon_operand` kind. See the
+[follow-up review](../public/docs/reviews/UNMATCHED_OPERAND_REVIEW.md).
 It is saved to `public/inspection/work-check-<run-id>.json` and committed locally.
 Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema 2 and carries reference schema 5 with source
-schema 4 when analysis succeeds. Historical schema-1 reports remain readable. The tested
+The outer report is schema 3 and carries reference schema 5 with source
+schema 4 when analysis succeeds. Historical schema-1/2 reports remain readable. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
 `46467af` validated the local report-commit workflow. The later report in `349ee29`
@@ -196,6 +200,11 @@ returned `?` at TON argument 1. Report `1195d40` then tested `112ee82` and
 confirmed malformed occurrences fall 868 to zero while non-data rises by 868,
 with unchanged root bindings. Both suites passed; no repeat run is needed for
 this fix. Known placeholders are skipped when choosing a remaining mystery sample.
+
+Report `9597f18` confirmed 15 named rack roots, matching all 99 unresolved aliases
+and 319 alias-mediated operands. One direct operand has no candidate; the next
+run targets that one spelling with the new fallback. Logical candidate matches
+do not validate backing I/O maps or promote ordinary bindings.
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in

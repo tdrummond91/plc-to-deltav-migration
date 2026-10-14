@@ -2,10 +2,18 @@
 
 Implemented 2026-10-14 on `feat/bounded-operand-example-pc`, after investigation
 baseline `825afd0`. This remains Phase 1 source understanding. Work-machine
-validation of this slice is pending; the last returned report is `1195d40`,
-testing `112ee82`. That report has 99 unresolved aliases and 320 unresolved
+validation of this slice is confirmed by `9597f18`, testing clean `9d159e0`.
+The preceding report `1195d40`, testing `112ee82`, had 99 unresolved aliases and 320 unresolved
 operand occurrences, all `colon_root_not_declared`. It does not establish how
 many correspond to rack declarations.
+
+Returned result: 220 application cases (one skip) and 139 helpers passed. All
+15 rack candidates are named; all 99 unresolved aliases and 319 alias-mediated
+operand occurrences have unique candidates. One direct operand has no candidate.
+Ordinary bindings are unchanged. See [UNMATCHED_OPERAND_REVIEW.md](UNMATCHED_OPERAND_REVIEW.md)
+for exact reconciliation and the implemented one-address follow-up. The original
+implementation/validation evidence below remains intact; its pending-run language
+is superseded by this returned checkpoint.
 
 ## Behavior and boundary
 

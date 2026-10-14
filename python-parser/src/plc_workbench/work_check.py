@@ -20,7 +20,10 @@ import traceback
 from typing import Any
 from uuid import uuid4
 
-from .diagnostic_sample import build_diagnostic_sample, validate_diagnostic_sample
+from .diagnostic_sample import (
+    MALFORMED_SAMPLE_KIND, UNMATCHED_COLON_SAMPLE_KIND,
+    build_diagnostic_sample, validate_diagnostic_sample,
+)
 from .reference_summary import build_reference_summary, validate_reference_summary
 from .references import _timer_placeholder, analyze_references
 from .source import analyze_snapshot, capture_snapshot
@@ -33,7 +36,8 @@ _LEGACY_CONSTANTS = {
     "report_kind": "l5x_work_machine_check",
     "workflow_version": "work-check-1",
 }
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 2, "workflow_version": "work-check-2"}
+_V2_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 2, "workflow_version": "work-check-2"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 3, "workflow_version": "work-check-3"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _GIT_REPOSITORY_OVERRIDES = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
@@ -61,10 +65,10 @@ def validate_work_check_report(report: Any) -> None:
     if type(report) is not dict or type(report.get("schema_version")) is not int:
         _invalid()
     version = report["schema_version"]
-    constants = {1: _LEGACY_CONSTANTS, 2: _CONSTANTS}.get(version)
+    constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
-    extra = {"diagnostic_sample"} if version == 2 else set()
+    extra = {"diagnostic_sample"} if version >= 2 else set()
     _keys(report, set(constants) | {"run_id", "tool_revision", "tests", "analysis", "status"} | extra)
     for key, fixed in constants.items():
         if type(report[key]) is not type(fixed) or report[key] != fixed:
@@ -89,6 +93,8 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
+        if version == 3 and nested["schema_version"] != 5:
+            _invalid()
         if nested["status"] != analysis["status"] or nested["source_summary"]["tool_revision"] != revision:
             _invalid()
     elif analysis["status"] == "failed":
@@ -107,13 +113,25 @@ def validate_work_check_report(report: Any) -> None:
     )
     if report["status"] != expected:
         _invalid()
-    if version == 2:
+    if version >= 2:
         sample = report["diagnostic_sample"]
         validate_diagnostic_sample(sample)
         if sample is not None:
             if analysis["status"] != "partial":
                 _invalid()
             nested = analysis["reference_summary"]
+            if nested["source_summary"]["instructions"]["counts"].get(sample["opcode"], 0) == 0:
+                _invalid()
+            if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
+                # This fallback needs dedicated rack evidence. Historical v2
+                # reports retain their original malformed-only sample contract.
+                if (version != 3 or nested["schema_version"] != 5
+                        or nested["rack_candidates"]["matches"]["direct_operands"]
+                        ["by_status"]["no_candidate_match"] == 0):
+                    _invalid()
+                return
+            if sample["kind"] != MALFORMED_SAMPLE_KIND:
+                _invalid()
             # Keep historical samples readable under their original analyzer,
             # but a current report cannot label a recognized slot as malformed.
             if nested["schema_version"] in {4, 5} and _timer_placeholder(
@@ -124,8 +142,7 @@ def validate_work_check_report(report: Any) -> None:
             # failure. Schemas 3 through 5 carry the required shape histogram.
             if (nested["schema_version"] not in {3, 4, 5}
                     or operands["by_reason"]["unsupported_address"]["malformed_address"]
-                    <= operands["malformed_address_shapes"]["alias_target_failure"]
-                    or nested["source_summary"]["instructions"]["counts"].get(sample["opcode"], 0) == 0):
+                    <= operands["malformed_address_shapes"]["alias_target_failure"]):
                 _invalid()
 
 

@@ -45,13 +45,38 @@ aliases. No names, IDs, addresses or individual source relationships are shared.
 Exact historical source schemas 2/3 and reference schemas 1/2/3/4 remain readable.
 Reference 1 requires source 2; reference 2/3/4 require source 3; reference 5 requires
 source 4. Current canonical private validation requires the current versions.
-Work-check stays schema 2, and reference-run manifest stays schema 2 with updated
+Work-check now uses schema 3 as described below; reference-run manifest stays schema 2 with updated
 parser/analyzer metadata. The timer behavior described below is retained.
 See [implementation, precedence and tests](../reviews/RACK_CANDIDATE_REVIEW.md).
 
-## Work-machine feedback schema 2 (2026-10-14)
+## Work-machine feedback schema 3 (2026-10-14)
 
-The rack contract above supersedes historical version numbers below.
+`l5x_work_machine_check` / `work-check-3` keeps the same top-level fields as schema
+2 and requires reference aggregate 5 / source aggregate 4 after successful
+analysis. `diagnostic_sample` remains null or one four-field object with at most
+128 printable characters of exact raw_text, standard opcode and zero-based
+argument_index. It accepts the original direct_malformed_operand kind and the
+new direct_unmatched_colon_operand kind. The latter must be a recognized static
+colon-root address with positive canonical direct no_candidate_match evidence.
+
+Selection first scans for an eligible direct malformed occurrence, then considers
+unmatched direct colon operands in source order. Overlong/nonprintable malformed
+records do not block fallback. Aliases and candidate/ambiguous/inconclusive/
+outside-scope matches never qualify. Repeated unchanged runs do not rotate
+examples; no source IDs, neighboring logic or other source context are added.
+The builder validates canonical private references and matches by occurrence ID.
+Public validation checks partial analysis, positive direct-unmatched count and
+observed opcode; it cannot independently prove a particular raw operand's source
+identity from aggregate counts.
+
+Historical schemas 1/2 remain readable under their original rules; schema 2
+explicitly rejects the new kind. Private inventory/reference contracts and
+count-only source/reference aggregates are unchanged by this update. See
+[returned evidence, tests and limits](../reviews/UNMATCHED_OPERAND_REVIEW.md).
+
+## Historical work-machine feedback schema 2 (2026-10-14)
+
+The current contract above supersedes historical version numbers below.
 
 `l5x_work_machine_check` / `work-check-2` adds required nullable
 `diagnostic_sample` alongside the existing analysis/test envelope. A non-null

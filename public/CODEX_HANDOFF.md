@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. The confirmed timer correction remains intact. Dedicated rack declaration capture and bounded candidate diagnostics are now implemented on `feat/bounded-operand-example-pc`; the next work-machine run measures their relationship to the remaining 99 unresolved aliases and 320 operands. Existing bindings are unchanged. Read [rack implementation and validation](docs/reviews/RACK_CANDIDATE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `9597f18` confirms 15 named rack candidates: all 99 unresolved aliases and 319 alias-mediated operands have unique candidates; one direct operand has no candidate. Both suites passed. The next check adds that one address to the existing bounded sample so its spelling can be investigated. Existing bindings remain unchanged. Read [returned evidence and follow-up](docs/reviews/UNMATCHED_OPERAND_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -93,10 +93,10 @@ Independent review found no remaining blockers; see the current
 Work-machine test execution uses explicit parser/helper module allowlists,
 excluding listener, Windows process-host, Bash bootstrap and Git-fixture tests.
 Full development unittest discovery remains available. Schema-1 reports remain
-readable; schema 2 adds the bounded sample. Consult the tested revision for historical suite scope
+readable; schema 2 adds the bounded sample, and schema 3 adds an unmatched-colon fallback. Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
-The latest report is `public/inspection/work-check-20261014T162634Z-2a7e40fe.json`,
+The confirmed timer report is `public/inspection/work-check-20261014T162634Z-2a7e40fe.json`,
 returned in `1195d40`, testing clean `112ee82`. It validates, reports 177
 application cases (one skip) and 139 helper cases with no failures/errors, and
 records partial analysis with a private run saved. Its commit changes only the
@@ -119,11 +119,18 @@ ordinary terminal `root_bound` symbols because backing members are unexamined.
 unnamed declarations correspond to the missing roots. Invented topology confirms
 two candidate roots, one matching alias, two direct and one alias-mediated operand
 matches, while ordinary bindings remain two bound and three unresolved operands.
-The real 99/320 relationship remains unmeasured until the next work-machine run.
+Returned report `9597f18` now measures the real relationship: all 15 rack roots
+are named, all 99 aliases and 319 alias-mediated occurrences have unique
+candidates, and one direct occurrence has no candidate. No candidate names are
+unavailable, ambiguous or outside scope. The report tested clean `9d159e0`, its
+parent, passed 220 application cases (one skip) and 139 helpers, saved a private
+run and changed only the feedback JSON. Ordinary source/reference counters are
+unchanged; 26 XML elements across three paths are newly modeled and 11 warnings
+now describe unknown backing instead of omitted declarations. The sample is null.
 
 Current contracts: private inventory/reference schemas 3/3 with
 `source-inventory-3` / `source-references-4`; public source/reference schemas 4/5;
-work-check schema 2 and reference-run manifest schema 2. Historical public
+work-check schema 3 and reference-run manifest schema 2. Historical public
 reports still validate. Read [rack review](docs/reviews/RACK_CANDIDATE_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 
@@ -139,7 +146,13 @@ for reproducible checks and exact scope.
 Tyler's one actual mystery operand remains authorized: at most 128 printable
 characters, a standard opcode and zero-based position, without rung/location IDs
 or neighbors. Known timer placeholders are skipped. The rack slice does not
-expand that sample or share individual rack names/relationships.
+share individual rack names/relationships. The implemented follow-up retains one
+sample total, choosing the first eligible malformed operand, then the first
+unmatched direct colon operand only when no malformed sample qualifies. It
+requires canonical direct no-candidate evidence and preserves exact raw text.
+Schema 2 rejects the new kind; schema 3 requires current reference schema 5.
+See [follow-up review](docs/reviews/UNMATCHED_OPERAND_REVIEW.md). A new work-machine
+run is needed only for the remaining address, not another timer/rack confirmation.
 
 Timer-fix validation: 273 application/workflow tests passed (one symlink skip),
 with listener tests excluded. Two real temporary-checkout CLI runs each passed

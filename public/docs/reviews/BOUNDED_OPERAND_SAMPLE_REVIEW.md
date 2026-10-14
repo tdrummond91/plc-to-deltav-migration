@@ -3,6 +3,12 @@
 Date: 2026-10-14. Baseline: `46467af`, testing clean code `bd846fa`.
 Branch: `feat/bounded-operand-example-pc`.
 
+Current follow-up: [UNMATCHED_OPERAND_REVIEW.md](UNMATCHED_OPERAND_REVIEW.md)
+extends the one-sample selector to an unmatched direct colon address only when
+no eligible malformed operand exists. Work-check schema 3 adds that kind while
+keeping the four fields and 128-character bound. The schema-2 implementation
+and returned timer evidence below remain historical records.
+
 ## Returned result and user clarification
 
 [The returned report](../../inspection/work-check-20261014T072717Z-4d71aaff.json)

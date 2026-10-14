@@ -1,19 +1,23 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. The next rack-candidate check is on
+Use **main** for the consolidated baseline. The next unmatched-address check is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
 
-Current returned evidence: `1195d40` tested `112ee82`, passed 177 application
+Confirmed timer evidence: `1195d40` tested `112ee82`, passed 177 application
 cases (one skip) and 139 helpers, and confirms malformed addresses 868 to 0,
 non-data 0 to 868, and unsupported addresses 870 to 2. Other source/reference
 counters are unchanged; the diagnostic sample is null. See
 [TIMER_PLACEHOLDER_REVIEW.md](TIMER_PLACEHOLDER_REVIEW.md) for results and limits.
-The new rack slice keeps work-check schema 2 and emits reference/source schemas
-5/4. It needs a work-machine run to measure candidate matches for the remaining
-99 unresolved aliases and 320 operand occurrences. Ordinary binding counts stay
-unchanged for an unchanged export. See [rack review](RACK_CANDIDATE_REVIEW.md).
+Latest returned evidence: `9597f18` tested `9d159e0`, passed 220 application cases
+(one skip) and 139 helpers. All 15 rack roots are named; all 99 unresolved aliases
+and 319 alias-mediated occurrences have unique candidates. One direct operand
+has no candidate. Ordinary bindings remain unchanged; backing maps are unverified.
+
+The next check uses work-check schema 3 with unchanged reference/source schemas
+5/4. It adds that one unmatched address to the existing bounded sample if its
+text fits the limits. See [the follow-up review](UNMATCHED_OPERAND_REVIEW.md).
 
 ## Manual runs
 
@@ -53,7 +57,7 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 2 and their tested SHA identifies which suite
+check. New reports use schema 3 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
@@ -75,7 +79,10 @@ with its standard opcode and zero-based argument position. The operand can
 contain a real name/value; Tyler authorized this bounded example to investigate
 unknown syntax. It is limited to 128 printable characters, with no full rung,
 source filename/hash, routine, neighboring logic or individual reference links.
-Repeated unchanged runs select the same eligible example. Null means no eligible
+The first eligible malformed operand has priority; otherwise a direct unresolved
+colon operand with no rack candidate can be selected. Aliases and inconclusive
+or matched rack lookups are excluded. Repeated unchanged runs select the same
+eligible example. Null means no eligible
 example was available or analysis did not succeed. The reference aggregate
 is at `analysis.reference_summary`, with the structural summary nested beneath
 `source_summary`. The top-level `tool_revision` identifies the tested code commit;
