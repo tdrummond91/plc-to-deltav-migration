@@ -1,6 +1,90 @@
 # Implementation roadmap and acceptance gates
 
-Status: planning. Build small complete slices, each ending with a runnable command, a report, tests, and a handoff update.
+Status: source inventory, scoped root references and bounded summary exports implemented; later milestones remain proposals. Build small complete slices, each ending with a runnable command, a report, tests, and a handoff update. See [current implementation evidence](../reviews/SOURCE_REFERENCES_REVIEW.md).
+
+## Confirmed product phases (2026-10-12)
+
+This is a reusable tool for several units. The product phases below express
+Tyler's workflow; they are not the earlier helper Stages 1-5 or the technical
+Milestones 0-7 later in this document.
+
+| Phase | Intended outcome |
+|---|---|
+| 1 - Understand L5X | Analyze rung patterns, loops, alarms, miscellaneous logic, I/O and other information useful for DeltaV mapping. Feed both user-readable scanning/analysis reports and editable engineering records from the parsed evidence. |
+| 2 - Editable files | Provide records non-programmers can read and edit, with source links retained while organizing and moving engineering objects. A standalone editor is preferred; Excel remains an exchange/fallback candidate. |
+| 3a - Target naming | Adapt names, descriptions and related fields to the desired DeltaV conventions while retaining the source values. |
+| 3b - Correct interpretation | Correct classifications, unrecognized data and other extraction/interpretation mistakes. |
+| 4 - PCSD and feedback | Build the Process Control Strategy Document and support plant test sheets; import corrections back into upstream engineering records and use them to improve parsing/analysis. Detailed PCSD content follows source understanding. |
+| 5 - FHX in both workflows | Generate FHX using the team's class mappings and support reading FHX to produce PCSD. Target class contracts remain to be specified. |
+
+Cross-cutting outputs include reports, unrecognized-rung queues, alarm shutdown
+relationships versus warning-only behavior, and alarm rankings. Record evidence
+and uncertainty rather than inferring these solely from names. The meaning of
+loops and the ranking criteria should be refined with concrete examples.
+
+Review can involve Tyler, Quebec and the development team in any chosen order.
+Prefer sequential handoffs initially, with one active editor and revision-bound
+packages. Recipients are selected per handoff; routing is separate from the
+editing policy. Detect stale returned copies; concurrent editing is a later option.
+Tyler handles the L5X-through-PCSD workflow and needs downstream corrections
+returned to it. Rerunning any stage must preserve intended fixes. Source and
+engineering objects can change or be split, combined, expanded or collapsed;
+the tool needs explicit correspondence and unresolved-change review.
+
+Two output paths must remain available from the L5X analysis: readable reports
+for investigation, and editable engineering files for PCSD construction. A
+report's display layout must not define the engineering record identity.
+
+The prior MOD-to-DeltaV PCSD used Excel. Candidate content covers AI/AO/DI/DO,
+selectors, PID flowcharts (PV/SP, master/slave and type), sequences/transitions,
+alarms, external references, communication inputs/outputs, standalone Boolean
+and floating-point calculations, valves and pumps. See ARCHITECTURE.md for the
+discovery questions behind these categories. Source sequences and proposed
+target sequences must remain distinguishable. Target modules, units and execution
+locations require reviewed mapping rather than copying the source hierarchy.
+
+The preferred editor provides object search, navigation through changes,
+import/export and backups without requiring programming or an installed Python
+environment. SQLite and executable packaging are proposals to evaluate when that
+slice begins; do not build the full editor/database before the source model is
+understood. Excel can remain useful for exchanges and generated test sheets.
+
+Across computers, synchronize non-proprietary tools and reviewed development
+artifacts. Actual exports and private analysis/review state remain local. Bounded
+summary reports and stripped ladder examples can support development without
+disclosing enough information to reconstruct the complete process.
+
+The technical milestones below remain an earlier implementation proposal. Their
+order and boundaries need reconciliation with these phases before selecting the
+next slice. Current implemented baseline: the prototype, inspection helpers and
+`plc inspect`, `plc summarize`, `plc references` and `plc reference-summary`.
+Current tests and returned work-machine evidence are recorded in the reference review.
+Initial Git setup is done. The first slice uses typed dataclasses and bounded
+Expat parsing; it does not introduce Pydantic, SQLite or a GUI. The Milestone 1
+command names below remain proposals except for the four implemented commands above.
+
+## Development and comparison workflow
+
+- Keep each logical change on a focused conventional commit with its rationale,
+  validation and limits recorded for the independent reviewing chat.
+- Explain non-obvious logic and data contracts in code comments/docstrings; keep
+  broader design decisions in the handoff and planning documents.
+- For a design question that needs delayed work-machine feedback, agree on one
+  common baseline and up to three bounded alternatives. Use sibling branches
+  such as `experiment/<topic>-a-pc`, `experiment/<topic>-b-pc` and
+  `experiment/<topic>-c-pc` from that baseline. An experiment
+  may branch from an existing feature branch; it need not start at main.
+- Give each alternative the same test procedure, input selection and comparable
+  report contract. Record the tested commit, baseline, tool/schema versions and
+  options so results can be attributed even after branch tips move.
+- Use separate private output locations for each trial. Provide a short results
+  template, expected outcomes and a report path so Tyler can run all alternatives
+  in one session. Treat a sanitized return report as a separately reviewed export.
+- Keep production-input checks separate from synthetic checks. Minimized samples
+  establish structural coverage, not complete source relationships or semantics.
+- Compare the returned evidence, then integrate the chosen changes into the
+  parent feature branch. Preserve useful negative results and do not merge every
+  alternative wholesale. Creating experiments does not authorize pushes/merges.
 
 ## Milestone 0 — synthetic baseline and fresh Git
 
@@ -114,9 +198,15 @@ Pick a GUI only after services and result schemas have proven useful. Start with
 
 The GUI saves through the same decision services as workbook import. Test cancellation, stale edits, progress, and rendering large result sets. Do not duplicate parsing in UI callbacks.
 
-## Later gate — target semantics and FHX
+## Later gate — PCSD feedback, target semantics and FHX
 
 Design conversion separately after enough source examples and reviewed classifications exist. Define supported source behavior, approved target library/version, many-to-many mappings, information loss, and engineering acceptance scenarios.
+
+Define the PCSD import/export contract and preservation of downstream corrections
+before generation. Add class-aware FHX reading as well as writing so supported
+FHX data can produce PCSD through the same reviewed engineering representation.
+Keep imported target facts traceable to their FHX source; do not conflate them
+with facts extracted from an L5X snapshot.
 
 Do not emit deployable FHX merely because a pattern matches. Static source analysis and synthetic unit tests are not target-system validation.
 

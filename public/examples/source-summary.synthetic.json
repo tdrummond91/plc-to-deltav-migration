@@ -1,0 +1,111 @@
+{
+  "analysis_scope": "source_structure_only",
+  "counts": {
+    "aliases": 1,
+    "aoi_definitions": 0,
+    "aoi_local_tags": 0,
+    "aoi_parameters": 0,
+    "controller_tags": 12,
+    "controllers": 1,
+    "encoded_regions": 0,
+    "instructions": 25,
+    "modules": 1,
+    "other_tag_definitions": 0,
+    "program_tags": 3,
+    "programs": 2,
+    "routines": 4,
+    "rungs": 9,
+    "tasks": 2,
+    "total_tag_definitions": 15,
+    "trends": 0,
+    "user_data_types": 1
+  },
+  "coverage": {
+    "instruction_count_complete": false,
+    "routines": {
+      "encountered": 4,
+      "failed": 0,
+      "parsed": 3,
+      "preserved_unsupported": 1
+    },
+    "rungs": {
+      "encountered": 9,
+      "excluded": 0,
+      "failed": 0,
+      "parsed": 9,
+      "preserved_unsupported": 0
+    },
+    "unmodeled_xml": {
+      "distinct_paths": 12,
+      "elements": 44
+    },
+    "xml_elements": 132
+  },
+  "diagnostics": {
+    "by_code": {
+      "routine_language_not_analyzed": 1,
+      "withheld": 0
+    },
+    "by_severity": {
+      "error": 0,
+      "info": 1,
+      "warning": 0,
+      "withheld": 0
+    },
+    "total": 1
+  },
+  "exporter_version": "aggregate-summary-1",
+  "instructions": {
+    "counts": {
+      "ADD": 1,
+      "JMP": 1,
+      "JSR": 1,
+      "LBL": 1,
+      "OTE": 5,
+      "TON": 1,
+      "XIC": 14,
+      "XIO": 1,
+      "withheld": 0
+    },
+    "scope": "successfully_parsed_RLL_rungs_only",
+    "total": 25
+  },
+  "ladder_metrics": {
+    "maxima": {
+      "height_lanes": 3,
+      "max_branch_depth": 2,
+      "max_legs_in_group": 2,
+      "width_instructions": 3
+    },
+    "scope": "successfully_parsed_RLL_rungs_only",
+    "totals": {
+      "argument_slots": 30,
+      "branch_groups": 3,
+      "branch_legs": 6,
+      "empty_branch_legs": 0,
+      "expression_instruction_calls": 0,
+      "instruction_calls": 25,
+      "nonempty_argument_fields": 30
+    }
+  },
+  "parser_version": "source-inventory-1",
+  "policy_version": 1,
+  "report_kind": "l5x_aggregate_review_summary",
+  "routine_types": {
+    "FBD": 0,
+    "RLL": 3,
+    "SFC": 1,
+    "ST": 0,
+    "Sequence": 0,
+    "missing": 0,
+    "withheld": 0
+  },
+  "schema_version": 1,
+  "semantic_analysis": "not_implemented",
+  "sharing_status": "local_review_required",
+  "status": "partial",
+  "tool_revision": {
+    "commit": "ca9fcf86cd01cde4de2d38d45bad6c22c031cdb5",
+    "worktree": "clean"
+  }
+}

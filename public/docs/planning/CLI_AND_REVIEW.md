@@ -1,6 +1,43 @@
 # CLI, reports, and human review
 
-Status: interface proposal. The commands below are not yet implemented.
+Status: `plc inspect FILE [--format text|json] [--rung-id ID] [--workspace PATH]`
+and `plc summarize FILE [--output NEW.json]` are implemented, along with
+`plc references FILE [--format text|json] [--workspace PATH]` and
+`plc reference-summary FILE [--output NEW.json]`. See
+[current usage](../../../python-parser/README.md). Other commands and all reviewer
+interfaces below remain proposals. `inspect` emits private source evidence;
+`summarize` emits bounded aggregates approved by Tyler for repository sync,
+including direct public/inspection/ output. The per-report gate was removed
+under D026; full private inventory behavior is unchanged. `references` provides
+private root bindings and aliases, while `reference-summary` exports only counts.
+Neither implements member/access validation or instruction effects. The proposed
+workspace-query command `plc refs` below is not an alias for `plc references`.
+
+## Preferred reviewer experience (2026-10-12)
+
+Prefer a standalone editor for non-programmers, distributed with its runtime so
+users do not install Python. Provide object search, hierarchy/source navigation,
+clear editable fields, change comparisons, grouping/moving objects, review queues,
+import/export and backup/restore. Keep the CLI for development and repeatable
+processing; both interfaces use the same services and validation rules.
+
+Excel was easy for users in the MOD migration but difficult to version and
+organize. It remains an exchange/fallback option. Workbooks and PCSD/test-sheet
+outputs should identify their source snapshot, analysis revision and decision
+revision so a returned edit can be compared with current work.
+
+Initially, hand work off sequentially with one active editor. Show the current
+revision and handoff status clearly. Validate returned edits before creating the
+next revision, and explain stale-base conflicts without replacing newer work.
+Select the recipient per handoff; there is no fixed transition order between
+people or teams. Concurrent editing is outside the initial reviewer workflow,
+and the routing/editing policy should remain adaptable.
+
+PCSD means Process Control Strategy Document. Its detailed contents and generated
+plant test sheets follow L5X discovery and reviewed target strategy. Distinguish
+source-derived states/transitions from newly designed sequence steps. The editor
+must preserve source links when objects are renamed, regrouped or mapped to
+target modules/units.
 
 ## Command design
 
@@ -105,7 +142,10 @@ A proposal is not automatically accepted because a confidence score is high. A u
 
 ## Review workbook contract
 
-Use macro-free XLSX for people and JSON/JSONL for canonical state. The workbook is a review interface, not the database.
+When Excel is used, use macro-free XLSX as an exchange/review interface. Validate
+imports through the same decision services as editor changes. Canonical storage
+(local SQLite versus the earlier JSON-file proposal) is still to be selected;
+the workbook is not an independent authoritative store.
 
 Suggested sheets:
 - `Readme`: instructions, status choices, examples, and no-change meaning.

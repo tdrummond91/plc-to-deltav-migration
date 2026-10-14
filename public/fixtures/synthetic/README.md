@@ -48,3 +48,25 @@ This is one small positive fixture. Add separate examples for malformed XML, enc
 The existing prototype may fail or partially render some cases; record those gaps. Passing the checker only verifies the fixture's internal contract, not the prototype's parser, a future GUI, or runtime behavior.
 
 The supplied root .gitattributes keeps text fixtures in LF format across Git checkouts so their exact-file hashes remain portable.
+
+## Module I/O example
+
+[module_io_demo.L5X](module_io_demo.L5X) is a separate, independently invented
+fixture. The original fixture's origin hash and checker apply only to
+controller_demo.L5X. This new example is not a validated Studio 5000 project.
+
+Expected structural counts: four modules, five ports, two connections, two each
+of InputTag/OutputTag/ConfigTag, three ordinary tags, two aliases, two rungs and
+five instructions. All six I/O declarations deliberately omit Name. Three names
+come from the local backplane slot and three from a direct Ethernet module;
+the latter uses connection-specific I1/O1 suffixes. One alias and six operand
+occurrences bind. One alias and one operand stay unresolved with
+colon_root_not_declared. Reference status is partial; structure status is complete.
+
+```bash
+uv run --project python-parser plc references public/fixtures/synthetic/module_io_demo.L5X
+```
+
+The [aggregate example](../../examples/module-reference-summary.synthetic.json)
+contains only counts. Its revision is deliberately unavailable, so it is not
+presented as an actual work-machine run. Neither example contains plant data.

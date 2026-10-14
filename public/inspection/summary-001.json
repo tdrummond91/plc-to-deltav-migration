@@ -1,0 +1,103 @@
+{
+  "analysis_scope": "source_structure_only",
+  "counts": {
+    "aliases": 879,
+    "aoi_definitions": 0,
+    "aoi_local_tags": 0,
+    "aoi_parameters": 0,
+    "controller_tags": 5954,
+    "controllers": 1,
+    "encoded_regions": 70,
+    "instructions": 0,
+    "modules": 111,
+    "other_tag_definitions": 0,
+    "program_tags": 46,
+    "programs": 3,
+    "routines": 0,
+    "rungs": 0,
+    "tasks": 3,
+    "total_tag_definitions": 6000,
+    "trends": 78,
+    "user_data_types": 0
+  },
+  "coverage": {
+    "instruction_count_complete": false,
+    "routines": {
+      "encountered": 0,
+      "failed": 0,
+      "parsed": 0,
+      "preserved_unsupported": 0
+    },
+    "rungs": {
+      "encountered": 0,
+      "excluded": 0,
+      "failed": 0,
+      "parsed": 0,
+      "preserved_unsupported": 0
+    },
+    "unmodeled_xml": {
+      "distinct_paths": 134,
+      "elements": 56375
+    },
+    "xml_elements": 68428
+  },
+  "diagnostics": {
+    "by_code": {
+      "encoded_content": 70,
+      "withheld": 0
+    },
+    "by_severity": {
+      "error": 0,
+      "info": 0,
+      "warning": 70,
+      "withheld": 0
+    },
+    "total": 70
+  },
+  "exporter_version": "aggregate-summary-1",
+  "instructions": {
+    "counts": {
+      "withheld": 0
+    },
+    "scope": "successfully_parsed_RLL_rungs_only",
+    "total": 0
+  },
+  "ladder_metrics": {
+    "maxima": {
+      "height_lanes": 0,
+      "max_branch_depth": 0,
+      "max_legs_in_group": 0,
+      "width_instructions": 0
+    },
+    "scope": "successfully_parsed_RLL_rungs_only",
+    "totals": {
+      "argument_slots": 0,
+      "branch_groups": 0,
+      "branch_legs": 0,
+      "empty_branch_legs": 0,
+      "expression_instruction_calls": 0,
+      "instruction_calls": 0,
+      "nonempty_argument_fields": 0
+    }
+  },
+  "parser_version": "source-inventory-1",
+  "policy_version": 1,
+  "report_kind": "l5x_aggregate_review_summary",
+  "routine_types": {
+    "FBD": 0,
+    "RLL": 0,
+    "SFC": 0,
+    "ST": 0,
+    "Sequence": 0,
+    "missing": 0,
+    "withheld": 0
+  },
+  "schema_version": 1,
+  "semantic_analysis": "not_implemented",
+  "sharing_status": "local_review_required",
+  "status": "partial",
+  "tool_revision": {
+    "commit": "028537dc39f4e45b68c58dbd373601d257efb589",
+    "worktree": "clean"
+  }
+}

@@ -1,12 +1,501 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-09. Current slice: **Stage 5 policy-2 installed, original-source run passed, public outputs reviewed; Git checkpoint next**.
+Current listener hold (2026-10-14): Tyler reported repeated endpoint-security
+alerts involving bash.exe after the work-machine check of `1419af7`. The local
+listener task is disabled and state is paused with no pending worker. Do not
+restore automatic listener execution while that report is under investigation. The run
+included listener Git/process-host regression tests in the application suite;
+the specific detection is unverified and these changes do not prove its cause
+resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
+using the local-only workflow below. Earlier restoration evidence is history.
+
+Updated 2026-10-14. Current baseline: **Phase 1 tooling consolidated on main; automatic work-machine synchronization/publication removed**. Next parser task: review the address-shape report already returned in `b58af78`. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+
+## Git baseline consolidation (2026-10-14)
+
+Tyler requested one squash commit on `main` and retirement of the accumulated
+topic branches. Documentation, decisions, reports and review evidence remain
+intact. The primary feature's pre-squash history is retained by
+`archive/phase1-before-squash-20261014` so reported tested SHAs remain retrievable.
+The older divergent local summary branch was checked: its report is identical
+and its review findings are already preserved in this baseline. Its exact two
+extra commits are also backed up in the development checkout's local
+`.git/branch-archive-20261014.bundle` before branch retirement.
+
+Use `main` for the baseline on each computer. Future development starts from
+current `main` on a new branch ending in `-pc`; do not merge a retired branch
+back into the consolidated history. Manual work-machine checks accept `main`
+and other named branches while retaining clean-tree and revision checks.
+This Git cleanup does not mark Phase 1 complete or re-enable the listener.
+The installed listener still targets the retired feature branch; any future
+activation needs an explicitly selected new `-pc` target and updated local
+configuration. Do not resume it against `main` or its old target.
+
+Consolidation validation: 229 application/workflow tests passed (one existing
+Windows symlink skip), excluding listener/Windows-host integration; all 139
+helper tests and the synthetic fixture check with `l5x` passed. The 55 focused
+work-check tests cover clean `main`, other named branches, dirty/detached
+rejection and repeated local runs with an unreachable origin. Independent
+review found no code blockers; no private input or listener execution was used.
+
+## Current work-machine workflow (2026-10-14)
+
+Work-machine recovery: its screenshot showed missing `.git/HEAD` and other
+repository files. Tyler deleted the old checkout, then confirmed another old
+folder contains the private inputs and is proceeding with a fresh clone. Keep
+that backup intact; a fresh checkout needs its source selection supplied again.
+
+Tyler's latest instruction supersedes the automatic pull/commit/push workflow
+below. The work-machine launcher uses the already checked out clean named branch
+(including `main`)
+and never fetches, pulls, stages, commits or pushes. No matching upstream is
+required. It saves the validated aggregate under Git-ignored
+`public/inspection/local/work-check-<run-id>.json`. Source selection remains in
+Git metadata, and private logs/artifacts retain their `confidential/` locations.
+
+Code updates and publication are separate manual actions. Review a local
+aggregate before manually copying or moving only that JSON into
+`public/inspection/` and explicitly staging, committing and pushing it. Never
+include the private log folder or engineering workspace. Existing approval of
+the bounded aggregate's contents is unchanged; publication is now manual.
+
+Work-machine test execution uses explicit parser/helper module allowlists,
+excluding listener, Windows process-host, Bash bootstrap and Git-fixture tests.
+Full development unittest discovery remains available. The schema-1 envelope
+and tested SHA are retained; consult that revision for historical suite scope
+instead of treating reduced suite totals as a regression.
+
+The latest report is `public/inspection/work-check-20261014T051259Z-72d3ad4c.json`,
+returned in `b58af78`. Its address-shape evidence awaits parser analysis. Review
+that existing aggregate before requesting any new work-machine evidence. Leave
+the development listener disabled and paused. Manual parser execution remains
+under Tyler's control and is not gated on restoring the listener.
+
+The checkpoints below retain prior implementation and validation evidence.
+Earlier activation and automatic-publication instructions are superseded by
+this current workflow and operational hold.
+
+## Historical address-shape checkpoint (2026-10-13)
+
+Historical listener restoration (subsequently reversed): the corrected scheduled task was enabled
+and the listener was unpaused. Its first production poll after restoration ran at
+00:14:29 America/Chicago, returned `LastTaskResult=0` and saved
+`waiting_for_report` with no pending claim. Five-minute and logon checks were active.
+Tyler's existing authorization covers automatic monitoring; the earlier hold for
+terminal takeover is closed. Check live local status before interactive edits.
+
+The historical hold followed terminal takeover after f18b34b. Disabling the task
+stopped the interruption. Earlier foreground-window tests missed tab selection;
+the corrected scheduled launch was subsequently verified at that boundary.
+
+Root cause captured in scheduled testing: the uv virtual environment's
+`pythonw.exe` is a console-subsystem redirector and opens Terminal before Python
+code runs. The installer now verifies PE subsystem 2 and chooses the underlying
+GUI Python executable. A repeated real scheduled worker had unchanged tabs and
+selection with no window/focus events. `install.ps1 -UpdateLauncher` migrates only
+the exact known old action while preserving the disabled task and paused state.
+
+Listener maintenance: Tyler reported terminal interruptions from background work.
+The replacement hosts the entire scheduled poll and ordinary descendants in a
+private native ConPTY session and disables notifications only for the unattended
+worker. It preserves exit codes, waits for attached descendants and records
+local host diagnostics. The listener requires Windows 11 24H2+; parser/work-machine
+support is unchanged. See [listener verification](docs/reviews/FEEDBACK_LISTENER.md).
+Fresh validation: 274 application tests (273 passed, one existing symlink skip),
+139 helper tests passed, independent review with no remaining blockers and a
+successful real scheduled worker with passive Terminal-tab observation.
+Global settings and parser contracts are unchanged. Inspect local listener status
+before interactive edits. This validation preceded the report returned in
+`b58af78` and the current operational hold.
+
+The automatic worker verified event b06e7dc and the selected report's exact blob,
+validated it and the preceding report, and confirmed no suite/analysis failure.
+The selected report tests clean 6585443; the preceding one tests clean ad2ec8b.
+The module/I/O improvements and remaining 868 malformed-address occurrences
+reconcile with the comparison below. These counts do not identify source syntax,
+prove source byte identity or justify a grammar change.
+
+The bounded follow-up adds `operands.malformed_address_shapes` to public reference
+schema 3 (`reference-summary-3`, policy 2). Seven fixed counters partition only
+operand occurrences with `unsupported_address` / `malformed_address`. Alias-target
+failures are separated from direct operand spellings. The other counters observe
+a leading hash (with or without a remainder accepted by the existing static
+address recognizer), brackets, colon, dot, or other form, in documented precedence.
+No names, values, lengths, source hashes or per-occurrence records are published.
+Parsing and binding behavior, private inventory/references 2/2, source aggregate 3
+and the work-check envelope 1 are unchanged. Reference aggregates 1/2 still validate
+under their exact historical contracts. The listener itself is unchanged.
+
+Fresh validation: 246 application tests (245 passed, one existing Windows symlink
+skip), all 139 helper tests passed; independent review passed 37 focused tests
+and found no remaining blockers. The real launcher also passed in a disposable
+checkout/local remote with invented input, validated schema 1/3/3 aggregate,
+private artifact hashes and independently verified report-only push. Full
+evidence is in ADDRESS_SHAPE_REVIEW.md.
+The requested schema-3 histogram has since returned in `b58af78`; its analysis
+is the next parser task after the workflow changes. No rerun is needed merely to
+obtain it.
+Compare the same input's statuses/reasons and the histogram total with the prior
+868 count; no improvement in binding counts is expected from this diagnostic.
+Do not infer the new histogram from this earlier report. If its closed buckets
+cannot support a bounded syntax investigation, record the specific work-machine
+question and stop; never request private addresses, inventories or logs.
+Phase 1 remains active; engineering classifications, corrections, PCSD/FHX,
+services and deployment remain outside this slice.
+
+## Current module/I/O checkpoint (2026-10-13)
+
+Tyler authorized implementing the next slice here after the two successful
+work-machine reports. Do not ask for that authorization again or repeat this
+implementation. Phase 1 now inventories module ports, ordinary connections and
+input/output/configuration tag declarations. Scoped reference lookup can use
+explicit module-tag names or names inferred conservatively from supported
+ICP/Ethernet topology. Private records keep raw source and naming provenance
+separate; unavailable names and unresolved/unsupported addresses have fixed
+reasons. RackConnection mappings remain an explicit unsupported gap. This does
+not validate members, types, instruction effects or engineering purpose.
+
+Current private contracts are inventory schema 2 (`source-inventory-2`) and
+reference schema 2 (`source-references-2`). New public output uses source schema 3
+(`aggregate-summary-3`) and reference schema 2 (`reference-summary-2`), both with
+policy 2. Public validation retains source schema 2 and reference schema 1 with
+its schema-2 source; hybrid versions are rejected. The outer work-check schema 1
+and private run manifests 1/2 are unchanged. See
+[data contracts](docs/planning/DATA_CONTRACTS.md) for details.
+
+The work-machine report returned in f91ae18:
+[work-check-20261013T234851Z-b10d84dc.json](inspection/work-check-20261013T234851Z-b10d84dc.json).
+It validates and records clean tested revision 6585443, 208 application tests
+(207 passed, one skipped), all 139 helper tests passed, partial analysis without
+a failure code and private_run_saved=true. All 252 module I/O declarations receive
+names: 164 backplane-slot roots and 88 module-name roots. Bound aliases rise from
+45 to 842; unresolved aliases fall from 896 to 99. Bound operands rise from
+17,856 to 20,178; unresolved operands fall from 2,642 to 320. Shared source counts,
+instruction histograms, routine types, ladder metrics and reference coverage are
+unchanged. This verifies improved root lookup, not engineering semantics or
+source byte identity. The detailed comparison is in MODULE_IO_REVIEW.md.
+
+All remaining unresolved aliases/operands have colon_root_not_declared. Their
+relationship to 11 unsupported rack connections is unproven. Unsupported-address
+operands remain 870: 868 outside the current address grammar and two dynamic
+indices. The next bounded parser candidate is aggregate address-shape evidence
+for those 868 cases, with invented examples and a closed publication contract;
+do not guess a fix from the label alone. No additional work-machine run is needed
+to review this report. Do not request private inventories, addresses, reference
+records or terminal logs here. PCSD, FHX, editor and engineering classification
+remain later work.
+
+Tyler has now explicitly authorized a listener to check for new work-machine
+pushes and continue agreed development. Implementation fde4fc2 is installed, and
+the scheduled launch check returned exit 0. The latest report above is selected
+for the first follow-up, so Tyler does not need to rerun it to trigger development.
+Live monitoring/worker state is local and must be checked with the status command;
+consult [FEEDBACK_LISTENER.md](docs/reviews/FEEDBACK_LISTENER.md) for validation,
+local activation and operating details. Before interactive edits on a development
+PC where it is installed, inspect `bash ./feedback-listener.sh status` and pause
+it; let a running worker finish before taking over. Do not pause the listener
+from its own dedicated worker checkout. The work machine needs only its existing
+run-work-check command.
+The workflow should process each new work report once, serialize repository
+work, ignore its own code pushes and stop for required questions, work-machine
+investigation or a phase checkpoint needing Tyler's decision.
+
+The current application suite includes the listener's Git integration tests:
+232 tests run: 231 passed and one skipped, plus all 139 helper tests passed.
+Source/reference output contracts are unchanged by the listener.
+
+The checkpoints below preserve earlier evidence and chronology. Their previous
+next-step statements do not override this current checkpoint.
+
+## Returned automated checks (2026-10-13)
+
+Two work-check reports arrived in ad2ec8b and f38d81e, testing clean revisions
+0666542 and ad2ec8b respectively. Both pass validate_work_check_report. Each
+reports 155 application tests run (154 passed, one skip), all 139 helper tests
+passed, no test failures/errors, partial analysis, no analysis failure code and
+private_run_saved=true. Both commits change only their new aggregate JSON report.
+
+After excluding tool_revision, both nested reference summaries exactly match
+reference-summary-20261013T203510Z.json: 4,606 rungs, 17,874 instructions and the
+same symbol/alias/operand counts. This verifies repeatable aggregate results and
+the work-machine test/report/push cycle. It does not establish source byte identity
+or independently inspect the private saved files. No real export or private log
+was accessed here, and no local test rerun was needed for this report review.
+
+No additional work-machine run was needed to close this earlier checkpoint.
+Tyler subsequently authorized the module/I/O slice recorded above. Phase 1 remains
+active.
+
+## Work-machine automation checkpoint (2026-10-13)
+
+Tyler requested one script that pulls, tests, runs the current analysis and pushes
+results including test outcomes. `bash ./run-work-check.sh SOURCE.L5X` records
+the local source choice; later runs need only `bash ./run-work-check.sh`. The path
+stays in Git metadata. The script uses `git pull --ff-only`, locked dependencies,
+both test suites, one captured source snapshot, new private inventory/reference
+files and one closed aggregate report. It automatically commits/pushes only the
+new report, including failed test outcomes. Failed tests skip source analysis;
+partial usable analysis counts as successful workflow completion.
+
+No separate fetch step or manual report staging is required on the work machine.
+Real source, private records and detailed logs stay under confidential/. Shared
+reports include the tested commit, suite event counts and bounded code-only failed
+test IDs, plus reference/structural aggregates when analysis succeeds. Branch/HEAD
+or working-tree changes stop automatic publication/push; a rejected push preserves
+the local report commit. Read the runner review for the exact schema and tests.
+
+Validation: 155 application tests run, 154 passed and one existing Windows symlink
+skip; all 139 helper tests passed. Independent review passed the 47 new tests
+without remaining blockers after corrections. An actual temporary-remote workflow
+also passed success, failed-test and malformed-source scenarios, verifying both
+successful and failed results are committed/pushed without private text. The work-machine
+run has now returned and is reviewed above.
+The module/I/O parser extension was implemented after this runner checkpoint;
+see the current section above.
+
+## Returned reference evidence (2026-10-13)
+
+Tyler pushed public/inspection/reference-summary-20261013T203510Z.json in 7328809,
+with clean code provenance at 294c839, and confirmed both work-machine test suites
+passed. The reference aggregate validates. Its nested structural report exactly
+matches summary-002 except for tool_revision; all 4,606 rungs remain accounted for.
+
+17,563 of 17,874 instruction signatures are catalogued (98.26%). Of 24,583 operand
+occurrences, 17,856 bind to declared roots and 2,517 are literals; 2,642 remain
+unresolved, 870 have unsupported address syntax, 45 are unsupported expressions
+and 653 occur in uncatalogued instructions. Aliases: 45 bound and 896 unresolved
+out of 941. No ambiguity, cycles, depth limits or argument-count mismatches appear.
+These are lexical-reference counts, not engineering interpretation percentages.
+
+This evidence motivated the module/I/O declaration and fixed-reason slice now
+implemented above. The public structural baseline includes 104 InputTag, 65
+OutputTag and 83 ConfigTag elements omitted from the previous symbol model.
+Their contribution to the unresolved totals remains unproven until the new run.
+See the reference review for the earlier reconciliation and remaining limits.
+
+## Preceding reference-analysis checkpoint (2026-10-13)
+
+Tyler's corrected public/inspection/summary-002.json arrived in remote 3dd1b25.
+It passes aggregate validation and matches the earlier readable baseline:
+4,606/4,606 rungs parsed, 17,874 instructions, 6,307 tags, 941 tag aliases,
+120 modules, 70 routines, one AOI and zero encoded regions. All ladder measures
+match. Partial coverage reflects the already observed 14 SFC routines and one
+RLL routine without content. The later reference run and suite confirmation are
+recorded above.
+
+Tyler then authorized continuing. The new branch starts at 3dd1b25 and preserves
+the earlier review notes without resetting either history. `plc references`
+adds private scoped declaration/alias/operand records from the captured inventory;
+`plc reference-summary` publishes only fixed aggregate counts plus the structural
+summary. Root binding does not validate members, access, effects or engineering
+purpose. Unknown instructions, dynamic/qualified addresses, expressions and
+missing module-tag declarations remain explicit gaps. Both publication paths
+verify derived records against the source inventory before saving.
+
+Implementation is b8d92bc. Validation: 107 application tests run, 106 passed,
+one existing Windows symlink skip; all 139 helper tests passed. Independent review
+passed all 48 reference tests after fixing record-integrity validation. Installed
+CLI checks verified private storage, aggregate output, unchanged inputs and
+no-overwrite behavior. The synthetic aggregate records clean b8d92bc provenance.
+
+See the reference review for scope, primary documentation, independent review,
+test evidence and resource bounds. The initial work-machine run has now returned
+and is reviewed above. Use normal commits/pushes on feat/source-references-pc.
+Engineering classification, editable corrections, GUI, PCSD and FHX remain later phases.
+
+## First returned work-machine evidence (historical, 2026-10-13)
+
+Tyler pushed public/inspection/summary-001.json in 61b9ca7. It reports a clean
+028537d application revision, 6,000 tags, 111 modules, 70 encoded regions and
+zero exposed routines/rungs/instructions. All 70 diagnostics are encoded_content
+warnings. The aggregate passes a read-only v1-to-v2 schema compatibility check;
+the original report remains unchanged and approved for sync.
+
+The earlier public baseline had 6,307 tags, 120 modules, 70 routines, 4,606 rungs
+and no EncodedData. Source equivalence is not established. The next action is to
+confirm whether the same unchanged L5X or a different/new export was used, then
+compare source availability on the work machine. Tyler may have sent the wrong
+one and is checking; the cause is still unconfirmed. EncodedData counts do not prove
+70 encrypted routines or identify their contents. No parser change was justified
+from this aggregate alone. The corrected summary-002 above resolves the missing
+readable-source evidence; the original report remains a separate comparison.
+
+## Clarified sharing boundary (2026-10-13)
+
+Tyler defines confidential material as information that permits rebuilding the
+entire unit with data values, or more than 2% rung knowledge (D026). Aggregate
+summary counts and technical codes expose no individual rung logic or process
+values and are approved for repo sync. The previous private holding folder and
+per-report sharing gate were unnecessary for these reports.
+
+`plc summarize` now allows public/inspection/ output, records schema/policy v2
+and `sharing_status=aggregate_sync_allowed`, and omits the review-before-sharing
+warning. Its publisher validates and canonicalizes the bounded JSON before
+writing. Raw `inspect` inventories and source exports retain their private
+storage boundary. Future rung samples need separate coverage accounting; no
+rung-sample allowance or whole-unit reconstruction capability was added here.
+
+Validation: 59 application tests run, 58 passed, one existing Windows symlink
+skip. Independent review passed all 25 summary tests with no remaining blocker.
+Tyler's v1 work-machine report has now been returned and reviewed above; no
+rerun was needed merely to adopt the clarified sharing policy. Earlier review-gate
+statements below describe the superseded v1 policy, not a current approval
+requirement.
+
+## Summary export checkpoint (2026-10-12)
+
+Tyler authorized building/testing the next slice and pushing it to GitHub for a
+work-machine run. This branch starts at 79d865f and includes the source-inventory
+commits. `plc summarize FILE [--output NEW.json]` reconstructs a fixed, bounded
+aggregate schema from one captured source inventory. It includes component and
+coverage counts, approved routine/instruction vocabulary, pooled withheld labels,
+global ladder measurements and diagnostic counts. It excludes source identities,
+hashes, names, paths, operands, layouts and per-occurrence records. Code revision
+metadata refers to the application checkout, not the source export.
+
+The summary is a local review candidate. Optional explicit output stays private
+inside this checkout, uses atomic no-clobber publication and does not save an
+L5X or raw inventory. Existing files remain untouched. Exit 3 means a usable
+partial-coverage summary was produced; it does not imply a failed save.
+
+Validation: 56 application tests passed plus one existing Windows symlink skip;
+all 139 helper tests passed. Installed-command checks against both public fixtures
+verified counts, unchanged inputs, no source hash in output, and preserved
+existing reports. Independent review findings about OS-error disclosure and
+impossible internal states were fixed and rechecked without remaining blockers.
+Exact tested revision and command evidence are in SUMMARY_EXPORT_REVIEW.md.
+
+Next action is Tyler's bounded work-machine run using the linked procedure.
+Return only the locally reviewed summary JSON and test outcome. No real-export
+run has occurred on this PC. Further symbol/alias analysis can follow the returned
+evidence; PCSD/FHX and editor implementation remain deferred. Git log/status and
+the branch's remote tip determine publication state; earlier no-push statements
+below are historical checkpoints.
+
+## Preceding source inventory checkpoint (2026-10-12)
+
+The feature branch starts at 3cfdb57 on chore/project-scope-review-pc; source
+implementation and validation are recorded at f9f61bc. The new
+`plc inspect` captures input bytes once and produces JSON or readable reports
+with scoped declarations, ordered rungs/instructions, source offsets, coverage
+and diagnostics. Optional explicit private storage creates a new run with the
+exact snapshot, complete reports and a manifest published last. Source IDs are
+snapshot-specific; persistent engineering identities and review overlays remain
+future work. The existing main.py prototype remains available.
+
+Validation: 29 application tests passed, one Windows symlink test skipped, and
+139 helper tests passed. The public minimized-fixture audit and synthetic fixture
+checker passed. Installed CLI checks from an unrelated temporary working directory
+parsed all 9 synthetic rungs (25 instructions) and all 276 minimized rungs
+(1,904 instructions). Both correctly reported partial coverage for unsupported
+routine content; the minimized fixture also includes an RLL routine without a
+content block. These are public fixture results, not real-export validation.
+
+Independent code review found and prompted fixes for declaration context,
+unrecognized executable XML, ambiguous descriptions/comments and canonical
+snapshot identity. The shared grammar now limits total branch legs and argument
+slots and records instruction spans. Standalone inspection helpers import that
+same grammar from python-parser/src; copy the full branch across machines rather
+than only the old tools folder. No confidential files were read or remote
+branches pushed. Use git log/status for the exact local commit state.
+
+No work-machine run is required to continue development. A bounded public-summary
+export is the recommended next slice before asking Tyler to return new private
+inventory results. After that, scoped symbols/aliases and references can build on
+this foundation. GUI/database decisions, editable review data, PCSD and FHX are
+still deferred. Detailed evidence, limits and next-step rationale are in the
+implementation review linked above.
+
+## Confirmed scope and preceding documentation checkpoint (2026-10-12)
+
+Tyler confirmed a reusable migration tool for several units. The five product
+phases and workflow are recorded in docs/planning/ROADMAP.md and decisions D013-D025.
+L5X analysis has two parallel outputs: information/scanning reports for source
+understanding, and editable engineering files used to organize objects and build
+the PCSD. Both need links to the same source evidence. PCSD feedback, class-based
+FHX generation and FHX-to-PCSD are explicitly in the long-term scope.
+
+Review is sequential initially, but participant order is not fixed. Tyler,
+Quebec and the development team are participants, not hardcoded workflow stages.
+Choose the recipient at each handoff and keep the policy adaptable. Approved
+corrections must survive reruns. Changed, expanded, collapsed, split or combined
+objects require reconciliation rather than losing prior decisions.
+
+PCSD means Process Control Strategy Document. The earlier MOD-to-DeltaV workflow
+used Excel, which was accessible to users but difficult to organize and version.
+The PCSD supports generating plant test sheets for a DeltaV unit and simulation.
+Candidate content includes I/O, selectors, PID relationships/flowcharts,
+sequences/transitions, alarms, communications, external references, Boolean and
+floating-point calculations, valves and pumps. Source understanding comes first;
+the final PCSD content/schema is not settled. L5X sequences may require explicit
+engineering design, and source grouping is not automatically target unit/module
+or execution-location grouping.
+
+Tyler prefers a standalone editor with search, useful navigation, change review,
+import/export and backups, while retaining Excel if it proves useful. Design
+deployment for non-programmers without a separately installed Python runtime.
+SQLite as a local project store and PyInstaller-style Windows packaging are
+recommendations to evaluate, not installed components or confirmed selections.
+Tyler prefers sequential review initially: one active editor, followed by a
+revision-bound handoff to the next reviewer. Validate returned changes against
+their base revision and flag stale copies. Shared live editing and concurrent
+copy reconciliation are later options, not initial requirements. Keep the
+one-active-editor policy separate from participant identity and routing.
+
+Only non-proprietary code/tools and reviewed development artifacts travel through
+Git. Real L5X files and private engineering state stay local. Tyler may supply
+bounded summary reports and stripped dummy ladder examples for development;
+these should not enable reconstruction of the complete process.
+
+On this editing PC, origin was fetched and main matched origin/main at bafc410.
+Created local branch chore/project-scope-review-pc as requested. Scope was
+recorded in 3ade905 and sequential-review preference in e8a1ede; subsequent
+clarifications are separate documentation commits. Use git log/status for the
+current commit/push state. All 130 helper tests passed, and the read-only
+minimized_review audit passed (7,303 source links, 276 rung records, 194 paths,
+431 variants). No confidential source was read. Changes in this scope discussion
+are documentation only. Future PC development branches must end in -pc.
+
+Scope-document validation: reviewed the changed requirements/proposals, checked
+the referenced local review entry point, and passed git diff --check. The helper
+test/audit results above are from the initial repository inspection in this
+session; documentation changes did not trigger a repeated test run.
+
+After Tyler requested code/fixture examination and invited subagents, independent
+validation, parser review and design-readiness review checked the unchanged
+implementation again. Fresh results: 130 tests passed (0.077 seconds), the
+minimized_review public audit passed, and the synthetic fixture checker passed
+including l5x tag access. No stable-input blocker was established within the
+documented outer-syntax/metrics contract. Allocation limits, sanitized-opcode
+round-trip assumptions and changing-input protection need explicit treatment
+as the reader evolves. Exact probes, commands and limitations are recorded in
+docs/reviews/NEXT_DEVELOPMENT_PROMPT.md.
+
+At this preceding documentation checkpoint, the recommended next slice was one private snapshot-bound source inventory,
+selected-rung evidence and gap reporting, with JSON/readable views over shared
+records. Current scrubbed fixtures validate structural breadth but not source
+relationships: the minimized sample retains 276/4,606 rungs and 161/554 shapes,
+with per-rung ARG identities. Use coherent independent synthetic cases for future
+reference tracing. This review does not select the GUI, database or final PCSD
+schema. Implementation followed in the source-inventory checkpoint above.
+
+A separate ChatGPT chat will review the work. Keep focused conventional commits,
+decision rationale, useful code comments and reproducible validation notes. Read
+docs/reviews/NEXT_DEVELOPMENT_PROMPT.md (relative to public/) for the review entry
+point. When work-machine turnaround is slow, Tyler may test up to three sibling
+experiment branches from a common baseline and return their comparable results.
+This is a workflow option, not a request to create three branches immediately.
+
+The sections below retain the earlier work-machine evidence and chronology.
+Their pending Git/checkpoint statements describe those earlier sessions, not
+this PC's current state. The five product phases are distinct from helper
+Stages 1-5 and the earlier technical implementation milestones.
 
 Tyler wants one small helper at a time: provide code, let him run it, inspect the
 result, then implement the next piece. Do not jump directly to a complete dummy
 generator or migration framework.
 
-## Current status
+## Historical inspection status (2026-10-09)
 
 - Stage 1: Tyler reported 19 tests passed and supplied the counts JSON. Its nested
   counts reconcile with 83,942 elements, 213,876 attributes, 194 paths and depth 14.

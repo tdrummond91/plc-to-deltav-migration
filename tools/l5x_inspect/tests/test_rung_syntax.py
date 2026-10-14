@@ -119,6 +119,87 @@ class RungSyntaxTests(unittest.TestCase):
             with self.assertRaises(RungSyntaxError):
                 parse_rung("CMP((a));")
 
+    def test_repository_helper_aliases_the_shared_module(self) -> None:
+        import rungs.syntax as helper
+        from plc_workbench.ladder import syntax as core
+        self.assertIs(helper, core)
+        self.assertIs(parse_rung, core.parse_rung)
+
+    def test_branch_leg_limit_counts_empty_legs_across_groups(self) -> None:
+        with patch("rungs.syntax.MAX_BRANCH_LEGS", 4):
+            self.assertEqual(measure(parse_rung("[,][,];"))["branch_legs"], 4)
+            source = "[,][,,];"
+            with self.assertRaises(RungSyntaxError) as caught:
+                parse_rung(source)
+            self.assertEqual(caught.exception.code, "branch_leg_limit")
+            self.assertEqual(caught.exception.offset, 6)
+            self.assertEqual(str(caught.exception), "branch_leg_limit at character offset 6")
+
+    def test_branch_leg_limit_is_shared_with_nested_groups(self) -> None:
+        with patch("rungs.syntax.MAX_BRANCH_LEGS", 4):
+            self.assertEqual(measure(parse_rung("[[,],];"))["branch_legs"], 4)
+            with self.assertRaises(RungSyntaxError) as caught:
+                parse_rung("[[,,],];")
+            self.assertEqual(caught.exception.code, "branch_leg_limit")
+
+    def test_argument_slot_limit_counts_across_instructions(self) -> None:
+        with patch("rungs.syntax.MAX_ARGUMENT_SLOTS", 4):
+            tree = parse_rung("MOV(a,b)MOV(c,d)NOP();")
+            self.assertEqual(measure(tree)["argument_slots"], 4)
+            source = "MOV(a,b)PRIVATE(c,d,e);"
+            with self.assertRaises(RungSyntaxError) as caught:
+                parse_rung(source)
+            self.assertEqual(caught.exception.code, "argument_slot_limit")
+            self.assertEqual(caught.exception.offset, source.index(")", source.index("PRIVATE")))
+            self.assertNotIn("PRIVATE", str(caught.exception))
+
+    def test_argument_slot_limit_counts_empty_slots_before_appending(self) -> None:
+        with patch("rungs.syntax.MAX_ARGUMENT_SLOTS", 4):
+            self.assertEqual(measure(parse_rung("F(,)F(,);"))["argument_slots"], 4)
+            with self.assertRaises(RungSyntaxError) as caught:
+                parse_rung("F(,)F(,,);")
+            self.assertEqual(caught.exception.code, "argument_slot_limit")
+            with self.assertRaises(RungSyntaxError) as caught:
+                parse_rung("F(,)F(,,,);")
+            self.assertEqual(caught.exception.code, "argument_slot_limit")
+            self.assertEqual(caught.exception.offset, 8)
+
+    def test_argument_slot_limit_counts_across_branches(self) -> None:
+        with patch("rungs.syntax.MAX_ARGUMENT_SLOTS", 3):
+            tree = parse_rung("[XIC(a),XIC(b)]OTE(c);")
+            self.assertEqual(measure(tree)["argument_slots"], 3)
+            with self.assertRaises(RungSyntaxError) as caught:
+                parse_rung("[XIC(a),XIC(b)]OTE(c)XIC(d);")
+            self.assertEqual(caught.exception.code, "argument_slot_limit")
+
+    def test_quoted_and_nested_commas_do_not_consume_argument_slots(self) -> None:
+        with patch("rungs.syntax.MAX_ARGUMENT_SLOTS", 2):
+            tree = parse_rung("MOV('a,b',Func(Array[1,2],other));")
+            self.assertEqual(len(tree.items[0].arguments), 2)
+        with patch("rungs.syntax.MAX_ARGUMENT_SLOTS", 0):
+            self.assertEqual(measure(parse_rung("NOP( )NOP();"))["argument_slots"], 0)
+
+    def test_instruction_spans_preserve_whitespace_and_nested_branches(self) -> None:
+        source = " \n XIC \t(a) [ MOV ( Array[1,2], out ), [NOP(), CPT(out,(a + b)) ] ] OTE(c) ; "
+        tree = parse_rung(source)
+        outer = tree.items[1]
+        inner = outer.legs[1].items[0]
+        instructions = [tree.items[0], outer.legs[0].items[0],
+                        inner.legs[0].items[0], inner.legs[1].items[0], tree.items[2]]
+        expected = ["XIC \t(a)", "MOV ( Array[1,2], out )", "NOP()", "CPT(out,(a + b))", "OTE(c)"]
+        for instruction, exact_text in zip(instructions, expected, strict=True):
+            with self.subTest(instruction=exact_text):
+                self.assertEqual(source[instruction.start:instruction.end], exact_text)
+                self.assertEqual(instruction.start, source.index(exact_text))
+                self.assertEqual(instruction.end, instruction.start + len(exact_text))
+
+    def test_instruction_spans_do_not_change_structural_equality(self) -> None:
+        manual = Instruction("XIC", ("a",))
+        self.assertIsNone(manual.start)
+        self.assertIsNone(manual.end)
+        self.assertEqual(parse_rung(" XIC(a);").items[0], manual)
+        self.assertEqual(parse_rung(" XIC(a);"), parse_rung("XIC ( a );"))
+
     def test_public_forms_replace_all_arguments_and_unknown_opcodes(self) -> None:
         import json
         labels = OpcodeLabels()

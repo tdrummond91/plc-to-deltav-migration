@@ -1,6 +1,6 @@
 # Decision record
 
-Planning revision 0.2 — 2026-10-08.
+Scope revision 0.3 — 2026-10-12. Implementation proposals remain subject to the selected development slice.
 
 ## Confirmed by Tyler
 
@@ -18,8 +18,24 @@ Planning revision 0.2 — 2026-10-08.
 | D010 | Files moved by user into confidential/ | Use confidential/plc-code and preserve the existing target backup directory |
 | D011 | Public portable materials and synthetic L5X first | Public fixture, expected results, origin record, and handoff before application refactor |
 | D012 | Copy into new project name and start fresh Git/GitHub | Omit old .git and environment; preserve original until verified; user performs Git setup |
+| D013 | Reusable tool for several units | Keep unit-specific source data and engineering decisions outside reusable code |
+| D014 | Five phases: L5X understanding; editable files; naming/data corrections; PCSD with feedback; class-based FHX and FHX-to-PCSD | PCSD and FHX are explicit project scope; conversion implementation remains a later phase |
+| D015 | L5X analysis feeds both reading/scanning reports and editable engineering files | Share parsed evidence and trace links; editable files support organizing objects for PCSD |
+| D016 | Review involves Tyler, Quebec and the development team, with no fixed handoff order | Import downstream corrections and preserve review history; D025 clarifies routing |
+| D017 | Reruns must preserve intended corrections even as objects or rung groupings change | Track decisions independently and reconcile split/merged/changed objects |
+| D018 | Synchronize only non-proprietary code and reviewed development artifacts across computers | Real L5X/private state remain local; bounded summaries and stripped examples support development |
+| D019 | Private GitHub repository, one developer across computers; PC development branches end in -pc | Fetch/check state and preserve local edits; commit, push and merge remain separate actions. Runtime checks also support main. |
+| D020 | PCSD means Process Control Strategy Document and supports plant test-sheet generation | Capture source evidence and reviewed strategy; detailed PCSD content follows ladder understanding |
+| D021 | Prefer a standalone editor for non-programmers, with Excel still an option | Search/navigation, change review, import/export, backups and deployment without user-managed Python |
+| D022 | An independent ChatGPT chat will review development | Maintain clear handoffs, decision rationale, useful comments and focused conventional commits |
+| D023 | Slow work-machine feedback may warrant up to three experiment branches | Branch from one agreed baseline, use -pc suffixes and comparable validation/reporting; consolidate after results |
+| D024 | Prefer sequential reviewer handoffs initially | One active editor and revision-bound handoff packages; validate returned changes against their base and flag stale copies; concurrent editing is a later option |
+| D025 | Sequential review does not prescribe participant order | Choose recipients per handoff; separate assignment/routing from the single-editor policy so future workflows can extend it |
+| D026 | Confidential means reconstructing the entire unit with data values, or more than 2% rung knowledge | Aggregate summaries with no individual rung logic or process values are approved for repository sync; remove the per-report sharing gate and allow public/inspection/ output. Raw exports and full inventories stay private. |
+| D027 | Work-machine commands must not automatically pull or push; normal parsing is allowed | Use local code and save local results; code synchronization and report publication are manual. The runner also performs no automatic staging or commits. |
+| D028 | Consolidate the current development history into one main commit and retire old branches; preserve documentation | Keep tested revision provenance under an archive tag. Future development uses new -pc branches from main; this checkpoint does not complete Phase 1. |
 
-D010 supersedes the earlier transition plan to retain a root plc-code ignore rule. The new project copy has confidential/, public/, and python-parser/ at root. The user's root ignore file currently contains confidential/. The new copy has no .git yet. Old history and remote state remain unverified.
+D010 supersedes the earlier transition plan to retain a root plc-code ignore rule. The repository has confidential/, public/, and python-parser/ roles; confidential/ is ignored. D012's fresh-repository setup is complete: origin was fetched on 2026-10-12 and main matched origin/main at bafc410. D009 applies to the restricted work-machine environment, not every computer. D014 establishes the later PCSD/FHX scope while retaining D008's deferral of conversion implementation during source understanding.
 
 ## Proposed for initial implementation
 
@@ -27,17 +43,79 @@ D010 supersedes the earlier transition plan to retain a root plc-code ignore rul
 |---|---|---|
 | P001 | Package src/plc_workbench inside existing python-parser | Clear imports without moving the project immediately |
 | P002 | argparse subcommands and generated help | Familiar standard library, separate command arguments |
-| P003 | Typed JSON/JSONL contracts and immutable run directories | Readable state, GUI-friendly data, recoverability |
+| P003 | Versioned typed records, JSON/JSONL exchange reports and immutable run evidence | Portable contracts remain useful whichever private storage backend is selected |
 | P004 | Pydantic 2 persisted models, safe XML adapter, existing l5x wrapper | Validate contracts while retaining access to unsupported source data |
-| P005 | File-based checkpoints first; SQLite only as a later index | Avoid premature database/event-platform complexity |
+| P005 | Evaluate SQLite as the local editor's canonical store, with versioned exports and backups | Search, relationships and atomic review changes justify reconsidering the earlier files-first proposal; no database decision is finalized |
 | P006 | Generic review decision protocol before specialized workbooks | Same semantics for Excel and future GUI |
 | P007 | Structural patterns before cross-rung motifs | Validate grammar and references before wider inference |
 | P008 | Python cache exclusions alongside confidential/ | Avoid virtualenv/build/cache files entering Git |
+| P009 | Package a Windows editor with a bundled Python runtime, for example using PyInstaller | Users should not need Python, SQL or command-line knowledge; verify distribution on a clean target machine |
 
 Proposals can be revised before their implementation slice. No GUI framework or conversion engine is selected.
 
+### First slice implementation choices (2026-10-12)
+
+These are engineering choices for `feat/source-inventory-pc`, not new user
+requirements. P001 and P002 are implemented; P003 is implemented only for private
+source records and run evidence. P004 remains a proposal: this reader uses
+standard-library dataclasses and bounded Expat parsing, with no new validation
+framework. Existing l5x remains for the unchanged prototype and fixture checker.
+
+Capture bytes once before parsing so records and saved evidence share one input.
+Use deterministic snapshot-specific IDs; do not claim decision continuity across
+exports. Move the existing outer ladder grammar into the application package
+and retain a repository-helper compatibility alias, adding instruction spans and
+allocation limits instead of a competing parser. Require explicit private
+workspace selection and a new directory per saved run; publish the manifest
+last. Preserve unfamiliar XML and report gaps rather than invent declarations
+from element names or claiming complete executable coverage. See
+[implementation review](../reviews/SOURCE_INVENTORY_REVIEW.md) for evidence.
+
+### Aggregate feedback implementation choices (2026-10-12)
+
+Original implementation on 2026-10-12 (sharing gate superseded by D026 on 2026-10-13): build the return report from a closed set of aggregate
+fields instead of redacting a copy of the private inventory. Reuse the existing
+instruction publication vocabulary, pool unknown labels and omit occurrence
+links/topology. Preserve structural partial status and explicit unimplemented
+semantics. Validate numeric types, reconciled totals and parser bounds before
+publishing a candidate capped at 32 KiB. Human review still determines whether
+the exact aggregate counts may be returned.
+
+Record the local code commit and code-worktree state without publishing a source
+fingerprint or private path. Use atomic no-clobber publication for an explicit new
+JSON destination; unsupported filesystems fail without an overwrite fallback.
+Tyler authorized the feature-branch push and bounded work-machine check. This
+does not authorize merging into main or publishing plant data.
+
+### Root-reference implementation choices (2026-10-13)
+
+After summary-002 matched the readable-source baseline, Tyler authorized continuing
+with the next Phase 1 slice. Implement scoped root binding, alias traversal and
+operand occurrences as a separate derived result; retain the source-inventory-1
+contract. Use an explicit conservative signature catalog so routine labels and
+instruction options cannot accidentally bind to same-named tags. Root lookup is
+distinct from member/access validation, effects and engineering classifications.
+
+Provide private `references` drill-down and a closed `reference-summary` aggregate
+for the next work-machine run. A shared integrity check canonically reanalyzes the
+captured inventory before either publication path; this avoids maintaining a
+second set of binding rules and rejects mutated derived records. The second pass
+does not read the source again and its initial synthetic cost is recorded in the
+[reference review](../reviews/SOURCE_REFERENCES_REVIEW.md). Future optimization
+must preserve these validation and publication boundaries.
+
+The feature branch starts at the user's current remote report commit 3dd1b25,
+preserves prior notes, ends in -pc and does not merge into main. Return aggregate
+coverage before choosing broader expression, module, call or instruction-effect
+analysis. These are implementation choices within the authorized slice, not a
+final PCSD schema or an expansion of the source-sharing policy.
+
 ## Open questions for the relevant milestone
 
+- Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?
+- What information do developers correct, and when does a correction apply to one object versus a reusable parser/classification rule?
+- Which changes happen in the source L5X versus the engineering representation, and what evidence should carry decisions across splits/merges?
+- Which existing class libraries or generators will the PCSD/FHX adapters use?
 - Which AI service or local runtime is approved, and what context may it receive?
 - What exact review fields and workbook layout suit the Quebec team?
 - What source export revisions and partial-export variants must be supported first?
