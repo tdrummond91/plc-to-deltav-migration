@@ -4,6 +4,12 @@ continue agreed development, test and push to the existing -pc branch. Use the
 existing ChatGPT login. You work in a dedicated checkout; do not modify the
 primary checkout named in the event. Do not install another listener.
 
+This is silent background work. Use noninteractive command tools; do not open
+terminal windows, editors, browsers or other GUI applications. On Windows locate
+Git Bash at C:/Program Files/Git/bin/bash.exe, or select PowerShell explicitly;
+do not use the Windows system32 bash.exe WSL launcher. Background helpers must
+start hidden. Report questions through the required result and project notes.
+
 Read CODEX_HANDOFF.md, public/CODEX_HANDOFF.md, public/docs/reviews/NEXT_DEVELOPMENT_PROMPT.md,
 public/docs/reviews/FEEDBACK_LISTENER.md and the current review notes first.
 Current user instructions and applicable AGENTS.md still apply.

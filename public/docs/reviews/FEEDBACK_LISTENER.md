@@ -29,7 +29,22 @@ Codex allowance. Idle Git checks do not invoke a model.
 Runs inherit this PC's existing Codex permission configuration; the listener does
 not change global settings or override sandbox/approval policy. Environment API
 keys and a parent thread ID are excluded from the child invocation. The configured
-model and reasoning preference are inherited as well.
+model and reasoning preference are inherited as well. Only this background worker
+disables external completion notifications and TUI notifications with per-command
+overrides. Interactive notifications and the global Codex configuration are unchanged.
+
+On Windows, Git, report validation and the worker use hidden launch settings.
+Console programs receive a separate hidden console that ordinary descendant
+commands inherit instead of opening a visible terminal. Scheduled validation
+uses the windowless Python executable. `CREATE_NO_WINDOW` alone leaves a console
+program without a console and does not prevent normally launched descendants
+from creating one.
+See Microsoft's [process creation flags](https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags)
+and [startup window settings](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfoa).
+Worker notification overrides use the documented
+[Codex notification configuration](https://learn.chatgpt.com/docs/config-file/config-advanced#notifications).
+This is a console-launch policy, not a restriction on a program explicitly opening
+a GUI. Background work must not launch terminals, editors or browser windows.
 
 The worker reads the project handoff, reviews returned evidence and completes one
 bounded Phase 1 step with tests, independent review, notes and a normal push to
@@ -137,3 +152,36 @@ These installation facts are not a live status display. Use
 `bash ./feedback-listener.sh status` for the current state, last result, pending
 report and local run-log location. The paused launch check alone does not verify
 the scheduled environment's Git authentication or a completed development run.
+
+## Silent execution correction (2026-10-13)
+
+Tyler reported the listener opening/focusing a terminal during other work. The
+listener was idle after successfully pushing the address-shape slice at 833f900;
+monitoring was paused while fixing its launch behavior. The original direct-child
+`CREATE_NO_WINDOW` flag did not give normally spawned descendants a console to
+inherit. The fix uses `CREATE_NEW_CONSOLE` with `STARTF_USESHOWWINDOW` / `SW_HIDE`
+for Git, report validation and Codex. Per-invocation `notify=[]` and
+`tui.notifications=false` suppress the inherited external completion helper and
+TUI notifications for this worker only. No global configuration, permission policy,
+task account or schedule was changed. The exact historical window was not captured;
+these changes address the identified console inheritance gap and notification path.
+
+All 247 application tests ran successfully (246 passed, one existing Windows
+symlink skip); all 139 helper tests passed. This includes 25 listener tests and
+a real Windows child/grandchild probe that
+requires the same nonzero console handle and verifies both are invisible. The
+worker-boundary test checks notification overrides and hidden launch options.
+A real Codex smoke used the production `_agent` launch path with an isolated
+temporary prompt, executed a Python probe through PowerShell, returned valid
+structured output and passed independent inspection of the probe file. WinEvent
+hooks for window-show and foreground-change events recorded zero events throughout
+that run; the foreground window was unchanged. The temporary smoke repository held
+only invented test code. Its first launch outside a Git repository was rejected
+before execution; initializing the disposable repository allowed the normal check.
+Independent review found no blockers; wording was corrected to distinguish
+windowless Python validation from console programs, and to prefer Git Bash.
+
+Background instructions now explicitly prohibit opening GUI applications and
+identify Windows shell choices to avoid the system32 WSL launcher. This fix does
+not attempt to suppress an application that deliberately opens its own GUI.
+Check local status after deployment for current monitoring state.

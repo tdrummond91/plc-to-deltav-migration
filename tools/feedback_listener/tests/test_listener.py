@@ -333,6 +333,35 @@ class ListenerTests(unittest.TestCase):
 
 
 class WorkerBoundaryTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "nt", "Windows console inheritance")
+    def test_background_child_and_grandchild_share_an_invisible_console(self) -> None:
+        # Exercise actual Windows process creation, not just flag equality.
+        # The nested process uses normal defaults, like Git/worker shell tools.
+        probe = (
+            "import ctypes,json;from ctypes import wintypes;"
+            "kernel=ctypes.WinDLL('kernel32');user=ctypes.WinDLL('user32');"
+            "kernel.GetConsoleWindow.restype=wintypes.HWND;"
+            "user.IsWindowVisible.argtypes=[wintypes.HWND];"
+            "window=kernel.GetConsoleWindow();"
+            "print(json.dumps({'window':window,'visible':bool(user.IsWindowVisible(window))}))"
+        )
+        parent = (
+            "import json,subprocess,sys;"
+            f"exec({probe!r});"
+            f"child=subprocess.run([sys.executable,'-B','-c',{probe!r}],"
+            "check=True,capture_output=True,text=True,timeout=15);"
+            "print(child.stdout.strip())"
+        )
+        process = subprocess.run(
+            [sys.executable, "-B", "-c", parent], check=True, capture_output=True,
+            text=True, timeout=30, **listener._background_process_options(),
+        )
+        child, grandchild = [json.loads(line) for line in process.stdout.splitlines()]
+        self.assertTrue(child["window"], "Background child needs a console for descendants to inherit")
+        self.assertEqual(child["window"], grandchild["window"])
+        self.assertFalse(child["visible"])
+        self.assertFalse(grandchild["visible"])
+
     def test_invalid_local_state_fails_closed_without_worker(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -364,7 +393,8 @@ class WorkerBoundaryTests(unittest.TestCase):
                 self.assertEqual(command[0], "native-codex.exe")
                 self.assertIn("--no-daemon", command)
                 self.assertNotIn("--approve-for-me", command)
-                self.assertNotIn("-c", command)
+                overrides = [command[index + 1] for index, value in enumerate(command) if value == "-c"]
+                self.assertEqual(overrides, ["notify=[]", "tui.notifications=false"])
                 self.assertNotIn("--sandbox", command)
                 self.assertNotIn("shell", kwargs)
                 self.assertNotIn("OPENAI_API_KEY", kwargs["env"])
@@ -372,7 +402,9 @@ class WorkerBoundaryTests(unittest.TestCase):
                 self.assertNotIn("CODEX_THREAD_ID", kwargs["env"])
                 self.assertNotIn("GIT_DIR", kwargs["env"])
                 if os.name == "nt":
-                    self.assertEqual(kwargs["creationflags"], subprocess.CREATE_NO_WINDOW)
+                    self.assertEqual(kwargs["creationflags"], subprocess.CREATE_NEW_CONSOLE)
+                    self.assertTrue(kwargs["startupinfo"].dwFlags & subprocess.STARTF_USESHOWWINDOW)
+                    self.assertEqual(kwargs["startupinfo"].wShowWindow, subprocess.SW_HIDE)
                 self.assertIn(b"Listener event", kwargs["input"])
                 (run / "result.json").write_text(json.dumps(result()), encoding="utf-8")
                 return subprocess.CompletedProcess(command, 0)

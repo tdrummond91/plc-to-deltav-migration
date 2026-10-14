@@ -4,6 +4,15 @@ Updated 2026-10-13. Current activity: **closed address-shape diagnostic implemen
 
 ## Current address-shape checkpoint (2026-10-13)
 
+Listener maintenance: Tyler reported terminal interruptions from background work.
+The listener launch now gives ordinary Windows descendants a hidden console and
+disables notifications only for the unattended worker. The nested-process test
+and real Codex smoke passed with no observed window-show/focus-change events;
+see [listener verification](docs/reviews/FEEDBACK_LISTENER.md#silent-execution-correction-2026-10-13).
+Global settings and parser contracts are unchanged. Inspect local listener status
+before interactive edits; the latest development result remains the address-shape
+slice below, awaiting its work-machine aggregate.
+
 The automatic worker verified event b06e7dc and the selected report's exact blob,
 validated it and the preceding report, and confirmed no suite/analysis failure.
 The selected report tests clean 6585443; the preceding one tests clean ad2ec8b.
