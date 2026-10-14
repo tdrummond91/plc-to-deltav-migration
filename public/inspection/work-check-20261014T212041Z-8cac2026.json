@@ -1,0 +1,453 @@
+{
+  "analysis": {
+    "failure_code": null,
+    "private_run_saved": true,
+    "reference_summary": {
+      "aliases": {
+        "by_reason": {
+          "unresolved": {
+            "aoi_alias_target_not_local": 0,
+            "colon_root_not_declared": 99,
+            "invalid_scope": 0,
+            "root_not_declared": 0
+          },
+          "unsupported_address": {
+            "address_length_limit": 0,
+            "backslash_qualified_address": 0,
+            "empty_address": 0,
+            "expanded_suffix_limit": 0,
+            "malformed_address": 0,
+            "non_static_array_index": 0,
+            "program_qualified_address": 0
+          }
+        },
+        "by_status": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous": 0,
+          "root_bound": 842,
+          "unresolved": 99,
+          "unsupported_address": 0
+        },
+        "total": 941
+      },
+      "analysis_scope": "scoped_root_bindings",
+      "analyzer_version": "source-references-7",
+      "coverage": {
+        "instructions_catalogued": 17617,
+        "instructions_total": 17874,
+        "rungs_analyzed": 4606,
+        "rungs_total": 4606
+      },
+      "effect_analysis": "not_implemented",
+      "exporter_version": "reference-summary-9",
+      "member_validation": "not_implemented",
+      "module_io": {
+        "by_name_origin": {
+          "backplane_slot": 164,
+          "explicit_name": 0,
+          "module_name": 88,
+          "unavailable": 0
+        },
+        "named": 252,
+        "total": 252,
+        "unavailable_by_reason": {
+          "ambiguous_connection_context": 0,
+          "ambiguous_module_context": 0,
+          "ambiguous_parent_module": 0,
+          "ambiguous_parent_port": 0,
+          "ambiguous_upstream_port": 0,
+          "invalid_explicit_name": 0,
+          "invalid_module_name": 0,
+          "invalid_slot": 0,
+          "invalid_suffix": 0,
+          "invalid_upstream_port": 0,
+          "missing_connection_context": 0,
+          "missing_module_context": 0,
+          "missing_parent_module": 0,
+          "missing_parent_port": 0,
+          "missing_upstream_port": 0,
+          "name_length_limit": 0,
+          "port_type_mismatch": 0,
+          "topology_cycle": 0,
+          "topology_depth_limit": 0,
+          "unsupported_port_type": 0
+        }
+      },
+      "operands": {
+        "by_reason": {
+          "unresolved": {
+            "aoi_alias_target_not_local": 0,
+            "colon_root_not_declared": 319,
+            "invalid_scope": 0,
+            "root_not_declared": 0
+          },
+          "unsupported_address": {
+            "address_length_limit": 0,
+            "backslash_qualified_address": 0,
+            "empty_address": 0,
+            "expanded_suffix_limit": 0,
+            "malformed_address": 0,
+            "non_static_array_index": 2,
+            "program_qualified_address": 0
+          }
+        },
+        "by_status": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous": 0,
+          "argument_count_mismatch": 0,
+          "empty": 0,
+          "literal": 2533,
+          "non_data": 878,
+          "root_bound": 20286,
+          "system_flag": 1,
+          "unresolved": 319,
+          "unsupported_address": 2,
+          "unsupported_expression": 45,
+          "unsupported_instruction": 519
+        },
+        "malformed_address_shapes": {
+          "alias_target_failure": 0,
+          "contains_brackets": 0,
+          "contains_colon": 0,
+          "contains_dot": 0,
+          "leading_hash_other": 0,
+          "leading_hash_static_address": 0,
+          "other_form": 0
+        },
+        "total": 24583
+      },
+      "policy_version": 2,
+      "rack_candidates": {
+        "analysis_scope": "rack_logical_root_candidates",
+        "backing_mapping": "not_analyzed",
+        "declarations": {
+          "by_direction": {
+            "input": 11,
+            "output": 4
+          },
+          "by_name_origin": {
+            "backplane_slot": 15,
+            "unavailable": 0
+          },
+          "named": 15,
+          "total": 15,
+          "unavailable_by_reason": {
+            "ambiguous_connection_context": 0,
+            "ambiguous_module_context": 0,
+            "ambiguous_parent_module": 0,
+            "ambiguous_parent_port": 0,
+            "ambiguous_upstream_port": 0,
+            "invalid_explicit_name": 0,
+            "invalid_module_name": 0,
+            "invalid_slot": 0,
+            "invalid_suffix": 0,
+            "invalid_upstream_port": 0,
+            "missing_connection_context": 0,
+            "missing_module_context": 0,
+            "missing_parent_module": 0,
+            "missing_parent_port": 0,
+            "missing_upstream_port": 0,
+            "name_length_limit": 0,
+            "port_type_mismatch": 0,
+            "topology_cycle": 0,
+            "topology_depth_limit": 0,
+            "unsupported_port_type": 0,
+            "unsupported_rack_attributes": 0,
+            "unsupported_rack_content": 0,
+            "unsupported_rack_port_type": 0
+          }
+        },
+        "matches": {
+          "alias_operands": {
+            "by_status": {
+              "ambiguous_candidate": 0,
+              "candidate_names_unavailable": 0,
+              "no_candidate_match": 0,
+              "outside_visible_scope": 0,
+              "unique_candidate": 319
+            },
+            "total": 319
+          },
+          "aliases": {
+            "by_status": {
+              "ambiguous_candidate": 0,
+              "candidate_names_unavailable": 0,
+              "no_candidate_match": 0,
+              "outside_visible_scope": 0,
+              "unique_candidate": 99
+            },
+            "total": 99
+          },
+          "direct_operands": {
+            "by_status": {
+              "ambiguous_candidate": 0,
+              "candidate_names_unavailable": 0,
+              "no_candidate_match": 0,
+              "outside_visible_scope": 0,
+              "unique_candidate": 0
+            },
+            "total": 0
+          }
+        }
+      },
+      "report_kind": "l5x_reference_review_summary",
+      "routine_instruction_shapes": {
+        "analysis_scope": "parsed_rll_routine_instruction_fields",
+        "by_opcode": {
+          "JSR": {
+            "argument_slots": 163,
+            "by_arity": {
+              "one_field": 0,
+              "three_or_more_second_other": 11,
+              "three_or_more_second_zero": 0,
+              "two_fields_second_other": 0,
+              "two_fields_second_zero": 65,
+              "zero_fields": 0
+            },
+            "noncanonical_spelling": 0,
+            "total": 76
+          },
+          "RET": {
+            "argument_slots": 0,
+            "by_arity": {
+              "one_field": 0,
+              "three_or_more": 0,
+              "two_fields": 0,
+              "zero_fields": 1
+            },
+            "noncanonical_spelling": 0,
+            "total": 1
+          },
+          "SBR": {
+            "argument_slots": 1,
+            "by_arity": {
+              "one_field": 1,
+              "three_or_more": 0,
+              "two_fields": 0,
+              "zero_fields": 0
+            },
+            "noncanonical_spelling": 0,
+            "total": 1
+          }
+        },
+        "parameter_roles": "not_analyzed",
+        "target_resolution": "not_analyzed"
+      },
+      "schema_version": 9,
+      "semantic_analysis": "not_implemented",
+      "sharing_status": "aggregate_sync_allowed",
+      "source_summary": {
+        "analysis_scope": "source_structure_only",
+        "counts": {
+          "aliases": 941,
+          "aoi_definitions": 1,
+          "aoi_local_tags": 2,
+          "aoi_parameters": 6,
+          "controller_tags": 6261,
+          "controllers": 1,
+          "encoded_regions": 0,
+          "instructions": 17874,
+          "module_config_tags": 83,
+          "module_connections": 104,
+          "module_input_tags": 104,
+          "module_output_tags": 65,
+          "module_ports": 137,
+          "module_rack_connections": 11,
+          "module_rack_input_aliases": 11,
+          "module_rack_output_aliases": 4,
+          "modules": 120,
+          "other_tag_definitions": 0,
+          "program_tags": 46,
+          "programs": 3,
+          "routines": 70,
+          "rungs": 4606,
+          "tasks": 3,
+          "total_tag_definitions": 6307,
+          "trends": 78,
+          "user_data_types": 0
+        },
+        "coverage": {
+          "instruction_count_complete": false,
+          "routines": {
+            "encountered": 70,
+            "failed": 1,
+            "parsed": 55,
+            "preserved_unsupported": 14
+          },
+          "rungs": {
+            "encountered": 4606,
+            "excluded": 0,
+            "failed": 0,
+            "parsed": 4606,
+            "preserved_unsupported": 0
+          },
+          "unmodeled_xml": {
+            "distinct_paths": 138,
+            "elements": 59949
+          },
+          "xml_elements": 83942
+        },
+        "diagnostics": {
+          "by_code": {
+            "declaration_context_not_analyzed": 10,
+            "module_rack_backing_not_analyzed": 11,
+            "routine_content_missing": 1,
+            "routine_language_not_analyzed": 14,
+            "withheld": 0
+          },
+          "by_severity": {
+            "error": 1,
+            "info": 14,
+            "warning": 21,
+            "withheld": 0
+          },
+          "total": 36
+        },
+        "exporter_version": "aggregate-summary-4",
+        "instructions": {
+          "counts": {
+            "ABS": 8,
+            "ADD": 32,
+            "AVE": 1,
+            "CLR": 41,
+            "COP": 92,
+            "CPT": 45,
+            "CTU": 3,
+            "DIV": 277,
+            "EQU": 319,
+            "FAL": 1,
+            "GEQ": 160,
+            "GRT": 212,
+            "GSV": 5,
+            "JSR": 76,
+            "LEQ": 909,
+            "LES": 382,
+            "LIM": 9,
+            "LN": 2,
+            "MOV": 1131,
+            "MSG": 27,
+            "MUL": 121,
+            "MVM": 16,
+            "NEQ": 74,
+            "ONS": 133,
+            "OSF": 3,
+            "OTE": 1687,
+            "OTL": 1174,
+            "OTU": 1302,
+            "PID": 46,
+            "RES": 48,
+            "RET": 1,
+            "RTO": 44,
+            "SBR": 1,
+            "SFR": 140,
+            "SQO": 1,
+            "SQR": 18,
+            "SUB": 463,
+            "SWPB": 10,
+            "TON": 390,
+            "XIC": 5057,
+            "XIO": 3412,
+            "withheld": 1
+          },
+          "scope": "successfully_parsed_RLL_rungs_only",
+          "total": 17874
+        },
+        "ladder_metrics": {
+          "maxima": {
+            "height_lanes": 59,
+            "max_branch_depth": 4,
+            "max_legs_in_group": 49,
+            "width_instructions": 18
+          },
+          "scope": "successfully_parsed_RLL_rungs_only",
+          "totals": {
+            "argument_slots": 24583,
+            "branch_groups": 3719,
+            "branch_legs": 8887,
+            "empty_branch_legs": 0,
+            "expression_instruction_calls": 46,
+            "instruction_calls": 17874,
+            "nonempty_argument_fields": 24583
+          }
+        },
+        "parser_version": "source-inventory-3",
+        "policy_version": 2,
+        "report_kind": "l5x_aggregate_review_summary",
+        "routine_types": {
+          "FBD": 0,
+          "RLL": 56,
+          "SFC": 14,
+          "ST": 0,
+          "Sequence": 0,
+          "missing": 0,
+          "withheld": 0
+        },
+        "schema_version": 4,
+        "semantic_analysis": "not_implemented",
+        "sharing_status": "aggregate_sync_allowed",
+        "status": "partial",
+        "tool_revision": {
+          "commit": "9c56b5000f773b35679b96f8c4e97ca3d75ab3db",
+          "worktree": "clean"
+        }
+      },
+      "status": "partial",
+      "symbols": {
+        "ambiguous_groups": 0,
+        "by_kind": {
+          "aoi_local_tag": 2,
+          "aoi_parameter": 6,
+          "module_config_tag": 83,
+          "module_input_tag": 104,
+          "module_output_tag": 65,
+          "tag": 6307
+        },
+        "total": 6567,
+        "unnamed": 0
+      }
+    },
+    "status": "partial"
+  },
+  "diagnostic_sample": null,
+  "report_kind": "l5x_work_machine_check",
+  "run_id": "20261014T212041Z-8cac2026",
+  "schema_version": 7,
+  "status": "partial",
+  "tests": {
+    "application": {
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skipped": 1,
+        "tests_run": 308,
+        "unexpected_successes": 0
+      },
+      "failed_test_ids": [],
+      "failure_ids_omitted": 0,
+      "schema_version": 1,
+      "status": "passed"
+    },
+    "helpers": {
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests_run": 139,
+        "unexpected_successes": 0
+      },
+      "failed_test_ids": [],
+      "failure_ids_omitted": 0,
+      "schema_version": 1,
+      "status": "passed"
+    }
+  },
+  "tool_revision": {
+    "commit": "9c56b5000f773b35679b96f8c4e97ca3d75ab3db",
+    "worktree": "clean"
+  },
+  "workflow_version": "work-check-7"
+}
