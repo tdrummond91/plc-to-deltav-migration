@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `08c2695` confirms all 26 bit-operation signatures: 52 bound roots, 16 literals and ten selectors, with both suites passing and other evidence stable. The next slice observes JSR/SBR/RET argument shapes because official ladder-neutral and structured-text layouts differ. Existing bindings/catalog counts stay unchanged; no parameter roles or routine links are assigned. Read [routine-shape scope and evidence](docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `0a2610f` confirms 76 JSRs: 65 two-field calls with second text zero and 11 three-field calls with other second text; SBR has one field and RET none. Both suites passed and earlier counters stayed unchanged. The new slice links JSR first fields to declared program-local routine candidates, separately from tag bindings and unresolved parameter roles. Read [candidate scope and evidence](docs/reviews/ROUTINE_TARGET_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -95,9 +95,10 @@ excluding listener, Windows process-host, Bash bootstrap and Git-fixture tests.
 Full development unittest discovery remains available. Schema-1 reports remain
 readable; schema 2 adds the bounded sample, schema 3 adds an unmatched-colon
 fallback, schema 4 carries reference schema 6 with system-flag recognition,
-schema 5 carries reference 7 with the ABS/LN/SQR signature catalog, and current
-schema 6 carries reference 8 with MVM/SWPB roles. Current schema 7 carries
-reference 9 with observation-only routine-instruction shapes.
+schema 5 carries reference 7 with the ABS/LN/SQR signature catalog,
+schema 6 carries reference 8 with MVM/SWPB roles and schema 7 carries
+reference 9 with observation-only routine-instruction shapes. Current schema 8
+carries reference 10 with declared JSR first-field candidates.
 Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
@@ -133,14 +134,14 @@ run and changed only the feedback JSON. Ordinary source/reference counters are
 unchanged; 26 XML elements across three paths are newly modeled and 11 warnings
 now describe unknown backing instead of omitted declarations. The sample is null.
 
-Current contracts: private inventory/reference schemas 3/4 with
-`source-inventory-3` / `source-references-7`; public source/reference schemas 4/9;
-work-check schema 7 and reference-run manifest schema 2. The analyzer/private
-JSON remain unchanged by this diagnostic. Historical public
+Current contracts: private inventory/reference schemas 3/5 with
+`source-inventory-3` / `source-references-8`; public source/reference schemas 4/10;
+work-check schema 8 and reference-run manifest schema 2. Private JSON now includes
+canonical routine_targets occurrences; public output contains closed counts only. Historical public
 reports still validate with exact original status vocabularies. Work schema 3
 still requires reference 5, work schema 4 requires reference 6, and work schema
-5 requires reference 7 and work schema 6 requires reference 8. Read
-[routine-shape review](docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md)
+5 requires reference 7, work schema 6 requires reference 8 and work schema 7
+requires reference 9. Read [candidate review](docs/reviews/ROUTINE_TARGET_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 
 Rack validation: 316 development application/workflow tests passed (one existing
@@ -236,7 +237,7 @@ fetch/pull/push, input and prior artifacts are preserved, and all 80 copied
 code/test/config files match final working bytes. Eleven stored work reports
 remain readable. Commands and artifact evidence are in the bit-operation review.
 
-The current routine-shape diagnostic profiles successful RLL JSR/SBR/RET fields
+The preceding routine-shape diagnostic profiles successful RLL JSR/SBR/RET fields
 without changing the binding catalog, analyzer or private JSON. It adds fixed
 arity bins, exact trimmed second-zero observations for JSR and case/withheld
 reconciliation. Official RLL/ST tables differ, so zero text is not a validated
@@ -244,12 +245,27 @@ InputCount and no target/parameter/sequence roles are inferred. Private text
 uses captured inventory to include zero-field SBR/RET calls, while the old
 renderer API remains available. No source reread is introduced.
 
-Next inspect the returned shape groups for JSR=76, SBR=1 and RET=1, with all
-existing binding/source/catalog/alias/rack/sample counters unchanged. Their
-field distribution is unproven until the run. Use that evidence before choosing
-scoped routine links or a further bounded format clarification. Partial remains
-expected; do not request repeated bit/math-only checks. See the routine-shape
-review for exact contracts, primary sources and validation.
+Returned `0a2610f` tests clean `9c56b50`: 308 application cases (one skip)
+and 139 helpers pass. It confirms 65 two-field second-zero JSRs and 11 three-field
+second-other JSRs, one one-field SBR and one zero-field RET. Every earlier
+source/reference counter is unchanged. No parameter boundary is established.
+
+The current candidate slice adds one separate row per parsed RLL JSR, resolving
+only static first-field names within the caller program. Explicit self/main/fault
+context is retained; other_routine requires a Normal program. No phase-state
+name guessing, valid-call claim or parameter role is introduced. Source and tag
+bindings stay intact. The next run should return 76 candidate occurrences with
+earlier counts unchanged; candidate statuses and distinct targets remain unknown.
+Partial remains expected. See the candidate review for validation.
+
+Candidate validation: 421 development cases pass (one symlink skip), excluding
+the ignored listener loader. Independent review passed 62 focused cases after
+fixes; 25 negative public-count cases reject contradictions and private labels.
+Two actual synthetic script runs each passed 325 application cases (one skip)
+and 139 helpers, with local report-only commits and no fetch/pull/push. Direct
+CLI text/JSON returned expected partial exit3; canonical JSON, candidate context,
+source/prior-output preservation and artifact hashes verify. All 13 stored work
+reports validate unchanged. See [full evidence](docs/reviews/ROUTINE_TARGET_REVIEW.md).
 
 Routine-shape validation: 404 development cases, OK with one existing symlink
 skip; listener loader excluded. Independent review passed 68 focused cases with

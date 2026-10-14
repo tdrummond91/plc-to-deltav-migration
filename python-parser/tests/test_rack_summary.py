@@ -36,8 +36,8 @@ class RackSummaryTests(unittest.TestCase):
     def test_candidates_reconcile_without_promoting_bindings(self) -> None:
         _, source, references, report = records()
         rack = report['rack_candidates']
-        self.assertEqual((source.schema_version, references.schema_version), (3, 4))
-        self.assertEqual((report['schema_version'], report['source_summary']['schema_version']), (9, 4))
+        self.assertEqual((source.schema_version, references.schema_version), (3, 5))
+        self.assertEqual((report['schema_version'], report['source_summary']['schema_version']), (10, 4))
         self.assertEqual(rack['declarations']['total'], 2)
         self.assertEqual(rack['declarations']['named'], 2)
         self.assertEqual(rack['declarations']['by_direction'], {'input': 1, 'output': 1})
@@ -163,7 +163,7 @@ class RackSummaryTests(unittest.TestCase):
             saved = json.loads((run / 'references.json').read_text(encoding='utf-8'))
             self.assertEqual(saved, references.to_dict())
             manifest = json.loads((run / 'manifest.json').read_text(encoding='utf-8'))
-            self.assertEqual((manifest['schema_version'], manifest['analyzer_version']), (2, 'source-references-7'))
+            self.assertEqual((manifest['schema_version'], manifest['analyzer_version']), (2, 'source-references-8'))
             self.assertEqual(manifest['parser_version'], 'source-inventory-3')
             text = (run / 'references.txt').read_text(encoding='utf-8')
             self.assertEqual(text, render_reference_text(references, inventory=source))

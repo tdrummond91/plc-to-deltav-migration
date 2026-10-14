@@ -158,6 +158,22 @@ distribution before a scoped routine-link slice; target resolution stays separat
 from tag lookup and from execution/sequence interpretation. See
 [the evidence and validation](../reviews/ROUTINE_CALL_SHAPE_REVIEW.md).
 
+### Derive declared JSR candidates separately from parameter roles (2026-10-14)
+
+Returned `0a2610f` confirms 65 two-field second-zero and 11 three-field
+second-other JSRs, one one-field SBR and one zero-field RET. It does not establish
+InputCount or parameter boundaries. RLL/ST reference tables agree on JSR's first
+routine-name field, allowing a scoped declaration-candidate slice without
+expanding the tag-binding catalog or interpreting later arguments.
+
+Match static ASCII first fields only within the caller program's separate routine
+namespace. Keep ambiguity and unsupported ownership explicit, and allow declared
+non-RLL target envelopes. Identify known self/main/fault contexts from IDs and
+program attributes; classify other only for Normal programs. Never infer phase
+states from names or equate unique candidates with valid calls or reachability.
+Private rows retain snapshot provenance; public feedback uses closed counts.
+Read [the candidate contract and evidence](../reviews/ROUTINE_TARGET_REVIEW.md).
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?

@@ -2,7 +2,28 @@
 
 Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current routine-instruction shape contract (2026-10-14)
+## Current JSR candidate contract (2026-10-14)
+
+Private reference schema5 / source-references-8 adds canonical routine_targets
+occurrences: instruction/rung/caller/program IDs, raw first field, status,
+candidate count, unique target ID and target context. Static ASCII names match
+only routine declarations in the owning program, separately from tag lookup.
+Each parsed RLL JSR has a row, including zero fields. Context priority is self
+identity, explicit main, explicit fault, other only for Normal programs, then
+not_analyzed. Parameter roles, call validity and phase-state names remain opaque.
+Occurrence/evidence/field limits and canonical reanalysis bound the private data.
+
+Public reference10 / reference-summary-10 adds fixed metadata, total,
+closed by_status and unique_by_target_context counters, plus distinct_targets.
+Counts reconcile with JSR shapes and source routine totals; no occurrence IDs or
+source values are shared. Work8 / work-check-8 requires reference10. Reference9
+is frozen as analyzer7 and rejects the new field; work7/reference9 and earlier
+contracts remain readable. The unchanged shape profile describes observations
+only, so its target_resolution=not_analyzed remains scoped to that profile.
+Source3, aggregate4, manifest2, sharing rules and manual pull/push are unchanged.
+See [exact scope and validation](../reviews/ROUTINE_TARGET_REVIEW.md).
+
+## Routine-instruction shape contract checkpoint (2026-10-14)
 
 Public reference schema 9 / reference-summary-9 adds required closed
 routine_instruction_shapes. Analyzer source-references-7 and private reference
@@ -21,7 +42,7 @@ withheld-opcode budget. Arity/slot partitions and uncatalogued/unsupported-opera
 bounds prevent contradictory aggregates. No private labels/values/IDs are added.
 
 Versions 1 through 8 remain frozen and reject even an all-zero new field.
-Work7/reference9 is current; work3/5 through work6/8 remain paired as before.
+At this checkpoint, Work7/reference9 was current; work3/5 through work6/8 remain paired as before.
 Work1/2 supported nested-reference handling, timer/flag/selector sample rules,
 bounded sharing, paths and manual pull/push are unchanged. See
 [exact fields, evidence and validation](../reviews/ROUTINE_CALL_SHAPE_REVIEW.md).

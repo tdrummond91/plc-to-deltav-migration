@@ -168,3 +168,22 @@ are unproven until the run. Inspect which JSR arities and second-zero spellings
 dominate, and SBR/RET field counts, before choosing scoped routine links or a
 further bounded export-format clarification. Shape agreement alone does not
 prove parameter roles. No repeat bit/math-only check is needed.
+
+## Returned work-machine confirmation (2026-10-14)
+
+Commit `0a2610f` adds only
+[work-check-20261014T212041Z-8cac2026.json](../../inspection/work-check-20261014T212041Z-8cac2026.json)
+and has tested clean `9c56b50` as parent. The work7/reference9/source4 report
+validates; all 308 application cases (one skip) and 139 helpers pass. JSR=76
+and argument_slots=163: 65 two-field second-zero calls, 11 larger second-other
+calls. Slot reconciliation proves those eleven have exactly three fields. SBR
+has one occurrence with one field; RET has one with zero fields. Noncanonical
+spelling counts are zero. All preceding source/reference/diagnostic counters
+are identical. Analysis remains partial with private results saved and sample
+null. Aggregate agreement does not prove source byte identity or parameter roles.
+
+The next slice uses only the JSR first-field routine name shared by both official
+layouts, deriving separate program-local declaration candidates. It leaves later
+arguments and all tag/catalog counts unchanged. Read
+[the candidate review](ROUTINE_TARGET_REVIEW.md) for the current contracts,
+validation and next work-machine check. No repeat shape-only run is needed.

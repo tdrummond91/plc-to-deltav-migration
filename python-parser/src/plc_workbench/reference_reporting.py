@@ -46,7 +46,7 @@ def render_reference_text(result: ReferenceResult, *, inventory: InventoryResult
         shapes = build_routine_instruction_shapes(inventory)
         lines.extend([
             "", "Parsed RLL routine instruction field shapes (observations only):",
-            "Parameter roles and routine target links are not analyzed.",
+            "Parameter roles are not analyzed; first-field JSR candidates are listed separately.",
             "Second-zero buckets mean the trimmed second field is exactly ASCII 0; its meaning is unknown.",
         ])
         for opcode, group in shapes['by_opcode'].items():
@@ -77,6 +77,21 @@ def render_reference_text(result: ReferenceResult, *, inventory: InventoryResult
             f"    rung: {operand['rung_id']}; scope: {operand['scope_id']}",
             f"    declaration: {label(operand['symbol_id'])}",
             f"    terminal root: {label(operand['target_id'])}; suffix: {operand['suffix']}",
+        ])
+    lines.extend([
+        "", "JSR first-field routine candidates (separate routine namespace):",
+        "Candidates identify program-local routine envelopes; call legality and parameter roles are not analyzed.",
+        "Context uses caller identity and explicit program attributes; other_routine requires a Normal program.",
+        "Phase and sequence states are not inferred from routine names.",
+    ])
+    for occurrence in payload['routine_targets']['occurrences']:
+        lines.extend([
+            f"  {occurrence['instruction_id']}: {occurrence['raw_target_name']!r} -> {occurrence['status']}",
+            f"    rung: {occurrence['rung_id']}; caller: {occurrence['caller_routine_id']}; "
+            f"program: {occurrence['program_id']}",
+            f"    candidate count: {occurrence['candidate_count']}; "
+            f"target routine: {occurrence['target_routine_id'] or '(none)'}; "
+            f"context: {occurrence['target_context']}",
         ])
     lines.extend(["", "Rack logical-root candidates (backing mapping not analyzed):",
                   "Candidate matches do not change declared root bindings.",

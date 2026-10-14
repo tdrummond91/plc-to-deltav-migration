@@ -7,7 +7,7 @@ import json
 import unittest
 
 from plc_workbench.reference_summary import (
-    CONSTANTS, V8_CONSTANTS, MAX_REPORT_BYTES, ReferenceSummaryError, build_reference_summary,
+    CONSTANTS, V8_CONSTANTS, V9_CONSTANTS, MAX_REPORT_BYTES, ReferenceSummaryError, build_reference_summary,
     render_reference_summary, validate_reference_summary,
 )
 from plc_workbench.references import analyze_references
@@ -57,9 +57,10 @@ class ReferenceSummaryTests(unittest.TestCase):
         historical = deepcopy(current)
         historical.update(V8_CONSTANTS)
         del historical['routine_instruction_shapes']
+        del historical['routine_targets']
         self.assertEqual(V8_CONSTANTS['analyzer_version'], 'source-references-7')
-        self.assertEqual(CONSTANTS['analyzer_version'], V8_CONSTANTS['analyzer_version'])
-        self.assertEqual(set(historical), set(current) - {'routine_instruction_shapes'})
+        self.assertEqual(CONSTANTS['analyzer_version'], 'source-references-8')
+        self.assertEqual(set(historical), set(current) - {'routine_instruction_shapes', 'routine_targets'})
         self.assertEqual(json.loads(render_reference_summary(historical)), historical)
         for base, changes in (
             (historical, {'schema_version': 9}),
@@ -67,12 +68,115 @@ class ReferenceSummaryTests(unittest.TestCase):
             (current, {'schema_version': 8}),
             (current, {'exporter_version': 'reference-summary-8'}),
             (historical, {'analyzer_version': 'source-references-8'}),
-            (current, {'analyzer_version': 'source-references-8'}),
+            (current, {'analyzer_version': 'source-references-7'}),
         ):
             report = deepcopy(base)
             report.update(changes)
             with self.subTest(changes=changes), self.assertRaises(ReferenceSummaryError):
                 validate_reference_summary(report)
+
+    def test_frozen_v9_keeps_shapes_and_rejects_even_zero_target_counts(self) -> None:
+        source = complete_inventory()
+        current = build_reference_summary(source, analyze_references(source))
+        historical = deepcopy(current)
+        historical.update(V9_CONSTANTS)
+        del historical['routine_targets']
+        self.assertEqual(V9_CONSTANTS['analyzer_version'], 'source-references-7')
+        self.assertEqual(set(historical), set(current) - {'routine_targets'})
+        self.assertEqual(historical['routine_instruction_shapes'], current['routine_instruction_shapes'])
+        self.assertEqual(json.loads(render_reference_summary(historical)), historical)
+        historical['routine_targets'] = deepcopy(current['routine_targets'])
+        with self.assertRaises(ReferenceSummaryError):
+            validate_reference_summary(historical)
+
+    def test_v10_requires_target_counts_and_its_new_analyzer_metadata(self) -> None:
+        source = complete_inventory()
+        current = build_reference_summary(source, analyze_references(source))
+        for mutate in (
+            lambda report: report.pop('routine_targets'),
+            lambda report: report.update(analyzer_version=V9_CONSTANTS['analyzer_version']),
+            lambda report: report['routine_targets'].update(occurrences=[]),
+        ):
+            report = deepcopy(current)
+            mutate(report)
+            with self.subTest(mutate=mutate), self.assertRaises(ReferenceSummaryError):
+                validate_reference_summary(report)
+
+    def test_routine_target_counts_reject_invalid_types_partitions_bounds_and_private_labels(self) -> None:
+        def candidate_report(*, single_routine: bool = False) -> dict:
+            extra_routines = '' if single_routine else (
+                '<Routine Name="PRIVATE_FAULT" Type="RLL"><RLLContent/></Routine>'
+                '<Routine Name="PRIVATE_SPARE1" Type="RLL"><RLLContent/></Routine>'
+                '<Routine Name="PRIVATE_SPARE2" Type="RLL"><RLLContent/></Routine>'
+            )
+            third_target = 'PRIVATE_CURRENT' if single_routine else 'PRIVATE_FAULT'
+            xml = (
+                '<RSLogix5000Content><Controller Name="PRIVATE_CONTROLLER"><Programs>'
+                '<Program Name="PRIVATE_PROGRAM" Type="Normal" FaultRoutineName="PRIVATE_FAULT">'
+                '<Routines><Routine Name="PRIVATE_CURRENT" Type="RLL"><RLLContent>'
+                '<Rung Number="0" Type="N"><Text>'
+                f'JSR(PRIVATE_CURRENT)JSR(PRIVATE_CURRENT)JSR({third_target})'
+                'JSR(PRIVATE_MISSING)JSR();</Text></Rung></RLLContent></Routine>'
+                f'{extra_routines}</Routines></Program></Programs></Controller></RSLogix5000Content>'
+            ).encode('utf-8')
+            source = analyze_snapshot(snapshot_from_bytes(xml))
+            return build_reference_summary(source, analyze_references(source))
+
+        original = candidate_report()
+        single = candidate_report(single_routine=True)
+        self.assertEqual(original['routine_targets']['total'], 5)
+        self.assertEqual(original['routine_targets']['by_status']['unique_candidate'], 3)
+        self.assertEqual(original['routine_targets']['unique_by_target_context']['fault_routine'], 1)
+        self.assertEqual(original['routine_targets']['distinct_targets'], 2)
+        self.assertEqual(single['source_summary']['counts']['routines'], 1)
+        self.assertEqual(single['routine_targets']['distinct_targets'], 1)
+
+        def no_unique_candidates(targets: dict) -> None:
+            targets['by_status'].update(unique_candidate=0, missing_candidate=4)
+            for key in targets['unique_by_target_context']:
+                targets['unique_by_target_context'][key] = 0
+
+        def ambiguous_in_one_routine(targets: dict) -> None:
+            targets['by_status'].update(unique_candidate=2, ambiguous_candidate=1)
+            targets['unique_by_target_context']['current_routine'] = 2
+
+        cases = [
+            ('total differs from JSR while status partition reconciles', original,
+             lambda t: (t.update(total=6), t['by_status'].update(missing_candidate=2))),
+            ('status partition differs from total', original,
+             lambda t: t['by_status'].update(missing_candidate=2)),
+            ('context partition differs from unique', original,
+             lambda t: t['unique_by_target_context'].update(current_routine=3)),
+            ('unique requires a distinct target', original, lambda t: t.update(distinct_targets=0)),
+            ('no unique forbids distinct targets', original, no_unique_candidates),
+            ('distinct exceeds unique but fits source routines', original,
+             lambda t: t.update(distinct_targets=4)),
+            ('distinct exceeds source routines but fits unique', single,
+             lambda t: t.update(distinct_targets=2)),
+            ('ambiguity requires two routine envelopes', single, ambiguous_in_one_routine),
+            ('missing target field differs from zero field JSR', original,
+             lambda t: t['by_status'].update(missing_target_field=0, missing_candidate=2)),
+            ('private nested key', original, lambda t: t.update(raw_target_name='PRIVATE_TARGET')),
+            ('private status label', original, lambda t: t['by_status'].update(PRIVATE_STATUS=0)),
+            ('private context label', original,
+             lambda t: t['unique_by_target_context'].update(PRIVATE_CONTEXT=0)),
+            ('private analysis scope', original, lambda t: t.update(analysis_scope='PRIVATE_SCOPE')),
+        ]
+        for value in (True, -1, 0.5):
+            cases.extend((
+                (f'total count {value!r}', original, lambda t, v=value: t.update(total=v)),
+                (f'distinct count {value!r}', original, lambda t, v=value: t.update(distinct_targets=v)),
+                (f'status count {value!r}', original,
+                 lambda t, v=value: t['by_status'].update(unique_candidate=v)),
+                (f'context count {value!r}', original,
+                 lambda t, v=value: t['unique_by_target_context'].update(current_routine=v)),
+            ))
+        for label, base, mutate in cases:
+            report = deepcopy(base)
+            mutate(report['routine_targets'])
+            with self.subTest(case=label), self.assertRaises(ReferenceSummaryError) as caught:
+                render_reference_summary(report)
+            self.assertNotIn('PRIVATE', str(caught.exception))
 
     def test_private_details_and_source_identity_do_not_cross_boundary(self) -> None:
         source = inventory()

@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/ROUTINE_TARGET_REVIEW.md,
 public/docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md,
 public/docs/reviews/BIT_OPERATION_REVIEW.md,
 public/docs/reviews/MATH_SIGNATURE_REVIEW.md,
@@ -48,8 +49,8 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available, excluding the ignored listener
-loader on this development checkout. Work schemas 1/2/3/4/5/6 remain readable. Current
-schema 7 requires reference 9 and retains at most one authorized operand example.
+loader on this development checkout. Work schemas 1/2/3/4/5/6/7 remain readable. Current
+schema 8 requires reference 10 and retains at most one authorized operand example.
 The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
@@ -71,10 +72,10 @@ uv run --project python-parser python -B -m unittest discover \
   -s tools/l5x_inspect/tests -v
 
 Current baseline: 139 passing helper tests. Also run the full development
-application command in ROUTINE_CALL_SHAPE_REVIEW.md, which explicitly excludes the
+application command in ROUTINE_TARGET_REVIEW.md, which explicitly excludes the
 ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in ROUTINE_CALL_SHAPE_REVIEW.md;
+Use the final application test count and tested revision in ROUTINE_TARGET_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -169,7 +170,7 @@ unsupported slots 597 to 519; 52 newly bound roots, 16 literals and ten selector
 Every other source/reference counter is unchanged. No repeat bit-only check
 is needed. Do not infer runtime behavior from these lexical classifications.
 
-The current slice observes JSR/SBR/RET argument shapes without changing binding
+The preceding slice observes JSR/SBR/RET argument shapes without changing binding
 or catalog rules. Official RLL-neutral and ST tables differ, so no parameter
 roles or routine links are assigned. Public reference9 adds closed shape counts;
 private reference4/analyzer7, source3/aggregate4 and manifest2 stay unchanged.
@@ -177,11 +178,20 @@ Work7 requires reference9; work6/reference8 and all earlier contracts remain
 readable. Private text receives captured inventory, including zero-field calls;
 private JSON keeps the canonical result. Read ROUTINE_CALL_SHAPE_REVIEW.md.
 
-Next inspect field distributions for JSR=76, SBR=1 and RET=1 while all existing
-binding/catalog/source/alias/rack/sample counters stay unchanged. Exact second
-zero text is an observation, not proven InputCount. Use this evidence before
-scoped routine links or a further bounded format clarification. Partial remains
-expected; do not request old samples or reimplement completed slices.
+Returned `0a2610f` tests clean `9c56b50`, passing 308 application cases (one skip)
+and 139 helpers. JSR=76/163fields: 65 two-field second-zero and 11 three-field
+second-other calls; SBR=1/onefield; RET=1/zerofields. Earlier counters are unchanged.
+This establishes shapes without InputCount or parameter roles.
+
+Current slice: private5/analyzer8, public10 and work8 add program-local declared
+JSR first-field candidates. Existing tag/alias/operand/catalog/source/shape
+evidence stays unchanged. Static ASCII names use a separate routine namespace;
+self identity and explicit main/fault attributes provide limited context, other
+requires Normal, phase names are not guessed. Non-RLL target envelopes remain
+candidates. No call-validity, reachability or parameter claim is made. Read
+ROUTINE_TARGET_REVIEW.md. Next returned report should have 76 candidates; inspect
+status/context/distinct counts, which remain unknown until that run, before
+choosing further call/parameter interpretation. Partial remains expected.
 Continue authorized work until a specific evidence gap or phase boundary needs
 Tyler's input. Do not activate the listener or access confidential inputs.
 

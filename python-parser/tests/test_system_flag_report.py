@@ -30,9 +30,9 @@ class SystemFlagReportTests(unittest.TestCase):
 
     def test_current_report_classifies_flag_and_has_no_mystery_sample(self) -> None:
         payload = report(SOURCE.replace(b'MysteryRack:7:I.Data[2].3', b'S:FS'))
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (7, 'work-check-7'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (8, 'work-check-8'))
         nested = payload['analysis']['reference_summary']
-        self.assertEqual((nested['schema_version'], nested['analyzer_version']), (9, 'source-references-7'))
+        self.assertEqual((nested['schema_version'], nested['analyzer_version']), (10, 'source-references-8'))
         self.assertEqual(nested['operands']['by_status']['system_flag'], 1)
         self.assertEqual(nested['operands']['by_status']['unresolved'], 0)
         self.assertEqual(nested['rack_candidates']['matches']['direct_operands']['total'], 0)
@@ -89,7 +89,7 @@ class SystemFlagReportTests(unittest.TestCase):
             self.assertIsNone(result['diagnostic_sample'])
             saved, = (root / 'confidential/workspaces/work-check').glob('run-*')
             refs = json.loads((saved / 'references.json').read_text(encoding='utf-8'))
-            self.assertEqual((refs['schema_version'], refs['analyzer_version']), (4, 'source-references-7'))
+            self.assertEqual((refs['schema_version'], refs['analyzer_version']), (5, 'source-references-8'))
             self.assertEqual(refs['operands'][0]['raw_text'], 's:Fs')
             self.assertEqual(refs['operands'][0]['status'], 'system_flag')
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), data)

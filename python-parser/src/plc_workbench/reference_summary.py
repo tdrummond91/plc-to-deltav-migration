@@ -21,6 +21,9 @@ from .summary import SummaryError, build_summary, validate_summary
 from .routine_shapes import (
     RoutineShapeError, build_routine_instruction_shapes, validate_routine_instruction_shapes,
 )
+from .routine_targets import (
+    ROUTINE_TARGET_CONSTANTS, ROUTINE_TARGET_STATUSES, ROUTINE_TARGET_CONTEXTS,
+)
 
 if TYPE_CHECKING:
     from .references import ReferenceResult
@@ -83,15 +86,20 @@ V8_CONSTANTS = V7_CONSTANTS | {
     'exporter_version': 'reference-summary-8',
     'analyzer_version': 'source-references-7',
 }
-CONSTANTS = V8_CONSTANTS | {
+V9_CONSTANTS = V8_CONSTANTS | {
     'schema_version': 9,
     'exporter_version': 'reference-summary-9',
+}
+CONSTANTS = V9_CONSTANTS | {
+    'schema_version': 10,
+    'exporter_version': 'reference-summary-10',
+    'analyzer_version': 'source-references-8',
 }
 _CORE_CONSTANTS = {key: V2_CONSTANTS[key] for key in (
     'schema_version', 'analyzer_version', 'analysis_scope', 'semantic_analysis',
     'effect_analysis', 'member_validation',
 )}
-_CORE_CONSTANTS['schema_version'] = 4
+_CORE_CONSTANTS['schema_version'] = 5
 _CORE_CONSTANTS['analyzer_version'] = CONSTANTS['analyzer_version']
 _COVERAGE_KEYS = frozenset({'rungs_total', 'rungs_analyzed', 'instructions_total',
                             'instructions_catalogued'})
@@ -298,6 +306,51 @@ def _validate_rack_counts(summary: dict[str, Any]) -> None:
             _invalid()
 
 
+def _routine_target_counts(evidence: dict[str, Any]) -> dict[str, Any]:
+    """Count canonical private first-field candidates without publishing links."""
+    occurrences = evidence['occurrences']
+    contexts = dict.fromkeys(sorted(ROUTINE_TARGET_CONTEXTS), 0)
+    targets: set[str] = set()
+    for occurrence in occurrences:
+        if occurrence['status'] == 'unique_candidate':
+            contexts[occurrence['target_context']] += 1
+            targets.add(occurrence['target_routine_id'])
+    return dict(ROUTINE_TARGET_CONSTANTS) | {
+        'total': len(occurrences),
+        'by_status': _status_counts(occurrences, frozenset(ROUTINE_TARGET_STATUSES)),
+        'unique_by_target_context': contexts,
+        'distinct_targets': len(targets),
+    }
+
+
+def _validate_routine_target_counts(summary: dict[str, Any]) -> None:
+    targets = summary['routine_targets']
+    _keys(targets, set(ROUTINE_TARGET_CONSTANTS) | {
+        'total', 'by_status', 'unique_by_target_context', 'distinct_targets',
+    })
+    _constants(targets, ROUTINE_TARGET_CONSTANTS)
+    total = _count(targets['total'])
+    distinct = _count(targets['distinct_targets'])
+    statuses = targets['by_status']
+    contexts = targets['unique_by_target_context']
+    _counts(statuses, frozenset(ROUTINE_TARGET_STATUSES))
+    _counts(contexts, frozenset(ROUTINE_TARGET_CONTEXTS))
+    jsr = summary['routine_instruction_shapes']['by_opcode']['JSR']
+    routines = summary['source_summary']['counts']['routines']
+    unique = statuses['unique_candidate']
+    with_fields = jsr['total'] - jsr['by_arity']['zero_fields']
+    if (total != jsr['total'] or sum(statuses.values()) != total
+            or sum(contexts.values()) != unique
+            or statuses['missing_target_field'] != jsr['by_arity']['zero_fields']
+            or any(count > with_fields for status, count in statuses.items()
+                   if status != 'missing_target_field')
+            or (unique == 0 and distinct != 0)
+            or (unique > 0 and not 1 <= distinct <= unique)
+            or distinct > routines
+            or (statuses['ambiguous_candidate'] > 0 and routines < 2)):
+        _invalid()
+
+
 def build_reference_summary(
     inventory: InventoryResult,
     references: ReferenceResult,
@@ -317,6 +370,7 @@ def build_reference_summary(
         core = references.to_dict()
         _keys(core, set(_CORE_CONSTANTS) | {
             'snapshot', 'symbols', 'aliases', 'operands', 'coverage', 'status', 'rack_candidates',
+            'routine_targets',
         })
         _constants(core, _CORE_CONSTANTS)
         if type(core['snapshot']) is not dict or core['snapshot'] != inventory.snapshot:
@@ -407,6 +461,7 @@ def build_reference_summary(
             'module_io': _module_io_counts(symbols),
             'rack_candidates': _rack_counts(core['rack_candidates']),
             'routine_instruction_shapes': build_routine_instruction_shapes(inventory),
+            'routine_targets': _routine_target_counts(core['routine_targets']),
             'coverage': {key: coverage[key] for key in sorted(_COVERAGE_KEYS)},
         }
         validate_reference_summary(summary)
@@ -427,15 +482,16 @@ def _validate(summary: dict[str, Any]) -> None:
     if type(summary) is not dict:
         _invalid()
     version = summary.get('schema_version')
-    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6, 7, 8, 9}:
+    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}:
         _invalid()
     legacy = version == 1
     _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'}
           | (set() if legacy else {'module_io'}) | ({'rack_candidates'} if version >= 5 else set())
-          | ({'routine_instruction_shapes'} if version >= 9 else set()))
+          | ({'routine_instruction_shapes'} if version >= 9 else set())
+          | ({'routine_targets'} if version >= 10 else set()))
     _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS,
                          4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: V6_CONSTANTS,
-                         7: V7_CONSTANTS, 8: V8_CONSTANTS, 9: CONSTANTS}[version])
+                         7: V7_CONSTANTS, 8: V8_CONSTANTS, 9: V9_CONSTANTS, 10: CONSTANTS}[version])
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
         _invalid()
     source = summary['source_summary']
@@ -531,6 +587,8 @@ def _validate(summary: dict[str, Any]) -> None:
             operands_total=operands['total'],
             unsupported_instruction_slots=operands['by_status']['unsupported_instruction'],
         )
+    if version >= 10:
+        _validate_routine_target_counts(summary)
     incomplete = (
         source['status'] != 'complete'
         or coverage['instructions_catalogued'] != coverage['instructions_total']

@@ -117,7 +117,7 @@ class RoutineShapeTests(unittest.TestCase):
         self.assertEqual(analyze_references(source).to_dict(), private_before)
         self.assertEqual(references.coverage['instructions_catalogued'], 1)
         self.assertEqual((references.schema_version, references.analyzer_version),
-                         (4, 'source-references-7'))
+                         (5, 'source-references-8'))
         self.assertNotIn('routine_instruction_shapes', private_before)
         self.assertEqual(json.loads(render_reference_json(references)), private_before)
         other = analyze_snapshot(snapshot_from_bytes(source_bytes(
@@ -198,10 +198,10 @@ class RoutineShapeTests(unittest.TestCase):
         source = inventory('JSR(PRIVATE_TARGET,0)SBR(A)RET(A);')
         nested = build_reference_summary(source, analyze_references(source))
         self.assertEqual((nested['schema_version'], nested['exporter_version'], nested['analyzer_version']),
-                         (9, 'reference-summary-9', 'source-references-7'))
+                         (10, 'reference-summary-10', 'source-references-8'))
         self.assertEqual(nested['routine_instruction_shapes'], build_routine_instruction_shapes(source))
         payload = report(source_bytes('JSR(PRIVATE_TARGET,0)SBR(A)RET(A);'))
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (7, 'work-check-7'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (8, 'work-check-8'))
         self.assertEqual(json.loads(work_check.render_work_check_report(payload)), payload)
         rendered = render_reference_summary(nested)
         self.assertNotIn('PRIVATE', rendered)
@@ -221,7 +221,7 @@ class RoutineShapeTests(unittest.TestCase):
         references = analyze_references(source)
         rendered = render_reference_text(references, inventory=source)
         section = rendered.split('Parsed RLL routine instruction field shapes', 1)[1].split('Declarations:', 1)[0]
-        self.assertIn('Parameter roles and routine target links are not analyzed.', section)
+        self.assertIn('Parameter roles are not analyzed; first-field JSR candidates are listed separately.', section)
         self.assertIn('JSR: total=2 argument_slots=4 noncanonical_spelling=1', section)
         self.assertIn('two_fields_second_zero: 1', section)
         self.assertIn('two_fields_second_other: 1', section)

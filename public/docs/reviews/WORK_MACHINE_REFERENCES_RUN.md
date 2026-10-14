@@ -1,6 +1,6 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. The next routine-instruction shape check is on
+Use **main** for the consolidated baseline. The next declared routine-candidate check is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
@@ -29,17 +29,25 @@ arguments. Catalogued rises 17,563 to 17,591, root_bound 20,178 to 20,234 and
 unsupported instruction slots fall 653 to 597; other counters are unchanged.
 No repeat math-only check is needed; see [the confirmed review](MATH_SIGNATURE_REVIEW.md).
 
-Latest evidence: `08c2695` tested `bdf09f1`, passed 296 application cases (one
+Bit-operation evidence: `08c2695` tested `bdf09f1`, passed 296 application cases (one
 skip) and 139 helpers, and confirms all 26 MVM/SWPB signatures. Their 78 fields
 split into 52 bound roots, 16 literals and ten selectors; other counters stay
 unchanged. No repeat bit-only check is needed; see [the confirmed review](BIT_OPERATION_REVIEW.md).
 
-The next check uses work-check schema 7 and reference/source schemas 9/4.
-`analysis.reference_summary.routine_instruction_shapes` observes JSR/SBR/RET
-field counts. Expect JSR=76, SBR=1 and RET=1 for the same export, with every
-existing binding/catalog/source/alias/rack/flag/sample counter unchanged. Their
-argument-shape distributions are unknown; a second field spelled zero does
-not establish its parameter role. See [the shape review](ROUTINE_CALL_SHAPE_REVIEW.md).
+Latest evidence: `0a2610f` tested `9c56b50`, passed 308 application cases (one
+skip) and 139 helpers. JSR has 76 occurrences/163fields: 65 two-field second-zero
+and 11 three-field second-other calls. SBR has one field; RET has none. Every
+earlier counter is unchanged. A second field spelled zero does not establish
+its parameter role. See [the confirmed shape review](ROUTINE_CALL_SHAPE_REVIEW.md).
+
+The next check uses work-check schema 8 and reference/source schemas 10/4.
+`analysis.reference_summary.routine_targets` adds declared program-local JSR
+first-field candidate counts: total, by_status, unique_by_target_context and
+distinct_targets. Expect total=76 for the same export, with earlier binding,
+catalog, source, shape, alias/rack, flag and sample counters unchanged. Candidate
+distributions remain unknown until the run. Unique candidates are declaration
+matches; call validity and parameter roles remain unverified. See
+[the candidate review](ROUTINE_TARGET_REVIEW.md).
 
 ## Manual runs
 
@@ -79,7 +87,7 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 7 and their tested SHA identifies which suite
+check. New reports use schema 8 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces

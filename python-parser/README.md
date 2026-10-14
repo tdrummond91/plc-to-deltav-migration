@@ -41,13 +41,13 @@ do not establish that the source project has an invalid tag.
 
 Private inventory schema 3 (`source-inventory-3`) includes module ports, ordinary
 connections, input/output/configuration tags and dedicated rack declarations
-without changing ordinary tag/alias totals. Reference schema 4 (`source-references-7`) includes the three ordinary I/O
+without changing ordinary tag/alias totals. Reference schema 5 (`source-references-8`) includes the three ordinary I/O
 symbol kinds and a fixed `reason` on unresolved/unsupported-address bindings.
 Reasons distinguish missing declared roots, qualified or dynamic addresses and
 other bounded syntax gaps; they do not claim to identify every gap's engineering
 cause. Raw declarations remain separate from inferred names.
 
-Analyzer `source-references-7` retains recognition of exact trimmed `?` only in the preset
+Analyzer `source-references-8` retains recognition of exact trimmed `?` only in the preset
 and accumulator slots (1/2) of valid three-argument TON/TOF/RTO instructions.
 These are `non_data` for root lookup; original text is preserved. No timer values,
 types, configuration or effects are validated. Root slots, aliases and other
@@ -74,6 +74,15 @@ ordering validation. It cannot become an address sample, even if it resembles a
 tag or malformed address. Wrong arity and empty fields retain their gap handling.
 See [the bit-operation review](../public/docs/reviews/BIT_OPERATION_REVIEW.md).
 
+Each parsed RLL JSR now has a separate private `routine_targets` occurrence,
+including zero-field calls. Its static first field matches only declared routines
+in the caller program, independently of tag lookup. Unique candidates retain
+snapshot IDs and explicit self/main/fault context; other_routine requires a
+Normal program. AOI callers and unsupported names stay explicit, and non-RLL
+target envelopes remain candidates. Parameter roles, valid calls and phase-state
+names are not inferred. All JSR/SBR/RET operand classifications and catalog counts
+are unchanged. See [the candidate review](../public/docs/reviews/ROUTINE_TARGET_REVIEW.md).
+
 The private `rack_candidates` section lists supported individual rack roots and
 compares unresolved colon roots in three populations: aliases, direct operands
 and alias-mediated operands. Exact candidates remain separate from normal
@@ -99,7 +108,7 @@ reason counts, module naming origins/unavailable reasons, analysis coverage and
 a nested schema-4 `source_summary`, plus closed rack-candidate counts. Code provenance is
 `source_summary.tool_revision`. It contains no names, values, source identities
 or individual reference links. Its report kind is `l5x_reference_review_summary`,
-schema 9, policy 2, exporter `reference-summary-9`, analyzer `source-references-7`.
+schema 10, policy 2, exporter `reference-summary-10`, analyzer `source-references-8`.
 `operands.by_status.system_flag` counts recognized first-scan contact operands
 separately from ordinary bindings, literals and non-data roles.
 `routine_instruction_shapes` observes JSR/SBR/RET argument counts, with fixed
@@ -107,14 +116,19 @@ arity buckets and exact second-zero text observations for JSR. These counts
 assign no parameter roles or routine targets; the binding catalog is unchanged.
 Case-normalized observations reconcile against source opcode/withheld counts.
 Private text reports include the same observations, including zero-field calls;
-private reference JSON keeps its existing schema. See
+private reference JSON now includes separate canonical candidate occurrences. See
 [the routine-shape review](../public/docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md).
+The separate public `routine_targets` object contains only fixed metadata, total,
+closed status/context counts and distinct-target count. It publishes no routine
+names or occurrence IDs. The shape profile's target_resolution=not_analyzed
+describes that profile only; candidate lookup and parameter interpretation remain
+separate. Reference9 stays frozen as analyzer7 and rejects the new field.
 `operands.malformed_address_shapes` partitions only malformed-address occurrences
 into seven fixed observational buckets, including a separate alias-target bucket.
 The diagnostic does not change address recognition or binding. See the
 [address-shape contract](../public/docs/reviews/ADDRESS_SHAPE_REVIEW.md).
 The validator also accepts reference schema 1/source schema 2 and reference
-schemas 2/3/4 with source schema 3, and references 5/6/7/8 with source 4. Historical
+schemas 2/3/4 with source schema 3, and references 5/6/7/8/9/10 with source 4. Historical
 status vocabularies remain exact; mixed version combinations are rejected.
 The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
@@ -208,7 +222,7 @@ same scope as the work-machine checks.
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. The feedback includes test counts, bounded
 code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 7 includes `diagnostic_sample`: one actual direct malformed
+Work-check schema 8 includes `diagnostic_sample`: one actual direct malformed
 operand, or a direct unresolved colon operand with no rack candidate when no
 eligible malformed sample exists. It retains at most 128 printable characters,
 a standard instruction and zero-based argument position; otherwise it is null.
@@ -224,9 +238,9 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema 7 and carries reference schema 9 with source
-schema 4 when analysis succeeds. Historical schema-1/2/3/4/5/6 reports remain readable;
-schemas 3/4/5/6 require references 5/6/7/8 respectively. The tested
+The outer report is schema 8 and carries reference schema 10 with source
+schema 4 when analysis succeeds. Historical schema-1/2/3/4/5/6/7 reports remain readable;
+schemas 3/4/5/6/7 require references 5/6/7/8/9 respectively. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
 `46467af` validated the local report-commit workflow. The later report in `349ee29`
@@ -256,10 +270,15 @@ instructions rise to 17,617 and unsupported instruction slots fall to 519.
 All 296 application cases (one skip) and 139 helpers passed; other counters
 are unchanged. No repeat bit-operation-only check is needed.
 
-The next run observes routine-instruction shapes for JSR=76, SBR=1 and RET=1.
-Existing binding/catalog/source counters should stay unchanged. Field layouts
-are unknown until the report returns; do not infer parameter roles from a second
-field spelled zero. Partial remains expected.
+Report `0a2610f`, testing clean `9c56b50`, confirms 76 JSRs/163fields: 65
+two-field second-zero and 11 three-field second-other calls. SBR has one field;
+RET has none. All 308 application cases (one skip) and 139 helpers passed;
+earlier counters are unchanged. No parameter role follows from these shapes.
+
+The next run adds declared first-field candidate counts for 76 JSRs. Candidate
+statuses, contexts and distinct targets remain unknown until that report returns.
+Existing binding/catalog/source/shape counters should stay unchanged. Partial
+remains expected; a unique declaration candidate does not prove a valid call.
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in
