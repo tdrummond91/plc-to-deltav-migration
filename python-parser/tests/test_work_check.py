@@ -239,14 +239,27 @@ class GitAndWorkflowTests(unittest.TestCase):
                 with self.assertRaises(work_check.WorkCheckError):
                     work_check._check_pinned(Path("."), BRANCH, COMMIT)
 
-    def test_feature_branch_requires_pc_suffix_without_reading_upstream(self) -> None:
-        for branch in ("main", "feature"):
-            with patch.object(work_check, "_git", return_value=branch):
-                with self.assertRaises(work_check.WorkCheckError):
-                    work_check._branch(Path("."))
-        with patch.object(work_check, "_git", return_value=BRANCH) as git:
-            self.assertEqual(work_check._branch(Path(".")), BRANCH)
-        git.assert_called_once_with(Path("."), "symbolic-ref", "--quiet", "--short", "HEAD")
+    def test_any_named_branch_is_accepted_without_reading_upstream(self) -> None:
+        for branch in ("main", "master", "feature", BRANCH):
+            with self.subTest(branch=branch), patch.object(work_check, "_git", return_value=branch) as git:
+                self.assertEqual(work_check._branch(Path(".")), branch)
+            git.assert_called_once_with(Path("."), "symbolic-ref", "--quiet", "--short", "HEAD")
+
+    def test_detached_head_failure_prevents_source_reads_and_analysis(self) -> None:
+        with patch.object(work_check, "_git", side_effect=work_check.WorkCheckError("Git symbolic-ref failed")), \
+                patch.object(work_check, "_source_path") as source, \
+                patch.object(work_check, "_run_suite") as tests, \
+                patch.object(work_check, "_analyze") as analysis:
+            with self.assertRaises(work_check.WorkCheckError):
+                work_check.run_check(Path("."), "toy.L5X")
+        source.assert_not_called()
+        tests.assert_not_called()
+        analysis.assert_not_called()
+
+    def test_pinning_rejects_a_changed_named_branch(self) -> None:
+        with patch.object(work_check, "_branch", return_value="another-branch"):
+            with self.assertRaisesRegex(work_check.WorkCheckError, "branch or commit changed"):
+                work_check._check_pinned(Path("."), "main", COMMIT)
 
     def _workflow(self, root: Path, suite_results: list[dict], *, pin_failure: bool = False):
         source = root / "toy.L5X"
@@ -307,7 +320,7 @@ class GitAndWorkflowTests(unittest.TestCase):
 
 
 class LocalReportTests(unittest.TestCase):
-    def test_repeated_local_runs_preserve_git_state_with_unreachable_origin(self) -> None:
+    def test_repeated_local_runs_on_main_preserve_git_state_with_unreachable_origin(self) -> None:
         git = shutil.which("git")
         if git is None:
             self.skipTest("Git is required for local repository integration")
@@ -326,7 +339,7 @@ class LocalReportTests(unittest.TestCase):
                                       check=True, capture_output=True, text=True,
                                       timeout=30).stdout.strip()
 
-            command("init", "-b", BRANCH)
+            command("init", "-b", "main")
             command("config", "user.name", "Synthetic Test")
             command("config", "user.email", "synthetic@example.invalid")
             command("config", "commit.gpgsign", "false")
@@ -336,7 +349,7 @@ class LocalReportTests(unittest.TestCase):
             command("clone", "--bare", str(checkout), str(remote))
             command("remote", "add", "origin", str(remote))
             command("fetch", "origin")
-            command("branch", "--set-upstream-to", f"origin/{BRANCH}")
+            command("branch", "--set-upstream-to", "origin/main")
             remote_head = command("rev-parse", "HEAD", root=remote)
             command("remote", "set-url", "origin", str(base / "missing-origin.git"))
             source = checkout / "confidential" / "plc-code" / "toy.L5X"
@@ -359,6 +372,7 @@ class LocalReportTests(unittest.TestCase):
                             redirect_stdout(output):
                         code = work_check.run_check(checkout, None if seen_reports else str(source))
                     self.assertEqual(code, 0 if suite_status == "passed" else 1)
+                    self.assertEqual(command("symbolic-ref", "--short", "HEAD"), "main")
                     self.assertEqual(command("rev-parse", "HEAD"), before)
                     self.assertEqual(command("rev-parse", "HEAD", root=remote), remote_head)
                     self.assertEqual(command("status", "--porcelain"), "")

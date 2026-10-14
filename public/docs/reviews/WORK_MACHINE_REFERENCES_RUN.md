@@ -1,6 +1,6 @@
 # Work-machine check: local results and manual publication
 
-Use the existing **feat/source-references-pc** branch. This remains Phase 1:
+Use **main** for the consolidated baseline. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
 
@@ -8,7 +8,7 @@ editable corrections, PCSD and FHX generation are still later work.
 
 The development listener remains disabled and paused; normal manual parser
 checks are separate from that service. Update or clone the code manually, then
-open Git Bash in the repository root on the `-pc` branch:
+open Git Bash in the repository root on `main` or a chosen development branch:
 
 ```bash
 bash ./run-work-check.sh YOUR_READABLE_EXPORT.L5X
@@ -33,7 +33,7 @@ or pushes. Passing a different filename/path replaces the machine-local source
 selection for future runs.
 
 Git, Git Bash and uv must already be available. The checkout must be clean and
-on a branch ending in `-pc`; an upstream and GitHub authentication are not required
+on a named branch (including `main`); an upstream and GitHub authentication are not required
 by the runner. Local changes stop the script without discarding anything.
 Dependency setup may still use uv's configured package sources.
 

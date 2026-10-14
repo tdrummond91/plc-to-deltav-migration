@@ -24,7 +24,7 @@ Scope revision 0.3 — 2026-10-12. Implementation proposals remain subject to th
 | D016 | Review involves Tyler, Quebec and the development team, with no fixed handoff order | Import downstream corrections and preserve review history; D025 clarifies routing |
 | D017 | Reruns must preserve intended corrections even as objects or rung groupings change | Track decisions independently and reconcile split/merged/changed objects |
 | D018 | Synchronize only non-proprietary code and reviewed development artifacts across computers | Real L5X/private state remain local; bounded summaries and stripped examples support development |
-| D019 | Private GitHub repository, one developer across computers; PC branches end in -pc | Fetch/check state and preserve local edits; commit, push and merge remain separate actions |
+| D019 | Private GitHub repository, one developer across computers; PC development branches end in -pc | Fetch/check state and preserve local edits; commit, push and merge remain separate actions. Runtime checks also support main. |
 | D020 | PCSD means Process Control Strategy Document and supports plant test-sheet generation | Capture source evidence and reviewed strategy; detailed PCSD content follows ladder understanding |
 | D021 | Prefer a standalone editor for non-programmers, with Excel still an option | Search/navigation, change review, import/export, backups and deployment without user-managed Python |
 | D022 | An independent ChatGPT chat will review development | Maintain clear handoffs, decision rationale, useful comments and focused conventional commits |
@@ -32,6 +32,8 @@ Scope revision 0.3 — 2026-10-12. Implementation proposals remain subject to th
 | D024 | Prefer sequential reviewer handoffs initially | One active editor and revision-bound handoff packages; validate returned changes against their base and flag stale copies; concurrent editing is a later option |
 | D025 | Sequential review does not prescribe participant order | Choose recipients per handoff; separate assignment/routing from the single-editor policy so future workflows can extend it |
 | D026 | Confidential means reconstructing the entire unit with data values, or more than 2% rung knowledge | Aggregate summaries with no individual rung logic or process values are approved for repository sync; remove the per-report sharing gate and allow public/inspection/ output. Raw exports and full inventories stay private. |
+| D027 | Work-machine commands must not automatically pull or push; normal parsing is allowed | Use local code and save local results; code synchronization and report publication are manual. The runner also performs no automatic staging or commits. |
+| D028 | Consolidate the current development history into one main commit and retire old branches; preserve documentation | Keep tested revision provenance under an archive tag. Future development uses new -pc branches from main; this checkpoint does not complete Phase 1. |
 
 D010 supersedes the earlier transition plan to retain a root plc-code ignore rule. The repository has confidential/, public/, and python-parser/ roles; confidential/ is ignored. D012's fresh-repository setup is complete: origin was fetched on 2026-10-12 and main matched origin/main at bafc410. D009 applies to the restricted work-machine environment, not every computer. D014 establishes the later PCSD/FHX scope while retaining D008's deferral of conversion implementation during source understanding.
 

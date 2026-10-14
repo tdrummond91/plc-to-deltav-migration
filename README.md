@@ -1,6 +1,6 @@
 # PLC analysis workbench
 
-Status: updated 2026-10-14. Phase 1 now includes module/I/O declarations, conservative module-root naming, scoped tag/alias bindings and aggregate address-shape diagnostics on `feat/source-references-pc`. The latest work-machine report returned in `b58af78` and awaits parser analysis. See [module/I/O implementation evidence](public/docs/reviews/MODULE_IO_REVIEW.md) for scope, validation and limitations. The editor, engineering interpretation, PCSD and FHX stages remain planned.
+Status: updated 2026-10-14. The consolidated baseline on `main` includes source inventory, module/I/O declarations, conservative module-root naming, scoped tag/alias bindings and aggregate address-shape diagnostics. Phase 1 remains in progress. The latest work-machine report returned in `b58af78` and awaits parser analysis. See [module/I/O implementation evidence](public/docs/reviews/MODULE_IO_REVIEW.md) for scope, validation and limitations. The editor, engineering interpretation, PCSD and FHX stages remain planned.
 
 The development listener remains disabled and paused. Manual work-machine checks
 save results locally; the runner does not fetch, pull, stage, commit or push.
@@ -56,7 +56,7 @@ On the work machine, Codex may inspect the project read-only and produce handoff
 
 `run-work-check.sh` accepts a source
 filename on the first run and remembers it locally for later runs. It tests the
-already checked out clean `-pc` branch using explicit parser/helper test lists,
+already checked out clean named branch, including `main`, using explicit parser/helper test lists,
 saves private analysis and writes a validated aggregate under the Git-ignored
 `public/inspection/local/` folder. Updating code and publishing a reviewed report
 are manual actions. See the [work-machine procedure](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).

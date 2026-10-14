@@ -10,7 +10,7 @@ Run parser tests, analyze the local source, and save results locally.
 No automatic fetch, pull, staging, commit or push. Review before sharing manually.
 A bare filename is found under confidential/plc-code/. An explicit path also works.
 The first run needs a source; later runs remember its path on this machine only.
-Run on a clean branch ending in -pc. No upstream connection is required.
+Run on any clean named branch, including main. No upstream connection is required.
 USAGE
     exit 0
 fi
@@ -33,14 +33,10 @@ if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
     printf '%s\n' 'The checkout has local changes. Commit or move them before running this script.' >&2
     exit 1
 fi
-branch="$(git symbolic-ref --quiet --short HEAD)" || {
-    printf '%s\n' 'Check out a branch ending in -pc before running this script.' >&2
+git symbolic-ref --quiet --short HEAD >/dev/null || {
+    printf '%s\n' 'Check out a named branch before running this script; detached HEAD is not supported.' >&2
     exit 1
 }
-if [[ "$branch" != *-pc ]]; then
-    printf '%s\n' 'The work-check branch must end in -pc.' >&2
-    exit 1
-fi
 command -v uv >/dev/null || {
     printf '%s\n' 'Install uv and make it available in Git Bash before running this script.' >&2
     exit 1

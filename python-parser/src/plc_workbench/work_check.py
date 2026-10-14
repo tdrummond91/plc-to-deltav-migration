@@ -150,10 +150,9 @@ def _checkout_root() -> Path:
 
 
 def _branch(root: Path) -> str:
-    branch = _git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
-    if not branch.endswith("-pc") or branch in {"main", "master"}:
-        raise WorkCheckError("The work-machine check requires a feature branch ending in -pc.")
-    return branch
+    # Branch naming is a development convention, not a parser requirement.
+    # symbolic-ref still rejects detached HEAD before any analysis is started.
+    return _git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
 
 
 def _check_pinned(root: Path, branch: str, commit: str) -> None:

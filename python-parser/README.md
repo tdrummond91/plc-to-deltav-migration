@@ -145,7 +145,7 @@ bash ./run-work-check.sh
 ```
 
 The launcher uses the code already checked out on a
-clean branch ending in `-pc`. It never fetches, pulls, stages, commits or pushes,
+clean named branch, including `main`. It never fetches, pulls, stages, commits or pushes,
 and does not require an upstream branch. Code updates are a separate manual
 action. The first run accepts a source filename/path; later runs reuse the
 selection saved in this checkout's Git metadata.

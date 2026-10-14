@@ -139,6 +139,7 @@ git rev-parse HEAD > "$WORK_CHECK_CAPTURE_HEAD"
         self.assertTrue(set(self._commands()) <= {"rev-parse", "status", "symbolic-ref"})
 
     def test_local_changes_stop_before_uv(self) -> None:
+        self._git("switch", "-c", "main", cwd=self.worker)
         (self.worker / "local-notes.txt").write_text("synthetic local work", encoding="utf-8")
         result = self._run("invented.L5X")
         self.assertNotEqual(result.returncode, 0)
@@ -164,19 +165,24 @@ git rev-parse HEAD > "$WORK_CHECK_CAPTURE_HEAD"
         self.assertTrue(self.arguments_log.exists())
         self.assertTrue(set(self._commands()) <= {"rev-parse", "status", "symbolic-ref"})
 
-    def test_branch_without_pc_suffix_stops_before_uv(self) -> None:
-        self._git("switch", "-c", "feature-other-machine", cwd=self.worker)
-        result = self._run("invented.L5X")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("must end in -pc", result.stderr)
-        self.assertFalse(self.arguments_log.exists())
-        self.assertNotIn("pull", self._commands())
+    def test_main_and_other_named_branches_run_without_git_mutations(self) -> None:
+        for branch in ("main", "feature-other-machine"):
+            with self.subTest(branch=branch):
+                self._git("switch", "-c", branch, cwd=self.worker)
+                before = self._git("rev-parse", "HEAD", cwd=self.worker)
+                result = self._run("invented.L5X")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertTrue(self.arguments_log.exists())
+                self.assertEqual(self._git("rev-parse", "HEAD", cwd=self.worker), before)
+                self.assertEqual(self._git("symbolic-ref", "--short", "HEAD", cwd=self.worker), branch)
+                self.assertEqual(self._git("status", "--porcelain", cwd=self.worker), "")
+                self.assertTrue(set(self._commands()) <= {"rev-parse", "status", "symbolic-ref"})
 
     def test_detached_head_stops_before_uv(self) -> None:
         self._git("switch", "--detach", cwd=self.worker)
         result = self._run("invented.L5X")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("branch ending in -pc", result.stderr)
+        self.assertIn("detached HEAD", result.stderr)
         self.assertFalse(self.arguments_log.exists())
         self.assertNotIn("pull", self._commands())
 

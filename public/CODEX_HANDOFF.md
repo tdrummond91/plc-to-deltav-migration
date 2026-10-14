@@ -9,7 +9,34 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current activity: **remove automatic work-machine synchronization/publication; review the address-shape report already returned in b58af78 on feat/source-references-pc**. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 tooling consolidated on main; automatic work-machine synchronization/publication removed**. Next parser task: review the address-shape report already returned in `b58af78`. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+
+## Git baseline consolidation (2026-10-14)
+
+Tyler requested one squash commit on `main` and retirement of the accumulated
+topic branches. Documentation, decisions, reports and review evidence remain
+intact. The primary feature's pre-squash history is retained by
+`archive/phase1-before-squash-20261014` so reported tested SHAs remain retrievable.
+The older divergent local summary branch was checked: its report is identical
+and its review findings are already preserved in this baseline. Its exact two
+extra commits are also backed up in the development checkout's local
+`.git/branch-archive-20261014.bundle` before branch retirement.
+
+Use `main` for the baseline on each computer. Future development starts from
+current `main` on a new branch ending in `-pc`; do not merge a retired branch
+back into the consolidated history. Manual work-machine checks accept `main`
+and other named branches while retaining clean-tree and revision checks.
+This Git cleanup does not mark Phase 1 complete or re-enable the listener.
+The installed listener still targets the retired feature branch; any future
+activation needs an explicitly selected new `-pc` target and updated local
+configuration. Do not resume it against `main` or its old target.
+
+Consolidation validation: 229 application/workflow tests passed (one existing
+Windows symlink skip), excluding listener/Windows-host integration; all 139
+helper tests and the synthetic fixture check with `l5x` passed. The 55 focused
+work-check tests cover clean `main`, other named branches, dirty/detached
+rejection and repeated local runs with an unreachable origin. Independent
+review found no code blockers; no private input or listener execution was used.
 
 ## Current work-machine workflow (2026-10-14)
 
@@ -19,7 +46,8 @@ folder contains the private inputs and is proceeding with a fresh clone. Keep
 that backup intact; a fresh checkout needs its source selection supplied again.
 
 Tyler's latest instruction supersedes the automatic pull/commit/push workflow
-below. The work-machine launcher uses the already checked out clean `-pc` branch
+below. The work-machine launcher uses the already checked out clean named branch
+(including `main`)
 and never fetches, pulls, stages, commits or pushes. No matching upstream is
 required. It saves the validated aggregate under Git-ignored
 `public/inspection/local/work-check-<run-id>.json`. Source selection remains in

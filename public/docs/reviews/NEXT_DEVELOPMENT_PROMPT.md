@@ -4,7 +4,7 @@ public/docs/reviews/MODULE_IO_REVIEW.md,
 public/docs/reviews/WORK_CHECK_RUNNER_REVIEW.md,
 public/docs/reviews/SOURCE_REFERENCES_REVIEW.md and
 public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md for the current
-feat/source-references-pc checkpoint. Then read
+consolidated main baseline. Then read
 public/docs/reviews/SUMMARY_EXPORT_REVIEW.md and
 public/docs/reviews/SOURCE_INVENTORY_REVIEW.md first for the implemented
 snapshot-bound source inventory on feat/source-inventory-pc, then
@@ -15,8 +15,13 @@ paused pending the endpoint incident review. Tyler is proceeding with a fresh
 clone and normal manual parser checks using the local-only workflow below.
 Do not turn the listener hold into an approval requirement for manual parsing.
 
-The updated work-machine runner operates on the already checked out clean `-pc`
-branch. It never fetches, pulls, stages, commits or pushes, and requires no
+The development history was squash-merged into main; documentation and evidence
+remain intact. The archive/phase1-before-squash-20261014 tag retains historical
+tested revisions. Start future work from main on a new -pc feature branch;
+do not revive or merge the retired topic branches.
+
+The updated work-machine runner operates on the already checked out clean named
+branch, including main. It never fetches, pulls, stages, commits or pushes, and requires no
 matching upstream. It saves a validated aggregate to Git-ignored
 public/inspection/local/work-check-<run-id>.json. Code updates and publication
 are manual: review the aggregate, copy or move only its JSON into

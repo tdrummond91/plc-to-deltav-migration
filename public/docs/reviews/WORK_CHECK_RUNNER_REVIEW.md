@@ -3,7 +3,8 @@
 ## Current behavior: local work-machine results (2026-10-14)
 
 Tyler removed automatic synchronization and publication from the work-machine
-workflow. The launcher now uses the already checked out clean `-pc` branch; it
+workflow. The launcher now uses the already checked out clean named branch,
+including `main`; it
 does not fetch, pull, stage, commit or push, and matching origin/upstream setup
 is no longer required. Code updates and report publication are manual actions.
 
