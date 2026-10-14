@@ -6,12 +6,13 @@ using `bash ./run-work-check.sh` and does not need another service.
 
 ## Operation
 
-Operational hold recorded 2026-10-13: Tyler confirmed that disabling the scheduled
-task stopped the terminal takeover after f18b34b. The installed task remains
-disabled and listener state remains paused. A real scheduled worker using the
-verified GUI launcher passed Terminal-tab observation; automatic checks remain
-off. Earlier successful smoke tests did not establish that the previous launch
-mechanism was silent in normal use.
+Monitoring restored 2026-10-14: the corrected scheduled task is enabled and the
+listener is unpaused. The first production check ran at 00:14:29 America/Chicago,
+completed with `LastTaskResult=0` and saved `waiting_for_report`, `paused=false`
+and no pending claim. The verified GUI launcher is installed; the earlier
+terminal-takeover hold is closed. Earlier smoke tests and that hold are preserved
+below as history, not current operating instructions. Inspect live local status
+before interactive changes.
 
 When enabled, Windows Task Scheduler checks every five minutes while Tyler is logged in and
 the PC is awake, and also checks at logon. It uses a dedicated checkout under
@@ -98,7 +99,7 @@ bash ./feedback-listener.sh resume
 ```
 
 `resume` clears the listener-state pause; it does not enable a disabled Windows
-scheduled task. The current operational hold keeps both controls off.
+scheduled task. Both controls were restored after the launcher fix was verified.
 
 Pause before starting interactive code changes. If a worker is already running,
 let it finish and inspect its status before taking over; pause does not terminate
@@ -238,7 +239,7 @@ process inspection found no active listener or worker. The exact command/title
 and timing were not captured. Tyler confirmed that disabling the task stopped the
 interruption, implicating the listener's launch path. No terminal preferences,
 account permissions or unrelated processes were changed. The ConPTY replacement
-above supersedes the hidden-console flags; the operational hold remains in effect.
+above superseded the hidden-console flags; monitoring stayed off at that checkpoint.
 
 Subsequent scheduled testing captured the missed root cause: the uv virtual
 environment's `Scripts/pythonw.exe` has PE subsystem 3 (console). The base
@@ -285,9 +286,9 @@ selects the same underlying executable used by the successful scheduled test.
 Detailed smoke artifacts stay local under `%TEMP%/plc-listener-ui-boundary-gui-*`;
 the preceding failed run is preserved separately for comparison.
 
-This evidence covers the tested scheduled launch and native worker path; recurring
-production execution remains off. The production task remains disabled and
-listener state remains paused. No global Terminal or Codex settings were changed.
+This evidence covered the tested scheduled launch and native worker path; recurring
+production execution stayed off during verification. The task was disabled and
+listener state paused at that checkpoint. No global Terminal or Codex settings were changed.
 
 After pushing implementation `6853aba`, `install.ps1 -UpdateLauncher` successfully
 migrated the development PC's existing action to the verified base GUI interpreter.

@@ -1,15 +1,19 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-13. Current activity: **closed address-shape diagnostic implemented; next work-machine aggregate needed on feat/source-references-pc**. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current activity: **closed address-shape diagnostic implemented; next work-machine aggregate needed on feat/source-references-pc**. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Current address-shape checkpoint (2026-10-13)
 
-Listener operational hold (2026-10-13): Tyler reported terminal takeover again
-after f18b34b. The Windows scheduled task is disabled and listener state is paused;
-no listener worker was running when inspected. Automatic checks are stopped.
-Tyler confirmed that disabling the task stopped the interruption. Do not resume
-from earlier success notes: the prior foreground-window test did not check
-selection changes inside an existing Terminal window.
+Listener monitoring restored (2026-10-14): the corrected scheduled task is enabled
+and the listener is unpaused. Its first production poll after restoration ran at
+00:14:29 America/Chicago, returned `LastTaskResult=0` and saved
+`waiting_for_report` with no pending claim. Five-minute and logon checks are active.
+Tyler's existing authorization covers automatic monitoring; the earlier hold for
+terminal takeover is closed. Check live local status before interactive edits.
+
+The historical hold followed terminal takeover after f18b34b. Disabling the task
+stopped the interruption. Earlier foreground-window tests missed tab selection;
+the corrected scheduled launch was subsequently verified at that boundary.
 
 Root cause captured in scheduled testing: the uv virtual environment's
 `pythonw.exe` is a console-subsystem redirector and opens Terminal before Python
