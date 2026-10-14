@@ -288,3 +288,8 @@ the preceding failed run is preserved separately for comparison.
 This evidence covers the tested scheduled launch and native worker path; recurring
 production execution remains off. The production task remains disabled and
 listener state remains paused. No global Terminal or Codex settings were changed.
+
+After pushing implementation `6853aba`, `install.ps1 -UpdateLauncher` successfully
+migrated the development PC's existing action to the verified base GUI interpreter.
+The installer verified unchanged triggers, principal and settings; independent
+checks confirmed task state `Disabled` and an unchanged listener-state file hash.
