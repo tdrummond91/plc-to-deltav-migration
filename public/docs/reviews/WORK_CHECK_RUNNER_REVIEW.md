@@ -1,19 +1,25 @@
 # Work-machine automation review
 
-## Current behavior: local work-machine results (2026-10-14)
+## Current behavior: automatic local report commits (2026-10-14)
 
-Tyler removed automatic synchronization and publication from the work-machine
-workflow. The launcher now uses the already checked out clean named branch,
-including `main`; it
-does not fetch, pull, stage, commit or push, and matching origin/upstream setup
-is no longer required. Code updates and report publication are manual actions.
+Tyler clarified that the script should automatically commit its report so that
+sharing only requires a manual `git push`. The earlier removal of local staging
+and commits went beyond the no-automatic-pull/push requirement. The launcher uses
+the already checked out clean named branch, including `main`, and never fetches,
+pulls or pushes. No matching origin/upstream setup is required. Code updates and
+report publication remain manual actions.
 
-The runner saves its validated aggregate at Git-ignored
-`public/inspection/local/work-check-<run-id>.json`. The selected source path stays
-in Git metadata; private logs and analysis artifacts retain their existing
-`confidential/` locations. Review the aggregate, then manually copy or move only
-its JSON into `public/inspection/` and explicitly stage, commit and push when
-ready. The private log folder and engineering workspace are not shared artifacts.
+The runner saves its validated aggregate at
+`public/inspection/work-check-<run-id>.json`, stages only that path and commits
+with `--only`. Branch/revision and clean-tree checks before publication and
+staging reject unrelated changes. Post-commit checks verify the clean branch,
+original parent and single changed path. Working-file, staged-blob and committed
+content must match the validated canonical aggregate, detecting same-path edits
+or Git filter/hook changes before claiming success. Test/analysis failure reports are also
+committed; a commit error preserves the report and private diagnostics locally.
+The selected source path stays in Git metadata, and private outputs remain in
+`confidential/`. Older ignored reports in `public/inspection/local/` are not
+picked up. Review the new aggregate, then manually run `git push`.
 
 Work-machine suites use explicit parser/helper module allowlists. Listener,
 Windows process-host, Bash bootstrap and Git-fixture tests are excluded there;
@@ -27,7 +33,27 @@ development listener remains disabled and paused pending the endpoint-security
 incident review. Tyler is proceeding with a fresh clone and normal manual parser
 checks. These code changes do not establish the detection's cause. The sections below preserve the original
 implementation and its evidence; their automatic pull/commit/push behavior and
-broad work-machine test scope are superseded by this section.
+broad work-machine test scope are superseded by this section. Local report-only
+commits are restored; automatic network synchronization remains removed.
+
+### Validation of automatic local report commits
+
+All 239 application/workflow tests passed (one existing Windows symlink skip),
+with the ignored listener loader excluded before import. The 36 focused runner
+tests include repeated report-only commits on `main`, failed test outcomes,
+missing Git identity and commit failure, unrelated edits before and during
+commit, altered report contents, and a real Git clean filter substituting the
+staged blob. Tests verify the remote and private source remain unchanged.
+
+Real CLI runs used clean temporary checkouts containing only tracked files,
+invented L5X data and an unreachable origin. The selected suites passed (152
+application tests with one skip, 139 helper tests), and each run produced one
+report-only commit with the prior HEAD as its tested revision and a clean final
+tree. A repeated run reused the remembered source and preserved prior outputs;
+a final run also exercised the added content checks. Independent review found
+no remaining blockers. No listener or production-input execution was used.
+
+### Prior local-save validation (superseded commit behavior)
 
 Fresh validation of the local-only revision: all **53 focused tests** passed
 (24 workflow, eight bootstrap and 21 suite-selection/results tests). The selected

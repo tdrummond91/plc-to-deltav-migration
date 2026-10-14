@@ -66,19 +66,29 @@ repository files. Tyler deleted the old checkout, then confirmed another old
 folder contains the private inputs and is proceeding with a fresh clone. Keep
 that backup intact; a fresh checkout needs its source selection supplied again.
 
-Tyler's latest instruction supersedes the automatic pull/commit/push workflow
-below. The work-machine launcher uses the already checked out clean named branch
-(including `main`)
-and never fetches, pulls, stages, commits or pushes. No matching upstream is
-required. It saves the validated aggregate under Git-ignored
-`public/inspection/local/work-check-<run-id>.json`. Source selection remains in
-Git metadata, and private logs/artifacts retain their `confidential/` locations.
+Tyler clarified that running the script must automatically commit the report;
+only fetching, pulling and pushing stay manual. The earlier removal of staging
+and commits went beyond that requirement. The launcher uses the already checked
+out clean named branch (including `main`) with no matching upstream required.
+It saves and commits only the new validated aggregate under
+`public/inspection/work-check-<run-id>.json`. Source selection remains in Git
+metadata, and private logs/artifacts retain their `confidential/` locations.
 
-Code updates and publication are separate manual actions. Review a local
-aggregate before manually copying or moving only that JSON into
-`public/inspection/` and explicitly staging, committing and pushing it. Never
-include the private log folder or engineering workspace. Existing approval of
-the bounded aggregate's contents is unchanged; publication is now manual.
+Update code manually before a run. Review its aggregate, then run `git push`;
+there is no manual copy, staging or commit step. The runner pins the tested
+branch and revision, rejects unrelated changes, uses a report-only commit and
+verifies its parent, changed path and validated report content in the working
+file, index and commit. Failed test/analysis reports are also
+committed locally. Git commit failure preserves the report for recovery.
+Existing approval of the bounded aggregate's contents is unchanged. Old reports
+in Git-ignored `public/inspection/local/` are not picked up automatically.
+
+Local report-commit validation: all 239 application/workflow tests passed (one
+existing Windows symlink skip), excluding the ignored listener loader. Real
+temporary-checkout CLI runs passed 152 selected application and 139 helper tests,
+committed only the report and left a clean `main` with an unreachable origin.
+Independent review found no remaining blockers; see the current
+[runner review](docs/reviews/WORK_CHECK_RUNNER_REVIEW.md) for failure-case evidence.
 
 Work-machine test execution uses explicit parser/helper module allowlists,
 excluding listener, Windows process-host, Bash bootstrap and Git-fixture tests.

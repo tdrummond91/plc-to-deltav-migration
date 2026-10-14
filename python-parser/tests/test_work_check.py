@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -213,6 +214,12 @@ class SuiteTests(unittest.TestCase):
 
 
 class GitAndWorkflowTests(unittest.TestCase):
+    def test_raw_git_output_preserves_exact_report_whitespace(self) -> None:
+        contents = b'  {"synthetic": true}\n\n'
+        with patch.object(work_check.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, stdout=contents)):
+            self.assertEqual(work_check._git(Path("."), "show", ":report.json", raw=True), contents.decode("utf-8"))
+            self.assertEqual(work_check._git(Path("."), "show", ":report.json"), contents.decode("utf-8").strip())
+
     def test_git_preserves_ssh_auth_but_removes_repository_overrides(self) -> None:
         with patch.dict(os.environ, {"GIT_SSH_COMMAND": "ssh -i local-test-key", "GIT_INDEX_FILE": "unrelated-index"}), \
                 patch.object(work_check.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, stdout=b"")) as run:
@@ -239,6 +246,19 @@ class GitAndWorkflowTests(unittest.TestCase):
                 with self.assertRaises(work_check.WorkCheckError):
                     work_check._check_pinned(Path("."), BRANCH, COMMIT)
 
+    def test_report_pin_accepts_only_its_new_untracked_or_staged_file(self) -> None:
+        path = f"public/inspection/work-check-{RUN_ID}.json"
+        for status in (f"?? {path}\0", f"A  {path}\0"):
+            with self.subTest(status=status), patch.object(work_check, "_branch", return_value="main"), \
+                    patch.object(work_check, "_git", side_effect=[COMMIT, status]):
+                work_check._check_pinned(Path("."), "main", COMMIT, report_path=path)
+        for status in ("", f"AM {path}\0", f" M {path}\0", "?? another.json\0",
+                       f"A  {path}\0M  unrelated.txt\0", f"?? {path}\0 M unrelated.txt\0"):
+            with self.subTest(status=status), patch.object(work_check, "_branch", return_value="main"), \
+                    patch.object(work_check, "_git", side_effect=[COMMIT, status]):
+                with self.assertRaises(work_check.WorkCheckError):
+                    work_check._check_pinned(Path("."), "main", COMMIT, report_path=path)
+
     def test_any_named_branch_is_accepted_without_reading_upstream(self) -> None:
         for branch in ("main", "master", "feature", BRANCH):
             with self.subTest(branch=branch), patch.object(work_check, "_git", return_value=branch) as git:
@@ -261,20 +281,39 @@ class GitAndWorkflowTests(unittest.TestCase):
             with self.assertRaisesRegex(work_check.WorkCheckError, "branch or commit changed"):
                 work_check._check_pinned(Path("."), "main", COMMIT)
 
-    def _workflow(self, root: Path, suite_results: list[dict], *, pin_failure: bool = False):
+    def _workflow(self, root: Path, suite_results: list[dict], *, pin_failure: bool = False,
+                  commit_parent: str = COMMIT, extra_commit_path: bool = False):
         source = root / "toy.L5X"
         source.write_bytes(SOURCE)
         calls: list[tuple[str, ...]] = []
         published: list[dict] = []
+        saved_report: str | None = None
+        saved_rendered: str | None = None
+        committed = False
         def git(checkout, *args, **kwargs):
+            nonlocal committed
             calls.append(args)
-            self.assertIn(args[0], {"rev-parse", "status", "symbolic-ref"})
+            self.assertIn(args[0], {"rev-parse", "status", "symbolic-ref", "add", "commit", "diff-tree", "show"})
             if args == ("rev-parse", "HEAD"):
-                return COMMIT
+                return NEW_COMMIT if committed else COMMIT
+            if args == ("rev-parse", "HEAD^"):
+                return commit_parent
+            if args[0] == "commit":
+                committed = True
+            if args[0] == "diff-tree":
+                return f"{saved_report}\nunrelated.txt" if extra_commit_path else saved_report
+            if args[0] == "show":
+                self.assertTrue(kwargs.get("raw"))
+                return saved_rendered
             return ""
 
         def publish(path, rendered, **kwargs):
-            self.assertEqual(path.parent, root / "public" / "inspection" / "local")
+            nonlocal saved_report, saved_rendered
+            self.assertEqual(path.parent, root / "public" / "inspection")
+            saved_report = path.relative_to(root).as_posix()
+            saved_rendered = rendered
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(rendered.encode("utf-8"))
             published.append(json.loads(rendered))
 
         with ExitStack() as stack:
@@ -294,22 +333,30 @@ class GitAndWorkflowTests(unittest.TestCase):
                 outcome = exc
         return outcome, calls, published, analysis
 
-    def test_failed_suite_saves_local_report_without_analysis_or_git_mutations(self) -> None:
+    def test_failed_suite_commits_only_local_report_without_analysis_or_remote_access(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             outcome, calls, published, analysis = self._workflow(Path(folder).resolve(), [test_result("failed"), test_result()])
         self.assertEqual(outcome, 1)
         analysis.assert_not_called()
         self.assertEqual(published[0]["tests"]["helpers"]["status"], "passed")
         self.assertEqual(published[0]["analysis"]["status"], "not_run")
-        self.assertFalse(any(call[0] in {"add", "commit", "fetch", "pull", "push", "reset", "stash"} for call in calls))
+        self.assertEqual(sum(call[0] == "commit" for call in calls), 1)
+        self.assertFalse(any(call[0] in {"fetch", "pull", "push", "reset", "stash"} for call in calls))
 
-    def test_success_saves_valid_report_without_git_mutations(self) -> None:
+    def test_success_commits_only_valid_report_without_remote_access(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             outcome, calls, published, analysis = self._workflow(Path(folder).resolve(), [test_result(), test_result()])
         self.assertEqual(outcome, 0)
         analysis.assert_called_once()
         work_check.validate_work_check_report(published[0])
-        self.assertFalse(any(call[0] in {"add", "commit", "fetch", "pull", "push"} for call in calls))
+        added, = [call for call in calls if call[0] == "add"]
+        committed, = [call for call in calls if call[0] == "commit"]
+        self.assertEqual(added[1], "--")
+        self.assertEqual(len(added), 3)
+        self.assertTrue(added[2].startswith("public/inspection/work-check-"))
+        self.assertIn("--only", committed)
+        self.assertEqual(committed[committed.index("--") + 1:], (added[2],))
+        self.assertFalse(any(call[0] in {"fetch", "pull", "push"} for call in calls))
 
     def test_changed_code_prevents_publication_and_commit(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
@@ -318,76 +365,224 @@ class GitAndWorkflowTests(unittest.TestCase):
         self.assertEqual(published, [])
         self.assertFalse(any(call[0] in {"add", "commit", "push"} for call in calls))
 
+    def test_unexpected_commit_parent_or_paths_are_flagged_without_remote_access(self) -> None:
+        for options in ({"commit_parent": NEW_COMMIT}, {"extra_commit_path": True}):
+            with self.subTest(options=options), tempfile.TemporaryDirectory() as folder:
+                outcome, calls, published, _ = self._workflow(
+                    Path(folder).resolve(), [test_result(), test_result()], **options)
+            self.assertIsInstance(outcome, work_check.WorkCheckError)
+            self.assertIn("Commit history changed unexpectedly", str(outcome))
+            self.assertEqual(len(published), 1)
+            self.assertEqual(sum(call[0] == "commit" for call in calls), 1)
+            self.assertFalse(any(call[0] in {"fetch", "pull", "push", "reset"} for call in calls))
+
 
 class LocalReportTests(unittest.TestCase):
-    def test_repeated_local_runs_on_main_preserve_git_state_with_unreachable_origin(self) -> None:
-        git = shutil.which("git")
-        if git is None:
+    def setUp(self) -> None:
+        self.git = shutil.which("git")
+        if self.git is None:
             self.skipTest("Git is required for local repository integration")
-        with tempfile.TemporaryDirectory(prefix="plc-local-report-") as folder:
-            base = Path(folder).resolve()
-            checkout = base / "checkout"
-            remote = base / "remote.git"
-            checkout.mkdir()
-            environment = {key: value for key, value in os.environ.items()
-                           if not key.upper().startswith("GIT_")}
-            environment.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
-                               GIT_TERMINAL_PROMPT="0")
+        temporary = tempfile.TemporaryDirectory(prefix="plc-local-report-")
+        self.addCleanup(temporary.cleanup)
+        self.base = Path(temporary.name).resolve()
+        self.checkout = self.base / "checkout"
+        self.remote = self.base / "remote.git"
+        self.checkout.mkdir()
+        self.environment = {key: value for key, value in os.environ.items()
+                            if not key.upper().startswith("GIT_")}
+        self.environment.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
+                                GIT_TERMINAL_PROMPT="0")
+        self.command("init", "-b", "main")
+        self.command("config", "user.name", "Synthetic Test")
+        self.command("config", "user.email", "synthetic@example.invalid")
+        self.command("config", "commit.gpgsign", "false")
+        (self.checkout / ".gitignore").write_text("confidential/\npublic/inspection/local/\n", encoding="utf-8")
+        (self.checkout / "tracked.txt").write_text("Initial synthetic file\n", encoding="utf-8")
+        self.command("add", ".gitignore", "tracked.txt")
+        self.command("commit", "-m", "Synthetic local report fixture")
+        self.command("clone", "--bare", str(self.checkout), str(self.remote))
+        self.command("remote", "add", "origin", str(self.remote))
+        self.command("fetch", "origin")
+        self.command("branch", "--set-upstream-to", "origin/main")
+        self.remote_head = self.command("rev-parse", "HEAD", root=self.remote)
+        self.command("remote", "set-url", "origin", str(self.base / "missing-origin.git"))
+        self.source = self.checkout / "confidential" / "plc-code" / "toy.L5X"
+        self.source.parent.mkdir(parents=True)
+        self.source.write_bytes(SOURCE)
+        self.runtime_commands: list[tuple[str, ...]] = []
 
-            def command(*args: str, root: Path = checkout) -> str:
-                return subprocess.run([git, "-C", str(root), *args], env=environment,
-                                      check=True, capture_output=True, text=True,
-                                      timeout=30).stdout.strip()
+    def command(self, *args: str, root: Path | None = None) -> str:
+        return subprocess.run([self.git, "-C", str(root or self.checkout), *args], env=self.environment,
+                              check=True, capture_output=True, text=True, timeout=30).stdout.strip()
 
-            command("init", "-b", "main")
-            command("config", "user.name", "Synthetic Test")
-            command("config", "user.email", "synthetic@example.invalid")
-            command("config", "commit.gpgsign", "false")
-            (checkout / ".gitignore").write_text("confidential/\npublic/inspection/local/\n", encoding="utf-8")
-            command("add", ".gitignore")
-            command("commit", "-m", "Synthetic local report fixture")
-            command("clone", "--bare", str(checkout), str(remote))
-            command("remote", "add", "origin", str(remote))
-            command("fetch", "origin")
-            command("branch", "--set-upstream-to", "origin/main")
-            remote_head = command("rev-parse", "HEAD", root=remote)
-            command("remote", "set-url", "origin", str(base / "missing-origin.git"))
-            source = checkout / "confidential" / "plc-code" / "toy.L5X"
-            source.parent.mkdir(parents=True)
-            source.write_bytes(SOURCE)
-            real_git = work_check._git
+    def run_check(self, *, suite_status: str = "passed", remembered: bool = False, before_git=None) -> tuple[int, str]:
+        real_git = work_check._git
 
-            def checked_git(root: Path, *args: str, **kwargs) -> str:
-                self.assertIn(args[0], {"rev-parse", "status", "symbolic-ref"}, "Only local Git reads are allowed")
-                return real_git(root, *args, **kwargs)
+        def checked_git(root: Path, *args: str, **kwargs) -> str:
+            self.runtime_commands.append(args)
+            self.assertIn(args[0], {"rev-parse", "status", "symbolic-ref", "add", "commit", "diff-tree", "show"},
+                          "Remote access and unrelated Git mutations are forbidden")
+            if before_git is not None:
+                before_git(args)
+            return real_git(root, *args, **kwargs)
 
-            seen_reports: dict[Path, bytes] = {}
-            for suite_status in ("passed", "failed", "passed"):
-                with self.subTest(suite_status=suite_status):
-                    before = command("rev-parse", "HEAD")
-                    output = io.StringIO()
-                    with patch.dict(os.environ, environment, clear=True), \
-                            patch.object(work_check, "_git", side_effect=checked_git), \
-                            patch.object(work_check, "_run_suite", side_effect=[test_result(suite_status), test_result()]), \
-                            redirect_stdout(output):
-                        code = work_check.run_check(checkout, None if seen_reports else str(source))
-                    self.assertEqual(code, 0 if suite_status == "passed" else 1)
-                    self.assertEqual(command("symbolic-ref", "--short", "HEAD"), "main")
-                    self.assertEqual(command("rev-parse", "HEAD"), before)
-                    self.assertEqual(command("rev-parse", "HEAD", root=remote), remote_head)
-                    self.assertEqual(command("status", "--porcelain"), "")
-                    reports = set((checkout / "public" / "inspection" / "local").glob("work-check-*.json"))
-                    new_reports = reports - seen_reports.keys()
-                    self.assertEqual(len(new_reports), 1)
-                    for path, contents in seen_reports.items():
-                        self.assertEqual(path.read_bytes(), contents)
-                    new_report = new_reports.pop()
-                    saved = json.loads(new_report.read_text(encoding="utf-8"))
-                    seen_reports[new_report] = new_report.read_bytes()
-                    work_check.validate_work_check_report(saved)
-                    self.assertEqual(saved["tool_revision"]["commit"], before)
-                    self.assertEqual(saved["tests"]["application"]["status"], suite_status)
-                    self.assertIn("Nothing was staged, committed or pushed", output.getvalue())
+        output = io.StringIO()
+        self.run_output = output
+        with patch.dict(os.environ, self.environment, clear=True), \
+                patch.object(work_check, "_git", side_effect=checked_git), \
+                patch.object(work_check, "_run_suite", side_effect=[test_result(suite_status), test_result()]), \
+                redirect_stdout(output):
+            code = work_check.run_check(self.checkout, None if remembered else str(self.source))
+        return code, output.getvalue()
+
+    def assert_remote_and_source_unchanged(self) -> None:
+        self.assertEqual(self.command("rev-parse", "HEAD", root=self.remote), self.remote_head)
+        self.assertEqual(self.source.read_bytes(), SOURCE)
+        self.assertFalse(any(command[0] in {"fetch", "pull", "push"} for command in self.runtime_commands))
+
+    def test_repeated_local_runs_on_main_create_report_only_commits_with_unreachable_origin(self) -> None:
+        seen_reports: dict[Path, bytes] = {}
+        for suite_status in ("passed", "failed", "passed"):
+            with self.subTest(suite_status=suite_status):
+                before = self.command("rev-parse", "HEAD")
+                code, output = self.run_check(suite_status=suite_status, remembered=bool(seen_reports))
+                self.assertEqual(code, 0 if suite_status == "passed" else 1)
+                self.assertEqual(self.command("symbolic-ref", "--short", "HEAD"), "main")
+                self.assertNotEqual(self.command("rev-parse", "HEAD"), before)
+                self.assertEqual(self.command("rev-parse", "HEAD^"), before)
+                self.assertEqual(self.command("rev-list", "--count", f"{before}..HEAD"), "1")
+                self.assertEqual(self.command("status", "--porcelain"), "")
+                reports = set((self.checkout / "public" / "inspection").glob("work-check-*.json"))
+                new_reports = reports - seen_reports.keys()
+                self.assertEqual(len(new_reports), 1)
+                for path, contents in seen_reports.items():
+                    self.assertEqual(path.read_bytes(), contents)
+                new_report = new_reports.pop()
+                relative = new_report.relative_to(self.checkout).as_posix()
+                self.assertEqual(self.command("diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"), relative)
+                saved = json.loads(new_report.read_text(encoding="utf-8"))
+                seen_reports[new_report] = new_report.read_bytes()
+                work_check.validate_work_check_report(saved)
+                self.assertEqual(saved["tool_revision"]["commit"], before)
+                self.assertEqual(saved["tests"]["application"]["status"], suite_status)
+                self.assertIn("locally", output)
+                self.assert_remote_and_source_unchanged()
+
+    def assert_failed_commit_preserves_report(self, before_git=None) -> None:
+        before = self.command("rev-parse", "HEAD")
+        with self.assertRaises(work_check.WorkCheckError):
+            self.run_check(before_git=before_git)
+        self.assertEqual(self.command("rev-parse", "HEAD"), before)
+        report_path, = (self.checkout / "public" / "inspection").glob("work-check-*.json")
+        saved = json.loads(report_path.read_text(encoding="utf-8"))
+        work_check.validate_work_check_report(saved)
+        self.assertEqual(saved["tool_revision"]["commit"], before)
+        self.assertEqual(self.command("diff", "--cached", "--name-only"), report_path.relative_to(self.checkout).as_posix())
+        self.assertEqual(sum(command[0] == "commit" for command in self.runtime_commands), 1)
+        self.assert_remote_and_source_unchanged()
+
+    def test_missing_git_identity_preserves_uncommitted_report_without_remote_access(self) -> None:
+        self.command("config", "--unset", "user.name")
+        self.command("config", "--unset", "user.email")
+        self.command("config", "user.useConfigOnly", "true")
+        self.assert_failed_commit_preserves_report()
+
+    def test_commit_failure_preserves_uncommitted_report_without_remote_access(self) -> None:
+        def fail_commit(args: tuple[str, ...]) -> None:
+            if args[0] == "commit":
+                raise work_check.WorkCheckError("Synthetic commit failure")
+        self.assert_failed_commit_preserves_report(fail_commit)
+
+    def test_inflight_unstaged_edit_stops_before_report_commit(self) -> None:
+        before = self.command("rev-parse", "HEAD")
+        def edit_before_add(args: tuple[str, ...]) -> None:
+            if args[0] == "add":
+                (self.checkout / "tracked.txt").write_text("Unrelated unstaged edit\n", encoding="utf-8")
+        with self.assertRaises(work_check.WorkCheckError):
+            self.run_check(before_git=edit_before_add)
+        self.assertEqual(self.command("rev-parse", "HEAD"), before)
+        self.assertIn(" M tracked.txt", self.command("status", "--porcelain").splitlines())
+        self.assertFalse(any(command[0] == "commit" for command in self.runtime_commands))
+        self.assert_remote_and_source_unchanged()
+
+    def test_report_only_commit_excludes_edit_staged_at_commit_boundary(self) -> None:
+        before = self.command("rev-parse", "HEAD")
+        def stage_before_commit(args: tuple[str, ...]) -> None:
+            if args[0] == "commit":
+                self.assertIn("--only", args)
+                (self.checkout / "tracked.txt").write_text("Unrelated staged edit\n", encoding="utf-8")
+                self.command("add", "tracked.txt")
+        with self.assertRaises(work_check.WorkCheckError):
+            self.run_check(before_git=stage_before_commit)
+        self.assertEqual(self.command("rev-parse", "HEAD^"), before)
+        report_path, = (self.checkout / "public" / "inspection").glob("work-check-*.json")
+        self.assertEqual(self.command("diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"),
+                         report_path.relative_to(self.checkout).as_posix())
+        self.assertEqual(self.command("diff", "--cached", "--name-only"), "tracked.txt")
+        self.assertEqual((self.checkout / "tracked.txt").read_text(encoding="utf-8"), "Unrelated staged edit\n")
+        self.assert_remote_and_source_unchanged()
+
+    def change_report_contents(self, relative_path: str) -> None:
+        path = self.checkout / relative_path
+        altered = json.loads(path.read_text(encoding="utf-8"))
+        altered["private_note"] = "PRIVATE_SENTINEL"
+        path.write_text(json.dumps(altered), encoding="utf-8")
+
+    def test_report_content_change_before_add_prevents_commit_and_success(self) -> None:
+        before = self.command("rev-parse", "HEAD")
+        def alter_before_add(args: tuple[str, ...]) -> None:
+            if args[0] == "add":
+                self.change_report_contents(args[-1])
+        with self.assertRaises(work_check.WorkCheckError) as raised:
+            self.run_check(before_git=alter_before_add)
+        self.assertEqual(self.command("rev-parse", "HEAD"), before)
+        self.assertFalse(any(command[0] == "commit" for command in self.runtime_commands))
+        report_path, = (self.checkout / "public" / "inspection").glob("work-check-*.json")
+        self.assertIn("PRIVATE_SENTINEL", report_path.read_text(encoding="utf-8"))
+        self.assertNotIn("PRIVATE_SENTINEL", str(raised.exception))
+        self.assertNotIn("Committed work-machine report", self.run_output.getvalue())
+        self.assert_remote_and_source_unchanged()
+
+    def test_report_content_change_at_commit_is_flagged_without_history_rollback(self) -> None:
+        before = self.command("rev-parse", "HEAD")
+        def alter_at_commit(args: tuple[str, ...]) -> None:
+            if args[0] == "commit":
+                self.change_report_contents(args[-1])
+        with self.assertRaises(work_check.WorkCheckError) as raised:
+            self.run_check(before_git=alter_at_commit)
+        self.assertEqual(self.command("rev-parse", "HEAD^"), before)
+        report_path, = (self.checkout / "public" / "inspection").glob("work-check-*.json")
+        relative = report_path.relative_to(self.checkout).as_posix()
+        self.assertIn("PRIVATE_SENTINEL", self.command("show", f"HEAD:{relative}"))
+        self.assertNotIn("PRIVATE_SENTINEL", str(raised.exception))
+        self.assertNotIn("Committed work-machine report", self.run_output.getvalue())
+        self.assertFalse(any(command[0] in {"reset", "revert"} for command in self.runtime_commands))
+        self.assert_remote_and_source_unchanged()
+
+    def test_git_filter_cannot_substitute_unvalidated_staged_report_contents(self) -> None:
+        filter_path = self.checkout / ".git" / "synthetic-filter.py"
+        filter_path.write_text(
+            "import json, sys\n"
+            "value = json.load(sys.stdin)\n"
+            "value['private_note'] = 'PRIVATE_SENTINEL'\n"
+            "json.dump(value, sys.stdout)\n", encoding="utf-8")
+        self.command("config", "filter.synthetic.clean", f'"{Path(sys.executable).as_posix()}" "{filter_path.as_posix()}"')
+        self.command("config", "filter.synthetic.required", "true")
+        (self.checkout / ".git" / "info" / "attributes").write_text(
+            "public/inspection/work-check-*.json filter=synthetic\n", encoding="utf-8")
+        before = self.command("rev-parse", "HEAD")
+        with self.assertRaises(work_check.WorkCheckError) as raised:
+            self.run_check()
+        self.assertEqual(self.command("rev-parse", "HEAD"), before)
+        self.assertFalse(any(command[0] == "commit" for command in self.runtime_commands))
+        report_path, = (self.checkout / "public" / "inspection").glob("work-check-*.json")
+        relative = report_path.relative_to(self.checkout).as_posix()
+        self.assertIn("PRIVATE_SENTINEL", self.command("show", f":{relative}"))
+        original = json.loads(report_path.read_text(encoding="utf-8"))
+        work_check.validate_work_check_report(original)
+        self.assertNotIn("PRIVATE_SENTINEL", str(raised.exception))
+        self.assertNotIn("Committed work-machine report", self.run_output.getvalue())
+        self.assert_remote_and_source_unchanged()
 
 
 if __name__ == "__main__":

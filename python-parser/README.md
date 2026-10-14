@@ -146,8 +146,10 @@ bash ./run-work-check.sh
 ```
 
 The launcher uses the code already checked out on a
-clean named branch, including `main`. It never fetches, pulls, stages, commits or pushes,
-and does not require an upstream branch. Code updates are a separate manual
+clean named branch, including `main`. It automatically stages and commits only
+the new aggregate report, never fetches, pulls or pushes, and does not require
+an upstream branch. A configured Git author identity is required for the local
+commit. Code updates are a separate manual
 action. The first run accepts a source filename/path; later runs reuse the
 selection saved in this checkout's Git metadata.
 
@@ -160,10 +162,10 @@ same scope as the work-machine checks.
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. A closed aggregate includes test counts, bounded
 code-only failing test IDs, the tested commit and the nested reference summary.
-It is saved to Git-ignored `public/inspection/local/work-check-<run-id>.json`.
-Failed tests also produce a local report and skip source analysis. Useful partial
-analysis exits 0; test or analysis failure exits 1 after saving the report.
-Preflight or save failures stop without claiming completion.
+It is saved to `public/inspection/work-check-<run-id>.json` and committed locally.
+Failed tests also produce a committed report and skip source analysis. Useful
+partial analysis exits 0; test or analysis failure exits 1 after committing the
+report. Preflight, save or commit failures stop without claiming completion.
 
 The outer report remains schema 1 and carries reference schema 3 with source
 schema 3 when analysis succeeds. Existing reports remain readable. The tested
@@ -172,8 +174,9 @@ reports may include the broader development suites. The latest work-machine
 aggregate returned in `b58af78` and awaits parser analysis; a rerun is not needed
 just to obtain its address-shape counters.
 
-Review the local aggregate before sharing. Manually copy or move only that JSON
-into `public/inspection/`, then explicitly stage, commit and push it when ready.
+Review the local aggregate before sharing, then run `git push` when ready.
+There is no manual copy, staging or commit step. Older reports in
+`public/inspection/local/` remain ignored and are not included automatically.
 Raw logs, full results, source and older outputs stay under `confidential/` and
 must not be included. Read the [work-machine procedure](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md)
 for output locations and the [implementation review](../public/docs/reviews/WORK_CHECK_RUNNER_REVIEW.md)
