@@ -183,8 +183,10 @@ schema 3 when analysis succeeds. Historical schema-1 reports remain readable. Th
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
 `46467af` validated the local report-commit workflow. The later report in `349ee29`
-returned `?` at TON argument 1. The next run measures the new timer rule; known
-placeholders are skipped when choosing a remaining mystery sample.
+returned `?` at TON argument 1. Report `1195d40` then tested `112ee82` and
+confirmed malformed occurrences fall 868 to zero while non-data rises by 868,
+with unchanged root bindings. Both suites passed; no repeat run is needed for
+this fix. Known placeholders are skipped when choosing a remaining mystery sample.
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in

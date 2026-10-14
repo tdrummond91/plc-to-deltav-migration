@@ -1,7 +1,8 @@
 # Timer placeholder recognition
 
 Date: 2026-10-14. Baseline: `349ee29`, on `feat/bounded-operand-example-pc`.
-This is a Phase 1 reference-analysis follow-up, awaiting work-machine confirmation.
+This Phase 1 reference-analysis follow-up is confirmed by the work-machine
+report returned in `1195d40`.
 
 ## Returned evidence
 
@@ -59,7 +60,7 @@ sharing boundary. Exact historical reference schemas 1/2/3 and work-check schema
 This is public-report compatibility, not migration of saved private runs.
 New private runs are separate; older runs are never rewritten.
 
-## Next work-machine check
+## Original work-machine check (completed)
 
 Stay on `feat/bounded-operand-example-pc` and run from the repository root:
 
@@ -79,8 +80,58 @@ counts and alias outcomes should remain unchanged for the same export.
 If all 868 are covered, expected totals are `non_data=868`, malformed=0 and
 unsupported-address=2 (the existing dynamic-index cases). The sample should then
 be null unless another eligible malformed occurrence remains. These are
-conditional expectations, not observed work-machine results. Other gaps keep
+conditional expectations before the return below. Other gaps keep
 the report partial; Phase 1 is not complete.
+
+## Work-machine confirmation (2026-10-14)
+
+[The new report](../../inspection/work-check-20261014T162634Z-2a7e40fe.json),
+returned in `1195d40`, tested clean `112ee82e5cdc284534c31c428dfe75f1c38a8a33`.
+The report validates; its commit changes only that JSON, with the tested revision
+as its parent. Both suites passed: 177 application cases (one skip) and 139
+helper cases, without failures/errors. Private output was saved.
+
+| Reference counter | Before | Returned |
+|---|---:|---:|
+| Malformed-address operands | 868 | 0 |
+| `other_form` shape | 868 | 0 |
+| `non_data` operands | 0 | 868 |
+| Unsupported-address operands | 870 | 2 |
+| Root-bound operands | 20,178 | 20,178 |
+| Unresolved operands | 320 | 320 |
+| Bound aliases | 842 | 842 |
+| Unresolved aliases | 99 | 99 |
+
+The diagnostic sample is null. Apart from analyzer/exporter/schema provenance,
+the three disposition/reason changes and shape change above are the only changes
+to the nested aggregate after removing the tested revision. Source counts,
+coverage, instruction totals, ladder metrics, symbols and module naming match
+exactly. This confirms the predicted 868-occurrence classification improvement
+for the returned export; aggregate equality does not establish source byte
+identity or per-occurrence correspondence between runs.
+
+The remaining two unsupported addresses are non-static array indexes. Other
+reference gaps remain: 320 unresolved operand occurrences and 99 unresolved
+aliases (all `colon_root_not_declared`), 45 expression operands and 653 operands
+of unsupported instructions. Alias and operand counts describe different
+populations and must not be added as independent plant defects. Source gaps
+still include 14 unsupported SFC routines and one RLL routine lacking content.
+The expected partial status remains; timer settings/effects are still unverified.
+
+No repeat work-machine run is needed to confirm this fix. The next Phase 1
+investigation is the undeclared colon-root population and its possible relation
+to rack I/O. Existing shared XML structure records 11 RackConnection elements,
+11 InAliasTag and four OutAliasTag children, with no attributes/text on those
+elements. The reader currently counts these paths and emits rack diagnostics,
+but does not create structured rack declarations. Minimized surrounding port
+identifiers/types were scrubbed and do not prove topology relationships.
+This is enough evidence to design dedicated structural capture using coherent
+invented tests, but not to invent rack naming/alias targets or explain all
+99/320 missing roots. Check the official format before expanding root binding.
+
+Independent review verified the report, exact count deltas and Git provenance.
+This return review changed documentation only; no full test suite was rerun.
+The implementation checks below remain their original evidence.
 
 ## Validation
 

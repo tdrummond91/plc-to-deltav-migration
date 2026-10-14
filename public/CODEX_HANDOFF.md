@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `349ee29` tested `2851dbd` and identified `?` at TON argument 1. The narrow timer-placeholder fix is implemented on `feat/bounded-operand-example-pc`; await the next work-machine report before claiming how many of the 868 occurrences it resolves. Read [timer evidence and limits](docs/reviews/TIMER_PLACEHOLDER_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned report `1195d40` tested `112ee82` and confirms the timer-placeholder fix: malformed operands 868 to 0, non-data 0 to 868, unsupported addresses 870 to 2, with unchanged source and root-binding counts. Both suites passed. No repeat work-machine check is needed for this slice. Next investigate the unresolved colon-root/I/O population using existing shared structure before requesting more evidence. Read [timer evidence and limits](docs/reviews/TIMER_PLACEHOLDER_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -96,13 +96,14 @@ Full development unittest discovery remains available. Schema-1 reports remain
 readable; schema 2 adds the bounded sample. Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
-The latest report is `public/inspection/work-check-20261014T075024Z-a11d87b8.json`,
-returned in `349ee29`, testing clean `2851dbd`. It validates, reports 166
+The latest report is `public/inspection/work-check-20261014T162634Z-2a7e40fe.json`,
+returned in `1195d40`, testing clean `112ee82`. It validates, reports 177
 application cases (one skip) and 139 helper cases with no failures/errors, and
-records partial analysis with a private run saved. The report-only commit's
-parent is the tested revision. All source/reference counts match the preceding
-report except code revision: 868 malformed operands remain `other_form`. The
-authorized sample is exactly `?` at TON argument 1.
+records partial analysis with a private run saved. Its commit changes only the
+report and has the tested revision as parent. Malformed-address/other_form counts
+fall 868 to 0; non_data rises 0 to 868; unsupported-address falls 870 to 2.
+The sample is null. All other source/reference counters are unchanged. This
+confirms the predicted classification change without proving source byte identity.
 
 The new analyzer recognizes trimmed `?` only in preset/accumulator slots of
 valid three-argument TON/TOF/RTO instructions as `non_data` for root lookup.
@@ -114,10 +115,12 @@ remain readable. See [timer review](docs/reviews/TIMER_PLACEHOLDER_REVIEW.md).
 Tyler authorized one actual mystery operand; no further approval or invented-only
 restriction applies to this sample. Work-check schema 2 still includes at most
 128 printable characters, a standard opcode and zero-based position, without
-rung/location IDs or neighbors. Known timer placeholders are skipped. Next:
-pull this branch on the work machine, run the check and manually push its locally
-committed report. Compare the disposition changes before generalizing to all
-868 occurrences. Count-only source/reference summaries remain count-only.
+rung/location IDs or neighbors. Known timer placeholders are skipped. No repeat
+run is needed for the confirmed fix. Next investigate 99 unresolved aliases and
+320 unresolved operand occurrences, all colon_root_not_declared. Their relation
+to 11 unsupported RackConnection elements is unproven; use existing shared
+structure and official format evidence before expanding recognition. Count-only
+source/reference summaries remain count-only.
 
 Timer-fix validation: 273 application/workflow tests passed (one symlink skip),
 with listener tests excluded. Two real temporary-checkout CLI runs each passed
@@ -131,7 +134,8 @@ skip), with listener tests excluded. Two temporary-checkout CLI runs passed
 166 selected application and 139 helper tests each, emitted the same one sample,
 committed only their report, and preserved the source and prior outputs. All
 five historical work-check reports still validate. Independent review found no
-code blockers. The feature awaits its first work-machine sample return.
+code blockers. That sample later returned in `349ee29`; the timer correction
+was then confirmed by `1195d40` as recorded above.
 
 Leave the development listener disabled and paused. Manual parser execution
 remains under Tyler's control and is not gated on restoring the listener.
@@ -208,7 +212,7 @@ question and stop; never request private addresses, inventories or logs.
 Phase 1 remains active; engineering classifications, corrections, PCSD/FHX,
 services and deployment remain outside this slice.
 
-## Current module/I/O checkpoint (2026-10-13)
+## Historical module/I/O checkpoint (2026-10-13)
 
 Tyler authorized implementing the next slice here after the two successful
 work-machine reports. Do not ask for that authorization again or repeat this

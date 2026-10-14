@@ -86,17 +86,25 @@ public/inspection/work-check-20261014T072717Z-4d71aaff.json. Both validate; all
 that one actual mystery operand is within the sharing boundary. Schema 2 now
 adds diagnostic_sample, separate from count-only reference summaries: at most one
 exact operand of 128 printable characters with standard opcode/argument index.
-Read BOUNDED_OPERAND_SAMPLE_REVIEW.md and TIMER_PLACEHOLDER_REVIEW.md. Returned
-report 349ee29 tested 2851dbd, passed 166 application cases (one skip) and 139
-helpers, and supplied `?` at TON argument 1. The new analyzer source-references-3
-recognizes trimmed `?` only in preset/accumulator slots of valid three-argument
-TON/TOF/RTO instructions. Private references stay schema 2; public reference
-schema is now 4, source aggregate stays 3 and work-check stays 2. Keep historical
-public schemas readable. Next work-machine run on feat/bounded-operand-example-pc
-measures how many of the 868 cases it resolves; compare counts before claiming
-all are covered. No timer values or behavior are inferred. Do not infer that all 868 have
-the same syntax from one example, and do not require invented-only evidence for
-this authorized bounded sample. No full rung or surrounding plant context is added.
+Read BOUNDED_OPERAND_SAMPLE_REVIEW.md and TIMER_PLACEHOLDER_REVIEW.md. Report
+349ee29 supplied `?` at TON argument 1. The timer correction is now confirmed
+by report 1195d40, testing clean 112ee82: 177 application cases (one skip) and
+139 helpers passed. Malformed/other_form 868 to 0, non_data 0 to 868,
+unsupported-address 870 to 2; all other source/reference counters unchanged
+and sample null. No repeat work-machine run is needed to confirm this fix.
+Do not infer byte identity or timer configuration/effects from these aggregates.
+
+Current analyzer source-references-3 recognizes trimmed `?` only in valid
+three-argument TON/TOF/RTO preset/accumulator slots. Private reference schema 2,
+public reference schema 4, source aggregate 3 and work-check 2 remain current.
+Historical public reports remain readable. Next investigate undeclared colon
+roots: 99 aliases and 320 operand occurrences. Eleven unsupported RackConnection
+elements are a possible source-model gap, not a proven explanation for those
+references. Existing public structure records empty RackConnection/InAliasTag/
+OutAliasTag elements and scrubbed surrounding topology. Inspect the official
+format before deriving names/targets; dedicated structural records with coherent
+invented tests are a safer first rack slice. The earlier 868-spelling question
+is closed; do not repeat it or request another timer confirmation run.
 Continue work already authorized in the active session; stop for a decision
 when the evidence or a phase boundary needs Tyler's input.
 

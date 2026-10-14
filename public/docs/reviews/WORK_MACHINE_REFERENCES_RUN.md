@@ -1,16 +1,16 @@
 # Work-machine check: local results and manual publication
 
 Use **main** for the consolidated baseline. The current timer follow-up is on
-**feat/bounded-operand-example-pc**; stay on that branch for its next check. This remains Phase 1:
+**feat/bounded-operand-example-pc** and is now confirmed; no repeat check is needed. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
 
-Current returned evidence: `349ee29` tested `2851dbd`, passed 166 application
-cases (one skip) and 139 helpers, and returned `?` at TON argument 1. The new
-reference schema 4 recognizes only the bounded timer slots. The next check
-will measure the change in the 868 malformed occurrences; see
-[TIMER_PLACEHOLDER_REVIEW.md](TIMER_PLACEHOLDER_REVIEW.md) for conditional counts.
-The work-check envelope remains schema 2 with nested source schema 3.
+Current returned evidence: `1195d40` tested `112ee82`, passed 177 application
+cases (one skip) and 139 helpers, and confirms malformed addresses 868 to 0,
+non-data 0 to 868, and unsupported addresses 870 to 2. Other source/reference
+counters are unchanged; the diagnostic sample is null. See
+[TIMER_PLACEHOLDER_REVIEW.md](TIMER_PLACEHOLDER_REVIEW.md) for results and limits.
+The work-check envelope remains schema 2 with reference/source schemas 4/3.
 
 ## Manual runs
 
@@ -143,16 +143,14 @@ Actual names, topology and per-reference detail remain in the private reports.
 See [module/I/O review](MODULE_IO_REVIEW.md) for comparison targets and
 [listener operation](FEEDBACK_LISTENER.md) for its local status controls.
 
-The report returned in `349ee29` confirms the previous reference schema 3 counts:
-all 868 malformed operands are `other_form`. It supplies `?` at TON argument 1.
-The next run uses reference schema 4 to measure the new timer-slot recognition.
-Each recognized slot moves from malformed/unsupported-address to `non_data`;
-do not assume all 868 move until the report returns. The outer work-check stays
-schema 2. See [timer review](TIMER_PLACEHOLDER_REVIEW.md) for the expected comparison.
+The report returned in `349ee29` supplied `?` at TON argument 1. Report `1195d40`
+now confirms schema-4 timer-slot recognition: malformed occurrences fall 868 to
+zero while non-data rises by 868. Only two dynamic-index unsupported addresses
+remain. The outer work-check stays schema 2. See [timer review](TIMER_PLACEHOLDER_REVIEW.md)
+for the complete comparison and remaining Phase 1 gaps.
 These seven closed counters partition the malformed-address operand total;
 they do not change parsing or binding. Alias-target failures have their own
 bucket, and direct spellings are grouped by fixed precedence. Those counters
 contain no actual addresses, values or individual relationships; the separate
-authorized operand sample is the explicit exception in schema 2. Compare the histogram sum
-with the previous 868 occurrences and review any change in existing statuses or
-reasons before interpreting the new counts. See [address-shape review](ADDRESS_SHAPE_REVIEW.md).
+authorized operand sample is the explicit exception in schema 2. The current histogram sum is zero; later
+changes should be compared with the confirmed `1195d40` baseline. See [address-shape review](ADDRESS_SHAPE_REVIEW.md).

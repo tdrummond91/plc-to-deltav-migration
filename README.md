@@ -1,6 +1,6 @@
 # PLC analysis workbench
 
-Status: updated 2026-10-14. Phase 1 remains in progress: source inventory, module/I/O declarations, scoped tag/alias bindings and syntax diagnostics. The report returned in `349ee29` identifies `?` in TON's preset slot. A narrow timer-placeholder rule is now implemented on `feat/bounded-operand-example-pc`; the next work-machine report will measure how many of the 868 malformed occurrences it resolves. See [timer evidence and limits](public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md). The editor, engineering interpretation, PCSD and FHX stages remain planned.
+Status: updated 2026-10-14. Phase 1 remains in progress: source inventory, module/I/O declarations, scoped tag/alias bindings and syntax diagnostics. Work-machine report `1195d40` confirms the timer fix: malformed operands fall from 868 to zero, with 868 timer placeholders accounted as non-data and unchanged root bindings. Both suites passed. See [timer evidence and remaining gaps](public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md). Next is the unresolved colon-root/I/O investigation; the editor, engineering interpretation, PCSD and FHX stages remain planned.
 
 The development listener remains disabled and paused. Manual work-machine checks
 automatically commit the validated feedback report locally; fetching, pulling
