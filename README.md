@@ -4,6 +4,11 @@ Status: updated 2026-10-13. Phase 1 now includes module/I/O declarations, conser
 
 The aim is a reusable tool for migrating several units from L5X source analysis through editable engineering records and PCSD to class-based DeltaV FHX. FHX input must also support producing a PCSD. Phase 1 analyzes L5X in two parallel paths: reports for reading and understanding the source, and editable engineering files for organizing and mapping it. Both need source traceability. Other routine languages, including SFC, remain visible even before detailed analysis is implemented.
 
+The [feedback listener](public/docs/reviews/FEEDBACK_LISTENER.md) can check for
+returned work-machine reports and run one bounded Codex follow-up in a separate
+checkout. Its schedule and state are local to the development PC. Use
+`bash ./feedback-listener.sh status` to inspect an installed listener.
+
 Start with [CODEX_HANDOFF.md](CODEX_HANDOFF.md). Read [the architecture](public/docs/planning/ARCHITECTURE.md), then [the implementation roadmap](public/docs/planning/ROADMAP.md).
 
 ## Agreed direction

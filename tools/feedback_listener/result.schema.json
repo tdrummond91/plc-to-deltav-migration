@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "summary", "question", "next_step", "commit"],
+  "properties": {
+    "status": {"type": "string", "enum": ["waiting_for_report", "needs_input", "phase_complete"]},
+    "summary": {"type": "string"},
+    "question": {"type": ["string", "null"]},
+    "next_step": {"type": "string"},
+    "commit": {"type": ["string", "null"]}
+  }
+}

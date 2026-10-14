@@ -1,6 +1,6 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-13. Current activity: **module/I/O declarations and fixed reference-gap reasons implemented on feat/source-references-pc**. See [module/I/O review](docs/reviews/MODULE_IO_REVIEW.md) for the tested revision and validation, [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) for the next run, and [command usage](../python-parser/README.md).
+Updated 2026-10-13. Current activity: **returned module/I/O report reviewed; authorized feedback listener implementation in progress on feat/source-references-pc**. See [module/I/O review](docs/reviews/MODULE_IO_REVIEW.md) for the tested revision and returned evidence, [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) for runner usage, and [command usage](../python-parser/README.md).
 
 ## Current module/I/O checkpoint (2026-10-13)
 
@@ -22,19 +22,43 @@ its schema-2 source; hybrid versions are rejected. The outer work-check schema 1
 and private run manifests 1/2 are unchanged. See
 [data contracts](docs/planning/DATA_CONTRACTS.md) for details.
 
-Next work-machine action: `bash ./run-work-check.sh`. The saved source choice is
-reused; the script pulls, tests, analyzes and pushes its aggregate report. Review
-the new module naming and reason counters against the previous 896 unresolved
-aliases and 2,642 unresolved operands. Those old totals were not proven to be all
-I/O gaps. Do not request private inventories, reference records or terminal logs
-here. Use the returned aggregate to select the next bounded parser improvement;
-PCSD, FHX, editor and engineering classification remain later work.
+The work-machine report returned in f91ae18:
+[work-check-20261013T234851Z-b10d84dc.json](inspection/work-check-20261013T234851Z-b10d84dc.json).
+It validates and records clean tested revision 6585443, 208 application tests
+(207 passed, one skipped), all 139 helper tests passed, partial analysis without
+a failure code and private_run_saved=true. All 252 module I/O declarations receive
+names: 164 backplane-slot roots and 88 module-name roots. Bound aliases rise from
+45 to 842; unresolved aliases fall from 896 to 99. Bound operands rise from
+17,856 to 20,178; unresolved operands fall from 2,642 to 320. Shared source counts,
+instruction histograms, routine types, ladder metrics and reference coverage are
+unchanged. This verifies improved root lookup, not engineering semantics or
+source byte identity. The detailed comparison is in MODULE_IO_REVIEW.md.
 
-Tyler proposed a listener to check for new work-machine pushes and continue the
-agreed development step. This is a follow-up proposal, not an active automation.
-A local scheduled check should process each new work report once, avoid reacting
-to its own code pushes, and stop for questions, work-machine investigation or a
-phase checkpoint requiring Tyler's decision.
+All remaining unresolved aliases/operands have colon_root_not_declared. Their
+relationship to 11 unsupported rack connections is unproven. Unsupported-address
+operands remain 870: 868 outside the current address grammar and two dynamic
+indices. The next bounded parser candidate is aggregate address-shape evidence
+for those 868 cases, with invented examples and a closed publication contract;
+do not guess a fix from the label alone. No additional work-machine run is needed
+to review this report. Do not request private inventories, addresses, reference
+records or terminal logs here. PCSD, FHX, editor and engineering classification
+remain later work.
+
+Tyler has now explicitly authorized a listener to check for new work-machine
+pushes and continue agreed development. Implementation and review are complete;
+consult [FEEDBACK_LISTENER.md](docs/reviews/FEEDBACK_LISTENER.md) for validation,
+local activation and operating details. Before interactive edits on a development
+PC where it is installed, inspect `bash ./feedback-listener.sh status` and pause
+it; let a running worker finish before taking over. Do not pause the listener
+from its own dedicated worker checkout. The work machine needs only its existing
+run-work-check command.
+The workflow should process each new work report once, serialize repository
+work, ignore its own code pushes and stop for required questions, work-machine
+investigation or a phase checkpoint needing Tyler's decision.
+
+The current application suite includes the listener's Git integration tests:
+232 tests passed with one skip (231 executed successfully), plus all 139 helper
+tests. Source/reference output contracts are unchanged by the listener.
 
 The checkpoints below preserve earlier evidence and chronology. Their previous
 next-step statements do not override this current checkpoint.

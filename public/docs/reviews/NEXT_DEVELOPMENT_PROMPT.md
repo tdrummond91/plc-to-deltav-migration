@@ -34,12 +34,16 @@ passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
 test run as fresh execution.
 
-The module/I/O slice is authorized and implemented. Finish any validation or
-review recorded as outstanding in MODULE_IO_REVIEW.md before handing it off.
-After the next work-machine report arrives, validate its counters and identify
-the next bounded parser improvement. Continue work already authorized in the
-active session; ask for a decision when the evidence or a phase boundary needs
-Tyler's input.
+The module/I/O slice is implemented and its returned work-machine report is
+reviewed in MODULE_IO_REVIEW.md. Tyler has explicitly authorized the feedback
+listener; its implementation is now the priority. Consult the forthcoming
+FEEDBACK_LISTENER.md for concrete behavior, verification and activation state.
+Do not infer that an unattended task is running from this planning note.
+After that workflow is complete, the next bounded parser candidate is a closed
+aggregate address-shape breakdown for 868 operands outside the current address
+grammar. Establish evidence with invented examples before changing resolution.
+Continue work already authorized in the active session; stop for a decision
+when the evidence or a phase boundary needs Tyler's input.
 
 Keep parsing and analysis reusable by both CLI and a future GUI.
 Preserve source mappings and account for unsupported content.
@@ -178,19 +182,34 @@ provenance, and incomplete/ambiguous context remains a gap. RackConnection is
 explicitly unsupported. Ordinary tag/alias counts stay separate from module I/O.
 See MODULE_IO_REVIEW.md and DATA_CONTRACTS.md for exact scope and validation.
 
-Next work-machine action is `bash ./run-work-check.sh`, which remembers the local
-source, pulls, tests, analyzes and pushes a new aggregate. Compare module counts,
-naming origins/unavailable reasons and binding reason counts with the preceding
-896 unresolved aliases and 2,642 unresolved operands. Public structure counts
-show 104 InputTag, 65 OutputTag and 83 ConfigTag elements; they do not prove the
-cause of every unresolved reference. Never request private source/reference
+The new work-machine report has returned in f91ae18, testing clean 6585443.
+work-check-20261013T234851Z-b10d84dc.json validates, records 208 application tests
+(207 passed, one skipped) and all 139 helper tests passed, and reports saved
+private output with expected partial analysis. All 252 I/O declarations receive
+names (164 backplane-slot and 88 module-name). Bound aliases increase 45 to 842;
+unresolved aliases decrease 896 to 99. Bound operands increase 17,856 to 20,178;
+unresolved operands decrease 2,642 to 320. Ordinary source counts, instruction
+histograms, routine types, ladder metrics and reference coverage are unchanged.
+No additional work-machine run is needed merely to review this report.
+
+The remaining unresolved aliases/operands are all colon_root_not_declared,
+but their relationship to 11 unsupported rack connections is unproven. The
+870 unsupported-address operands comprise 868 malformed_address and two
+non_static_array_index. The first label describes the current grammar's limit,
+not confirmed invalid source. Prioritize safe aggregate shape evidence for those
+868 cases before expanding the grammar. Separate missing declarations from
+unsupported syntax and never request private addresses or source/reference
 reports here. Root binding still does not validate members, types, effects,
 alarm consequences, control loops or equipment/sequence classifications.
 
-The listener idea is a follow-up proposal; nothing is listening automatically.
-If selected, process each new work report once, continue only agreed work and
-stop for user questions, investigation or phase decisions. Avoid duplicate runs
-and loops triggered by the development agent's own pushes.
+Tyler has explicitly authorized the listener; implementation and review are complete.
+Process each new work report once, continue only agreed work and stop for user
+questions, investigation or phase decisions. Avoid overlapping repository writers
+and loops triggered by the development agent's own pushes. Activation must be
+verified and recorded in FEEDBACK_LISTENER.md, not assumed from authorization.
+Before interactive edits on a development PC with the listener installed, check
+`bash ./feedback-listener.sh status`, pause monitoring, and let any running worker
+finish before taking over. Its dedicated worker must not pause its own listener.
 
 Tyler clarified confidentiality on 2026-10-13: unit reconstruction with data
 values, or more than 2% rung knowledge. Aggregate summaries contain no individual
