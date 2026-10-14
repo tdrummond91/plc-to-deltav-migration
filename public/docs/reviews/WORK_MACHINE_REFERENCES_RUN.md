@@ -30,7 +30,7 @@ summary-002 and the returned reference summary: 4,606 rungs, 17,874 instructions
 The script uses the code already checked out and locked Python dependencies. It
 runs explicit parser/helper test allowlists in separate processes, analyzes the
 saved source and automatically stages and commits only its new validated
-aggregate report. It never fetches, pulls or pushes. Passing a different
+feedback report. It never fetches, pulls or pushes. Passing a different
 filename/path replaces the machine-local source
 selection for future runs.
 
@@ -42,14 +42,14 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. The report retains schema 1 and its tested SHA identifies which suite
+check. New reports use schema 2 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
 
 | Location | Contents |
 |---|---|
-| `public/inspection/work-check-<run-id>.json` | Automatically committed local aggregate: tested code revision, both suites' counts/statuses and bounded failed test IDs, analysis status and the reference/structural aggregate |
+| `public/inspection/work-check-<run-id>.json` | Automatically committed feedback: tested revision, suite results, reference/structural counts, and at most one actual mystery operand with instruction/argument position |
 | `confidential/work-checks/<run-id>/` | Local test logs and structured results; analysis exception details if needed |
 | `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt and manifest.json |
 | Git metadata `plc-work-check.json` | Local remembered source path; not committed or pushed |
@@ -59,15 +59,20 @@ alias chains and operand occurrences. Their JSON counterparts preserve structure
 records and source links for later analysis. Every run gets new output locations;
 the original source and previous runs are preserved.
 
-The public report contains no source filename, names, values, source hashes,
-per-rung examples, raw logs or individual reference links. The reference aggregate
+The public report includes at most one actual operand in `diagnostic_sample`,
+with its standard opcode and zero-based argument position. The operand can
+contain a real name/value; Tyler authorized this bounded example to investigate
+unknown syntax. It is limited to 128 printable characters, with no full rung,
+source filename/hash, routine, neighboring logic or individual reference links.
+Repeated unchanged runs select the same eligible example. Null means no eligible
+example was available or analysis did not succeed. The reference aggregate
 is at `analysis.reference_summary`, with the structural summary nested beneath
 `source_summary`. The top-level `tool_revision` identifies the tested code commit;
 the automatically created report commit is intentionally different.
 
 ## Manual review and publication
 
-Review the saved aggregate, then publish the already committed result:
+Review the saved feedback report, then publish the already committed result:
 
 ```bash
 git push
@@ -128,12 +133,14 @@ Actual names, topology and per-reference detail remain in the private reports.
 See [module/I/O review](MODULE_IO_REVIEW.md) for comparison targets and
 [listener operation](FEEDBACK_LISTENER.md) for its local status controls.
 
-The report returned in `b58af78` already contains reference schema 3 with
-`operands.malformed_address_shapes` and awaits parser analysis. No new run is
-needed merely to obtain that diagnostic.
+The report returned in `46467af` confirms the previous reference schema 3 results:
+all 868 malformed operands are `other_form`. The next run adds one actual
+operand example under schema 2 to guide investigation; the count summaries and
+parser recognition do not change. See [bounded sample review](BOUNDED_OPERAND_SAMPLE_REVIEW.md).
 These seven closed counters partition the malformed-address operand total;
 they do not change parsing or binding. Alias-target failures have their own
-bucket, and direct spellings are grouped by fixed precedence. Actual addresses,
-values and individual relationships remain private. Compare the histogram sum
+bucket, and direct spellings are grouped by fixed precedence. Those counters
+contain no actual addresses, values or individual relationships; the separate
+authorized operand sample is the explicit exception in schema 2. Compare the histogram sum
 with the previous 868 occurrences and review any change in existing statuses or
 reasons before interpreting the new counts. See [address-shape review](ADDRESS_SHAPE_REVIEW.md).

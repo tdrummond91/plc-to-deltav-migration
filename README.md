@@ -1,9 +1,9 @@
 # PLC analysis workbench
 
-Status: updated 2026-10-14. The consolidated baseline on `main` includes source inventory, module/I/O declarations, conservative module-root naming, scoped tag/alias bindings and aggregate address-shape diagnostics. Phase 1 remains in progress. The latest work-machine report returned in `b58af78` and awaits parser analysis. See [module/I/O implementation evidence](public/docs/reviews/MODULE_IO_REVIEW.md) for scope, validation and limitations. The editor, engineering interpretation, PCSD and FHX stages remain planned.
+Status: updated 2026-10-14. The baseline includes source inventory, module/I/O declarations, conservative module-root naming, scoped tag/alias bindings and address-shape diagnostics. Phase 1 remains in progress. The report returned in `46467af` validates the local commit workflow and unchanged parser counts. Work-check schema 2 adds one user-authorized actual mystery-operand example to investigate the remaining unknown syntax. See [bounded sample evidence](public/docs/reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md). The editor, engineering interpretation, PCSD and FHX stages remain planned.
 
 The development listener remains disabled and paused. Manual work-machine checks
-automatically commit the validated aggregate report locally; fetching, pulling
+automatically commit the validated feedback report locally; fetching, pulling
 and pushing remain manual.
 
 The aim is a reusable tool for migrating several units from L5X source analysis through editable engineering records and PCSD to class-based DeltaV FHX. FHX input must also support producing a PCSD. Phase 1 analyzes L5X in two parallel paths: reports for reading and understanding the source, and editable engineering files for organizing and mapping it. Both need source traceability. Other routine languages, including SFC, remain visible even before detailed analysis is implemented.
@@ -58,8 +58,9 @@ On the work machine, Codex may inspect the project read-only and produce handoff
 `run-work-check.sh` accepts a source
 filename on the first run and remembers it locally for later runs. It tests the
 already checked out clean named branch, including `main`, using explicit parser/helper test lists,
-saves private analysis and automatically commits only the new validated aggregate
-under `public/inspection/`. Update code manually before running, then review the
+saves private analysis and automatically commits only the new validated feedback
+under `public/inspection/`: counts plus at most one short actual mystery operand.
+Update code manually before running, then review the
 report and run `git push` when ready. See the [work-machine procedure](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
 The first available command is `plc inspect`, installed from `python-parser/`:
@@ -94,6 +95,6 @@ Repository roles:
 - `python-parser/`: application source, dependency files, and test code.
 - `confidential/`: actual exports and every derived private artifact.
 
-The full repository is the portable development bundle; `public/` complements the Python source rather than duplicating it. The work-machine runner automatically stages and commits only its new validated aggregate/test-results report. Review it and manually push when ready. Earlier reports in `public/inspection/local/` remain ignored and are not included automatically. Detailed production outputs and raw logs stay private.
+The full repository is the portable development bundle; `public/` complements the Python source rather than duplicating it. The work-machine runner automatically stages and commits only its new validated feedback report, including at most one authorized mystery-operand example. Review it and manually push when ready. Earlier reports in `public/inspection/local/` remain ignored and are not included automatically. Detailed production outputs and raw logs stay private.
 
 For the new-copy workflow, read [fresh Git setup](public/docs/planning/GIT_FRESH_START.md).

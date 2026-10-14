@@ -147,7 +147,7 @@ bash ./run-work-check.sh
 
 The launcher uses the code already checked out on a
 clean named branch, including `main`. It automatically stages and commits only
-the new aggregate report, never fetches, pulls or pushes, and does not require
+the new feedback report, never fetches, pulls or pushes, and does not require
 an upstream branch. A configured Git author identity is required for the local
 commit. Code updates are a separate manual
 action. The first run accepts a source filename/path; later runs reuse the
@@ -160,21 +160,26 @@ development validation; its test totals must not be compared as if it had the
 same scope as the work-machine checks.
 
 Successful tests enable a single captured-source inventory/reference analysis
-and a new private workspace. A closed aggregate includes test counts, bounded
-code-only failing test IDs, the tested commit and the nested reference summary.
+and a new private workspace. The feedback includes test counts, bounded
+code-only failing test IDs, the tested commit and the count-only reference summary.
+Work-check schema 2 also includes `diagnostic_sample`: at most one actual direct
+malformed operand (128 printable characters maximum), standard instruction and
+zero-based argument position, or null when no eligible sample is available.
+Tyler authorized this example to investigate unknown syntax; no rung, source
+location or neighboring logic is included.
 It is saved to `public/inspection/work-check-<run-id>.json` and committed locally.
 Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report remains schema 1 and carries reference schema 3 with source
-schema 3 when analysis succeeds. Existing reports remain readable. The tested
+The outer report is schema 2 and carries reference schema 3 with source
+schema 3 when analysis succeeds. Historical schema-1 reports remain readable. The tested
 SHA identifies the implementation and therefore its suite scope; historical
-reports may include the broader development suites. The latest work-machine
-aggregate returned in `b58af78` and awaits parser analysis; a rerun is not needed
-just to obtain its address-shape counters.
+reports may include the broader development suites. The result returned in
+`46467af` validated the local report-commit workflow. A new run with schema 2
+will return the one operand example needed to investigate unknown syntax.
 
-Review the local aggregate before sharing, then run `git push` when ready.
+Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in
 `public/inspection/local/` remain ignored and are not included automatically.
 Raw logs, full results, source and older outputs stay under `confidential/` and

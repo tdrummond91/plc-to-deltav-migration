@@ -29,7 +29,7 @@ do not revive or merge the retired topic branches.
 The updated work-machine runner operates on the already checked out clean named
 branch, including main. Tyler clarified that local report commits should be
 automatic; only fetching, pulling and pushing remain manual. No matching upstream
-is required. The runner saves a validated aggregate to
+is required. The runner saves a validated feedback report to
 public/inspection/work-check-<run-id>.json and automatically stages and commits
 only that file, including failed test/analysis outcomes. It checks the tested
 branch/revision, clean tree and report commit scope. Review the report, then run
@@ -40,7 +40,8 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available. The work-check envelope stays
-schema 1, and the tested SHA identifies the suite implementation and scope.
+readable for schema 1; new schema-2 reports include one authorized actual operand
+example. The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
 
@@ -78,12 +79,16 @@ outside the current grammar, without changing resolution. Reference aggregate
 schema 3 adds seven fixed counters; private contracts, source aggregate and outer
 work-check schema are unchanged. Read ADDRESS_SHAPE_REVIEW.md for precedence,
 alias-target handling, compatibility, validation and limits. The diagnostic report
-already returned in b58af78 as
-public/inspection/work-check-20261014T051259Z-72d3ad4c.json and awaits parser
-analysis. Review that aggregate before requesting another run. Compare
-against the prior 868 malformed-address cases; do not predict their shape from
-the old counts. If the returned buckets cannot support a bounded next step, stop
-for a specific work-machine investigation without requesting private evidence.
+returned in b58af78 and was confirmed unchanged by the report in 46467af,
+public/inspection/work-check-20261014T072717Z-4d71aaff.json. Both validate; all
+868 malformed operand occurrences fall in other_form. Tyler explicitly clarified
+that one actual mystery operand is within the sharing boundary. Schema 2 now
+adds diagnostic_sample, separate from count-only reference summaries: at most one
+exact operand of 128 printable characters with standard opcode/argument index.
+Read BOUNDED_OPERAND_SAMPLE_REVIEW.md. Next work-machine run should return that
+example; inspect it before changing recognition. Do not infer that all 868 have
+the same syntax from one example, and do not require invented-only evidence for
+this authorized bounded sample. No full rung or surrounding plant context is added.
 Continue work already authorized in the active session; stop for a decision
 when the evidence or a phase boundary needs Tyler's input.
 

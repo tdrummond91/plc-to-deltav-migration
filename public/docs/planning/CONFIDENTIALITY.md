@@ -9,6 +9,15 @@ the entire unit with data values, or provides more than 2% rung knowledge.
 Aggregate counts and technical codes without individual rung logic or process
 values are approved for repository sync. Do not impose a separate sharing
 approval step on `plc summarize` reports solely because they came from a real L5X.
+On 2026-10-14 Tyler explicitly authorized one actual mystery-operand occurrence
+for parser investigation. Work-check schema 2 can include at most one printable
+operand of 128 characters with its standard instruction and argument position.
+It may retain a real name/value inside that operand; it does not include a full
+rung, neighboring logic, source IDs/paths or other engineering values. This is a
+specific bounded diagnostic exception, not a general raw-export permission.
+Standalone source/reference summaries remain count-only. See the
+[sample contract](../reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md).
+
 Full exports and detailed inventories remain private. Future rung-sample outputs
 need their own coverage accounting; the aggregate exporter exposes no samples
 and does not certify the 2% threshold for other artifacts.
@@ -83,7 +92,7 @@ Default tracked areas:
 - independently synthetic L5X fixtures and expected outputs;
 - tests and dependency lock files.
 
-Do not put actual tag names, plant descriptions, IPs, source paths, credentials, schedules, export fragments, equipment topology, or private hashes in these areas. Tests that use real exports run locally under the confidential workspace and never upload their reports to CI.
+Do not put actual tag names, plant descriptions, IPs, source paths, credentials, schedules, export fragments, equipment topology, or private hashes in code, documentation or synthetic fixtures. The explicitly authorized single-operand field in work-check reports under `public/inspection/` is a bounded diagnostic exception. Tests that use real exports run locally under the confidential workspace and do not upload full reports to CI.
 
 A future local pre-commit/publish checker should flag:
 - files under confidential even if force-added;

@@ -1,5 +1,12 @@
 # Work-machine automation review
 
+Current extension (2026-10-14): Tyler authorized one actual mystery operand in
+feedback. Work-check schema 2 adds that bounded nullable sample while preserving
+the local report-only commit checks below. Source/reference summaries remain
+count-only. The successful work-machine return and new contract are documented
+in [bounded sample review](BOUNDED_OPERAND_SAMPLE_REVIEW.md). Schema-1 validation
+evidence below remains historical; old reports still validate unchanged.
+
 ## Current behavior: automatic local report commits (2026-10-14)
 
 Tyler clarified that the script should automatically commit its report so that

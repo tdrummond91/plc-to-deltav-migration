@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 tooling consolidated on main; automatic work-machine synchronization/publication removed**. Next parser task: review the address-shape report already returned in `b58af78`. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. The returned report in `46467af` validates the workflow and unchanged parser counts. Work-check schema 2 adds one authorized actual mystery operand to identify the remaining syntax. See [bounded sample review](docs/reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -70,17 +70,17 @@ Tyler clarified that running the script must automatically commit the report;
 only fetching, pulling and pushing stay manual. The earlier removal of staging
 and commits went beyond that requirement. The launcher uses the already checked
 out clean named branch (including `main`) with no matching upstream required.
-It saves and commits only the new validated aggregate under
+It saves and commits only the new validated feedback report under
 `public/inspection/work-check-<run-id>.json`. Source selection remains in Git
 metadata, and private logs/artifacts retain their `confidential/` locations.
 
-Update code manually before a run. Review its aggregate, then run `git push`;
+Update code manually before a run. Review its feedback report, then run `git push`;
 there is no manual copy, staging or commit step. The runner pins the tested
 branch and revision, rejects unrelated changes, uses a report-only commit and
 verifies its parent, changed path and validated report content in the working
 file, index and commit. Failed test/analysis reports are also
 committed locally. Git commit failure preserves the report for recovery.
-Existing approval of the bounded aggregate's contents is unchanged. Old reports
+Tyler additionally authorized one actual mystery operand, implemented below. Old reports
 in Git-ignored `public/inspection/local/` are not picked up automatically.
 
 Local report-commit validation: all 239 application/workflow tests passed (one
@@ -92,15 +92,37 @@ Independent review found no remaining blockers; see the current
 
 Work-machine test execution uses explicit parser/helper module allowlists,
 excluding listener, Windows process-host, Bash bootstrap and Git-fixture tests.
-Full development unittest discovery remains available. The schema-1 envelope
-and tested SHA are retained; consult that revision for historical suite scope
+Full development unittest discovery remains available. Schema-1 reports remain
+readable; schema 2 adds the bounded sample. Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
-The latest report is `public/inspection/work-check-20261014T051259Z-72d3ad4c.json`,
-returned in `b58af78`. Its address-shape evidence awaits parser analysis. Review
-that existing aggregate before requesting any new work-machine evidence. Leave
-the development listener disabled and paused. Manual parser execution remains
-under Tyler's control and is not gated on restoring the listener.
+The latest report is `public/inspection/work-check-20261014T072717Z-4d71aaff.json`,
+returned in `46467af`, testing clean `bd846fa`. It validates, reports 152
+application cases (one skip) and 139 helper cases with no failures, and records
+partial analysis with a private run saved. The report-only commit's parent is
+the tested revision. All source/reference data match the preceding report except
+the code revision: 868 malformed operand occurrences are still `other_form`.
+
+Tyler clarified that an actual individual mystery operand does not reconstruct
+the unit and fits the sharing boundary. Do not require invented-only examples or
+further approval for this authorized sample. Work-check schema 2 includes one
+nullable `diagnostic_sample`: standard opcode, zero-based argument position and
+at most 128 printable characters of exact operand text. It selects the first
+eligible direct malformed occurrence deterministically from validated records.
+It includes no full rung, location/IDs, neighbors or other values. Count-only
+source/reference summaries and parser recognition remain unchanged. Next action:
+run the ordinary work check and push the report manually so the example can guide
+a bounded parser fix. See [contract and evidence](docs/reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md).
+
+Sample validation: 259 application/workflow tests passed (one existing symlink
+skip), with listener tests excluded. Two temporary-checkout CLI runs passed
+166 selected application and 139 helper tests each, emitted the same one sample,
+committed only their report, and preserved the source and prior outputs. All
+five historical work-check reports still validate. Independent review found no
+code blockers. The feature awaits its first work-machine sample return.
+
+Leave the development listener disabled and paused. Manual parser execution
+remains under Tyler's control and is not gated on restoring the listener.
 
 The checkpoints below retain prior implementation and validation evidence.
 Earlier activation and automatic-publication instructions are superseded by

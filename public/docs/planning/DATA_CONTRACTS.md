@@ -2,6 +2,23 @@
 
 Status: updated 2026-10-13. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
+## Work-machine feedback schema 2 (2026-10-14)
+
+`l5x_work_machine_check` / `work-check-2` adds required nullable
+`diagnostic_sample` alongside the existing analysis/test envelope. A non-null
+sample has exactly `kind=direct_malformed_operand`, standard `opcode`, zero-based
+integer `argument_index`, and one exact printable `raw_text` operand of at most
+128 characters. It is generated from validated direct-malformed references in
+the captured snapshot; alias failures and non-address roles are excluded.
+Failed/unrun analysis requires null. A sample must reconcile with a positive
+direct-malformed count and an observed instruction opcode in reference schema 3.
+
+Tyler authorized this one actual operand to investigate otherwise unidentified
+syntax. No rung/source identifiers, surrounding logic or other values are added.
+Source/reference summaries remain count-only at schemas 3/3. Work-check schema 1
+still validates under its exact original keys and cannot contain a sample. The
+publication limit remains 32 KiB. See the [review and limits](../reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md).
+
 ## Implemented root-reference analysis v2 (2026-10-13)
 
 `references.ReferenceResult` has schema 2, analyzer `source-references-2` and
@@ -88,8 +105,9 @@ Private reference schema/analyzer remain 2/source-references-2.
 Public validation also accepts the previous reference schema 1 with its nested
 source schema 2 and reference schema 2 with source schema 3 (without shape fields).
 New reference schema 3 also requires source schema 3; mixed version fields or
-nested versions are rejected. The outer work-check schema stays 1 and accepts
-all three supported nested reference versions. This is aggregate read compatibility,
+nested versions are rejected. Historical work-check schema 1 and current schema 2
+accept all three supported nested reference versions; a non-null schema-2 sample
+additionally requires reference schema 3 as described above. This is aggregate read compatibility,
 not an editable-data import or private-run migration.
 
 See [module/I/O review](../reviews/MODULE_IO_REVIEW.md) and the

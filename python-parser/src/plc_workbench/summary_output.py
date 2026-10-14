@@ -1,4 +1,4 @@
-"""Publish a validated aggregate summary without clobbering any file."""
+"""Publish a validated summary or work-machine report without clobbering files."""
 
 from __future__ import annotations
 
@@ -68,7 +68,7 @@ def publish_summary(output: Path, rendered: str, *, input_path: Path) -> None:
             else:
                 rendered = render_summary(payload)
         except (ValueError, TypeError, RecursionError) as exc:
-            raise SummaryOutputError('Only a validated aggregate summary can be published.') from exc
+            raise SummaryOutputError('Only a validated summary or work-machine report can be published.') from exc
         destination = _destination_path(output, input_path)
         parent = destination.parent
         parent.mkdir(parents=True, exist_ok=True)

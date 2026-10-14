@@ -1,7 +1,8 @@
 """Run local parser checks and analysis using the already checked-out code.
 
-Source data, saved engineering records and raw test output remain private. Only
-closed aggregate reports are committed locally for manual review and pushing.
+Source exports, saved engineering records and raw test output remain private.
+Feedback reports include counts and at most one user-authorized mystery operand
+example, committed locally for manual review and pushing.
 This workflow never fetches, pulls or pushes.
 """
 from __future__ import annotations
@@ -19,6 +20,7 @@ import traceback
 from typing import Any
 from uuid import uuid4
 
+from .diagnostic_sample import build_diagnostic_sample, validate_diagnostic_sample
 from .reference_summary import build_reference_summary, validate_reference_summary
 from .references import analyze_references
 from .source import analyze_snapshot, capture_snapshot
@@ -26,11 +28,12 @@ from .storage import save_run
 from .work_check_tests import unavailable_result, validate_test_result
 
 MAX_REPORT_BYTES = 32 * 1024
-_CONSTANTS = {
+_LEGACY_CONSTANTS = {
     "schema_version": 1,
     "report_kind": "l5x_work_machine_check",
     "workflow_version": "work-check-1",
 }
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 2, "workflow_version": "work-check-2"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _GIT_REPOSITORY_OVERRIDES = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
@@ -55,8 +58,15 @@ def _keys(value: Any, expected: set[str]) -> None:
 
 def validate_work_check_report(report: Any) -> None:
     """Reject unknown fields and reconcile test, analysis and overall status."""
-    _keys(report, set(_CONSTANTS) | {"run_id", "tool_revision", "tests", "analysis", "status"})
-    for key, fixed in _CONSTANTS.items():
+    if type(report) is not dict or type(report.get("schema_version")) is not int:
+        _invalid()
+    version = report["schema_version"]
+    constants = {1: _LEGACY_CONSTANTS, 2: _CONSTANTS}.get(version)
+    if constants is None:
+        _invalid()
+    extra = {"diagnostic_sample"} if version == 2 else set()
+    _keys(report, set(constants) | {"run_id", "tool_revision", "tests", "analysis", "status"} | extra)
+    for key, fixed in constants.items():
         if type(report[key]) is not type(fixed) or report[key] != fixed:
             _invalid()
     if type(report["run_id"]) is not str or re.fullmatch(r"[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}", report["run_id"]) is None:
@@ -97,6 +107,21 @@ def validate_work_check_report(report: Any) -> None:
     )
     if report["status"] != expected:
         _invalid()
+    if version == 2:
+        sample = report["diagnostic_sample"]
+        validate_diagnostic_sample(sample)
+        if sample is not None:
+            if analysis["status"] != "partial":
+                _invalid()
+            nested = analysis["reference_summary"]
+            operands = nested["operands"]
+            # Samples are direct operands, never a caller hiding an alias-target
+            # failure. Version 3's histogram provides that reconciliation.
+            if (nested["schema_version"] != 3
+                    or operands["by_reason"]["unsupported_address"]["malformed_address"]
+                    <= operands["malformed_address_shapes"]["alias_target_failure"]
+                    or nested["source_summary"]["instructions"]["counts"].get(sample["opcode"], 0) == 0):
+                _invalid()
 
 
 def render_work_check_report(report: Any) -> str:
@@ -269,7 +294,8 @@ def _run_suite(root: Path, logs: Path, suite: str) -> dict[str, Any]:
 
 
 def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> dict[str, Any]:
-    result: dict[str, Any] = {"status": "failed", "failure_code": "read_error", "private_run_saved": False, "reference_summary": None}
+    result: dict[str, Any] = {"status": "failed", "failure_code": "read_error", "private_run_saved": False,
+                              "reference_summary": None, "diagnostic_sample": None}
     try:
         snapshot = capture_snapshot(source)
         inventory = analyze_snapshot(snapshot)
@@ -283,7 +309,9 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         result["private_run_saved"] = True
         result["failure_code"] = "summary_error"
         summary = build_reference_summary(inventory, references, revision=revision)
-        result.update(status=summary["status"], failure_code=None, reference_summary=summary)
+        sample = build_diagnostic_sample(inventory, references)
+        result.update(status=summary["status"], failure_code=None, reference_summary=summary,
+                      diagnostic_sample=sample)
     except Exception:
         # All raw exception text stays private, including OS paths and values
         # from unexpected third-party failures.
@@ -292,7 +320,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
 
 
 def run_check(root: Path, supplied_source: str | None) -> int:
-    """Commit only the validated aggregate locally, without contacting a remote."""
+    """Commit only the validated feedback report, without contacting a remote."""
     branch = _branch(root)
     commit = _git(root, "rev-parse", "HEAD")
     _check_pinned(root, branch, commit)
@@ -319,7 +347,11 @@ def run_check(root: Path, supplied_source: str | None) -> int:
     status = "failed" if analysis["status"] in ("not_run", "failed") else (
         "partial" if analysis["status"] == "partial" else "passed"
     )
-    report = dict(_CONSTANTS, run_id=run_id, tool_revision=revision, tests=results, analysis=analysis, status=status)
+    # The bounded sample is separate from the unchanged count-only reference
+    # summary and its historical analysis envelope.
+    sample = analysis.pop("diagnostic_sample", None)
+    report = dict(_CONSTANTS, run_id=run_id, tool_revision=revision, tests=results,
+                  analysis=analysis, status=status, diagnostic_sample=sample)
     rendered = render_work_check_report(report)
     _check_pinned(root, branch, commit)
     relative_report = f"public/inspection/work-check-{run_id}.json"
@@ -346,7 +378,7 @@ def run_check(root: Path, supplied_source: str | None) -> int:
     if _git(root, "show", f"{saved_commit}:{relative_report}", logs=logs, raw=True) != rendered:
         raise WorkCheckError("Committed report content changed; local results were preserved. Review before pushing.")
     print(f"Committed work-machine report locally: {saved_commit[:12]}", flush=True)
-    print("Nothing was pulled or pushed. Review the aggregate, then run git push when ready.", flush=True)
+    print("Nothing was pulled or pushed. Review the report, then run git push when ready.", flush=True)
     print(f"Check status: {status}. Raw logs and engineering records remain under confidential/.", flush=True)
     return 1 if status == "failed" else 0
 
