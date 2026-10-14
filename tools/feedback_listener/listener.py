@@ -16,7 +16,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 from uuid import uuid4
 
 MAX_REPORTS = 4096
@@ -30,21 +30,6 @@ _GIT_ENV = frozenset({
     "GIT_DISCOVERY_ACROSS_FILESYSTEM", "GIT_IMPLICIT_WORK_TREE", "GIT_PREFIX",
     "GIT_NAMESPACE", "GIT_SHALLOW_FILE", "GIT_GRAFT_FILE", "GIT_REPLACE_REF_BASE",
 })
-
-
-def _background_process_options() -> dict[str, Any]:
-    """Give Windows descendants a hidden console they can inherit.
-
-    CREATE_NO_WINDOW hides only the direct process by leaving it without a
-    console. A normally launched grandchild can then open a new visible one.
-    Start a separate, hidden console instead; never attach to the user's terminal.
-    """
-    if os.name != "nt":
-        return {}
-    startup = subprocess.STARTUPINFO()
-    startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    startup.wShowWindow = subprocess.SW_HIDE
-    return {"creationflags": subprocess.CREATE_NEW_CONSOLE, "startupinfo": startup}
 
 
 class ListenerError(Exception):
@@ -74,10 +59,10 @@ def _atomic_json(path: Path, value: Any) -> None:
 
 
 @contextmanager
-def lock(directory: Path) -> Iterator[None]:
+def lock(directory: Path, filename: str = "listener.lock") -> Iterator[None]:
     """The OS releases the lock if a worker or scheduled task crashes."""
     directory.mkdir(parents=True, exist_ok=True)
-    with (directory / "listener.lock").open("a+b") as stream:
+    with (directory / filename).open("a+b") as stream:
         stream.seek(0, os.SEEK_END)
         if stream.tell() == 0:
             stream.write(b"0")
@@ -151,7 +136,7 @@ def _git(config: dict, root: str | Path, *args: str) -> bytes:
         return subprocess.run(
             [config["git"], "-C", str(root), *args], check=True,
             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            env=environment, timeout=180, **_background_process_options(),
+            env=environment, timeout=180,
         ).stdout
     except (OSError, subprocess.SubprocessError):
         raise ListenerError("git_operation_failed") from None
@@ -224,7 +209,6 @@ def _validate_report(config: dict, report: dict) -> None:
         subprocess.run(
             [sys.executable, "-I", "-B", "-c", code, str(root / "python-parser" / "src")],
             input=data, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60,
-            **_background_process_options(),
         )
     except (OSError, subprocess.SubprocessError):
         raise ListenerError("report_validation_failed") from None
@@ -293,7 +277,7 @@ def _agent(config: dict, event: dict, run: Path) -> dict:
         excluded = _GIT_ENV | {"OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_THREAD_ID"}
         environment = {key: value for key, value in os.environ.items() if key.upper() not in excluded}
         process = subprocess.run(command, input=prompt.encode("utf-8"), stdout=output, stderr=errors,
-                                 env=environment, **_background_process_options())
+                                 env=environment)
     if process.returncode != 0:
         raise ListenerError("worker_failed")
     return _read_json(run / "result.json")
@@ -386,9 +370,71 @@ def poll(directory: Path, config: dict, state: dict) -> dict:
         return _save(directory, state, "needs_attention", "unexpected_listener_error", paused=True)
 
 
+def _run_headless(command: list[str], on_error: Callable[[OSError], None]) -> Any:
+    from windows_host import run
+    return run(command, on_error=on_error)
+
+
+def _windows_poll(directory: Path) -> int:
+    """Host the entire poll in ConPTY; keep child exit status and durable errors.
+
+    The scheduled pythonw process has no console. Its console-Python child and
+    ordinary descendants share a pseudoconsole that has no Terminal UI. Never
+    add CREATE_NEW_CONSOLE to their subprocess calls: that escapes this host.
+    """
+    with lock(directory, "host.lock"):
+        _load_config(directory)
+        state = _load_state(directory)
+        if state["paused"]:
+            print(json.dumps(state, indent=2))
+            return 1 if state["status"] == "needs_attention" else 0
+        python = Path(sys.executable).with_name("python.exe")
+        command = [str(python), "-B", str(Path(__file__).resolve()),
+                   "--state-dir", str(directory), "--headless-child", "poll"]
+        problem_path = directory / "host-problem.json"
+        _atomic_json(problem_path, {"active": False, "recorded_at": _now(), "error": None})
+
+        def record_problem(error: OSError) -> None:
+            # Keep the active child and its lock intact. Persistent native I/O
+            # errors need investigation, not forced termination of ongoing Git.
+            _atomic_json(problem_path, {"active": True, "recorded_at": _now(),
+                                        "error": str(error)[:4096]})
+
+        diagnostic = ""
+        try:
+            outcome = _run_headless(command, on_error=record_problem)
+            code = outcome.exit_code
+            reason = "headless_child_failed"
+            diagnostic = outcome.output.decode("utf-8", errors="replace")
+        except Exception as exc:
+            # Includes unsupported APIs, import/startup errors and native host
+            # failures. The host retains ownership until launched clients exit.
+            code, reason = 1, "headless_host_failed"
+            diagnostic = str(exc)
+        problem = _read_json(problem_path)
+        problem["active"] = False
+        _atomic_json(problem_path, problem)
+        if code:
+            # The host returns only after the child has exited (or never started).
+            # Preserve an active owner and its state if someone ran a direct poll.
+            with lock(directory):
+                state = _load_state(directory)
+                if state["status"] != "needs_attention":
+                    state = _save(directory, state, "needs_attention", reason, paused=True)
+                _atomic_json(directory / "host-failure.json", {
+                    "recorded_at": _now(), "reason": reason, "exit_code": code,
+                    "terminal_output": diagnostic[:32 * 1024],
+                })
+        else:
+            state = _load_state(directory)
+        print(json.dumps(state, indent=2))
+        return code
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state-dir", required=True, type=Path)
+    parser.add_argument("--headless-child", action="store_true", help=argparse.SUPPRESS)
     commands = parser.add_subparsers(dest="command", required=True)
     initialize_parser = commands.add_parser("init")
     for name in ("repository", "checkout", "branch", "git", "codex"):
@@ -401,8 +447,16 @@ def main(argv: list[str] | None = None) -> int:
     directory = args.state_dir.expanduser().resolve()
     try:
         if args.command == "status":
-            print(json.dumps(_load_state(directory), indent=2))
+            state = _load_state(directory)
+            problem_path = directory / "host-problem.json"
+            if problem_path.exists():
+                problem = _read_json(problem_path)
+                if problem.get("error"):
+                    state["host_problem"] = problem
+            print(json.dumps(state, indent=2))
             return 0
+        if args.command == "poll" and os.name == "nt" and not args.headless_child:
+            return _windows_poll(directory)
         with lock(directory):
             if args.command == "init":
                 state = initialize(directory, {key: getattr(args, key) for key in ("repository", "checkout", "branch", "git", "codex")},

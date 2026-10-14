@@ -3,6 +3,7 @@ param(
     [string]$StateDir = (Join-Path $env:LOCALAPPDATA "PLCWorkbench/feedback-listener"),
     [string]$CodexPath,
     [string]$InitialReport,
+    [switch]$UpdateLauncher,
     [ValidateRange(1, 60)][int]$IntervalMinutes = 5,
     [string]$TaskName = "PLC Workbench Feedback Listener"
 )
@@ -30,9 +31,13 @@ $remote = (& $gitPath -C $repoPath remote get-url origin).Trim()
 if ($LASTEXITCODE -ne 0) { throw "Cannot read origin." }
 $pythonPath = (& uv run --project (Join-Path $repoPath "python-parser") --locked python -c "import sys; print(sys.executable)").Trim()
 if ($LASTEXITCODE -ne 0) { throw "Cannot locate the project's Python environment." }
-$pythonWindowless = Join-Path (Split-Path $pythonPath) "pythonw.exe"
-if (-not (Test-Path -LiteralPath $pythonWindowless -PathType Leaf)) { throw "pythonw.exe is required for hidden scheduled checks." }
+$legacyWindowless = Join-Path (Split-Path $pythonPath) "pythonw.exe"
+$launcherOutput = & $pythonPath -B (Join-Path $PSScriptRoot "windows_launcher.py")
+if ($LASTEXITCODE -ne 0 -or -not $launcherOutput) { throw "A verified Windows GUI-subsystem Python launcher is required for silent scheduled checks." }
+$pythonWindowless = $launcherOutput.Trim()
 $listenerPath = Join-Path $PSScriptRoot "listener.py"
+& $pythonPath -B -c "import sys; sys.path.insert(0, sys.argv[1]); from windows_host import ensure_supported; ensure_supported()" $PSScriptRoot
+if ($LASTEXITCODE -ne 0) { throw "The silent listener requires Windows 11 24H2 or later with the pseudoconsole lifecycle API. No task was registered." }
 & $CodexPath login status
 if ($LASTEXITCODE -ne 0) { throw "Sign into Codex with ChatGPT first." }
 New-Item -ItemType Directory -Path $statePath -Force | Out-Null
@@ -62,15 +67,33 @@ else {
 $arguments = '-B "' + $listenerPath + '" --state-dir "' + $statePath + '" poll'
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $account = $identity.Name
-$existingTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+$existingTask = Get-ScheduledTask -TaskPath '\' -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($existingTask) {
     $taskUser = $existingTask.Principal.UserId
     if ($taskUser.StartsWith('S-1-')) { $taskSid = $taskUser }
     else { $taskSid = ([System.Security.Principal.NTAccount]::new($taskUser)).Translate([System.Security.Principal.SecurityIdentifier]).Value }
-    if ($existingTask.Actions.Count -ne 1 -or $existingTask.Actions[0].Execute -ne $pythonWindowless -or $existingTask.Actions[0].Arguments -ne $arguments -or $existingTask.Actions[0].WorkingDirectory -ne $repoPath -or $taskSid -ne $identity.User.Value -or $existingTask.Principal.RunLevel -ne 'Limited' -or $existingTask.Principal.LogonType -ne 'Interactive' -or $existingTask.Settings.MultipleInstances -ne 'IgnoreNew') {
+    $launcherMatches = $existingTask.Actions[0].Execute -eq $pythonWindowless
+    $knownLegacyLauncher = $existingTask.Actions[0].Execute -eq $legacyWindowless
+    if ($existingTask.Actions.Count -ne 1 -or (-not $launcherMatches -and -not ($UpdateLauncher -and $knownLegacyLauncher)) -or $existingTask.Actions[0].Arguments -ne $arguments -or $existingTask.Actions[0].WorkingDirectory -ne $repoPath -or $taskSid -ne $identity.User.Value -or $existingTask.Principal.RunLevel -ne 'Limited' -or $existingTask.Principal.LogonType -ne 'Interactive' -or $existingTask.Settings.MultipleInstances -ne 'IgnoreNew') {
         throw "A different task with this name exists; it was not overwritten."
     }
-    if ($existingTask.State -eq 'Disabled') { throw "The matching listener task is disabled. Its state was preserved." }
+    if (-not $launcherMatches) {
+        if ($existingTask.State -eq 'Running') { throw "Wait for the active listener to finish before updating its launcher." }
+        [xml]$beforeTask = Export-ScheduledTask -TaskPath '\' -TaskName $TaskName
+        $action = New-ScheduledTaskAction -Execute $pythonWindowless -Argument $arguments -WorkingDirectory $repoPath
+        Set-ScheduledTask -TaskPath '\' -TaskName $TaskName -Action $action | Out-Null
+        [xml]$afterTask = Export-ScheduledTask -TaskPath '\' -TaskName $TaskName
+        foreach ($section in @('Triggers', 'Principals', 'Settings')) {
+            if ($beforeTask.Task.$section.OuterXml -ne $afterTask.Task.$section.OuterXml) {
+                Disable-ScheduledTask -TaskPath '\' -TaskName $TaskName | Out-Null
+                throw "Task configuration changed unexpectedly. The task was disabled for investigation."
+            }
+        }
+        $existingTask = Get-ScheduledTask -TaskPath '\' -TaskName $TaskName
+        if ($existingTask.Actions[0].Execute -ne $pythonWindowless) { throw "Task launcher verification failed." }
+        Write-Output "Updated the verified GUI launcher. Existing task state and schedule were preserved."
+    }
+    if ($existingTask.State -eq 'Disabled') { Write-Output "The matching listener task remains disabled." }
     Write-Output "Listener is already installed. Its state and schedule were preserved."
     & $pythonPath -B $listenerPath --state-dir $statePath status
     if ($LASTEXITCODE -ne 0) { throw "Listener status check failed." }
@@ -81,7 +104,7 @@ $periodic = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes($IntervalMi
 $logon = New-ScheduledTaskTrigger -AtLogOn -User $account
 $principal = New-ScheduledTaskPrincipal -UserId $account -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero)
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($periodic, $logon) -Principal $principal -Settings $settings -Description "Check approved PLC work-machine reports and run one bounded Codex follow-up." | Out-Null
+Register-ScheduledTask -TaskPath '\' -TaskName $TaskName -Action $action -Trigger @($periodic, $logon) -Principal $principal -Settings $settings -Description "Check approved PLC work-machine reports and run one bounded Codex follow-up." | Out-Null
 Write-Output "Installed $TaskName. Checks every $IntervalMinutes minutes while this account is logged on."
 & $pythonPath -B $listenerPath --state-dir $statePath status
 if ($LASTEXITCODE -ne 0) { throw "Installed task, but listener status check failed." }

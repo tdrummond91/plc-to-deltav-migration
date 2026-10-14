@@ -6,6 +6,7 @@ import io
 import json
 import os
 from pathlib import Path
+from types import SimpleNamespace
 import shutil
 import subprocess
 import sys
@@ -331,37 +332,92 @@ class ListenerTests(unittest.TestCase):
         self.assertEqual(state["status"], "idle")
         self.assertEqual(len(state["processed_reports"]), 1)
 
+    def test_headless_poll_launches_console_python_and_preserves_state(self) -> None:
+        def run(command: list[str], **options: object) -> SimpleNamespace:
+            self.assertEqual(Path(command[0]).name, "python.exe")
+            self.assertIn("--headless-child", command)
+            self.assertEqual(command[-1], "poll")
+            with self.assertRaises(listener.Busy):
+                with listener.lock(self.directory, "host.lock"):
+                    self.fail("Another host acquired the active host lock")
+            # The child's ordinary lock is available while its host is running.
+            with listener.lock(self.directory):
+                listener._save(self.directory, self.state, "waiting_for_report")
+            return SimpleNamespace(exit_code=0, output=b"ignored terminal presentation")
+        with patch.object(listener, "_run_headless", side_effect=run) as host, redirect_stdout(io.StringIO()):
+            self.assertEqual(listener._windows_poll(self.directory), 0)
+        host.assert_called_once()
+        self.assertEqual(listener._load_state(self.directory)["status"], "waiting_for_report")
+
+    def test_headless_child_failure_preserves_pending_claim_and_exit_code(self) -> None:
+        pending = {"report_commit": "a" * 40}
+        def fail(command: list[str], **options: object) -> SimpleNamespace:
+            self.state["pending"] = pending
+            listener._save(self.directory, self.state, "running")
+            return SimpleNamespace(exit_code=17, output=b"Synthetic startup diagnostic")
+        with patch.object(listener, "_run_headless", side_effect=fail), redirect_stdout(io.StringIO()):
+            self.assertEqual(listener._windows_poll(self.directory), 17)
+        state = listener._load_state(self.directory)
+        self.assertEqual((state["status"], state["reason"]), ("needs_attention", "headless_child_failed"))
+        self.assertTrue(state["paused"])
+        self.assertEqual(state["pending"], pending)
+        self.assertEqual(state["processed_reports"], self.state["processed_reports"])
+        diagnostic = listener._read_json(self.directory / "host-failure.json")
+        self.assertEqual(diagnostic["exit_code"], 17)
+        self.assertEqual(diagnostic["terminal_output"], "Synthetic startup diagnostic")
+
+    def test_headless_startup_failure_pauses_without_automatic_retry(self) -> None:
+        with patch.object(listener, "_run_headless", side_effect=OSError("synthetic launch failure")) as host, \
+                redirect_stdout(io.StringIO()):
+            self.assertEqual(listener._windows_poll(self.directory), 1)
+            self.assertEqual(listener._windows_poll(self.directory), 1)
+        host.assert_called_once()
+        state = listener._load_state(self.directory)
+        self.assertEqual(state["reason"], "headless_host_failed")
+        self.assertTrue(state["paused"])
+
+    def test_headless_runtime_problem_is_visible_without_changing_active_claim(self) -> None:
+        def run(command: list[str], **options: object) -> SimpleNamespace:
+            self.state["pending"] = {"report_commit": "a" * 40}
+            listener._save(self.directory, self.state, "running")
+            options["on_error"](OSError("Synthetic persistent host problem"))
+            with redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(listener.main(["--state-dir", str(self.directory), "status"]), 0)
+            visible = json.loads(output.getvalue())
+            self.assertEqual(visible["status"], "running")
+            self.assertEqual(visible["pending"], self.state["pending"])
+            self.assertTrue(visible["host_problem"]["active"])
+            listener._save(self.directory, self.state, "waiting_for_report")
+            return SimpleNamespace(exit_code=0, output=b"")
+        with patch.object(listener, "_run_headless", side_effect=run), redirect_stdout(io.StringIO()):
+            self.assertEqual(listener._windows_poll(self.directory), 0)
+        self.assertFalse(listener._read_json(self.directory / "host-problem.json")["active"])
+
+    def test_paused_headless_poll_does_not_launch_any_console(self) -> None:
+        listener._save(self.directory, self.state, "paused", paused=True)
+        with patch.object(listener, "_run_headless") as host, redirect_stdout(io.StringIO()):
+            self.assertEqual(listener._windows_poll(self.directory), 0)
+        host.assert_not_called()
+
+    @unittest.skipUnless(os.name == "nt", "Windows scheduled launcher")
+    def test_real_headless_poll_preserves_git_behavior(self) -> None:
+        from windows_host import ensure_supported
+        from windows_launcher import resolve_windowless_python
+        try:
+            ensure_supported()
+            launcher = resolve_windowless_python()
+        except OSError as error:
+            self.skipTest(str(error))
+        launched = subprocess.run([str(launcher), "-B", listener.__file__,
+                                   "--state-dir", str(self.directory), "poll"],
+                                  capture_output=True, timeout=60)
+        self.assertEqual(launched.returncode, 0, launched.stderr)
+        state = listener._load_state(self.directory)
+        self.assertEqual(state["status"], "waiting_for_report")
+        self.assertIsNone(state["last_run"])
+
 
 class WorkerBoundaryTests(unittest.TestCase):
-    @unittest.skipUnless(os.name == "nt", "Windows console inheritance")
-    def test_background_child_and_grandchild_share_an_invisible_console(self) -> None:
-        # Exercise actual Windows process creation, not just flag equality.
-        # The nested process uses normal defaults, like Git/worker shell tools.
-        probe = (
-            "import ctypes,json;from ctypes import wintypes;"
-            "kernel=ctypes.WinDLL('kernel32');user=ctypes.WinDLL('user32');"
-            "kernel.GetConsoleWindow.restype=wintypes.HWND;"
-            "user.IsWindowVisible.argtypes=[wintypes.HWND];"
-            "window=kernel.GetConsoleWindow();"
-            "print(json.dumps({'window':window,'visible':bool(user.IsWindowVisible(window))}))"
-        )
-        parent = (
-            "import json,subprocess,sys;"
-            f"exec({probe!r});"
-            f"child=subprocess.run([sys.executable,'-B','-c',{probe!r}],"
-            "check=True,capture_output=True,text=True,timeout=15);"
-            "print(child.stdout.strip())"
-        )
-        process = subprocess.run(
-            [sys.executable, "-B", "-c", parent], check=True, capture_output=True,
-            text=True, timeout=30, **listener._background_process_options(),
-        )
-        child, grandchild = [json.loads(line) for line in process.stdout.splitlines()]
-        self.assertTrue(child["window"], "Background child needs a console for descendants to inherit")
-        self.assertEqual(child["window"], grandchild["window"])
-        self.assertFalse(child["visible"])
-        self.assertFalse(grandchild["visible"])
-
     def test_invalid_local_state_fails_closed_without_worker(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -401,10 +457,10 @@ class WorkerBoundaryTests(unittest.TestCase):
                 self.assertNotIn("CODEX_API_KEY", kwargs["env"])
                 self.assertNotIn("CODEX_THREAD_ID", kwargs["env"])
                 self.assertNotIn("GIT_DIR", kwargs["env"])
-                if os.name == "nt":
-                    self.assertEqual(kwargs["creationflags"], subprocess.CREATE_NEW_CONSOLE)
-                    self.assertTrue(kwargs["startupinfo"].dwFlags & subprocess.STARTF_USESHOWWINDOW)
-                    self.assertEqual(kwargs["startupinfo"].wShowWindow, subprocess.SW_HIDE)
+                # Default inheritance keeps Git/worker descendants inside the
+                # outer headless host; a new/detached console would escape it.
+                self.assertNotIn("creationflags", kwargs)
+                self.assertNotIn("startupinfo", kwargs)
                 self.assertIn(b"Listener event", kwargs["input"])
                 (run / "result.json").write_text(json.dumps(result()), encoding="utf-8")
                 return subprocess.CompletedProcess(command, 0)

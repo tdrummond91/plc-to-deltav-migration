@@ -7,15 +7,26 @@ Updated 2026-10-13. Current activity: **closed address-shape diagnostic implemen
 Listener operational hold (2026-10-13): Tyler reported terminal takeover again
 after f18b34b. The Windows scheduled task is disabled and listener state is paused;
 no listener worker was running when inspected. Automatic checks are stopped.
-Do not resume from earlier success notes: the prior foreground-window test did
-not check selection changes inside an existing Terminal window. The exact
-offending command/tab and timing are still being identified with Tyler.
+Tyler confirmed that disabling the task stopped the interruption. Do not resume
+from earlier success notes: the prior foreground-window test did not check
+selection changes inside an existing Terminal window.
+
+Root cause captured in scheduled testing: the uv virtual environment's
+`pythonw.exe` is a console-subsystem redirector and opens Terminal before Python
+code runs. The installer now verifies PE subsystem 2 and chooses the underlying
+GUI Python executable. A repeated real scheduled worker had unchanged tabs and
+selection with no window/focus events. `install.ps1 -UpdateLauncher` migrates only
+the exact known old action while preserving the disabled task and paused state.
 
 Listener maintenance: Tyler reported terminal interruptions from background work.
-The listener launch now gives ordinary Windows descendants a hidden console and
-disables notifications only for the unattended worker. The nested-process test
-and real Codex smoke passed with no observed window-show/focus-change events;
-see [listener verification](docs/reviews/FEEDBACK_LISTENER.md#silent-execution-correction-2026-10-13).
+The replacement hosts the entire scheduled poll and ordinary descendants in a
+private native ConPTY session and disables notifications only for the unattended
+worker. It preserves exit codes, waits for attached descendants and records
+local host diagnostics. The listener requires Windows 11 24H2+; parser/work-machine
+support is unchanged. See [listener verification](docs/reviews/FEEDBACK_LISTENER.md).
+Fresh validation: 274 application tests (273 passed, one existing symlink skip),
+139 helper tests passed, independent review with no remaining blockers and a
+successful real scheduled worker with passive Terminal-tab observation.
 Global settings and parser contracts are unchanged. Inspect local listener status
 before interactive edits; the latest development result remains the address-shape
 slice below, awaiting its work-machine aggregate.

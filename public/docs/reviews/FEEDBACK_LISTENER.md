@@ -6,13 +6,14 @@ using `bash ./run-work-check.sh` and does not need another service.
 
 ## Operation
 
-Operational hold recorded 2026-10-13: Tyler reported continued terminal takeover
-after f18b34b. The installed task is disabled and listener state is paused, so
-automatic checks are stopped. No listener worker remained at inspection. Keep
-monitoring off until the offending command and launch path are identified and
-verified; the checks below document the earlier attempts, not a resolved issue.
+Operational hold recorded 2026-10-13: Tyler confirmed that disabling the scheduled
+task stopped the terminal takeover after f18b34b. The installed task remains
+disabled and listener state remains paused. A real scheduled worker using the
+verified GUI launcher passed Terminal-tab observation; automatic checks remain
+off. Earlier successful smoke tests did not establish that the previous launch
+mechanism was silent in normal use.
 
-Windows Task Scheduler checks every five minutes while Tyler is logged in and
+When enabled, Windows Task Scheduler checks every five minutes while Tyler is logged in and
 the PC is awake, and also checks at logon. It uses a dedicated checkout under
 `%LOCALAPPDATA%/PLCWorkbench/feedback-listener/checkout`. It never pulls or edits
 the primary interactive checkout. Normal Git fetch/fast-forward and push rules
@@ -39,14 +40,30 @@ model and reasoning preference are inherited as well. Only this background worke
 disables external completion notifications and TUI notifications with per-command
 overrides. Interactive notifications and the global Codex configuration are unchanged.
 
-On Windows, Git, report validation and the worker use hidden launch settings.
-Console programs receive a separate hidden console that ordinary descendant
-commands inherit instead of opening a visible terminal. Scheduled validation
-uses the windowless Python executable. `CREATE_NO_WINDOW` alone leaves a console
-program without a console and does not prevent normally launched descendants
-from creating one.
-See Microsoft's [process creation flags](https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags)
-and [startup window settings](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfoa).
+The installer reads the Windows executable header to select a genuine GUI
+`pythonw.exe` from the project's underlying Python installation. A virtual
+environment's `pythonw.exe` can be a console-subsystem redirector and create a
+Terminal tab before Python code runs. Existence and filename alone are insufficient.
+The selected base interpreter and its console sibling run the listener and
+isolated report validator, whose current imports use only the standard library.
+Parser development and work-machine analysis continue to use the project environment.
+
+On Windows, that verified GUI entry point now hosts the entire poll in
+a private native pseudoconsole (ConPTY). Its console-Python child, Git, report
+validator, Codex and ordinary descendants inherit that console. They do not
+request a new console or attach to the user's Terminal. Redirected worker logs
+remain ordinary byte-preserving files; the host separately retains at most 32 KiB
+of terminal diagnostic output while continuously draining the stream.
+
+The host preserves the direct child's exit code and waits for attached
+descendants to finish naturally. It uses
+[ReleasePseudoConsole](https://learn.microsoft.com/en-us/windows/console/releasepseudoconsole)
+to detect when all clients have disconnected before freeing the session, avoiding
+premature termination after only the direct child exits. This requires Windows
+11 24H2 or later (or Windows Server 2025); installation checks the required APIs
+before creating local listener state or registering a task. The parser and
+work-machine runner retain their existing OS support; unsupported native-host
+integration tests skip there, while missing-API rejection is still tested.
 Worker notification overrides use the documented
 [Codex notification configuration](https://learn.chatgpt.com/docs/config-file/config-advanced#notifications).
 This is a console-launch policy, not a restriction on a program explicitly opening
@@ -80,6 +97,9 @@ bash ./feedback-listener.sh pause --reason "Working interactively"
 bash ./feedback-listener.sh resume
 ```
 
+`resume` clears the listener-state pause; it does not enable a disabled Windows
+scheduled task. The current operational hold keeps both controls off.
+
 Pause before starting interactive code changes. If a worker is already running,
 let it finish and inspect its status before taking over; pause does not terminate
 or discard a running worker. Fetch before continuing interactive Git work. A
@@ -95,6 +115,13 @@ Scheduler's **PLC Workbench Feedback Listener** entry. Do not delete the checkou
 or state while it contains unfinished work. The installation uses the current
 user's interactive logon at limited privilege, without storing a Windows password.
 
+Native launch/child failures pause the listener without clearing pending report
+claims or history. `host-failure.json` saves the exit code and bounded local
+diagnostic. If native read/wait/release operations fail while work is still active,
+the host retains ownership and reports `host_problem` through `status`; it never
+terminates an in-flight Git operation to enforce a timeout. `host-problem.json`
+records whether that problem is still active. These files stay local.
+
 ## Installation and reproducibility
 
 The development PC installation is performed after the code is committed and
@@ -104,7 +131,15 @@ pushed. For an explicitly requested installation on another development PC:
 & .\tools\feedback_listener\install.ps1
 ```
 
-Requirements: Git, uv, Python's `pythonw.exe`, a native Codex CLI executable and
+To migrate an existing listener installed with the old virtual-environment
+launcher, use `install.ps1 -UpdateLauncher`. Migration requires the exact known
+old action and matching task identity, refuses a running task and updates only
+its action. The installer verifies the triggers, account/settings and enabled
+state are preserved. A disabled task remains disabled; this switch never resumes
+the listener's paused state. Tasks in other Task Scheduler folders are untouched.
+
+Requirements: Windows 11 24H2+ with the required pseudoconsole APIs, Git, uv,
+Python's `pythonw.exe`, a native Codex CLI executable and
 an existing ChatGPT login, plus GitHub authentication. The installer discovers
 the npm-distributed native CLI or accepts `-CodexPath`. It refuses a different
 existing configuration/task instead of overwriting it. Repeating a matching
@@ -113,6 +148,8 @@ successful initialization. Incomplete/corrupted initialization is preserved for
 investigation; it is not silently replaced or treated as a working installation.
 
 Implementation: [poller](../../../tools/feedback_listener/listener.py),
+[native host](../../../tools/feedback_listener/windows_host.py),
+[GUI launcher verification](../../../tools/feedback_listener/windows_launcher.py),
 [worker instructions](../../../tools/feedback_listener/PROMPT.txt),
 [Windows installer](../../../tools/feedback_listener/install.ps1).
 
@@ -165,7 +202,7 @@ Tyler reported the listener opening/focusing a terminal during other work. The
 listener was idle after successfully pushing the address-shape slice at 833f900;
 monitoring was paused while fixing its launch behavior. The original direct-child
 `CREATE_NO_WINDOW` flag did not give normally spawned descendants a console to
-inherit. The fix uses `CREATE_NEW_CONSOLE` with `STARTF_USESHOWWINDOW` / `SW_HIDE`
+inherit. That attempt used `CREATE_NEW_CONSOLE` with `STARTF_USESHOWWINDOW` / `SW_HIDE`
 for Git, report validation and Codex. Per-invocation `notify=[]` and
 `tui.notifications=false` suppress the inherited external completion helper and
 TUI notifications for this worker only. No global configuration, permission policy,
@@ -198,6 +235,56 @@ test watched top-level foreground changes and window-show events, not which tab
 was selected inside an existing window; its success did not establish that no
 tab takeover occurred. The task was disabled and the listener paused. Current
 process inspection found no active listener or worker. The exact command/title
-and whether it occurs while this chat is idle have been requested from Tyler.
-No terminal preferences, account permissions or unrelated processes were changed.
-No replacement console host was deployed without identifying the failing path.
+and timing were not captured. Tyler confirmed that disabling the task stopped the
+interruption, implicating the listener's launch path. No terminal preferences,
+account permissions or unrelated processes were changed. The ConPTY replacement
+above supersedes the hidden-console flags; the operational hold remains in effect.
+
+Subsequent scheduled testing captured the missed root cause: the uv virtual
+environment's `Scripts/pythonw.exe` has PE subsystem 3 (console). The base
+installation's `pythonw.exe` has subsystem 2 (GUI). A scheduled launch with the
+console redirector selected a new Terminal tab before the hosted worker started;
+the same worker with the verified base GUI executable did not. The earlier
+descendant-console explanation was incomplete. In-process tests with redirected
+handles had masked the outer launch problem.
+
+## Native headless host verification (2026-10-13)
+
+The complete application suite ran **274 tests: 273 passed and one existing
+Windows symlink test skipped**. All **139 helper tests passed**. The application
+suite includes 30 listener cases, 12 native host cases and 10 launcher cases. Host checks exercise
+windowless Python launch, inherited child/grandchild consoles, a descendant that
+outlives its parent, binary pipes/files, large output, argument quoting, exact
+nonzero exits, resource cleanup and native error reporting. Real temporary Git
+repositories verify the hosted poll's behavior and durable failure state.
+
+On this Windows build 26200 PC, all required APIs are present. A simulated missing
+capability skipped the 11 native integration cases while still passing the
+missing-API fail-closed case. Installer PowerShell parsing, Bash syntax and Git
+whitespace checks passed. Independent code and documentation review found no
+remaining blockers after the descendant-lifetime and compatibility fixes.
+
+The installer also verifies GUI versus console PE headers, malformed executables,
+fallback interpreter paths and the actual uv console-shim bypass. Listener launch
+tests now use the verified GUI executable, including a real temporary Git poll.
+
+A one-shot scheduled task using the original venv redirector completed functionally
+but opened/selected a tenth Terminal tab. Repeating the real native Codex worker
+with the verified base GUI executable passed: 36 passive UIAutomation snapshots
+before/during/after showed the same nine tab runtime IDs and selected tab, with
+zero selection events, zero foreground/window-show events and zero observer errors.
+Task Scheduler and the hosted child both returned 0; the structured worker result
+validated, and independent reads confirmed the invented nested probe succeeded.
+The observation covered 2026-10-14 04:51:08-04:51:34 UTC. The disposable task used
+Interactive/Limited/IgnoreNew without recurring triggers and was removed afterward.
+
+A separate model-free base-GUI launch exercised the production `_validate_report`
+fresh-interpreter path against the tracked approved report
+`work-check-20261013T234851Z-b10d84dc.json`, successfully. The installer resolver
+selects the same underlying executable used by the successful scheduled test.
+Detailed smoke artifacts stay local under `%TEMP%/plc-listener-ui-boundary-gui-*`;
+the preceding failed run is preserved separately for comparison.
+
+This evidence covers the tested scheduled launch and native worker path; recurring
+production execution remains off. The production task remains disabled and
+listener state remains paused. No global Terminal or Codex settings were changed.
