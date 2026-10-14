@@ -1,6 +1,6 @@
 # Codex handoff: PLC analysis workbench
 
-Updated 2026-10-13. Current activity: **returned module/I/O report reviewed; authorized feedback listener implementation in progress on feat/source-references-pc**. See [module/I/O review](docs/reviews/MODULE_IO_REVIEW.md) for the tested revision and returned evidence, [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) for runner usage, and [command usage](../python-parser/README.md).
+Updated 2026-10-13. Current activity: **returned module/I/O report reviewed; feedback listener implemented and installed on the development PC for feat/source-references-pc**. See [module/I/O review](docs/reviews/MODULE_IO_REVIEW.md) for the tested revision and returned evidence, [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) for runner usage, and [command usage](../python-parser/README.md).
 
 ## Current module/I/O checkpoint (2026-10-13)
 
@@ -45,7 +45,10 @@ records or terminal logs here. PCSD, FHX, editor and engineering classification
 remain later work.
 
 Tyler has now explicitly authorized a listener to check for new work-machine
-pushes and continue agreed development. Implementation and review are complete;
+pushes and continue agreed development. Implementation fde4fc2 is installed, and
+the scheduled launch check returned exit 0. The latest report above is selected
+for the first follow-up, so Tyler does not need to rerun it to trigger development.
+Live monitoring/worker state is local and must be checked with the status command;
 consult [FEEDBACK_LISTENER.md](docs/reviews/FEEDBACK_LISTENER.md) for validation,
 local activation and operating details. Before interactive edits on a development
 PC where it is installed, inspect `bash ./feedback-listener.sh status` and pause
@@ -57,8 +60,8 @@ work, ignore its own code pushes and stop for required questions, work-machine
 investigation or a phase checkpoint needing Tyler's decision.
 
 The current application suite includes the listener's Git integration tests:
-232 tests passed with one skip (231 executed successfully), plus all 139 helper
-tests. Source/reference output contracts are unchanged by the listener.
+232 tests run: 231 passed and one skipped, plus all 139 helper tests passed.
+Source/reference output contracts are unchanged by the listener.
 
 The checkpoints below preserve earlier evidence and chronology. Their previous
 next-step statements do not override this current checkpoint.

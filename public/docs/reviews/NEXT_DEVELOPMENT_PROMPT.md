@@ -36,10 +36,11 @@ test run as fresh execution.
 
 The module/I/O slice is implemented and its returned work-machine report is
 reviewed in MODULE_IO_REVIEW.md. Tyler has explicitly authorized the feedback
-listener; its implementation is now the priority. Consult the forthcoming
-FEEDBACK_LISTENER.md for concrete behavior, verification and activation state.
-Do not infer that an unattended task is running from this planning note.
-After that workflow is complete, the next bounded parser candidate is a closed
+listener; implementation fde4fc2 is installed on the development PC and its
+scheduled launch check passed. Consult FEEDBACK_LISTENER.md for concrete behavior
+and verification, and the local status command for current monitoring/worker state.
+The latest returned report is selected for its first follow-up; no extra work-machine
+run is needed to trigger that work. The next bounded parser candidate is a closed
 aggregate address-shape breakdown for 868 operands outside the current address
 grammar. Establish evidence with invented examples before changing resolution.
 Continue work already authorized in the active session; stop for a decision

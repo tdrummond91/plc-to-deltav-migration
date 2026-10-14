@@ -97,7 +97,7 @@ Implementation: [poller](../../../tools/feedback_listener/listener.py),
 
 ## Validation
 
-On 2026-10-13, the application suite passed **232 tests (231 passed, one Windows
+On 2026-10-13, the application suite ran **232 tests (231 passed, one Windows
 symlink skip)**, including all 24 listener tests. All **139 helper tests passed**.
 The listener tests use real temporary Git origins/checkouts and a controlled
 agent boundary: new/corrected reports, explicit initial selection, code-only
@@ -118,5 +118,22 @@ Windows helper setup. The listener now inherits the user's existing configuratio
 instead of introducing that override; no global permission settings were changed.
 
 These checks establish the worker execution boundary and poller behavior.
-Windows task registration and a live scheduled invocation are verified separately
-during installation; code availability alone does not mean monitoring is active.
+
+## Development PC installation evidence (2026-10-13)
+
+Implementation fde4fc2 was installed after pushing it. The registered task is
+**PLC Workbench Feedback Listener**, using this account's interactive logon,
+limited privilege, `pythonw.exe`, five-minute repetition and a logon trigger.
+Overlapping scheduled invocations are ignored. A real scheduled invocation while
+the listener was paused completed with `LastTaskResult=0`, verifying task launch.
+The listener was paused only to finish installation notes before activation.
+
+The installer selected
+`public/inspection/work-check-20261013T234851Z-b10d84dc.json` as its initial report;
+earlier work-check reports were baselined. The first resumed poll can therefore
+continue from the report already returned, without another work-machine run.
+
+These installation facts are not a live status display. Use
+`bash ./feedback-listener.sh status` for the current state, last result, pending
+report and local run-log location. The paused launch check alone does not verify
+the scheduled environment's Git authentication or a completed development run.
