@@ -1,0 +1,333 @@
+{
+  "analysis": {
+    "failure_code": null,
+    "private_run_saved": true,
+    "reference_summary": {
+      "aliases": {
+        "by_reason": {
+          "unresolved": {
+            "aoi_alias_target_not_local": 0,
+            "colon_root_not_declared": 99,
+            "invalid_scope": 0,
+            "root_not_declared": 0
+          },
+          "unsupported_address": {
+            "address_length_limit": 0,
+            "backslash_qualified_address": 0,
+            "empty_address": 0,
+            "expanded_suffix_limit": 0,
+            "malformed_address": 0,
+            "non_static_array_index": 0,
+            "program_qualified_address": 0
+          }
+        },
+        "by_status": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous": 0,
+          "root_bound": 842,
+          "unresolved": 99,
+          "unsupported_address": 0
+        },
+        "total": 941
+      },
+      "analysis_scope": "scoped_root_bindings",
+      "analyzer_version": "source-references-2",
+      "coverage": {
+        "instructions_catalogued": 17563,
+        "instructions_total": 17874,
+        "rungs_analyzed": 4606,
+        "rungs_total": 4606
+      },
+      "effect_analysis": "not_implemented",
+      "exporter_version": "reference-summary-3",
+      "member_validation": "not_implemented",
+      "module_io": {
+        "by_name_origin": {
+          "backplane_slot": 164,
+          "explicit_name": 0,
+          "module_name": 88,
+          "unavailable": 0
+        },
+        "named": 252,
+        "total": 252,
+        "unavailable_by_reason": {
+          "ambiguous_connection_context": 0,
+          "ambiguous_module_context": 0,
+          "ambiguous_parent_module": 0,
+          "ambiguous_parent_port": 0,
+          "ambiguous_upstream_port": 0,
+          "invalid_explicit_name": 0,
+          "invalid_module_name": 0,
+          "invalid_slot": 0,
+          "invalid_suffix": 0,
+          "invalid_upstream_port": 0,
+          "missing_connection_context": 0,
+          "missing_module_context": 0,
+          "missing_parent_module": 0,
+          "missing_parent_port": 0,
+          "missing_upstream_port": 0,
+          "name_length_limit": 0,
+          "port_type_mismatch": 0,
+          "topology_cycle": 0,
+          "topology_depth_limit": 0,
+          "unsupported_port_type": 0
+        }
+      },
+      "operands": {
+        "by_reason": {
+          "unresolved": {
+            "aoi_alias_target_not_local": 0,
+            "colon_root_not_declared": 320,
+            "invalid_scope": 0,
+            "root_not_declared": 0
+          },
+          "unsupported_address": {
+            "address_length_limit": 0,
+            "backslash_qualified_address": 0,
+            "empty_address": 0,
+            "expanded_suffix_limit": 0,
+            "malformed_address": 868,
+            "non_static_array_index": 2,
+            "program_qualified_address": 0
+          }
+        },
+        "by_status": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous": 0,
+          "argument_count_mismatch": 0,
+          "empty": 0,
+          "literal": 2517,
+          "non_data": 0,
+          "root_bound": 20178,
+          "unresolved": 320,
+          "unsupported_address": 870,
+          "unsupported_expression": 45,
+          "unsupported_instruction": 653
+        },
+        "malformed_address_shapes": {
+          "alias_target_failure": 0,
+          "contains_brackets": 0,
+          "contains_colon": 0,
+          "contains_dot": 0,
+          "leading_hash_other": 0,
+          "leading_hash_static_address": 0,
+          "other_form": 868
+        },
+        "total": 24583
+      },
+      "policy_version": 2,
+      "report_kind": "l5x_reference_review_summary",
+      "schema_version": 3,
+      "semantic_analysis": "not_implemented",
+      "sharing_status": "aggregate_sync_allowed",
+      "source_summary": {
+        "analysis_scope": "source_structure_only",
+        "counts": {
+          "aliases": 941,
+          "aoi_definitions": 1,
+          "aoi_local_tags": 2,
+          "aoi_parameters": 6,
+          "controller_tags": 6261,
+          "controllers": 1,
+          "encoded_regions": 0,
+          "instructions": 17874,
+          "module_config_tags": 83,
+          "module_connections": 104,
+          "module_input_tags": 104,
+          "module_output_tags": 65,
+          "module_ports": 137,
+          "modules": 120,
+          "other_tag_definitions": 0,
+          "program_tags": 46,
+          "programs": 3,
+          "routines": 70,
+          "rungs": 4606,
+          "tasks": 3,
+          "total_tag_definitions": 6307,
+          "trends": 78,
+          "user_data_types": 0
+        },
+        "coverage": {
+          "instruction_count_complete": false,
+          "routines": {
+            "encountered": 70,
+            "failed": 1,
+            "parsed": 55,
+            "preserved_unsupported": 14
+          },
+          "rungs": {
+            "encountered": 4606,
+            "excluded": 0,
+            "failed": 0,
+            "parsed": 4606,
+            "preserved_unsupported": 0
+          },
+          "unmodeled_xml": {
+            "distinct_paths": 141,
+            "elements": 59975
+          },
+          "xml_elements": 83942
+        },
+        "diagnostics": {
+          "by_code": {
+            "declaration_context_not_analyzed": 10,
+            "module_rack_connection_not_analyzed": 11,
+            "routine_content_missing": 1,
+            "routine_language_not_analyzed": 14,
+            "withheld": 0
+          },
+          "by_severity": {
+            "error": 1,
+            "info": 14,
+            "warning": 21,
+            "withheld": 0
+          },
+          "total": 36
+        },
+        "exporter_version": "aggregate-summary-3",
+        "instructions": {
+          "counts": {
+            "ABS": 8,
+            "ADD": 32,
+            "AVE": 1,
+            "CLR": 41,
+            "COP": 92,
+            "CPT": 45,
+            "CTU": 3,
+            "DIV": 277,
+            "EQU": 319,
+            "FAL": 1,
+            "GEQ": 160,
+            "GRT": 212,
+            "GSV": 5,
+            "JSR": 76,
+            "LEQ": 909,
+            "LES": 382,
+            "LIM": 9,
+            "LN": 2,
+            "MOV": 1131,
+            "MSG": 27,
+            "MUL": 121,
+            "MVM": 16,
+            "NEQ": 74,
+            "ONS": 133,
+            "OSF": 3,
+            "OTE": 1687,
+            "OTL": 1174,
+            "OTU": 1302,
+            "PID": 46,
+            "RES": 48,
+            "RET": 1,
+            "RTO": 44,
+            "SBR": 1,
+            "SFR": 140,
+            "SQO": 1,
+            "SQR": 18,
+            "SUB": 463,
+            "SWPB": 10,
+            "TON": 390,
+            "XIC": 5057,
+            "XIO": 3412,
+            "withheld": 1
+          },
+          "scope": "successfully_parsed_RLL_rungs_only",
+          "total": 17874
+        },
+        "ladder_metrics": {
+          "maxima": {
+            "height_lanes": 59,
+            "max_branch_depth": 4,
+            "max_legs_in_group": 49,
+            "width_instructions": 18
+          },
+          "scope": "successfully_parsed_RLL_rungs_only",
+          "totals": {
+            "argument_slots": 24583,
+            "branch_groups": 3719,
+            "branch_legs": 8887,
+            "empty_branch_legs": 0,
+            "expression_instruction_calls": 46,
+            "instruction_calls": 17874,
+            "nonempty_argument_fields": 24583
+          }
+        },
+        "parser_version": "source-inventory-2",
+        "policy_version": 2,
+        "report_kind": "l5x_aggregate_review_summary",
+        "routine_types": {
+          "FBD": 0,
+          "RLL": 56,
+          "SFC": 14,
+          "ST": 0,
+          "Sequence": 0,
+          "missing": 0,
+          "withheld": 0
+        },
+        "schema_version": 3,
+        "semantic_analysis": "not_implemented",
+        "sharing_status": "aggregate_sync_allowed",
+        "status": "partial",
+        "tool_revision": {
+          "commit": "46467af51a1dadaa74dc29c4ff93cd3a8de38134",
+          "worktree": "clean"
+        }
+      },
+      "status": "partial",
+      "symbols": {
+        "ambiguous_groups": 0,
+        "by_kind": {
+          "aoi_local_tag": 2,
+          "aoi_parameter": 6,
+          "module_config_tag": 83,
+          "module_input_tag": 104,
+          "module_output_tag": 65,
+          "tag": 6307
+        },
+        "total": 6567,
+        "unnamed": 0
+      }
+    },
+    "status": "partial"
+  },
+  "report_kind": "l5x_work_machine_check",
+  "run_id": "20261014T074558Z-c76f530e",
+  "schema_version": 1,
+  "status": "partial",
+  "tests": {
+    "application": {
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skipped": 1,
+        "tests_run": 152,
+        "unexpected_successes": 0
+      },
+      "failed_test_ids": [],
+      "failure_ids_omitted": 0,
+      "schema_version": 1,
+      "status": "passed"
+    },
+    "helpers": {
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests_run": 139,
+        "unexpected_successes": 0
+      },
+      "failed_test_ids": [],
+      "failure_ids_omitted": 0,
+      "schema_version": 1,
+      "status": "passed"
+    }
+  },
+  "tool_revision": {
+    "commit": "46467af51a1dadaa74dc29c4ff93cd3a8de38134",
+    "worktree": "clean"
+  },
+  "workflow_version": "work-check-1"
+}

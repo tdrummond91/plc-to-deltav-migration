@@ -29,13 +29,15 @@ summary-002 and the returned reference summary: 4,606 rungs, 17,874 instructions
 
 The script uses the code already checked out and locked Python dependencies. It
 runs explicit parser/helper test allowlists in separate processes, analyzes the
-saved source and writes local reports. It never fetches, pulls, stages, commits
-or pushes. Passing a different filename/path replaces the machine-local source
+saved source and automatically stages and commits only its new validated
+aggregate report. It never fetches, pulls or pushes. Passing a different
+filename/path replaces the machine-local source
 selection for future runs.
 
 Git, Git Bash and uv must already be available. The checkout must be clean and
 on a named branch (including `main`); an upstream and GitHub authentication are not required
-by the runner. Local changes stop the script without discarding anything.
+by the runner. A configured Git author identity is needed for the local commit.
+Local changes stop the script without discarding anything.
 Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
@@ -47,7 +49,7 @@ implementation ran; older reports can therefore have a broader test scope.
 
 | Location | Contents |
 |---|---|
-| `public/inspection/local/work-check-<run-id>.json` | Git-ignored local aggregate: tested code revision, both suites' counts/statuses and bounded failed test IDs, analysis status and the reference/structural aggregate |
+| `public/inspection/work-check-<run-id>.json` | Automatically committed local aggregate: tested code revision, both suites' counts/statuses and bounded failed test IDs, analysis status and the reference/structural aggregate |
 | `confidential/work-checks/<run-id>/` | Local test logs and structured results; analysis exception details if needed |
 | `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt and manifest.json |
 | Git metadata `plc-work-check.json` | Local remembered source path; not committed or pushed |
@@ -61,16 +63,20 @@ The public report contains no source filename, names, values, source hashes,
 per-rung examples, raw logs or individual reference links. The reference aggregate
 is at `analysis.reference_summary`, with the structural summary nested beneath
 `source_summary`. The top-level `tool_revision` identifies the tested code commit;
-any later manually created report commit is intentionally different.
+the automatically created report commit is intentionally different.
 
 ## Manual review and publication
 
-Review the saved aggregate. To share a result,
-manually copy or move only its final JSON from `public/inspection/local/` into
-`public/inspection/`, then explicitly stage, commit and push that file. Leaving
-the report in `local/` keeps it excluded from ordinary Git staging. Do not share
-the private log folder, workspace, source export or temporary pending files.
-The runner does not perform any of these publication actions.
+Review the saved aggregate, then publish the already committed result:
+
+```bash
+git push
+```
+
+No manual copy, staging or commit step is needed. Older reports saved by the
+previous runner under `public/inspection/local/` remain ignored and are not
+included automatically. The private log folder, workspace and source export
+are never included in the report commit. The runner does not contact a remote.
 
 ## Reading completion and failures
 
@@ -80,11 +86,17 @@ means usable results with gaps, not a failed save. A complete result also refers
 only to the implemented analysis scope, not all process behavior.
 
 If either suite fails, both suites are still attempted, source analysis is skipped,
-and the test-results report is saved locally. The script exits 1 after reporting
+and the test-results report is committed locally. The script exits 1 after reporting
 that failure. Analysis failures also produce a failed report with a fixed reason
-code; detailed diagnostics remain local. Setup/source-selection errors occur
+code and a local report commit; detailed diagnostics remain local. Setup/source-selection errors occur
 before the check and do not produce a test-results report. Changes to the branch,
 commit or tracked/untracked files during the run stop normal completion.
+
+If staging or committing fails, the report remains on disk and the script exits
+1 without pushing. The local `git.log` contains the Git error (for example,
+missing author identity). Resolve that error before retrying; the retained
+uncommitted report must be handled before another run can pass the clean-tree
+check. The runner never clears or silently commits unrelated changes.
 
 A local save does not send anything to the development PC. A report becomes
 available there only after manual publication. No copied terminal output,

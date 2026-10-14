@@ -27,12 +27,15 @@ tested revisions. Start future work from main on a new -pc feature branch;
 do not revive or merge the retired topic branches.
 
 The updated work-machine runner operates on the already checked out clean named
-branch, including main. It never fetches, pulls, stages, commits or pushes, and requires no
-matching upstream. It saves a validated aggregate to Git-ignored
-public/inspection/local/work-check-<run-id>.json. Code updates and publication
-are manual: review the aggregate, copy or move only its JSON into
-public/inspection/, then explicitly stage, commit and push. Private log folders,
-source and workspaces remain under confidential/ and must not be shared.
+branch, including main. Tyler clarified that local report commits should be
+automatic; only fetching, pulling and pushing remain manual. No matching upstream
+is required. The runner saves a validated aggregate to
+public/inspection/work-check-<run-id>.json and automatically stages and commits
+only that file, including failed test/analysis outcomes. It checks the tested
+branch/revision, clean tree and report commit scope. Review the report, then run
+git push manually. Old reports under public/inspection/local/ stay ignored and
+are not included. Private log folders, source and workspaces remain under
+confidential/ and must not be shared.
 
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
@@ -202,9 +205,9 @@ of instruction signatures catalogued, 17,856 bound operand occurrences and only
 SOURCE_REFERENCES_REVIEW.md for all counters and exact structural reconciliation.
 Tyler then requested a one-command work-machine runner. Its original workflow
 was pull, both test suites, private analysis, then aggregate report-only
-commit/push. That automatic Git behavior is superseded by the current local-save
-workflow at the top of this prompt. Work-check reports carry test outcomes;
-publication now requires manual review and explicit Git actions.
+commit/push. Automatic pull/push is superseded by the local-report-commit workflow
+at the top of this prompt. Work-check reports carry test outcomes;
+publication requires review and a manual git push, with no manual commit step.
 Read WORK_CHECK_RUNNER_REVIEW.md and the updated work-machine procedure first.
 
 The runner's first two work-machine reports have returned in ad2ec8b and f38d81e.

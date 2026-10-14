@@ -1,8 +1,8 @@
 """Run local parser checks and analysis using the already checked-out code.
 
 Source data, saved engineering records and raw test output remain private. Only
-closed aggregate reports are saved locally for manual review and sharing.
-This workflow never fetches, pulls, stages, commits or pushes.
+closed aggregate reports are committed locally for manual review and pushing.
+This workflow never fetches, pulls or pushes.
 """
 from __future__ import annotations
 
@@ -119,9 +119,9 @@ def _private_failure(path: Path, details: bytes | str | None = None) -> None:
         pass
 
 
-def _git(root: Path, *arguments: str, logs: Path | None = None) -> str:
+def _git(root: Path, *arguments: str, logs: Path | None = None, raw: bool = False) -> str:
     # Do not inherit alternate work-tree/index settings. Preserve the user's
-    # normal Git configuration for local revision checks.
+    # normal Git configuration for local revision checks and report commits.
     environment = {key: value for key, value in os.environ.items() if key.upper() not in _GIT_REPOSITORY_OVERRIDES}
     try:
         result = subprocess.run(
@@ -129,12 +129,17 @@ def _git(root: Path, *arguments: str, logs: Path | None = None) -> str:
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
             timeout=180, env=environment,
         )
-        return result.stdout.decode("utf-8").strip() if "-z" not in arguments else result.stdout.decode("utf-8")
+        output = result.stdout.decode("utf-8")
+        return output if raw or "-z" in arguments else output.strip()
     except (OSError, UnicodeError, subprocess.SubprocessError) as exc:
         if logs is not None:
             _private_failure(logs / "git.log", getattr(exc, "stderr", None))
-        action = arguments[0] if arguments and arguments[0] in {"status", "rev-parse", "symbolic-ref"} else "operation"
+        action = arguments[0] if arguments and arguments[0] in {
+            "status", "rev-parse", "symbolic-ref", "add", "commit", "diff-tree", "show",
+        } else "operation"
         message = f"Git {action} failed; existing files and commits were preserved."
+        if action == "commit":
+            message += " The report remains local; nothing was pushed. Check your Git identity and commit configuration."
         if logs is not None:
             message += " See git.log in the local logs folder if available."
         raise WorkCheckError(message) from exc
@@ -155,11 +160,12 @@ def _branch(root: Path) -> str:
     return _git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
 
 
-def _check_pinned(root: Path, branch: str, commit: str) -> None:
+def _check_pinned(root: Path, branch: str, commit: str, report_path: str | None = None) -> None:
     if _branch(root) != branch or _git(root, "rev-parse", "HEAD") != commit:
         raise WorkCheckError("The checked branch or commit changed; local results were preserved for review.")
     status = _git(root, "status", "--porcelain=v1", "-z", "--untracked-files=all")
-    if status:
+    allowed = {""} if report_path is None else {f"?? {report_path}\0", f"A  {report_path}\0"}
+    if status not in allowed:
         raise WorkCheckError("Working-tree changes were found; local results were preserved for review.")
 
 
@@ -170,6 +176,17 @@ def _config_path(root: Path) -> Path:
     if destination.is_symlink() or destination.resolve() != git_directory / "plc-work-check.json":
         raise WorkCheckError("Saved-source configuration must remain in this checkout's Git directory.")
     return destination.resolve()
+
+
+def _check_report_file(root: Path, relative_report: str, rendered: str) -> None:
+    """Do not treat an edited file at the expected path as our validated report."""
+    path = root / relative_report
+    try:
+        if not path.is_symlink() and path.read_bytes() == rendered.encode("utf-8"):
+            return
+    except OSError:
+        pass
+    raise WorkCheckError("Report content changed or became unavailable; local results were preserved. Review before pushing.")
 
 
 def _source_path(root: Path, supplied: str | None) -> Path:
@@ -275,7 +292,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
 
 
 def run_check(root: Path, supplied_source: str | None) -> int:
-    """Save local results without changing Git history or contacting a remote."""
+    """Commit only the validated aggregate locally, without contacting a remote."""
     branch = _branch(root)
     commit = _git(root, "rev-parse", "HEAD")
     _check_pinned(root, branch, commit)
@@ -305,12 +322,31 @@ def run_check(root: Path, supplied_source: str | None) -> int:
     report = dict(_CONSTANTS, run_id=run_id, tool_revision=revision, tests=results, analysis=analysis, status=status)
     rendered = render_work_check_report(report)
     _check_pinned(root, branch, commit)
-    relative_report = f"public/inspection/local/work-check-{run_id}.json"
+    relative_report = f"public/inspection/work-check-{run_id}.json"
     from .summary_output import publish_summary
     publish_summary(root / relative_report, rendered, input_path=source)
-    _check_pinned(root, branch, commit)
     print(f"Saved work-machine report locally: {relative_report}", flush=True)
-    print("Nothing was staged, committed or pushed. Review the aggregate before sharing it manually.", flush=True)
+    _check_pinned(root, branch, commit, relative_report)
+    _check_report_file(root, relative_report, rendered)
+    _git(root, "add", "--", relative_report, logs=logs)
+    _check_pinned(root, branch, commit, relative_report)
+    _check_report_file(root, relative_report, rendered)
+    # Git filters can change the staged blob independently of the working file.
+    if _git(root, "show", f":{relative_report}", logs=logs, raw=True) != rendered:
+        raise WorkCheckError("Staged report content changed; local results were preserved. Review before pushing.")
+    # --only limits the commit to this report even if another process stages
+    # unrelated changes between the pin check and the commit command.
+    _git(root, "commit", "--only", "-m", "test(workflow): record work-machine check",
+         "--", relative_report, logs=logs)
+    saved_commit = _git(root, "rev-parse", "HEAD")
+    _check_pinned(root, branch, saved_commit)
+    if (_git(root, "rev-parse", "HEAD^") != commit
+            or _git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD") != relative_report):
+        raise WorkCheckError("Commit history changed unexpectedly; local results were preserved. Review before pushing.")
+    if _git(root, "show", f"{saved_commit}:{relative_report}", logs=logs, raw=True) != rendered:
+        raise WorkCheckError("Committed report content changed; local results were preserved. Review before pushing.")
+    print(f"Committed work-machine report locally: {saved_commit[:12]}", flush=True)
+    print("Nothing was pulled or pushed. Review the aggregate, then run git push when ready.", flush=True)
     print(f"Check status: {status}. Raw logs and engineering records remain under confidential/.", flush=True)
     return 1 if status == "failed" else 0
 

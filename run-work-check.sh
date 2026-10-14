@@ -6,8 +6,8 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     cat <<'USAGE'
 Usage: bash ./run-work-check.sh [SOURCE.L5X]
 
-Run parser tests, analyze the local source, and save results locally.
-No automatic fetch, pull, staging, commit or push. Review before sharing manually.
+Run parser tests, analyze the local source, and commit its aggregate report locally.
+No automatic fetch, pull or push. Review the report, then run git push when ready.
 A bare filename is found under confidential/plc-code/. An explicit path also works.
 The first run needs a source; later runs remember its path on this machine only.
 Run on any clean named branch, including main. No upstream connection is required.
