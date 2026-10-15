@@ -1,0 +1,57 @@
+{
+  "analysis": {
+    "access_summary": null,
+    "calculation_summary": null,
+    "condition_summary": null,
+    "failure_code": "save_error",
+    "pid_member_summary": null,
+    "pid_summary": null,
+    "private_run_saved": false,
+    "reference_summary": null,
+    "relationship_summary": null,
+    "rung_analysis_summary": null,
+    "sfc_structure_summary": null,
+    "status": "failed",
+    "tag_data_summary": null
+  },
+  "diagnostic_sample": null,
+  "report_kind": "l5x_work_machine_check",
+  "run_id": "20261015T230111Z-3453ea52",
+  "schema_version": 24,
+  "status": "failed",
+  "tests": {
+    "application": {
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skipped": 1,
+        "tests_run": 870,
+        "unexpected_successes": 0
+      },
+      "failed_test_ids": [],
+      "failure_ids_omitted": 0,
+      "schema_version": 1,
+      "status": "passed"
+    },
+    "helpers": {
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests_run": 139,
+        "unexpected_successes": 0
+      },
+      "failed_test_ids": [],
+      "failure_ids_omitted": 0,
+      "schema_version": 1,
+      "status": "passed"
+    }
+  },
+  "tool_revision": {
+    "commit": "effa48f318f5b26b9753d8c7c40fff84554cbc5b",
+    "worktree": "clean"
+  },
+  "workflow_version": "work-check-24"
+}
