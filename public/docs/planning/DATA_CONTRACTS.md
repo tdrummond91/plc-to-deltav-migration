@@ -2,7 +2,30 @@
 
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current timer/reset/copy access contract (2026-10-15)
+## Current stored tag data contract (2026-10-15)
+
+Private TagDataResult1 / tag-data-1 captures direct Data/DefaultData envelopes
+on canonical tag, AOI parameter/local-tag and module config/input/output
+declarations. Flat descendant records preserve parsed attributes/text and
+parent links. Missing data, alternate formats, opaque content and duplicates
+remain explicit; no effective value, numeric conversion or validated member
+path is produced. Snapshot bytes remain the original evidence.
+
+Closed tag-data-summary1 publishes only fixed metadata and bounded counts,
+after canonical replay. Work15 requires it alongside unchanged reference12,
+access2 and SFC2 summaries, reconciling revision and owner/XML populations.
+Historical work1-14 contracts remain strict. Private source3/reference6/access2/
+SFC2 payloads retain their exact contracts.
+
+Review3 / engineering-review-3 includes tag_data; manifest6 adds tag-data.json
+as the tenth artifact. Tag-data evidence requires a complete review with access.
+Optional legacy API calls retain review1/2 and manifest1-5 layouts, including
+their 64 MiB payload / 80 MiB HTML limits. Review3 allows 128 MiB / 160 MiB
+to include the bounded tag-data companion; validation still finishes before
+run allocation and manifest-last publication. Full capture
+boundaries and validation are in [TAG_DATA_REVIEW.md](../reviews/TAG_DATA_REVIEW.md).
+
+## Timer/reset/copy access contract (2026-10-15)
 
 AccessResult2 / instruction-access-2 extends the catalogue to 34 spellings with
 TON/TOF/RTO, RES and COP/CPS. Timer roots are read_write; recognized pseudo fields

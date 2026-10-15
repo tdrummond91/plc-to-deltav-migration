@@ -1,5 +1,32 @@
 # Work-machine check: local results and manual publication
 
+Current checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
+capture layer beside the unchanged source/reference/SFC/access contracts.
+Review3/manifest6 adds `tag-data.json` as the tenth hashed private artifact;
+work15 adds a count-only tag-data summary1. Missing Data remains absent evidence.
+Stored text and attributes do not establish effective values, initialization,
+runtime state, member validity or approved settings. Read the
+[Tag Data review](TAG_DATA_REVIEW.md) for scope and complete validation results.
+All 642 development cases pass with one existing Windows symlink skip.
+Two actual isolated runs, explicit then remembered source, each pass 546
+application cases (one existing symlink skip) and 139 helpers, with report-only
+local commits and no Git network calls. All ten hashes and canonical review3/
+Tag Data schema1 verify; fresh CLI artifacts are identical. Eight legacy artifacts
+match `122f230` byte for byte, source/reference/SFC/access summaries match after
+revision normalization, and all 21 historical work1-14 reports validate.
+
+Returned `122f230` confirms timer/reset/copy access2 on clean `bdcc101`: 496
+application cases (one skip), 139 helpers, 17,526 classified instructions of
+17,874, 348 unsupported instructions, 931 unknown operand roles and 321 binding
+gaps. All 434 timers have 868 placeholder initialization fields. Source/reference
+and SFC summaries equal `7cd9201` after revision normalization; aggregate equality
+does not prove source byte identity. The next normal work-machine run measures
+Tag Data capture. Only generated aggregate feedback is needed; engineering/UI
+review remains deferred and does not gate parser work. Manual pull/run/push
+and private artifact storage continue as described below.
+
+## Historical timer/reset/copy checkpoint
+
 The next run measures **Phase 1 timer/reset/copy operand access, extending the
 catalogue to 34 supported mnemonic spellings**. It saves private access evidence and adds count-only access
 coverage to the generated feedback. Roles describe potential explicit uses,
@@ -33,7 +60,7 @@ After checking the new generated feedback JSON, run `git push` manually. The
 script commits that report locally; no manual staging or commit is needed.
 Keep the HTML and engineering artifacts private.
 
-Current extension validation: 592 development cases pass (one existing symlink
+Historical extension validation: 592 development cases pass (one existing symlink
 skip). Two actual isolated runs, explicit then remembered source, each pass 496
 application cases (one skip) and 139 helpers. Both make report-only local commits
 without Git network calls, preserve earlier runs, verify nine artifact hashes
@@ -47,8 +74,8 @@ and 139 helpers. Manifest hashes, canonical review/access evidence and identical
 CLI HTML verify; seven legacy artifacts remain byte-identical to baseline
 `1332543` on the same invented input, and source/reference/SFC summaries match
 after revision normalization. All 19 historical work1-12 reports validate.
-Overall `partial` remains expected. Current work14 carries access summary2 beside unchanged reference12/
-source4/SFC2. Review2 runs use manifest5 with nine hashed artifacts, including
+At that checkpoint, overall `partial` remained expected. Work14 carried access summary2 beside unchanged reference12/
+source4/SFC2. Review2 runs used manifest5 with nine hashed artifacts, including
 private access2 in `access.json` and `review.html`; frozen work13 retains access
 summary1. Legacy reference/SFC runs
 retain manifest2/3, and historical review1/manifest4 runs remain readable.
@@ -162,16 +189,16 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 14 and their tested SHA identifies which suite
+check. New reports use schema 15 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
 
 | Location | Contents |
 |---|---|
-| `public/inspection/work-check-<run-id>.json` | Automatically committed feedback: tested revision, suite results, reference/structural/access counts, and at most one actual mystery operand with instruction/argument position |
+| `public/inspection/work-check-<run-id>.json` | Automatically committed feedback: tested revision, suite results, reference/structural/access/Tag Data counts, and at most one actual mystery operand with instruction/argument position |
 | `confidential/work-checks/<run-id>/` | Local test logs and structured results; analysis exception details if needed |
-| `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt, sfc-structure.json, sfc-structure.txt, access.json, review.html and manifest.json |
+| `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt, sfc-structure.json, sfc-structure.txt, access.json, tag-data.json, review.html and manifest.json |
 | Git metadata `plc-work-check.json` | Local remembered source path; not committed or pushed |
 
 For optional later inspection, `review.html` is the organized offline report. It includes private
@@ -186,8 +213,11 @@ records and source links for later analysis. Open sfc-structure.txt for SFC edit
 blocks, descriptors, opaque ST and scoped links; its JSON preserves canonical
 records. `access.json` schema2 records possible explicit operand roles and resolved-root
 groups; it does not assert runtime effects, dependencies or member overlap.
-Combined review work runs use review2/manifest5 with nine hashed artifacts.
-Work14 adds accepted timer counts and fixed placeholder/integer pseudo-operand
+Combined review work runs use review3/manifest6 with ten hashed artifacts.
+`tag-data.json` schema1 preserves stored Data/DefaultData evidence without choosing
+effective values or validating settings. Work15 adds `analysis.tag_data_summary`
+schema1 with fixed capture counts and no stored names, values or Format spellings.
+Access summary2 retains accepted timer counts and fixed placeholder/integer pseudo-operand
 counts; these contain no raw timer values or operand text. The timer capacity
 bound includes published TON/TOF/RTO counts plus pooled `withheld` spellings so
 lowercase source instructions remain supported. That bound does not prove that
@@ -210,8 +240,9 @@ eligible example. Null means no eligible
 example was available or analysis did not succeed. The reference aggregate
 is at `analysis.reference_summary`, with the structural summary nested beneath
 `source_summary`. Separate SFC counts are at `analysis.sfc_structure_summary`;
-count-only access coverage is at `analysis.access_summary`. The access section
-contains no names, source IDs, opcode histogram or individual relationships.
+count-only access coverage is at `analysis.access_summary`, and stored-data
+capture counts are at `analysis.tag_data_summary`. These sections contain no
+names, source IDs, values or individual relationships.
 The top-level `tool_revision` identifies the tested code commit;
 the automatically created report commit is intentionally different.
 

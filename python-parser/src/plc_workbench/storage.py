@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from .models import SourceSnapshot
     from .references import ReferenceResult
     from .sfc_structure import SfcStructureResult
+    from .tag_data import TagDataResult
 
 
 class StorageError(ValueError):
@@ -75,6 +76,7 @@ def save_run(
     sfc_structure: SfcStructureResult | None = None,
     include_review: bool = False,
     access: AccessResult | None = None,
+    tag_data: TagDataResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -86,6 +88,8 @@ def save_run(
             raise StorageError("A review run requires inventory, references and SFC structure.")
         if access is not None and not include_review:
             raise StorageError("Access records require a complete engineering review run.")
+        if tag_data is not None and (access is None or not include_review):
+            raise StorageError("Tag Data records require an engineering review with operand access.")
         payload = result.to_dict()
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
@@ -122,7 +126,8 @@ def save_run(
             from .review import ReviewError, build_review_data
             from .review_html import ReviewHtmlError, render_review_html
             try:
-                review_data = build_review_data(snapshot, result, references, sfc_structure, access=access)
+                review_data = build_review_data(snapshot, result, references, sfc_structure,
+                                                access=access, tag_data=tag_data)
                 review_html = render_review_html(review_data).encode("utf-8")
             except (ReviewError, ReviewHtmlError) as exc:
                 raise StorageError("Could not build the private engineering review report.") from exc
@@ -153,6 +158,13 @@ def save_run(
                 contents["access.json"] = render_access_json(access).encode("utf-8")
             except AccessError as exc:
                 raise StorageError("Could not render captured operand access records.") from exc
+        if tag_data is not None:
+            from .tag_data import TagDataError, render_tag_data_json
+            try:
+                tag_data_payload = tag_data.to_dict()
+                contents["tag-data.json"] = render_tag_data_json(tag_data).encode("utf-8")
+            except TagDataError as exc:
+                raise StorageError("Could not render captured Tag Data records.") from exc
         destination = _workspace_path(workspace)
         destination.mkdir(parents=True, exist_ok=True)
         if destination.resolve() != destination:
@@ -221,6 +233,14 @@ def save_run(
                 "status": "partial" if "partial" in (manifest["status"], access_payload["status"]) else "complete",
                 "access_schema_version": access_payload["schema_version"],
                 "access_analyzer_version": access_payload["analyzer_version"],
+            })
+        if tag_data is not None:
+            manifest.update({
+                "schema_version": 6,
+                "artifact_kind": "source_reference_sfc_access_tag_data_review_run",
+                "status": "partial" if "partial" in (manifest["status"], tag_data_payload["status"]) else "complete",
+                "tag_data_schema_version": tag_data_payload["schema_version"],
+                "tag_data_analyzer_version": tag_data_payload["analyzer_version"],
             })
         _write_artifact(
             destination, run_dir, ".manifest.pending",

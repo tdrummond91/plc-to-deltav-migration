@@ -1,6 +1,33 @@
 # Project state: explicit operand access and prior SFC assessment
 
-Current milestone (2026-10-15): [timer/reset/copy access](TIMER_COPY_ACCESS_REVIEW.md)
+Current checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
+capture layer beside the unchanged source/reference/SFC/access contracts.
+Review3/manifest6 adds `tag-data.json` as the tenth hashed private artifact;
+work15 adds a count-only tag-data summary1. Missing Data remains absent evidence.
+Stored text and attributes do not establish effective values, initialization,
+runtime state, member validity or approved settings. Read the
+[Tag Data review](TAG_DATA_REVIEW.md) for scope and complete validation results.
+All 642 development cases pass with one existing Windows symlink skip.
+Two actual isolated runs, explicit then remembered source, each pass 546
+application cases (one existing symlink skip) and 139 helpers, with report-only
+local commits and no Git network calls. All ten hashes and canonical review3/
+Tag Data schema1 verify; fresh CLI artifacts are identical. Eight legacy artifacts
+match `122f230` byte for byte, source/reference/SFC/access summaries match after
+revision normalization, and all 21 historical work1-14 reports validate.
+
+Returned `122f230` confirms timer/reset/copy access2 on clean `bdcc101`: 496
+application cases (one skip), 139 helpers, 17,526 classified instructions of
+17,874, 348 unsupported instructions, 931 unknown operand roles and 321 binding
+gaps. All 434 timers have 868 placeholder initialization fields. Source/reference
+and SFC summaries equal `7cd9201` after revision normalization; aggregate equality
+does not prove source byte identity. The next normal work-machine run measures
+Tag Data capture. Only generated aggregate feedback is needed; engineering/UI
+review remains deferred and does not gate parser work. Manual pull/run/push
+and private artifact storage continue as described below.
+
+## Historical timer/reset/copy checkpoint
+
+Historical milestone (2026-10-15): [timer/reset/copy access](TIMER_COPY_ACCESS_REVIEW.md)
 extends [initial explicit operand access](ACCESS_ROLE_REVIEW.md) to 34 supported mnemonic spellings alongside the
 [offline source-review package](ENGINEERING_REVIEW_REPORT.md). Roles describe
 potential explicit reads, writes, read-writes and non-data uses; unsupported or
@@ -22,7 +49,7 @@ That optional later review is not a gate to continued parser work. The next
 work-machine run is needed for the timer/reset/copy extension; only its generated aggregate
 feedback is required, without familiar-tag or SFC manual checks.
 
-Current extension validation is 592 development cases with one existing symlink
+Historical extension validation was 592 development cases with one existing symlink
 skip. Two actual isolated runs, explicit then remembered source, each pass 496
 application cases (one skip) and 139 helpers, creating report-only local commits
 without Git network calls. Nine artifact hashes, canonical access2/review2 and
@@ -36,7 +63,7 @@ two final synthetic launcher runs each pass 478 application cases (one skip)
 and 139 helpers. Both verify manifest hashes, canonical access/review evidence
 and identical CLI HTML. Seven legacy artifacts match baseline `1332543` byte
 for byte on the same invented input, source/reference/SFC summaries match after
-revision normalization, and all 19 then-stored work1-12 reports validated. Current work14 requires
+revision normalization, and all 19 then-stored work1-12 reports validated. At that checkpoint, work14 required
 access summary2 beside unchanged reference12/source4/SFC2; frozen work13 retains
 access summary1. Private access2 and
 review2 use manifest5 with nine hashed artifacts. Historical contracts remain

@@ -1,5 +1,12 @@
 # Timer, reset and copy operand access
 
+Confirmed return: `122f230` tested clean `bdcc101` with 496 application cases
+(one existing skip) and 139 helpers passing. All predicted access counts below
+match, including 17,526 classified instructions and 434 timers with 868
+placeholders. Source/reference/SFC summaries are unchanged after revision
+normalization. The next bundle is [stored tag data evidence](TAG_DATA_REVIEW.md);
+the original implementation checkpoint below is retained as history.
+
 ## Returned access baseline
 
 Commit 7cd9201 returns

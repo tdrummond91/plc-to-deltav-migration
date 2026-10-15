@@ -235,6 +235,7 @@ def _review(args: argparse.Namespace) -> int:
     from .sfc_structure import SfcStructureError, analyze_sfc_structure
     from .source import SourceError, analyze_snapshot, capture_snapshot
     from .storage import StorageError, save_run
+    from .tag_data import TagDataError, analyze_tag_data
 
     try:
         snapshot = capture_snapshot(args.file)
@@ -242,15 +243,19 @@ def _review(args: argparse.Namespace) -> int:
         references = analyze_references(inventory)
         sfc = analyze_sfc_structure(snapshot, inventory)
         access = analyze_access(inventory, references)
+        tag_data = analyze_tag_data(snapshot, inventory)
         saved = save_run(args.workspace, snapshot, inventory, references=references,
-                         sfc_structure=sfc, include_review=True, access=access)
+                         sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data)
         print(f"Private review report: {saved / 'review.html'}")
-        return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status) else 0
+        return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status, tag_data.status) else 0
     except SourceError:
         print("plc: Cannot read or analyze source; no review report was produced.", file=sys.stderr)
         return 1
     except AccessError:
         print("plc: Cannot analyze operand access; no review report was produced.", file=sys.stderr)
+        return 1
+    except TagDataError:
+        print("plc: Cannot analyze Tag Data; no review report was produced.", file=sys.stderr)
         return 1
     except (ReferenceError, SfcStructureError, StorageError) as exc:
         print(f"plc: {exc}", file=sys.stderr)

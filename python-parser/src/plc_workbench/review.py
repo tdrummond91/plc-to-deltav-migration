@@ -18,8 +18,12 @@ from .models import InventoryResult, SourceSnapshot
 from .references import ReferenceResult, analyze_references
 from .sfc_structure import SfcStructureResult, analyze_sfc_structure
 from .source import analyze_snapshot
+from .tag_data import TagDataResult, analyze_tag_data
 
 MAX_REVIEW_BYTES = 64 * 1024 * 1024
+# Review3 combines the established evidence with a separately bounded 64 MiB
+# Tag Data payload. Historical review1/2 retain their original ceiling.
+MAX_REVIEW_V3_BYTES = 128 * 1024 * 1024
 MAX_REVIEW_FINDINGS = 500_000
 MAX_REVIEW_PATTERNS = 100_000
 _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
@@ -71,11 +75,13 @@ def _json_native(value: Any) -> Any:
 def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     """Count UTF-8 bytes without retaining millions of small encoder chunks."""
     rendered = io.StringIO() if retain else None
+    limit = (MAX_REVIEW_V3_BYTES if (data.get('schema_version'), data.get('report_version'))
+             == (3, 'engineering-review-3') else MAX_REVIEW_BYTES)
     total = 0
     for chunk in json.JSONEncoder(ensure_ascii=False, separators=(',', ':'),
                                   allow_nan=False).iterencode(data):
         total += len(chunk.encode('utf-8'))
-        if total > MAX_REVIEW_BYTES:
+        if total > limit:
             _fail()
         if rendered is not None:
             rendered.write(chunk)
@@ -172,7 +178,8 @@ def _findings(inventory: InventoryResult, references: ReferenceResult,
 def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       references: ReferenceResult,
                       sfc_structure: SfcStructureResult,
-                      *, access: AccessResult | None = None) -> dict[str, Any]:
+                      *, access: AccessResult | None = None,
+                      tag_data: TagDataResult | None = None) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -185,6 +192,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                 or type(sfc_structure) is not SfcStructureResult
                 or type(snapshot.data) is not bytes or type(snapshot.size_bytes) is not int
                 or type(snapshot.id) is not str or type(snapshot.sha256) is not str):
+            _fail()
+        if tag_data is not None and access is None:
             _fail()
         canonical_inventory = analyze_snapshot(snapshot)
         if not _strict_equal(canonical_inventory, inventory):
@@ -199,6 +208,11 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         if access is not None:
             canonical_access = analyze_access(canonical_inventory, canonical_references)
             if not _strict_equal(canonical_access, access):
+                _fail()
+        canonical_tag_data = None
+        if tag_data is not None:
+            canonical_tag_data = analyze_tag_data(snapshot, canonical_inventory)
+            if not _strict_equal(canonical_tag_data, tag_data):
                 _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)
@@ -230,6 +244,14 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             })
             if canonical_access.status == 'partial':
                 data['status'] = 'partial'
+        if canonical_tag_data is not None:
+            data.update({
+                'schema_version': 3, 'report_version': 'engineering-review-3',
+                'analysis_scope': 'source_evidence_with_operand_access_and_tag_data',
+                'tag_data': canonical_tag_data.to_dict(),
+            })
+            if canonical_tag_data.status == 'partial':
+                data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
@@ -238,11 +260,12 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
 
 def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          references: ReferenceResult, sfc_structure: SfcStructureResult,
-                         data: dict[str, Any], *, access: AccessResult | None = None) -> None:
+                         data: dict[str, Any], *, access: AccessResult | None = None,
+                         tag_data: TagDataResult | None = None) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
         if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
-                                          access=access), data):
+                                          access=access, tag_data=tag_data), data):
             return
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
         pass

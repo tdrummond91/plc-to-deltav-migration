@@ -70,3 +70,17 @@ uv run --project python-parser plc references public/fixtures/synthetic/module_i
 The [aggregate example](../../examples/module-reference-summary.synthetic.json)
 contains only counts. Its revision is deliberately unavailable, so it is not
 presented as an actual work-machine run. Neither example contains plant data.
+
+## Engineering review demonstrations
+
+[engineering_review_demo.L5X](engineering_review_demo.L5X) contains invented
+ladder/SFC evidence for report navigation. The separate
+[tag_data_review_demo.L5X](tag_data_review_demo.L5X) extends that demonstration
+with illustrative PID/timer members, an array, string text, duplicate Data
+representations and an unsupported vendor format. Its values and connections
+are independently invented, and neither file is controller-ready logic.
+
+The [HTML demonstration](../../examples/engineering-review-demo.html) now uses
+tag_data_review_demo.L5X. The original fixtures and their existing origin/hash
+contracts remain unchanged. See [the stored-data checkpoint](../../docs/reviews/TAG_DATA_REVIEW.md)
+for scope and validation.

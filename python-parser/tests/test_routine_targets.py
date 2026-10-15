@@ -280,7 +280,7 @@ class RoutineTargetTests(unittest.TestCase):
                           'instruction_id', 'target_routine_id', 'caller_routine_id', 'program_id'):
             self.assertNotIn(forbidden, rendered)
         current = report(data)
-        self.assertEqual((current['schema_version'], current['workflow_version']), (14, 'work-check-14'))
+        self.assertEqual((current['schema_version'], current['workflow_version']), (15, 'work-check-15'))
         self.assertNotIn('PRIVATE_', work_check.render_work_check_report(current))
         frozen = json.loads(PREVIOUS_REPORT.read_text(encoding='utf-8'))
         self.assertEqual((frozen['schema_version'], frozen['analysis']['reference_summary']['schema_version']), (7, 9))

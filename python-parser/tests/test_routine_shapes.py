@@ -201,7 +201,7 @@ class RoutineShapeTests(unittest.TestCase):
                          (12, 'reference-summary-12', 'source-references-9'))
         self.assertEqual(nested['routine_instruction_shapes'], build_routine_instruction_shapes(source))
         payload = report(source_bytes('JSR(PRIVATE_TARGET,0)SBR(A)RET(A);'))
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (14, 'work-check-14'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (15, 'work-check-15'))
         self.assertEqual(json.loads(work_check.render_work_check_report(payload)), payload)
         rendered = render_reference_summary(nested)
         self.assertNotIn('PRIVATE', rendered)

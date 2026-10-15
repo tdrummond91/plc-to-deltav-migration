@@ -5,6 +5,12 @@
   const data = JSON.parse(document.getElementById('review-data').textContent);
   const inv = data.inventory, refs = data.references, sfc = data.sfc;
   const access = data.access || null;
+  const tagData = data.tag_data || null;
+  const tagContents = tagData?.contents || [], tagElements = tagData?.elements || [];
+  const byTagOwner = new Map((tagData?.owners || []).map(x => [x.source_id,x]));
+  const byTagContent = new Map(tagContents.map(x => [x.id,x]));
+  const byTagElement = new Map(tagElements.map(x => [x.id,x]));
+  const tagContentElements = new Map(), tagChildren = new Map(), tagIssues = new Map();
   const accessRoots = access?.roots || [];
   const byOperandAccess = new Map((access?.operands || []).map(x => [x.id, x]));
   const byInstructionAccess = new Map((access?.instructions || []).map(x => [x.id,x]));
@@ -31,6 +37,8 @@
   const elementLinks = new Map(), elementNotes = new Map(), entityAliases = new Map();
   const routinePatterns = new Map(), entityPathCache = new Map();
   function add(map, key, row) { if (!key) return; if (!map.has(key)) map.set(key, []); map.get(key).push(row); }
+  tagElements.forEach(x => {add(tagContentElements,x.content_id,x);add(tagChildren,x.parent_id,x);});
+  (tagData?.issues || []).forEach(x => add(tagIssues,x.content_id,x));
   entities.forEach(x => add(entityChildren, x.parent_id, x));
   rungs.forEach(r => { add(entityRungs, r.parent_id, r); (r.instructions || []).forEach(i => byInstruction.set(i.id, {instruction:i,rung:r})); });
   operands.forEach(o => {
@@ -51,9 +59,11 @@
     findings:['Review findings','Trace capture and binding gaps to their source evidence. This queue is not an assessment of process safety.']
   };
   headings.access=['Tag access','Find explicit operand reads and writes from supported ladder signatures. These are possible uses, not proof that an instruction executes.'];
+  headings.tagdata=['Stored tag data','Search values and member names retained in this export, then follow their declaration and ladder occurrences.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(access){labels.access='Tag access';navCounts.access=accessRoots.length;}
+  if(tagData){labels.tagdata='Stored tag data';navCounts.tagdata=tagContents.length;}
   let state = {view:'overview',query:'',filter:'all',detail:null,contentId:null,listPages:{}};
   const backStack = [];
   const heading = document.getElementById('page-heading');
@@ -98,9 +108,11 @@
     if(byInstruction.has(id)) return byInstruction.get(id).instruction.opcode+' instruction';
     if(byElement.has(id)) return short(elementName(byElement.get(id)));
     if(byContent.has(id)) return short(entityName(byContent.get(id).routine_id))+' · SFC content';
+    if(byTagContent.has(id)){const c=byTagContent.get(id);return short(entityName(c.owner_id))+' · '+tagContentName(c);}
+    if(byTagElement.has(id))return tagElementName(byTagElement.get(id));
     return 'Source context';
   }
-  function sourceCell(id) { return id && (byEntity.has(id)||byRung.has(id)||byOperand.has(id)||byInstruction.has(id)||byElement.has(id)||byContent.has(id)) ? link(sourceName(id),id) : node('span','muted','No direct source link'); }
+  function sourceCell(id) { return id && (byEntity.has(id)||byRung.has(id)||byOperand.has(id)||byInstruction.has(id)||byElement.has(id)||byContent.has(id)||byTagContent.has(id)||byTagElement.has(id)) ? link(sourceName(id),id) : node('span','muted','No direct source link'); }
   function primary(main,secondary) { const d=node('div'); d.append(main instanceof Node?main:node('div','cell-main',main)); if(secondary)d.append(node('div','cell-sub',secondary)); return d; }
   function accessLabel(o) { const a=byOperandAccess.get(o.id); return a?.reason==='timer_pseudo_operand'?'initialization_field':a?.role || 'unknown'; }
   function accessCell(o) { return badge(accessLabel(o)); }
@@ -128,6 +140,8 @@
   }
   function openDetail(type,id,extra={}) { backStack.push({...state});state={...state,detail:{type,id},focusOperand:null,focusInstruction:null,...extra};render(true); }
   function openSource(id) {
+    if(byTagContent.has(id)){openDetail('tagcontent',id);return;}
+    if(byTagElement.has(id)){openDetail('tagelement',id);return;}
     if(byOperand.has(id)){const o=byOperand.get(id);openDetail('rung',o.rung_id,{focusOperand:id});}
     else if(byInstruction.has(id))openDetail('rung',byInstruction.get(id).rung.id,{focusInstruction:id});
     else if(byEntity.has(id))openDetail('entity',id);
@@ -146,6 +160,9 @@
   accessRoots.forEach(r=>searchable(r,[entityName(r.target_id),entityPath(r.target_id)]));
   accessGaps.forEach(i=>searchable(i,[i.opcode,i.status,sourceName(i.rung_id)]));
   accessBindingGaps.forEach(o=>searchable(o,[byOperand.get(o.id)?.raw_text,o.role,o.binding_status,sourceName(o.rung_id)]));
+  // Index each data record once, never concatenating a whole descendant tree.
+  tagContents.forEach(c=>searchable(c,[short(entityName(c.owner_id)),c.xml_name,c.format_kind,c.direct_text,...Object.values(c.attributes||{})]));
+  tagElements.forEach(e=>searchable(e,[short(entityName(e.owner_id)),e.xml_name,e.kind,e.direct_text,...Object.values(e.attributes||{})]));
   const sfcSearch = new Map();elements.forEach(e=>add(sfcSearch,e.routine_id,[e.kind,e.direct_text,...Object.values(e.attributes||{})].join(' ')));
   (sfc.routines || []).forEach(r=>searchable(r,[entityPath(r.routine_id),...(sfcSearch.get(r.routine_id)||[])]));
   function matches(row) { return !state.query || (searchIndex.get(row)||'').includes(state.query.toLocaleLowerCase()); }
@@ -167,11 +184,13 @@
     const grid=node('div','grid-two'), capture=panel('Capture at a glance','Status applies to each capture scope. A complete structural result does not mean complete engineering analysis.');
     [['Source inventory',inv.status],['Reference bindings',refs.status],['SFC structure & annotations',sfc.status]].forEach(([title,status])=>{const row=node('div','status-row');row.append(node('span','',title),badge(status));capture.append(row);});
     if(access){const row=node('div','status-row');row.append(node('span','','Explicit ladder operand roles'),badge(access.status));capture.append(row);}
+    if(tagData){const row=node('div','status-row');row.append(node('span','','Stored tag data capture'),badge(tagData.status));capture.append(row);}
     capture.append(node('p','row-note',fmt(bySfcRoutine.size)+' SFC routines · '+fmt((sfc.links||[]).length)+' structural links · '+fmt((sfc.annotations||[]).length)+' note attachments'));
     const start=panel('Start your review','Each view links back to the exact evidence in this captured source snapshot.');
     [['objects','Find an object','Inspect declarations, source descriptions and where operands refer to them.'],['patterns','Compare repeated ladder','Group repeated syntax and open each occurrence in its own context.'],['findings','Work through capture gaps','Inspect unresolved and unsupported evidence before choosing a correction.']].forEach(([view,title,detail])=>{const b=button('',()=>go(view),'jump-card');const copy=node('span');copy.append(node('strong','',title),node('small','',detail));b.append(copy,node('span','jump-arrow','→'));start.append(b);});
     grid.append(capture,start);content.append(grid);
     if(access)content.append(button('Explore tag reads and writes',()=>go('access')));
+    if(tagData)content.append(button('Explore stored tag data',()=>go('tagdata')));
     const meta=panel('Snapshot details','This report is read-only. IDs belong to this byte snapshot and are not persistent equipment or correction identities.');
     meta.append(values({'Source size':fmt(data.snapshot.size_bytes)+' bytes','SHA-256':data.snapshot.sha256,'Report format':data.report_version,'Inventory parser':inv.parser_version,'Reference analyzer':refs.analyzer_version,'SFC analyzer':sfc.analyzer_version}));content.append(meta);
   }
@@ -227,6 +246,13 @@
     const meta=node('div','detail-meta');meta.append(badge(e.kind));if(e.attributes?.DataType)meta.append(badge(e.attributes.DataType));content.append(meta);
     const description=panel('Source description');description.append(sourceText(e.description,true));content.append(description);
     const attributes=panel('Declaration attributes');attributes.append(values(e.attributes));content.append(attributes);
+    if(byTagOwner.has(e.id)){
+      const stored=section('Stored tag data','Each exported representation is retained separately. Values are not validated or selected as effective runtime settings.');
+      const rows=byTagOwner.get(e.id).content_ids.map(id=>byTagContent.get(id)).filter(Boolean);
+      if(rows.length)stored.append(tagContentTable(rows,'Object stored data'));
+      else stored.append(empty('No Data or DefaultData captured on this declaration','Absence in this export does not supply a zero, default or inherited value. For aliases, inspect the resolved declaration separately.'));
+      content.append(stored);
+    }
     if(bySfcRoutine.has(e.id))content.append(button('Open SFC structure',()=>openDetail('sfc',e.id)));
     const ownRungs=entityRungs.get(e.id)||[];if(ownRungs.length){const p=section('Routine ladder');p.append(rungList(ownRungs));content.append(p);}
     const child=entityChildren.get(e.id)||[];if(child.length){const p=section('Child declarations');p.append(table(['Object','Type','Description'],child,x=>[link(x.name || '(unnamed)',x.id),human(x.kind),short(x.description || '')],'Child declarations'));content.append(p);}
@@ -324,6 +350,63 @@
   function setDetailHeading(eyebrow,title,subtitle){
     heading.replaceChildren(button('← Back to previous view',goBack,'back'),node('p','eyebrow',eyebrow),node('h1','',title),node('p','subtitle',subtitle));
   }
+  function tagDataNotice(){return notice('Exported values, with source context','These are saved source values, not live readings or approved DeltaV settings. Data and DefaultData representations stay separate; no precedence, numeric conversion, member validity or effective value is inferred. Opaque and duplicate data remain visible.');}
+  function tagContentName(c){const ordinal=c.locator.match(/\[([0-9]+)\]$/)?.[1];return c.xml_name+(ordinal?' '+ordinal:'')+' / '+human(c.format_kind);}
+  function tagElementName(e){return short(e.attributes?.Name || e.attributes?.Index || e.xml_name,100);}
+  function tagElementContext(e){
+    const parts=[],seen=new Set();let current=e;
+    while(current && !seen.has(current.id) && parts.length<8){seen.add(current.id);parts.unshift(tagElementName(current));current=byTagElement.get(current.parent_id);}
+    if(current)parts.unshift('…');return parts.join(' / ');
+  }
+  function tagElementLocation(e){
+    const parts=[],seen=new Set();let current=e;
+    while(current && !seen.has(current.id)){seen.add(current.id);parts.unshift(current.xml_name+'['+current.ordinal+']');current=byTagElement.get(current.parent_id);}
+    return (byTagContent.get(e.content_id)?.locator || '')+'/'+parts.join('/');
+  }
+  function tagContentTable(rows,caption='Stored data representations'){
+    return table(['Declaration','Representation','Captured elements','Capture issues'],rows,c=>[
+      sourceCell(c.owner_id),link(tagContentName(c),c.id),
+      fmt((tagContentElements.get(c.id)||[]).length),fmt((tagIssues.get(c.id)||[]).length)
+    ],caption);
+  }
+  function tagElementTable(rows,caption='Stored data elements'){
+    return table(['Member / element','Declaration','Data type','Saved value / text','Capture kind'],rows,e=>[
+      primary(link(tagElementName(e),e.id),tagElementContext(e)),sourceCell(e.owner_id),e.attributes?.DataType || 'Not specified here',
+      node('div','snippet',Object.hasOwn(e.attributes||{},'Value')?(e.attributes.Value===''?'Empty value':short(e.attributes.Value,180)):e.direct_text?.trim()?short(e.direct_text,180):'No scalar value on this element'),human(e.kind)
+    ],caption);
+  }
+  function tagIssueTable(rows){return table(['Capture issue','Evidence'],rows,i=>[human(i.code),sourceCell(i.source_id)],'Stored data capture issues');}
+  function tagDataList(){
+    content.append(tagDataNotice());
+    const selected=c=>state.filter==='all'||c.format_kind===state.filter;
+    const matchingElements=tagElements.filter(e=>selected(byTagContent.get(e.content_id))&&matches(e));
+    const matchedContents=new Set(matchingElements.map(e=>e.content_id));
+    const rows=tagContents.filter(c=>selected(c)&&(matches(c)||matchedContents.has(c.id)));
+    const totals=panel('Stored data coverage','Capture counts describe this export only; missing data may reflect its export options.');
+    totals.append(values({'Eligible declarations':byTagOwner.size,'Declarations with data':(tagData.owners||[]).filter(o=>o.content_ids.length).length,
+      'Data representations':tagContents.length,'Captured data elements':tagElements.length,'Capture issues':(tagData.issues||[]).length}));content.append(totals);
+    const reps=section('Data representations','Open one representation to inspect its exact attributes, text and members. Alternate representations are never merged.');reps.append(tagContentTable(rows));content.append(reps);
+    const members=section('Members and saved values','Search matches each element’s own name, attributes or text and its declaration name. Displayed context is an authored hierarchy preview, not a validated tag address.');members.append(tagElementTable(matchingElements));content.append(members);
+  }
+  function tagContentDetail(c){
+    setDetailHeading('STORED TAG DATA',entityName(c.owner_id),tagContentName(c));
+    content.append(tagDataNotice(),sourceCell(c.owner_id));
+    const attrs=panel('Representation attributes');attrs.append(values(c.attributes));content.append(attrs);
+    if(c.direct_text){const text=panel('Direct source text','Parsed XML text is retained without interpreting an opaque representation. Original XML bytes remain in the source snapshot.');text.append(sourceText(c.direct_text));content.append(text);}
+    const rows=tagContentElements.get(c.id)||[];const members=section('Captured elements','Open a row for complete attributes, direct text and parent/child evidence.');members.append(tagElementTable(rows));content.append(members);
+    const issues=tagIssues.get(c.id)||[];if(issues.length){const gaps=section('Capture issues');gaps.append(tagIssueTable(issues));content.append(gaps);}
+    content.append(technical({'Source ID':c.id,'Declaration ID':c.owner_id,'XML namespace':c.xml_namespace,'XML location':c.locator}));
+  }
+  function tagElementDetail(e){
+    setDetailHeading('STORED DATA ELEMENT',tagElementName(e),entityName(e.owner_id)+' / '+tagElementContext(e));
+    content.append(tagDataNotice());
+    const links=node('div','inline-links');links.append(sourceCell(e.owner_id),sourceCell(e.content_id));if(e.parent_id!==e.content_id)links.append(sourceCell(e.parent_id));content.append(links);
+    const attrs=panel('Element attributes','Values retain their exported spelling. Types, array indices, bounds and numeric ranges are not validated.');attrs.append(values(e.attributes));content.append(attrs);
+    if(e.direct_text){const text=panel('Direct source text');text.append(sourceText(e.direct_text));content.append(text);}
+    const children=tagChildren.get(e.id)||[];if(children.length){const p=section('Child data elements');p.append(tagElementTable(children,'Child data elements'));content.append(p);}
+    const issues=(tagIssues.get(e.content_id)||[]).filter(i=>i.source_id===e.id);if(issues.length)content.append(tagIssueTable(issues));
+    content.append(technical({'Source ID':e.id,'XML element':e.xml_name,'XML namespace':e.xml_namespace,'Capture kind':e.kind,'Parent ID':e.parent_id,'XML location':tagElementLocation(e)}));
+  }
   function renderList(){
     content.replaceChildren();
     if(state.view==='overview')overview();
@@ -333,6 +416,7 @@
     else if(state.view==='patterns')patternList();
     else if(state.view==='findings')findingsList();
     else if(state.view==='access')accessList();
+    else if(state.view==='tagdata')tagDataList();
   }
   function render(focus=false){
     heading.replaceChildren();toolbar.replaceChildren();content.replaceChildren();
@@ -346,6 +430,8 @@
       else if(d.type==='pattern')patternDetail(byPattern.get(d.id));
       else if(d.type==='finding')findingDetail(byFinding.get(d.id));
       else if(d.type==='access')accessDetail(byRootAccess.get(d.id));
+      else if(d.type==='tagcontent')tagContentDetail(byTagContent.get(d.id));
+      else if(d.type==='tagelement')tagElementDetail(byTagElement.get(d.id));
     }else{
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));
       if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
@@ -354,6 +440,7 @@
       else if(state.view==='patterns')toolbarFor('Search opcode or syntax shape',[['all','All patterns'],['repeated','Repeated patterns'],['single','Single occurrences']]);
       else if(state.view==='findings')toolbarFor('Search finding codes, source context or detail',countsFilter(findings,'origin'));
       else if(state.view==='access')toolbarFor('Search root names, scopes, opcodes or rung context');
+      else if(state.view==='tagdata')toolbarFor('Search declarations, members, saved values or data text',countsFilter(tagContents,'format_kind'));
       renderList();
     }
     if(focus){document.getElementById('main').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}

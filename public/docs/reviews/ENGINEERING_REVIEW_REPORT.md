@@ -2,6 +2,15 @@
 
 ## Current follow-up (2026-10-15)
 
+The [stored tag data extension](TAG_DATA_REVIEW.md) adds searchable saved member
+values, representation and element details, and declaration-to-ladder links.
+Current runs use review3/manifest6 with ten artifacts and work15 count-only
+feedback. Stored data stays private; no effective configuration is inferred.
+Returned `122f230` confirms the preceding timer/reset/copy run. Manual source
+and appearance review remains optional.
+
+## Timer/reset/copy follow-up (2026-10-15)
+
 The [timer/reset/copy access extension](TIMER_COPY_ACCESS_REVIEW.md) adds timer
 initialization labels and coverage counters. Current runs use nested access2
 and work14 while keeping review2/manifest5 outer layouts. Returned 7cd9201

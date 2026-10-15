@@ -63,6 +63,65 @@ class ParsedPage(HTMLParser):
 
 
 class ReviewHtmlTests(unittest.TestCase):
+    def test_version_specific_payload_and_html_limits_preserve_legacy_edges(self) -> None:
+        from plc_workbench.tag_data import analyze_tag_data
+        from test_review import fixture
+        args = fixture(comment='PRIVATE_\u00e9')
+        access = analyze_access(args[1], args[2])
+        tag_data = analyze_tag_data(args[0], args[1])
+        for version, kwargs in ((1, {}), (2, {'access': access}), (3, {'access': access, 'tag_data': tag_data})):
+            data = build_review_data(*args, **kwargs)
+            page = render_review_html(data)
+            payload_size = len(json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
+            html_size = len(page.encode('utf-8'))
+            prefix = 'MAX_REVIEW_V3_' if version == 3 else 'MAX_REVIEW_'
+            other = 'MAX_REVIEW_' if version == 3 else 'MAX_REVIEW_V3_'
+            with self.subTest(version=version), \
+                    patch(f'plc_workbench.review_html.{other}PAYLOAD_BYTES', 1), \
+                    patch(f'plc_workbench.review_html.{other}HTML_BYTES', 1):
+                with patch(f'plc_workbench.review_html.{prefix}PAYLOAD_BYTES', payload_size), \
+                        patch(f'plc_workbench.review_html.{prefix}HTML_BYTES', html_size):
+                    self.assertEqual(render_review_html(data), page)
+                with patch(f'plc_workbench.review_html.{prefix}PAYLOAD_BYTES', payload_size - 1):
+                    with self.assertRaisesRegex(ReviewHtmlError, 'size limit'):
+                        render_review_html(data)
+                with patch(f'plc_workbench.review_html.{prefix}HTML_BYTES', html_size - 1):
+                    with self.assertRaisesRegex(ReviewHtmlError, 'size limit'):
+                        render_review_html(data)
+
+    def test_review3_escape_expansion_obeys_its_html_budget(self) -> None:
+        from plc_workbench.tag_data import analyze_tag_data
+        from test_review import fixture
+        args = fixture(tags='<Tag Name="Values"><Data Format="String"><![CDATA[' + '<' * 10000 + ']]></Data></Tag>')
+        data = build_review_data(*args, access=analyze_access(args[1], args[2]),
+                                 tag_data=analyze_tag_data(args[0], args[1]))
+        size = len(json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
+        with patch('plc_workbench.review_html.MAX_REVIEW_V3_PAYLOAD_BYTES', size + 1), \
+                patch('plc_workbench.review_html.MAX_REVIEW_V3_HTML_BYTES', size + 1):
+            with self.assertRaisesRegex(ReviewHtmlError, 'size limit'):
+                render_review_html(data)
+
+    def test_tag_data_versions_and_markup_values_remain_inert(self) -> None:
+        from plc_workbench.tag_data import analyze_tag_data
+        from test_review import fixture
+        marker = '</ScRiPt><img src="https://invalid.example/value">&\u2028é'
+        args = fixture(tags='<Tag Name="Values"><Data Format="String"><![CDATA[' + marker + ']]></Data></Tag>')
+        access = analyze_access(args[1], args[2])
+        data = build_review_data(*args, access=access, tag_data=analyze_tag_data(args[0], args[1]))
+        parsed = ParsedPage(render_review_html(data))
+        self.assertEqual(len(parsed.scripts), 2)
+        payload = json.loads(parsed.scripts[0][1])
+        self.assertEqual(payload, data)
+        self.assertEqual(payload['tag_data']['contents'][0]['direct_text'], marker)
+        self.assertNotIn('img', {tag for tag, _ in parsed.starts})
+        for candidate in (dict(data, schema_version=2, report_version='engineering-review-2'),
+                          dict(data, report_version='engineering-review-2'),
+                          {k: v for k, v in data.items() if k != 'tag_data'},
+                          {k: v for k, v in data.items() if k != 'access'},
+                          dict(review_data(), tag_data=data['tag_data'])):
+            with self.subTest(candidate=candidate['schema_version']), self.assertRaises(ReviewHtmlError):
+                render_review_html(candidate)
+
     def test_access_versions_are_explicit_and_evidence_round_trips(self) -> None:
         from test_review import fixture
         args = fixture(('XIC(A)OTE(B);', 'MOV(B,12);', 'PID(A,B,A,B,A,B,A);'))

@@ -1,6 +1,33 @@
 # Codex handoff: PLC analysis workbench
 
-Current checkpoint (2026-10-15): **Phase 1 explicit operand access covers 34
+Current checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
+capture layer beside the unchanged source/reference/SFC/access contracts.
+Review3/manifest6 adds `tag-data.json` as the tenth hashed private artifact;
+work15 adds a count-only tag-data summary1. Missing Data remains absent evidence.
+Stored text and attributes do not establish effective values, initialization,
+runtime state, member validity or approved settings. Read the
+[Tag Data review](docs/reviews/TAG_DATA_REVIEW.md) for scope and complete validation results.
+All 642 development cases pass with one existing Windows symlink skip.
+Two actual isolated runs, explicit then remembered source, each pass 546
+application cases (one existing symlink skip) and 139 helpers, with report-only
+local commits and no Git network calls. All ten hashes and canonical review3/
+Tag Data schema1 verify; fresh CLI artifacts are identical. Eight legacy artifacts
+match `122f230` byte for byte, source/reference/SFC/access summaries match after
+revision normalization, and all 21 historical work1-14 reports validate.
+
+Returned `122f230` confirms timer/reset/copy access2 on clean `bdcc101`: 496
+application cases (one skip), 139 helpers, 17,526 classified instructions of
+17,874, 348 unsupported instructions, 931 unknown operand roles and 321 binding
+gaps. All 434 timers have 868 placeholder initialization fields. Source/reference
+and SFC summaries equal `7cd9201` after revision normalization; aggregate equality
+does not prove source byte identity. The next normal work-machine run measures
+Tag Data capture. Only generated aggregate feedback is needed; engineering/UI
+review remains deferred and does not gate parser work. Manual pull/run/push
+and private artifact storage continue as described below.
+
+## Historical timer/reset/copy checkpoint
+
+Historical checkpoint (2026-10-15): **Phase 1 explicit operand access covers 34
 supported mnemonic spellings**, adding TON/TOF/RTO, RES and COP/CPS to the
 initial 28-spelling catalogue. Timer preset/accumulator slots accept only `?`
 or recognized integer literal forms as non-data pseudo-operands; a different form leaves
@@ -31,7 +58,7 @@ Standalone generation is `uv run --project python-parser --locked plc review
 FILE --workspace PRIVATE_DIRECTORY`; `--workspace` is required and exit 3 means
 a usable partial report was saved.
 
-Current timer/reset/copy validation: 592 development cases pass with one existing
+Historical timer/reset/copy validation: 592 development cases pass with one existing
 symlink skip. Two actual isolated runs, first explicit then remembered source,
 each pass 496 application cases (one skip) and 139 helpers and make only local
 report commits with no Git network calls. All nine manifest hashes, canonical
@@ -45,7 +72,7 @@ and 139 helpers. Both verify all nine manifest hashes, canonical review/access
 evidence and identical CLI HTML. On the same invented input, seven legacy
 artifacts match baseline `1332543` byte for byte; source/reference/SFC summaries
 match after revision normalization. All 19 historical work1-12 reports validate.
-Current work14 requires access summary2; frozen work13 retains access summary1.
+At that checkpoint, work14 required access summary2; frozen work13 retains access summary1.
 Private access2 (`instruction-access-2`) and review2 are saved under
 manifest5 with nine hashed artifacts, including `access.json` and `review.html`.
 Public reference12/source4/SFC2 and private inventory3/reference6/SFC2 stay
@@ -164,8 +191,9 @@ schema 6 carries reference 8 with MVM/SWPB roles and schema 7 carries
 reference 9 with observation-only routine-instruction shapes. Schema 8
 carries reference 10 with declared JSR first-field candidates; schema 9
 carries reference 11 with unique-candidate metadata observations. Schema
-10 carries reference 12 with static candidate graph counts. Current schema14
-keeps reference12 and SFC-structure summary2 and requires access summary2;
+10 carries reference 12 with static candidate graph counts. Current schema15
+keeps reference12, SFC-structure summary2 and access summary2, and adds
+`analysis.tag_data_summary` schema1. Frozen work14 retains the prior fields;
 frozen work13 retains access summary1,
 frozen work12 retains the prior fields, and frozen work11 retains SFC1.
 Consult the tested revision for historical suite scope
@@ -205,20 +233,22 @@ now describe unknown backing instead of omitted declarations. The sample is null
 
 Current contracts: private inventory/reference schemas 3/6 with
 `source-inventory-3` / `source-references-9`; public source/reference schemas 4/12;
-work-check schema14 with separate access summary2, private access2 /
-instruction-access-2, and private SFC schema2 / sfc-structure-2 with public SFC summary2. Plain
+work-check schema15 with separate access summary2 and Tag Data summary1, private access2 /
+instruction-access-2, private Tag Data schema1 / tag-data-1, and private SFC
+schema2 / sfc-structure-2 with public SFC summary2. Plain
 reference runs retain manifest2; standalone SFC runs retain manifest3. Combined
-review work runs use review2/manifest5 with SFC JSON/text, `access.json` and
-`review.html`, nine hashed artifacts in total. Inventory/reference JSON retain their exact structures:
+review work runs use review3/manifest6 with SFC JSON/text, `access.json`,
+`tag-data.json` and `review.html`, ten hashed artifacts in total. Inventory/reference JSON retain their exact structures:
 private reference JSON includes
 canonical routine_targets occurrences and routine_graph; public output contains closed counts only. Historical public
 reports still validate with exact original status vocabularies. Work schema 3
 still requires reference 5, work schema 4 requires reference 6, and work schema
 5 requires reference 7, work schema 6 requires reference 8 and work schema 7
 requires reference 9; work schema 8 requires reference 10 and work schema 9
-requires reference 11. Work10/11/12/13/14 require reference12; work11/12 have SFC
+requires reference 11. Work10/11/12/13/14/15 require reference12; work11/12 have SFC
 summary siblings1/2 respectively, work13 requires access summary1 beside SFC2,
-and work14 requires access summary2 beside SFC2. Historical contracts remain frozen.
+work14 requires access summary2 beside SFC2, and work15 adds Tag Data summary1.
+Historical contracts remain frozen.
 Read [SFC review](docs/reviews/SFC_STRUCTURE_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 

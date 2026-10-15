@@ -14,6 +14,8 @@ from typing import Any
 
 MAX_REVIEW_HTML_BYTES = 80 * 1024 * 1024
 MAX_REVIEW_PAYLOAD_BYTES = 64 * 1024 * 1024
+MAX_REVIEW_V3_HTML_BYTES = 160 * 1024 * 1024
+MAX_REVIEW_V3_PAYLOAD_BYTES = 128 * 1024 * 1024
 
 
 class ReviewHtmlError(ValueError):
@@ -23,20 +25,24 @@ class ReviewHtmlError(ValueError):
 def _payload(data: dict[str, Any]) -> str:
     if (type(data) is not dict or type(data.get('schema_version')) is not int
             or (data.get('schema_version'), data.get('report_version')) not in
-               ((1, 'engineering-review-1'), (2, 'engineering-review-2'))
+               ((1, 'engineering-review-1'), (2, 'engineering-review-2'), (3, 'engineering-review-3'))
             or (data.get('schema_version') == 1 and 'access' in data)
-            or (data.get('schema_version') == 2 and type(data.get('access')) is not dict)
+            or (data.get('schema_version') in (2, 3) and type(data.get('access')) is not dict)
+            or (data.get('schema_version') in (1, 2) and 'tag_data' in data)
+            or (data.get('schema_version') == 3 and type(data.get('tag_data')) is not dict)
             or any(type(data.get(key)) is not dict
                    for key in ('snapshot', 'inventory', 'references', 'sfc', 'statistics'))
             or any(type(data.get(key)) is not list for key in ('patterns', 'findings'))):
         raise ReviewHtmlError('Engineering review data is not supported.')
+    payload_limit = MAX_REVIEW_V3_PAYLOAD_BYTES if data['schema_version'] == 3 else MAX_REVIEW_PAYLOAD_BYTES
+    html_limit = MAX_REVIEW_V3_HTML_BYTES if data['schema_version'] == 3 else MAX_REVIEW_HTML_BYTES
     output = io.StringIO()
     size = escaped_size = 0
     try:
         for chunk in json.JSONEncoder(ensure_ascii=False, allow_nan=False,
                                      separators=(',', ':')).iterencode(data):
             size += len(chunk.encode('utf-8'))
-            if size > MAX_REVIEW_PAYLOAD_BYTES:
+            if size > payload_limit:
                 raise ReviewHtmlError('Engineering review exceeds the report size limit.')
             # A single encoder chunk can contain a whole large source string.
             # Escape bounded slices and reject expansion before retaining it.
@@ -45,7 +51,7 @@ def _payload(data: dict[str, Any]) -> str:
                            .replace('<', '\\u003c').replace('>', '\\u003e')
                            .replace('\u2028', '\\u2028').replace('\u2029', '\\u2029'))
                 escaped_size += len(escaped.encode('utf-8'))
-                if escaped_size > MAX_REVIEW_HTML_BYTES:
+                if escaped_size > html_limit:
                     raise ReviewHtmlError('Engineering review exceeds the report size limit.')
                 output.write(escaped)
         return output.getvalue()
@@ -74,7 +80,8 @@ def render_review_html(data: dict[str, Any]) -> str:
               "frame-src 'none'; base-uri 'none'; form-action 'none'")
     page = (_TEMPLATE.replace('__POLICY__', policy).replace('__CSS__', css)
             .replace('__APP__', script).replace('__PAYLOAD__', payload))
-    if len(page.encode('utf-8')) > MAX_REVIEW_HTML_BYTES:
+    html_limit = MAX_REVIEW_V3_HTML_BYTES if data['schema_version'] == 3 else MAX_REVIEW_HTML_BYTES
+    if len(page.encode('utf-8')) > html_limit:
         raise ReviewHtmlError('Engineering review exceeds the report size limit.')
     return page
 

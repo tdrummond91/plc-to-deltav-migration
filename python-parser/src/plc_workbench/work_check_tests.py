@@ -53,6 +53,7 @@ WORK_MACHINE_MODULES = {
         "test_sfc_annotations", "test_sfc_annotation_summary",
         "test_review", "test_review_html", "test_review_workflow",
         "test_access", "test_access_summary", "test_access_workflow",
+        "test_tag_data", "test_tag_data_summary", "test_tag_evidence_workflow",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

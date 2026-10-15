@@ -2,12 +2,13 @@
 
 Status: updated 2026-10-15. Phase 1 includes source inventory, I/O declarations,
 reference bindings, routine-call candidates, SFC structure/notes and a private
-offline source explorer. Returned `7cd9201` confirms 16,952 of 17,874 instruction
-occurrences have known explicit operand roles, with 478 application cases and
+offline source explorer. Returned `122f230` confirms 17,526 of 17,874 instruction
+occurrences have known explicit operand roles, with 496 application cases and
 139 helper tests passing (one application skip). The current
-[timer/reset/copy extension](public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md)
-adds six instruction spellings and distinguishes timer initialization fields
-from runtime inputs. Actual execution, dependencies and broader engineering
+[stored tag data extension](public/docs/reviews/TAG_DATA_REVIEW.md) adds
+searchable saved values and member evidence linked to their declarations.
+It preserves separate representations without selecting effective settings.
+Actual execution, dependencies and broader engineering
 interpretation remain incomplete. Editable corrections, PCSD and FHX are later
 phases. Manual engineering/UI review can wait; the next generated work-machine
 feedback is the required input to continue.

@@ -15,6 +15,7 @@ from plc_workbench.review import (
 )
 from plc_workbench.sfc_structure import analyze_sfc_structure
 from plc_workbench.source import analyze_snapshot, snapshot_from_bytes
+from plc_workbench.tag_data import analyze_tag_data
 
 
 def fixture(texts: tuple[str, ...] = ('XIC(A)OTE(B);',), *, tags: str = '',
@@ -36,6 +37,62 @@ def fixture(texts: tuple[str, ...] = ('XIC(A)OTE(B);',), *, tags: str = '',
 
 
 class ReviewTests(unittest.TestCase):
+    def test_version_specific_payload_limits_preserve_exact_utf8_boundary(self) -> None:
+        args = fixture(comment='PRIVATE_\u00e9')
+        access = analyze_access(args[1], args[2])
+        tag_data = analyze_tag_data(args[0], args[1])
+        for version, kwargs in ((1, {}), (2, {'access': access}), (3, {'access': access, 'tag_data': tag_data})):
+            data = build_review_data(*args, **kwargs)
+            exact = len(render_review_json(data).encode('utf-8'))
+            selected = 'MAX_REVIEW_V3_BYTES' if version == 3 else 'MAX_REVIEW_BYTES'
+            other = 'MAX_REVIEW_BYTES' if version == 3 else 'MAX_REVIEW_V3_BYTES'
+            with self.subTest(version=version), patch(f'plc_workbench.review.{other}', 1):
+                with patch(f'plc_workbench.review.{selected}', exact):
+                    self.assertEqual(build_review_data(*args, **kwargs), data)
+                    self.assertEqual(len(render_review_json(data).encode('utf-8')), exact)
+                with patch(f'plc_workbench.review.{selected}', exact - 1):
+                    with self.assertRaises(ReviewError):
+                        build_review_data(*args, **kwargs)
+                    with self.assertRaises(ReviewError):
+                        render_review_json(data)
+
+    def test_tag_data_review3_preserves_legacy_models_and_exact_evidence(self) -> None:
+        args = fixture(tags='<Tag Name="Values"><Data Format="Decorated">'
+                            '<DataValue DataType="DINT" Value="937291"/></Data></Tag>')
+        access = analyze_access(args[1], args[2])
+        tag_data = analyze_tag_data(args[0], args[1])
+        legacy = build_review_data(*args, access=access)
+        enriched = build_review_data(*args, access=access, tag_data=tag_data)
+        self.assertEqual((enriched['schema_version'], enriched['report_version']), (3, 'engineering-review-3'))
+        self.assertEqual(enriched['tag_data'], tag_data.to_dict())
+        for key in ('inventory', 'references', 'sfc', 'access', 'patterns', 'findings', 'statistics'):
+            self.assertEqual(enriched[key], legacy[key])
+        self.assertNotIn('tag_data', legacy)
+        self.assertEqual(build_review_data(*args, access=access), legacy)
+        validate_review_data(*args, enriched, access=access, tag_data=tag_data)
+        with self.assertRaises(ReviewError):
+            validate_review_data(*args, enriched, access=access)
+        with self.assertRaises(ReviewError):
+            build_review_data(*args, tag_data=tag_data)
+
+    def test_tag_data_replay_rejects_changed_values_owners_and_cyclic_records(self) -> None:
+        args = fixture(tags='<Tag Name="Values"><Data Format="Decorated">'
+                            '<DataValue DataType="DINT" Value="937291"/></Data></Tag>')
+        access = analyze_access(args[1], args[2])
+        tag_data = analyze_tag_data(args[0], args[1])
+        changed = deepcopy(tag_data)
+        changed.elements[0]['attributes']['Value'] = '937292'
+        cyclic = []
+        cyclic.append(cyclic)
+        for candidate in (changed, replace(tag_data, owners=[]),
+                          replace(tag_data, schema_version=True), replace(tag_data, elements=cyclic), True):
+            with self.subTest(candidate=type(candidate)), self.assertRaises(ReviewError):
+                build_review_data(*args, access=access, tag_data=candidate)
+        payload = build_review_data(*args, access=access, tag_data=tag_data)
+        payload['tag_data']['elements'][0]['attributes']['Value'] = '937292'
+        with self.assertRaises(ReviewError):
+            validate_review_data(*args, payload, access=access, tag_data=tag_data)
+
     def test_timer_copy_and_reset_access_preserve_evidence_and_review_shape(self) -> None:
         args = fixture(('TON(A,?,16#A);', 'RES(A)COP(A,B,2);', 'RTO(A,B,0);'))
         original = build_review_data(*args)

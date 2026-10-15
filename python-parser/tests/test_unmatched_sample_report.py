@@ -29,6 +29,8 @@ SOURCE = b'''<RSLogix5000Content><Controller Name="PRIVATE_CONTROLLER">
 def report(data: bytes = SOURCE) -> dict:
     from plc_workbench.access import analyze_access
     from plc_workbench.access_summary import build_access_summary
+    from plc_workbench.tag_data import analyze_tag_data
+    from plc_workbench.tag_data_summary import build_tag_data_summary
     from plc_workbench.sfc_structure import analyze_sfc_structure
     from plc_workbench.sfc_summary import build_sfc_summary
     snapshot = snapshot_from_bytes(data)
@@ -38,7 +40,8 @@ def report(data: bytes = SOURCE) -> dict:
     sfc = build_sfc_summary(snapshot, inventory,
         analyze_sfc_structure(snapshot, inventory), revision=REVISION)
     access = build_access_summary(inventory, references, analyze_access(inventory, references), revision=REVISION)
-    status = 'partial' if 'partial' in (nested['status'], sfc['status'], access['status']) else 'complete'
+    tag_data = build_tag_data_summary(snapshot, inventory, analyze_tag_data(snapshot, inventory), revision=REVISION)
+    status = 'partial' if 'partial' in (nested['status'], sfc['status'], access['status'], tag_data['status']) else 'complete'
     result = {
         'schema_version': 1, 'status': 'passed',
         'counts': {'tests_run': 1, 'failures': 0, 'errors': 0, 'skipped': 0,
@@ -46,12 +49,12 @@ def report(data: bytes = SOURCE) -> dict:
         'failed_test_ids': [], 'failure_ids_omitted': 0,
     }
     return {
-        'schema_version': 14, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-14',
+        'schema_version': 15, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-15',
         'run_id': '20261014T180000Z-1234abcd', 'tool_revision': deepcopy(REVISION),
         'tests': {'application': deepcopy(result), 'helpers': deepcopy(result)},
         'analysis': {'status': status, 'failure_code': None, 'private_run_saved': True,
                      'reference_summary': nested,
-                     'sfc_structure_summary': sfc, 'access_summary': access},
+                     'sfc_structure_summary': sfc, 'access_summary': access, 'tag_data_summary': tag_data},
         'status': 'passed' if status == 'complete' else 'partial',
         'diagnostic_sample': build_diagnostic_sample(inventory, references),
     }
@@ -77,6 +80,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
         payload.update(schema_version=2, workflow_version='work-check-2')
         del payload['analysis']['sfc_structure_summary']
         del payload['analysis']['access_summary']
+        del payload['analysis']['tag_data_summary']
         with self.assertRaises(ValueError):
             work_check.validate_work_check_report(payload)
         payload['diagnostic_sample'] = None
@@ -85,6 +89,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
         malformed.update(schema_version=2, workflow_version='work-check-2')
         del malformed['analysis']['sfc_structure_summary']
         del malformed['analysis']['access_summary']
+        del malformed['analysis']['tag_data_summary']
         self.assertEqual(malformed['diagnostic_sample']['kind'], 'direct_malformed_operand')
         work_check.validate_work_check_report(malformed)
 
@@ -133,7 +138,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
             payload = report()
             payload['analysis'] = {'status': state, 'failure_code': 'read_error' if state == 'failed' else None,
                                    'private_run_saved': False, 'reference_summary': None,
-                                   'sfc_structure_summary': None, 'access_summary': None}
+                                   'sfc_structure_summary': None, 'access_summary': None, 'tag_data_summary': None}
             payload['status'] = 'failed'
             if state == 'not_run':
                 result = payload['tests']['application']
@@ -171,6 +176,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
             payload.update(schema_version=2, workflow_version='work-check-2')
             del payload['analysis']['sfc_structure_summary']
             del payload['analysis']['access_summary']
+            del payload['analysis']['tag_data_summary']
             rejected = root / 'rejected.json'
             with self.assertRaises(SummaryOutputError):
                 publish_summary(rejected, json.dumps(payload), input_path=root / 'invented.L5X')

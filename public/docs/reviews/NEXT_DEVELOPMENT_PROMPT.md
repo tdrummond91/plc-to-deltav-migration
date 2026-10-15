@@ -1,4 +1,31 @@
-Current checkpoint (2026-10-15): Phase 1 explicit instruction operand access
+Current checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
+capture layer beside the unchanged source/reference/SFC/access contracts.
+Review3/manifest6 adds `tag-data.json` as the tenth hashed private artifact;
+work15 adds a count-only tag-data summary1. Missing Data remains absent evidence.
+Stored text and attributes do not establish effective values, initialization,
+runtime state, member validity or approved settings. Read the
+[Tag Data review](TAG_DATA_REVIEW.md) for scope and complete validation results.
+All 642 development cases pass with one existing Windows symlink skip.
+Two actual isolated runs, explicit then remembered source, each pass 546
+application cases (one existing symlink skip) and 139 helpers, with report-only
+local commits and no Git network calls. All ten hashes and canonical review3/
+Tag Data schema1 verify; fresh CLI artifacts are identical. Eight legacy artifacts
+match `122f230` byte for byte, source/reference/SFC/access summaries match after
+revision normalization, and all 21 historical work1-14 reports validate.
+
+Returned `122f230` confirms timer/reset/copy access2 on clean `bdcc101`: 496
+application cases (one skip), 139 helpers, 17,526 classified instructions of
+17,874, 348 unsupported instructions, 931 unknown operand roles and 321 binding
+gaps. All 434 timers have 868 placeholder initialization fields. Source/reference
+and SFC summaries equal `7cd9201` after revision normalization; aggregate equality
+does not prove source byte identity. The next normal work-machine run measures
+Tag Data capture. Only generated aggregate feedback is needed; engineering/UI
+review remains deferred and does not gate parser work. Manual pull/run/push
+and private artifact storage continue as described below.
+
+## Historical timer/reset/copy checkpoint
+
+Historical checkpoint (2026-10-15): Phase 1 explicit instruction operand access
 roles cover 34 supported mnemonic spellings with the timer/reset/copy extension.
 Read [TIMER_COPY_ACCESS_REVIEW.md](TIMER_COPY_ACCESS_REVIEW.md),
 [ACCESS_ROLE_REVIEW.md](ACCESS_ROLE_REVIEW.md) and
@@ -30,7 +57,7 @@ classifications, editable corrections, PCSD and FHX remain later milestones.
 Do not infer semantics from pattern equality, JSR candidates, SFC links or
 annotation ownership.
 
-Current extension evidence: 592 development cases pass with one existing symlink
+Historical extension evidence: 592 development cases pass with one existing symlink
 skip. Two actual isolated runs, explicit then remembered source, each pass 496
 application cases (one skip) and 139 helpers, with report-only local commits
 and no Git network calls. Nine artifact hashes, canonical access2/review2 and
@@ -47,7 +74,7 @@ revision normalization. All 19 historical work1-12 reports validate.
 The standalone command is `uv run --project python-parser
 --locked plc review FILE --workspace PRIVATE_DIRECTORY`; the workspace is
 required, the printed HTML path is private, and exit 3 is usable partial output.
-Current review2 runs keep manifest5 with nine hashed artifacts, carrying private access2
+At that checkpoint, review2 runs kept manifest5 with nine hashed artifacts, carrying private access2
 as `access.json`. Work14 requires count-only access summary2; frozen work13
 retains access summary1. Public
 reference12/source4/SFC2 and private inventory3/reference6/SFC2 contracts remain
@@ -113,8 +140,11 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available, excluding the ignored listener
-loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9/10/11/12/13 remain readable. Current
-schema14 requires reference12, SFC summary2 and access summary2, and retains at most one authorized operand example.
+loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9/10/11/12/13/14 remain readable. Current
+schema15 requires reference12, SFC summary2, access summary2 and
+`analysis.tag_data_summary` schema1, and retains at most one authorized operand
+example. Private review3/manifest6 runs contain ten hashed artifacts, including
+`tag-data.json`.
 The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
