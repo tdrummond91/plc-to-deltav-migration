@@ -20,7 +20,9 @@ Start here:
 
 11. [Confirmed CPT function follow-up](docs/reviews/CALCULATION_FUNCTION_REVIEW.md).
 
-12. [Current extended operand access](docs/reviews/EXTENDED_ACCESS_REVIEW.md).
+12. [Confirmed extended operand access](docs/reviews/EXTENDED_ACCESS_REVIEW.md).
+
+13. [Current CPT expression access](docs/reviews/CPT_ACCESS_REVIEW.md).
 
 The fixtures are small parser inputs, not deployable controller projects. The
 read-only inventory, reference, SFC and offline engineering-review CLI commands

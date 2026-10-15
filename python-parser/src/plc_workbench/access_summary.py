@@ -7,13 +7,15 @@ import re
 from typing import Any
 
 from .access import (
-    ACCESS_CONSTANTS, ACCESS2_CONSTANTS, COVERAGE_KEYS, COVERAGE_KEYS_V2,
+    ACCESS_CONSTANTS, ACCESS2_CONSTANTS, ACCESS4_CONSTANTS, COVERAGE_KEYS, COVERAGE_KEYS_V2, COVERAGE_KEYS_V4,
     EXTENDED_FAMILIES, INDEXED_ROLES, INSTRUCTION_STATUSES,
-    MAX_INSTRUCTIONS, MAX_OPERANDS, OPERAND_ROLES, TIMER_PSEUDO_KINDS,
+    MAX_EXPRESSION_USES, MAX_INSTRUCTIONS, MAX_OPERANDS, OPERAND_ROLES, OPERAND_ROLES_V4,
+    EXPRESSION_STATUSES, TIMER_PSEUDO_KINDS,
     AccessResult, validate_access,
 )
-from .models import InventoryResult
-from .references import ReferenceResult
+from .calculations import CalculationResult, MAX_EXPRESSION_TOKENS
+from .models import InventoryResult, SourceSnapshot
+from .references import ALIAS_STATUSES, ReferenceResult
 
 MAX_COUNT = 10**12
 MAX_REPORT_BYTES = 32 * 1024
@@ -34,6 +36,9 @@ VERSION2_CONSTANTS = {
 }
 CONSTANTS = {
     **LEGACY_CONSTANTS, **ACCESS_CONSTANTS, 'exporter_version': 'access-summary-3',
+}
+VERSION4_CONSTANTS = {
+    **LEGACY_CONSTANTS, **ACCESS4_CONSTANTS, 'exporter_version': 'access-summary-4',
 }
 # Historical work13 embeds this exact contract. Never derive its closed keys or
 # status vocabulary from the current analyzer's growing timer/copy catalogue.
@@ -107,14 +112,14 @@ def _catalogue_capacity(instructions: int, roles: dict[str, int]) -> bool:
 
 
 def validate_access_summary(summary: dict[str, Any]) -> None:
-    """Validate current v3 or frozen v1/v2 without widening old contracts."""
+    """Validate v4 or frozen v1/v2/v3 without widening old contracts."""
     if type(summary) is not dict:
         _invalid()
     version = summary.get('schema_version')
-    if type(version) is not int or version not in {1, 2, 3}:
+    if type(version) is not int or version not in {1, 2, 3, 4}:
         _invalid()
-    constants = {1: LEGACY_CONSTANTS, 2: VERSION2_CONSTANTS, 3: CONSTANTS}[version]
-    coverage_keys = {1: LEGACY_COVERAGE_KEYS, 2: COVERAGE_KEYS_V2, 3: COVERAGE_KEYS}[version]
+    constants = {1: LEGACY_CONSTANTS, 2: VERSION2_CONSTANTS, 3: CONSTANTS, 4: VERSION4_CONSTANTS}[version]
+    coverage_keys = {1: LEGACY_COVERAGE_KEYS, 2: COVERAGE_KEYS_V2, 3: COVERAGE_KEYS, 4: COVERAGE_KEYS_V4}[version]
     instruction_statuses = LEGACY_INSTRUCTION_STATUSES if version == 1 else INSTRUCTION_STATUSES
     _keys(summary, set(constants) | {'tool_revision', 'status', 'coverage'})
     for key, fixed in constants.items():
@@ -140,19 +145,22 @@ def validate_access_summary(summary: dict[str, Any]) -> None:
     groups = {'instructions_by_status', 'operands_by_role', 'bound_by_role'}
     if version >= 2:
         groups.add('timer_pseudo_operands_by_kind')
-    if version == 3:
+    if version >= 3:
         groups.update({'extended_instructions', 'counter_pseudo_operands_by_kind'})
+    if version == 4:
+        groups.update({'expression_containers_by_status', 'expression_uses_by_binding'})
     for key in coverage_keys - groups:
         _count(coverage[key])
     states = coverage['instructions_by_status']
     roles, bound = coverage['operands_by_role'], coverage['bound_by_role']
     _counts(states, instruction_statuses)
-    _counts(roles, OPERAND_ROLES)
-    _counts(bound, OPERAND_ROLES)
+    role_vocabulary = OPERAND_ROLES_V4 if version == 4 else OPERAND_ROLES
+    _counts(roles, role_vocabulary)
+    _counts(bound, role_vocabulary)
     instruction_total, operand_total = coverage['instructions_total'], coverage['operands_total']
     if (sum(states.values()) != instruction_total or instruction_total > MAX_INSTRUCTIONS
             or sum(roles.values()) != operand_total or operand_total > MAX_OPERANDS
-            or any(bound[role] > roles[role] for role in OPERAND_ROLES)
+            or any(bound[role] > roles[role] for role in role_vocabulary)
             or bound['non_data'] != 0):
         _invalid()
     classified = states['classified']
@@ -171,7 +179,7 @@ def validate_access_summary(summary: dict[str, Any]) -> None:
         remaining_roles = dict(roles, read_write=roles['read_write'] - timers,
                                non_data=roles['non_data'] - 2 * timers)
     extra_slots = 0
-    if version == 3:
+    if version >= 3:
         extended = coverage['extended_instructions']
         _counts(extended, EXTENDED_FAMILIES)
         counters = extended['counter']
@@ -201,6 +209,28 @@ def validate_access_summary(summary: dict[str, Any]) -> None:
         remaining_roles = {role: value - extended_roles.get(role, 0)
                            for role, value in remaining_roles.items()}
         extra_slots = extended['system_get'] + extended['system_set']
+    if version == 4:
+        calculations = coverage['calculation_instructions']
+        containers = coverage['expression_containers_by_status']
+        bindings = coverage['expression_uses_by_binding']
+        _counts(containers, EXPRESSION_STATUSES)
+        _counts(bindings, ALIAS_STATUSES)
+        uses, expression_roots = coverage['expression_uses_total'], coverage['expression_indexed_roots']
+        gaps = coverage['expressions_with_binding_gaps']
+        unbound = uses - bindings['root_bound']
+        if (sum(containers.values()) != calculations or roles['expression_read'] != calculations
+                or bound['expression_read'] != 0 or calculations > remaining_classified
+                or calculations > remaining_roles['write']
+                or uses != sum(bindings.values()) or uses > MAX_EXPRESSION_USES
+                or uses > containers['parsed'] * ((MAX_EXPRESSION_TOKENS + 1) // 2)
+                or expression_roots > bindings['root_bound']
+                or bool(expression_roots) != bool(bindings['root_bound'])
+                or gaps > min(containers['parsed'], unbound) or bool(gaps) != bool(unbound)
+                or unbound > gaps * ((MAX_EXPRESSION_TOKENS + 1) // 2)):
+            _invalid()
+        remaining_classified -= calculations
+        remaining_roles = {key: value for key, value in remaining_roles.items() if key != 'expression_read'}
+        remaining_roles['write'] -= calculations
     if (not classified <= known <= 3 * classified + extra_slots
             or not _catalogue_capacity(remaining_classified, remaining_roles)
             or roles['unknown'] < 3 * invalid_forms + states['empty_argument']
@@ -208,7 +238,7 @@ def validate_access_summary(summary: dict[str, Any]) -> None:
             or (not instruction_total and operand_total)):
         _invalid()
     if (not states['unsupported_instruction'] and not states['argument_count_mismatch']
-            and roles['unknown'] > (4 if version == 3 else 3) * states['empty_argument'] + 3 * invalid_forms):
+            and roles['unknown'] > (4 if version >= 3 else 3) * states['empty_argument'] + 3 * invalid_forms):
         _invalid()
     linked = sum(bound[role] for role in INDEXED_ROLES)
     if (coverage['linked_operands'] != linked
@@ -224,17 +254,21 @@ def validate_access_summary(summary: dict[str, Any]) -> None:
             unbound_writes + roles['read'] - bound['read']):
         _invalid()
     partial = bool(invalid_instructions or coverage['unparsed_rungs'] or coverage['access_gap_operands'])
+    if version == 4:
+        partial = partial or bool(containers['unsupported'] or gaps)
     if summary['status'] != ('partial' if partial else 'complete'):
         _invalid()
 
 
 def build_access_summary(inventory: InventoryResult, references: ReferenceResult,
-                         result: AccessResult, revision: dict[str, Any] | None = None) -> dict[str, Any]:
+                         result: AccessResult, revision: dict[str, Any] | None = None, *,
+                         snapshot: SourceSnapshot | None = None,
+                         calculations: CalculationResult | None = None) -> dict[str, Any]:
     """Authenticate private evidence before projecting only closed aggregate data."""
     try:
-        validate_access(inventory, references, result)
+        validate_access(inventory, references, result, snapshot=snapshot, calculations=calculations)
         summary = {
-            **(VERSION2_CONSTANTS if result.schema_version == 2 else CONSTANTS),
+            **{2: VERSION2_CONSTANTS, 3: CONSTANTS, 4: VERSION4_CONSTANTS}[result.schema_version],
             'status': result.status, 'coverage': deepcopy(result.coverage),
             'tool_revision': revision if revision is not None else
                              {'commit': None, 'worktree': 'unavailable'},

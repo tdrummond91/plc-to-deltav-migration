@@ -1,12 +1,22 @@
 # Independently synthetic L5X fixture
 
+## CPT access demonstration
+
+[cpt_access_review_demo.L5X](cpt_access_review_demo.L5X) extends the independently
+invented extended-access fixture with an expression-only root, repeated reads
+through its alias, a destination read within its own expression, and a constant
+expression. The [current HTML demo](../../examples/engineering-review-demo.html)
+uses this fixture. No plant source or connections were read to construct it.
+Earlier fixtures remain unchanged; these are parser cases, not controller-ready
+logic. See [the CPT access contract](../../docs/reviews/CPT_ACCESS_REVIEW.md).
+
 ## Legacy calculation function demonstration
 
 [calculation_function_review_demo.L5X](calculation_function_review_demo.L5X)
 extends the invented calculation demo with all seven older function spellings,
 mixed-case and nested calls, unsupported functions, wrong arity and first-error
 cases. All names, values and connections are independently invented. It is not
-an executable controller project. The current HTML demo uses this fixture;
+an executable controller project. The earlier function HTML demo used this fixture;
 all earlier fixture bytes and their historical validation remain intact.
 
 ## Calculation report demonstration
@@ -112,8 +122,8 @@ The [PID member demonstration](pid_member_review_demo.L5X) adds a complete
 duplicate, wrong/missing types, empty value, unknown member and unexpected DATA
 dimensions. Its nine PID occurrences include the earlier association gaps.
 All values remain invented, including deliberately nonnumeric saved text.
-The [HTML demonstration](../../examples/engineering-review-demo.html) now uses
-pid_member_review_demo.L5X. The original fixtures and their existing origin/hash
+The earlier PID member HTML demonstration used pid_member_review_demo.L5X;
+its cases are retained in the current CPT access fixture. The original fixtures and their existing origin/hash
 contracts remain unchanged. See the [PID checkpoint](../../docs/reviews/PID_EVIDENCE_REVIEW.md)
 and [stored-data checkpoint](../../docs/reviews/TAG_DATA_REVIEW.md) for scope and validation.
 

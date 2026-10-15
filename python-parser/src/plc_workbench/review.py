@@ -217,14 +217,27 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         canonical_sfc = analyze_sfc_structure(snapshot, canonical_inventory)
         if not _strict_equal(canonical_sfc, sfc_structure):
             _fail()
+        canonical_calculations = None
+        if calculations is not None:
+            # Replay the captured grammar before using its leaves for access4.
+            # Review6 still accepts the frozen calculation1/access2 or 3 paths.
+            if type(calculations) is not CalculationResult:
+                _fail()
+            canonical_calculations = analyze_calculations(
+                snapshot, canonical_inventory, canonical_references,
+                schema_version=calculations.schema_version)
+            if not _strict_equal(canonical_calculations, calculations):
+                _fail()
         canonical_access = None
         if access is not None:
             # The nested version freezes the operand catalogue and binding
             # overlay. Older evidence must not acquire roles during review.
             if type(access) is not AccessResult:
                 _fail()
+            access_inputs = ({'snapshot': snapshot, 'calculations': canonical_calculations}
+                             if access.schema_version == 4 else {})
             canonical_access = analyze_access(canonical_inventory, canonical_references,
-                                              schema_version=access.schema_version)
+                                              schema_version=access.schema_version, **access_inputs)
             if not _strict_equal(canonical_access, access):
                 _fail()
         canonical_tag_data = None
@@ -242,17 +255,6 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             canonical_pid_members = analyze_pid_members(
                 snapshot, canonical_inventory, canonical_references, canonical_tag_data, canonical_pid)
             if not _strict_equal(canonical_pid_members, pid_members):
-                _fail()
-        canonical_calculations = None
-        if calculations is not None:
-            # A captured calculation companion chooses its frozen grammar. Review6
-            # can carry either version without silently reinterpreting old evidence.
-            if type(calculations) is not CalculationResult:
-                _fail()
-            canonical_calculations = analyze_calculations(
-                snapshot, canonical_inventory, canonical_references,
-                schema_version=calculations.schema_version)
-            if not _strict_equal(canonical_calculations, calculations):
                 _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)

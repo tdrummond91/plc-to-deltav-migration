@@ -1,6 +1,27 @@
 # Codex handoff: PLC analysis workbench
 
-Current checkpoint (2026-10-15): **extended explicit operand access** adds
+Current checkpoint (2026-10-15): **CPT calculation access** connects the existing
+expression trees to possible destination writes and individual tag reads.
+Returned `cbb2965` tests clean `456786a`: all 175 newly supported instructions
+and 336 operand slots were classified, and all 175 new data operands bound.
+There are 17,701 classified instructions, 173 unsupported instructions, 595
+unknown source operand roles and 321 unchanged binding gaps. All 695 application
+cases passed (one expected Windows skip), as did 139 helpers. Six other summaries
+match after removing only tool_revision; all 27 historical reports validate.
+
+Current commands explicitly build access4 from authenticated calculation2
+records. Expression reads remain separate from source operand counts, and repeat
+occurrences retain their node/span links. Work21 requires access summary4 and
+calculation summary2; work1-20 and explicit access2/3 replay remain frozen.
+Review6/manifest9 still saves thirteen artifacts. The next work-machine run
+checks the projected 45 CPT classifications and 132 expression reads. Only
+bounded generated feedback is required; engineering/UI review remains optional.
+Git synchronization stays manual and the listener stays disabled. See
+[CPT access](docs/reviews/CPT_ACCESS_REVIEW.md).
+
+## Historical extended access implementation checkpoint
+
+Historical checkpoint (2026-10-15): **extended explicit operand access** adds
 counter controls, message controls, system-value operands and SFC-reset targets.
 Returned `760448e` tests clean `36c0ff4`: all 45 CPT expressions now parse into
 592 nodes, with 132 captured reference uses and all 45 destinations root-bound.

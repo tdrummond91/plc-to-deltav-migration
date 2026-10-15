@@ -64,7 +64,8 @@ _V16_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 16, "workflow_version": 
 _V17_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 17, "workflow_version": "work-check-17"}
 _V18_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 18, "workflow_version": "work-check-18"}
 _V19_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 19, "workflow_version": "work-check-19"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 20, "workflow_version": "work-check-20"}
+_V20_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 20, "workflow_version": "work-check-20"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 21, "workflow_version": "work-check-21"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _GIT_REPOSITORY_OVERRIDES = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
@@ -87,13 +88,19 @@ def _keys(value: Any, expected: set[str]) -> None:
         _invalid()
 
 
-def _extended_access_populations(coverage: dict[str, Any], nested: dict[str, Any]) -> tuple[int, int, int]:
+def _extended_access_populations(coverage: dict[str, Any], nested: dict[str, Any],
+                                *, calculation_occurrences: int = 0,
+                                pid_occurrences: int = 0) -> tuple[int, int, int]:
     """Bound new access overlays against unchanged source/reference populations.
 
     Every extended instruction remains unsupported in reference6. Its operand
     rows must therefore come from that population, not from previously bound
     rows. Case variants share one pooled source allowance across these families
     and timers, so a withheld occurrence cannot satisfy two capacity deficits.
+    Work21 also shares that allowance with CPT and PID, whose legacy reference
+    slots were already catalogued and do not consume the extended-row population.
+    Their full occurrence counts include unresolved signatures: those source
+    instructions still consume one opcode occurrence each.
     """
     extended = coverage["extended_instructions"]
     counter = extended["counter"]
@@ -114,6 +121,8 @@ def _extended_access_populations(coverage: dict[str, Any], nested: dict[str, Any
         (system_get, ("GSV",)),
         (system_set, ("SSV",)),
         (reset_step + reset_initial, ("SFR",)),
+        (calculation_occurrences, ("CPT",)),
+        (pid_occurrences, ("PID",)),
     )
     pooled_needed = sum(max(0, count - sum(source_opcodes.get(opcode, 0) for opcode in opcodes))
                         for count, opcodes in required)
@@ -132,7 +141,7 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = {"diagnostic_sample"} if version >= 2 else set()
@@ -166,14 +175,14 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
@@ -183,14 +192,24 @@ def validate_work_check_report(report: Any) -> None:
             validate_access_summary(access)
             coverage = access["coverage"]
             reference_coverage = nested["coverage"]
-            if access["schema_version"] != (3 if version >= 20 else 2 if version >= 14 else 1):
+            if access["schema_version"] != (4 if version >= 21 else 3 if version >= 20 else 2 if version >= 14 else 1):
                 _invalid()
             integer_pseudo_operands = 0
             unsupported_timer_forms = 0
             extended_instructions = extended_non_data = extended_bound = 0
             counter_invalid_forms = 0
             if version >= 20:
-                extended_instructions, extended_non_data, counter_invalid_forms = _extended_access_populations(coverage, nested)
+                # Validate companion summaries before using their full occurrence
+                # counts to constrain the shared withheld-opcode population.
+                calculation_occurrences = pid_occurrences = 0
+                if version >= 21:
+                    validate_calculation_summary(analysis["calculation_summary"])
+                    calculation_occurrences = analysis["calculation_summary"]["coverage"]["occurrences_total"]
+                    validate_pid_summary(analysis["pid_summary"])
+                    pid_occurrences = analysis["pid_summary"]["coverage"]["occurrences_total"]
+                extended_instructions, extended_non_data, counter_invalid_forms = _extended_access_populations(
+                    coverage, nested, calculation_occurrences=calculation_occurrences,
+                    pid_occurrences=pid_occurrences)
                 extended_bound = coverage["extended_bound_operands"]
             if version >= 14:
                 pseudo_operands = coverage["timer_pseudo_operands_by_kind"]
@@ -342,6 +361,47 @@ def validate_work_check_report(report: Any) -> None:
                 _invalid()
             # Expression leaves are additional lexical evidence. They are not
             # counted as new legacy operands and may repeat a declaration.
+            if version >= 21:
+                if (access_coverage["calculation_instructions"] != calculation_coverage["occurrences_by_signature"]["recognized"]
+                        or access_coverage["expression_containers_by_status"] != {
+                            key: calculation_coverage["expressions_by_status"][key]
+                            for key in ("parsed", "unsupported")}
+                        or access_coverage["expression_uses_total"] != calculation_coverage["reference_occurrences"]
+                        or access_coverage["expression_uses_by_binding"] != calculation_coverage["reference_by_binding"]
+                        or access_coverage["expressions_with_binding_gaps"] != calculation_coverage["expressions_with_binding_gaps"]
+                        or access_coverage["expression_indexed_roots"] > nested["symbols"]["total"]
+                        or access_coverage["bound_by_role"]["write"] < calculation_coverage["destination_root_bound"]):
+                    _invalid()
+                # CPT destinations and newly bound extended slots are disjoint
+                # operand rows. Reserve the known CPT writes before allocating
+                # extended bindings across their possible role populations.
+                # This checks feasibility without inventing a per-family split
+                # that the aggregate report does not retain.
+                extended = access_coverage["extended_instructions"]
+                extended_capacities = {
+                    "read": extended["system_set"],
+                    "write": extended["system_get"] + extended["sfc_reset_step"],
+                    "read_write": extended["counter"] + extended["message"],
+                }
+                available_bound = dict(access_coverage["bound_by_role"])
+                available_bound["write"] -= calculation_coverage["destination_root_bound"]
+                available_roles = dict(access_coverage["operands_by_role"])
+                available_roles["write"] -= access_coverage["calculation_instructions"]
+                if any(not capacity <= available_roles[role]
+                       or not 0 <= available_bound[role] <= available_roles[role]
+                       for role, capacity in extended_capacities.items()):
+                    _invalid()
+                # Bindings beyond the remaining legacy slots must belong to
+                # extended slots; conversely, extended bindings cannot exceed
+                # either those slots or the remaining bound-role population.
+                minimum_extended_bound = sum(
+                    max(0, available_bound[role] - (available_roles[role] - capacity))
+                    for role, capacity in extended_capacities.items())
+                maximum_extended_bound = sum(
+                    min(capacity, available_bound[role])
+                    for role, capacity in extended_capacities.items())
+                if not minimum_extended_bound <= access_coverage["extended_bound_operands"] <= maximum_extended_bound:
+                    _invalid()
             expected_analysis = "partial" if "partial" in (expected_analysis, calculations["status"]) else "complete"
         if expected_analysis != analysis["status"] or nested["source_summary"]["tool_revision"] != revision:
             _invalid()
@@ -391,7 +451,7 @@ def validate_work_check_report(report: Any) -> None:
             if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
                 # This fallback needs dedicated rack evidence. Historical v2
                 # reports retain their original malformed-only sample contract.
-                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12), (15, 12), (16, 12), (17, 12), (18, 12), (19, 12), (20, 12)}
+                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12), (15, 12), (16, 12), (17, 12), (18, 12), (19, 12), (20, 12), (21, 12)}
                         or nested["rack_candidates"]["matches"]["direct_operands"]
                         ["by_status"]["no_candidate_match"] == 0):
                     _invalid()
@@ -602,16 +662,17 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         from .sfc_summary import build_sfc_summary
         result["failure_code"] = "sfc_structure_error"
         sfc_structure = analyze_sfc_structure(snapshot, inventory)
+        result["failure_code"] = "calculation_error"
+        calculations = analyze_calculations(snapshot, inventory, references)
         result["failure_code"] = "access_error"
-        access = analyze_access(inventory, references)
+        access = analyze_access(inventory, references, schema_version=4,
+                                snapshot=snapshot, calculations=calculations)
         result["failure_code"] = "tag_data_error"
         tag_data = analyze_tag_data(snapshot, inventory)
         result["failure_code"] = "pid_error"
         pid = analyze_pid(snapshot, inventory, references, tag_data)
         result["failure_code"] = "pid_member_error"
         pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
-        result["failure_code"] = "calculation_error"
-        calculations = analyze_calculations(snapshot, inventory, references)
         result["failure_code"] = "save_error"
         workspace = root / "confidential" / "workspaces" / "work-check"
         if workspace.resolve() != workspace:
@@ -624,7 +685,8 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         result["failure_code"] = "summary_error"
         summary = build_reference_summary(inventory, references, revision=revision)
         sfc_summary = build_sfc_summary(snapshot, inventory, sfc_structure, revision=revision)
-        access_summary = build_access_summary(inventory, references, access, revision=revision)
+        access_summary = build_access_summary(inventory, references, access, revision=revision,
+                                              snapshot=snapshot, calculations=calculations)
         tag_data_summary = build_tag_data_summary(snapshot, inventory, tag_data, revision=revision)
         pid_summary = build_pid_summary(snapshot, inventory, references, tag_data, pid, revision=revision)
         pid_member_summary = build_pid_member_summary(

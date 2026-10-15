@@ -3,29 +3,36 @@
 Roles do not prove an instruction executes, an operand is type-correct, a member
 exists, or two suffixes overlap. Version 3 adds explicit, separately attributed
 root resolution for selected slots without changing historical references.
+Version 4 consumes authenticated calculation2 evidence, preserving source slots
+and expression reference occurrences as distinct possible-access records.
 Implicit effects and dependencies are outside this deliberately narrow catalog.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from copy import deepcopy
+from dataclasses import dataclass, field
 from io import StringIO
 import json
 import re
 from typing import Any
 
-from .models import InventoryResult
+from .calculations import CalculationResult, validate_calculations
+from .models import InventoryResult, SourceSnapshot
 from .references import (
-    MAX_EXPANDED_EVIDENCE_CHARS, MAX_OPERANDS, ReferenceResult, _Resolver, _binding, _literal,
+    ALIAS_STATUSES, MAX_EXPANDED_EVIDENCE_CHARS, MAX_OPERANDS, ReferenceResult, _Resolver, _binding, _literal,
     _strict_record_match, validate_references,
 )
 
 MAX_INSTRUCTIONS = 250_000
 MAX_ACCESS_BYTES = 32 * 1024 * 1024
+MAX_EXPRESSION_USES = 250_000
 INSTRUCTION_STATUSES = frozenset({
     'classified', 'unsupported_instruction', 'argument_count_mismatch', 'empty_argument',
     'unsupported_operand_form',
 })
 OPERAND_ROLES = frozenset({'read', 'write', 'read_write', 'non_data', 'unknown'})
+OPERAND_ROLES_V4 = OPERAND_ROLES | {'expression_read'}
+EXPRESSION_STATUSES = frozenset({'parsed', 'unsupported'})
 INDEXED_ROLES = frozenset({'read', 'write', 'read_write', 'unknown'})
 ACCESS2_CONSTANTS = {
     'schema_version': 2,
@@ -40,6 +47,9 @@ ACCESS2_CONSTANTS = {
 ACCESS_CONSTANTS = {
     **ACCESS2_CONSTANTS, 'schema_version': 3, 'analyzer_version': 'instruction-access-3',
 }
+ACCESS4_CONSTANTS = {
+    **ACCESS_CONSTANTS, 'schema_version': 4, 'analyzer_version': 'instruction-access-4',
+}
 COVERAGE_KEYS_V2 = frozenset({
     'instructions_total', 'instructions_by_status', 'operands_total', 'operands_by_role',
     'bound_by_role', 'linked_operands', 'unlinked_operands', 'indexed_roots',
@@ -49,6 +59,10 @@ COVERAGE_KEYS_V2 = frozenset({
 COVERAGE_KEYS = COVERAGE_KEYS_V2 | frozenset({
     'extended_instructions', 'counter_pseudo_operands_by_kind',
     'counter_invalid_forms', 'extended_bound_operands',
+})
+COVERAGE_KEYS_V4 = COVERAGE_KEYS | frozenset({
+    'calculation_instructions', 'expression_containers_by_status', 'expression_uses_total',
+    'expression_uses_by_binding', 'expression_indexed_roots', 'expressions_with_binding_gaps',
 })
 EXTENDED_FAMILIES = frozenset({
     'counter', 'message', 'system_get', 'system_set', 'sfc_reset_step', 'sfc_reset_initial',
@@ -126,10 +140,16 @@ class AccessResult:
     implicit_effects: str = 'not_analyzed'
     initialization_analysis: str = 'not_implemented'
     range_analysis: str = 'not_implemented'
+    expression_uses: list[dict[str, Any]] = field(default_factory=list)
+    expression_roots: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Return private source-linked evidence; this is not a public report."""
-        return asdict(self)
+        render_access_json(self)
+        data = _project_data(self)
+        # Preflight admits only native containers, so this cannot invoke a
+        # caller's deepcopy hooks. Keep historical field order as well as data.
+        return deepcopy(data)
 
 
 def _invalid() -> None:
@@ -167,19 +187,42 @@ def _timer_pseudo_kind(raw: str) -> str | None:
 
 
 def _derive_access(inventory: InventoryResult, references: ReferenceResult,
-                   schema_version: int) -> AccessResult:
+                   schema_version: int, calculations: CalculationResult | None = None) -> AccessResult:
     """Consume authenticated references in their canonical occurrence order."""
     instructions: list[dict[str, Any]] = []
     operands: list[dict[str, Any]] = []
     roots: dict[str, dict[str, Any]] = {}
     instruction_counts = dict.fromkeys(sorted(INSTRUCTION_STATUSES), 0)
-    role_counts = dict.fromkeys(sorted(OPERAND_ROLES), 0)
-    bound_counts = dict.fromkeys(sorted(OPERAND_ROLES), 0)
+    role_vocabulary = OPERAND_ROLES_V4 if schema_version == 4 else OPERAND_ROLES
+    role_counts = dict.fromkeys(sorted(role_vocabulary), 0)
+    bound_counts = dict.fromkeys(sorted(role_vocabulary), 0)
     timer_pseudo_counts = dict.fromkeys(sorted(TIMER_PSEUDO_KINDS), 0)
     counter_pseudo_counts = dict.fromkeys(sorted(TIMER_PSEUDO_KINDS), 0)
     extended_counts = dict.fromkeys(sorted(EXTENDED_FAMILIES), 0)
     counter_invalid_forms = extended_bound = 0
     expanded_characters = 0
+    retained_bytes = 0
+    expression_uses: list[dict[str, Any]] = []
+    expression_roots: dict[str, dict[str, Any]] = {}
+    expression_counts = dict.fromkeys(sorted(EXPRESSION_STATUSES), 0)
+    expression_bindings = dict.fromkeys(sorted(ALIAS_STATUSES), 0)
+    expression_gaps = 0
+    calculation_by_id = {row['id']: row for row in calculations.occurrences} if calculations else {}
+    nodes_by_id = {row['id']: row for row in calculations.nodes} if calculations else {}
+
+    def charge_record(record: dict[str, Any]) -> None:
+        nonlocal retained_bytes
+        if schema_version == 4:
+            retained_bytes += len(json.dumps(record, ensure_ascii=True))
+            if retained_bytes > MAX_ACCESS_BYTES:
+                _limit()
+
+    def charge_binding(binding: dict[str, Any]) -> None:
+        nonlocal expanded_characters
+        if schema_version >= 3:
+            expanded_characters += len(binding['suffix']) + sum(map(len, binding['alias_chain']))
+            if expanded_characters > MAX_EXPANDED_EVIDENCE_CHARS:
+                _limit()
     resolver: _Resolver | None = None
     source_operands = iter(references.operands)
     unparsed_rungs = access_gaps = timer_instructions = 0
@@ -190,8 +233,10 @@ def _derive_access(inventory: InventoryResult, references: ReferenceResult,
         for instruction in rung.instructions:
             opcode = instruction.opcode
             normalized_opcode = opcode.upper() if opcode.isascii() else None
-            extended = schema_version == 3 and normalized_opcode in _EXTENDED_ROLES
-            slots = (_EXTENDED_ROLES if extended else _ROLES).get(normalized_opcode)
+            extended = schema_version >= 3 and normalized_opcode in _EXTENDED_ROLES
+            calculation = schema_version == 4 and normalized_opcode == 'CPT'
+            slots = (('write', 'expression_read') if calculation else
+                     (_EXTENDED_ROLES if extended else _ROLES).get(normalized_opcode))
             empty_slots = [index for index, arg in enumerate(instruction.arguments)
                            if not arg.strip() and not (extended and normalized_opcode in {'GSV', 'SSV'}
                                                        and index == 1)]
@@ -213,6 +258,9 @@ def _derive_access(inventory: InventoryResult, references: ReferenceResult,
                             and instruction.arguments[1].strip() == '0')
             if extended and status == 'classified':
                 extended_counts['sfc_reset_initial' if initial_step else _EXTENDED_FAMILY[normalized_opcode]] += 1
+            occurrence = calculation_by_id[instruction.id] if calculation else None
+            if calculation and status == 'classified':
+                expression_counts[occurrence['syntax_status']] += 1
             instruction_counts[status] += 1
             operand_ids: list[str] = []
             for index, raw in enumerate(instruction.arguments):
@@ -243,16 +291,13 @@ def _derive_access(inventory: InventoryResult, references: ReferenceResult,
                                 resolver = _Resolver(inventory)
                             binding = resolver.resolve(value, rung.scope_id)
                         extended_bound += int(binding['status'] == 'root_bound')
-                if schema_version == 3:
-                    # Bound retained expansion before copying it into this
-                    # result. Many short operands may traverse the same long
-                    # alias chain; the final JSON byte cap alone is too late.
-                    # Include inherited bindings because v3 copies their chain
-                    # evidence too. Frozen v2 retains its original behavior.
-                    expanded_characters += (len(binding['suffix'])
-                                            + sum(map(len, binding['alias_chain'])))
-                    if expanded_characters > MAX_EXPANDED_EVIDENCE_CHARS:
-                        _limit()
+                if role == 'expression_read':
+                    disposition = occurrence['syntax_status']
+                    binding = _binding(f'{disposition}_expression')
+                    origin = 'calculation_expression'
+                # V4 shares the retained expansion allowance across source
+                # operands and expression leaves; v2 keeps its frozen behavior.
+                charge_binding(binding)
                 operand = {
                     'id': reference['id'], 'instruction_id': instruction.id,
                     'rung_id': rung.id, 'argument_index': index,
@@ -261,9 +306,10 @@ def _derive_access(inventory: InventoryResult, references: ReferenceResult,
                     'symbol_id': binding['symbol_id'], 'target_id': binding['target_id'],
                     'suffix': binding['suffix'],
                 }
-                if schema_version == 3:
+                if schema_version >= 3:
                     operand.update(binding_origin=origin, source_reference_status=reference['status'],
                                    binding_reason=binding['reason'], alias_chain=list(binding['alias_chain']))
+                charge_record(operand)
                 operands.append(operand)
                 operand_ids.append(operand['id'])
                 role_counts[role] += 1
@@ -280,10 +326,38 @@ def _derive_access(inventory: InventoryResult, references: ReferenceResult,
                         {'root_bound', 'literal', 'system_flag'} or
                         role in {'write', 'read_write'} and binding['status'] != 'root_bound'):
                     access_gaps += 1
-            instructions.append({
+            if calculation and status == 'classified' and occurrence['syntax_status'] == 'parsed':
+                leaves = sorted((nodes_by_id[identifier] for identifier in occurrence['node_ids']
+                                 if nodes_by_id[identifier]['kind'] == 'reference'), key=lambda node: node['start'])
+                gaps = False
+                for node in leaves:
+                    if len(expression_uses) >= MAX_EXPRESSION_USES:
+                        _limit()
+                    binding = node['binding']
+                    charge_binding(binding)
+                    use = {
+                        'id': node['id'], 'expression_operand_id': occurrence['expression_operand_id'],
+                        'instruction_id': instruction.id, 'rung_id': rung.id,
+                        'start': node['start'], 'end': node['end'], 'role': 'read',
+                        'binding_status': binding['status'], 'binding_reason': binding['reason'],
+                        'symbol_id': binding['symbol_id'], 'target_id': binding['target_id'],
+                        'suffix': binding['suffix'], 'alias_chain': list(binding['alias_chain']),
+                    }
+                    charge_record(use)
+                    expression_uses.append(use)
+                    expression_bindings[binding['status']] += 1
+                    if binding['status'] == 'root_bound':
+                        target = binding['target_id']
+                        expression_roots.setdefault(target, {'target_id': target, 'read_use_ids': []})['read_use_ids'].append(use['id'])
+                    else:
+                        gaps = True
+                expression_gaps += int(gaps)
+            instruction_record = {
                 'id': instruction.id, 'rung_id': rung.id, 'opcode': opcode,
                 'status': status, 'operand_ids': operand_ids,
-            })
+            }
+            charge_record(instruction_record)
+            instructions.append(instruction_record)
     linked = sum(bound_counts[role] for role in INDEXED_ROLES)
     coverage = {
         'instructions_total': len(instructions), 'instructions_by_status': instruction_counts,
@@ -295,31 +369,47 @@ def _derive_access(inventory: InventoryResult, references: ReferenceResult,
         'timer_instructions': timer_instructions,
         'timer_pseudo_operands_by_kind': timer_pseudo_counts,
     }
-    if schema_version == 3:
+    if schema_version >= 3:
         coverage.update(extended_instructions=extended_counts,
                         counter_pseudo_operands_by_kind=counter_pseudo_counts,
                         counter_invalid_forms=counter_invalid_forms,
                         extended_bound_operands=extended_bound)
+    if schema_version == 4:
+        coverage.update(calculation_instructions=sum(expression_counts.values()),
+                        expression_containers_by_status=expression_counts,
+                        expression_uses_total=len(expression_uses), expression_uses_by_binding=expression_bindings,
+                        expression_indexed_roots=len(expression_roots), expressions_with_binding_gaps=expression_gaps)
     partial = bool(unparsed_rungs or access_gaps or any(
-        count for key, count in instruction_counts.items() if key != 'classified'))
+        count for key, count in instruction_counts.items() if key != 'classified')
+        or expression_counts['unsupported'] or expression_gaps)
     return AccessResult(dict(inventory.snapshot), 'partial' if partial else 'complete',
                         instructions, operands, list(roots.values()), coverage,
-                        schema_version=schema_version, analyzer_version=f'instruction-access-{schema_version}')
+                        schema_version=schema_version, analyzer_version=f'instruction-access-{schema_version}',
+                        expression_uses=expression_uses, expression_roots=list(expression_roots.values()))
 
 
 def analyze_access(inventory: InventoryResult, references: ReferenceResult, *,
-                   schema_version: int = 3) -> AccessResult:
+                   schema_version: int = 3, snapshot: SourceSnapshot | None = None,
+                   calculations: CalculationResult | None = None) -> AccessResult:
     """Classify possible explicit operand roles against canonical references.
 
-    The caller authenticates inventory against its byte snapshot. This layer
-    authenticates references against that inventory and does no source IO.
+    Versions 2/3 retain their caller-authenticated inventory contract. Version 4
+    requires a snapshot and canonical calculation2 companion, replaying both
+    before deriving expression reads. This layer does no source IO.
     """
     try:
-        if type(schema_version) is not int or schema_version not in {2, 3}:
+        if type(schema_version) is not int or schema_version not in {2, 3, 4}:
             _invalid()
         _check_limits(inventory, references)
         validate_references(inventory, references)
-        result = _derive_access(inventory, references, schema_version)
+        if schema_version == 4:
+            if (type(snapshot) is not SourceSnapshot or type(calculations) is not CalculationResult
+                    or type(calculations.schema_version) is not int or calculations.schema_version != 2):
+                _invalid()
+            validate_calculations(snapshot, inventory, references, calculations)
+        elif snapshot is not None or calculations is not None:
+            _invalid()
+        result = _derive_access(inventory, references, schema_version, calculations)
         render_access_json(result)
         return result
     except AccessError:
@@ -329,18 +419,36 @@ def analyze_access(inventory: InventoryResult, references: ReferenceResult, *,
 
 
 def validate_access(inventory: InventoryResult, references: ReferenceResult,
-                    result: AccessResult) -> None:
+                    result: AccessResult, *, snapshot: SourceSnapshot | None = None,
+                    calculations: CalculationResult | None = None) -> None:
     """Reject every deviation from canonical access, without copying a candidate."""
     try:
         if type(result) is not AccessResult:
             _invalid()
-        expected = analyze_access(inventory, references, schema_version=result.schema_version)
+        expected = analyze_access(inventory, references, schema_version=result.schema_version,
+                                  snapshot=snapshot, calculations=calculations)
         valid = (type(result) is AccessResult
                  and _strict_record_match(vars(expected), vars(result)))
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError):
         valid = False
     if not valid:
         _invalid()
+
+
+def _project_data(result: AccessResult) -> dict[str, Any]:
+    """Keep v2/v3 wire contracts frozen without silently discarding evidence."""
+    if type(result) is not AccessResult:
+        _invalid()
+    data = vars(result)
+    if (data.keys() != set(AccessResult.__dataclass_fields__)
+            or type(result.schema_version) is not int or result.schema_version not in {2, 3, 4}):
+        _invalid()
+    if result.schema_version < 4:
+        for name in ('expression_uses', 'expression_roots'):
+            if type(data[name]) is not list or len(data[name]) != 0:
+                _invalid()
+        return {key: value for key, value in data.items() if key not in {'expression_uses', 'expression_roots'}}
+    return data
 
 
 def render_access_json(result: AccessResult) -> str:
@@ -353,9 +461,7 @@ def render_access_json(result: AccessResult) -> str:
     if type(result) is not AccessResult:
         _invalid()
     try:
-        data = vars(result)
-        if data.keys() != set(AccessResult.__dataclass_fields__):
-            _invalid()
+        data = _project_data(result)
         stack = [iter((data,))]
         exhausted = object()
         budget = MAX_ACCESS_BYTES

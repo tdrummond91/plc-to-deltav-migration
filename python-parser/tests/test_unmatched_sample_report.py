@@ -45,8 +45,14 @@ def report(data: bytes = SOURCE, *, schema_version: int = 20) -> dict:
     nested = build_reference_summary(inventory, references, revision=REVISION)
     sfc = build_sfc_summary(snapshot, inventory,
         analyze_sfc_structure(snapshot, inventory), revision=REVISION)
+    captured_calculations = analyze_calculations(snapshot, inventory, references,
+        schema_version=2 if schema_version >= 19 else 1)
+    access_inputs = ({'snapshot': snapshot, 'calculations': captured_calculations}
+                     if schema_version >= 21 else {})
     access = build_access_summary(inventory, references,
-        analyze_access(inventory, references, schema_version=3 if schema_version >= 20 else 2), revision=REVISION)
+        analyze_access(inventory, references,
+                       schema_version=4 if schema_version >= 21 else 3 if schema_version >= 20 else 2,
+                       **access_inputs), revision=REVISION, **access_inputs)
     captured_tag_data = analyze_tag_data(snapshot, inventory)
     tag_data = build_tag_data_summary(snapshot, inventory, captured_tag_data, revision=REVISION)
     captured_pid = analyze_pid(snapshot, inventory, references, captured_tag_data)
@@ -54,8 +60,7 @@ def report(data: bytes = SOURCE, *, schema_version: int = 20) -> dict:
     pid_members = build_pid_member_summary(snapshot, inventory, references, captured_tag_data, captured_pid,
         analyze_pid_members(snapshot, inventory, references, captured_tag_data, captured_pid), revision=REVISION)
     calculations = build_calculation_summary(snapshot, inventory, references,
-        analyze_calculations(snapshot, inventory, references,
-                             schema_version=2 if schema_version >= 19 else 1), revision=REVISION)
+        captured_calculations, revision=REVISION)
     status = 'partial' if 'partial' in (nested['status'], sfc['status'], access['status'], tag_data['status'],
                                       pid['status'], pid_members['status'], calculations['status']) else 'complete'
     result = {

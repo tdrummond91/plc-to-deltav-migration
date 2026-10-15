@@ -1,5 +1,17 @@
 # Counter, message, system-value and SFC-reset operand access
 
+## Confirmed work-machine return
+
+Returned `cbb2965` tests clean `456786a`. All 695 application cases pass (one
+expected Windows skip), as do 139 helpers. All 175 projected instructions and
+336 operand slots classified: three counters, 27 messages, five system-value
+reads and 140 named-step resets. All 175 data operands bound, with zero new
+binding gaps. Unsupported instructions fell from 348 to 173; unknown source
+roles fell from 931 to 595. The 321 existing binding gaps remain unchanged.
+Six other summaries match after removing only tool_revision; this does not
+prove source-byte identity. All 27 historical reports validate. The work20
+return is 31,787 bytes. [CPT access](CPT_ACCESS_REVIEW.md) is the next slice.
+
 ## Confirmed starting point
 
 Returned `760448e` tests clean `36c0ff4`. Its 668 application cases pass with one

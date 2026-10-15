@@ -2,7 +2,22 @@
 
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current extended access contract (2026-10-15)
+## Current CPT access contract (2026-10-15)
+
+Access4 / instruction-access-4 requires the snapshot and canonical calculation2
+companion. Exact two-slot nonempty CPTs classify a destination write and an
+expression_read container. Wholly parsed expressions provide separate leaf
+uses and root groups with node IDs, spans and bindings. Repeated uses remain
+separate; invalid syntax supplies no partial uses. The source-operand population
+is unchanged. Access2/3 API replay and serialization retain their exact contracts.
+
+Access summary4 adds closed expression status, binding, root and gap counts.
+Work21 reconciles them with calculation summary2; work1-20 retain their checks.
+Review6/manifest9 still saves thirteen artifacts. Limits remain 32 MiB access,
+250,000 expression-use records, an incremental shared 8M-character suffix/alias
+budget and 32 KiB feedback. See [CPT_ACCESS_REVIEW.md](../reviews/CPT_ACCESS_REVIEW.md).
+
+## Historical extended access contract (2026-10-15)
 
 Access3 / instruction-access-3 adds a versioned binding overlay for CTU/CTD, MSG,
 GSV/SSV and SFR. Operand IDs remain shared with reference evidence. Each access

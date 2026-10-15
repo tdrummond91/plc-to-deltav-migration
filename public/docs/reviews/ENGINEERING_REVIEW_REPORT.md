@@ -1,6 +1,17 @@
 # Private engineering review report
 
-## Current extended access follow-up (2026-10-15)
+## Current CPT access follow-up (2026-10-15)
+
+[CPT access](CPT_ACCESS_REVIEW.md) adds destination writes and separately counted
+expression reads. Tag access includes expression-only roots, repeated reads,
+exact source-span/node links and alias backlinks. Unsupported expressions and
+unbound references remain explicit gaps. Current commands generate access4;
+work21 adds summary4 while review6/manifest9 retains thirteen artifacts.
+Returned `cbb2965` confirms the prior 175-instruction access extension with no
+new binding gaps. The next run measures CPT integration. Manual engineering
+and appearance review remains optional. The invented HTML demo is available.
+
+## Historical extended access follow-up (2026-10-15)
 
 [Extended access](EXTENDED_ACCESS_REVIEW.md) adds counter and message controls,
 system-value operands and SFC-reset targets. The report distinguishes original

@@ -7,8 +7,9 @@ source inventory, references, explicit operand access, stored Tag Data, PID occu
 `review.html` path to search objects, follow source context, inspect findings,
 compare repeated rung syntax and navigate routine/SFC evidence. The report is
 self-contained and opens without a server. Phase 1 now classifies potential
-explicit operand uses for 40 supported mnemonic spellings, including bounded
-timer/reset/copy, counter, message-control, system-value and SFC-reset roles.
+explicit operand uses for 41 supported mnemonic spellings, including bounded
+timer/reset/copy, counter, message-control, system-value, SFC-reset and CPT roles. CPT expression reads have separate
+counts and exact node/span links; repeated references stay separate.
 Access-owned bindings retain separate provenance from the original reference
 analysis; new declaration links use the access binding and alias chain. These roles are not
 execution effects or dependencies, and root groups do not establish overlap
@@ -17,9 +18,10 @@ between member/index suffixes. Engineering classifications remain later work.
 Tyler has not inspected the source/report and explicitly deferred engineering
 and UI review. Such inspection is optional later; it is not a gate to continued
 parser work. The next work-machine run should return only generated aggregate
-feedback for the extended operand access analysis. Returned `760448e` confirms
-all 45 CPT expressions parse, with 132 bound reference uses and 45 bound
-destinations. See [the access contract and limits](../public/docs/reviews/EXTENDED_ACCESS_REVIEW.md).
+feedback for CPT access integration. Returned `cbb2965` confirms 175 newly
+classified access instructions and 175 newly bound operands, with no new binding
+gaps. The next run measures the projected 45 CPT classifications and 132
+expression reads. See [the access contract and limits](../public/docs/reviews/CPT_ACCESS_REVIEW.md).
 
 ```bash
 uv run --project python-parser --locked plc review \
@@ -45,7 +47,7 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work20 adds access summary3 beside calculation2, PID member1,
+manual. Current work21 adds access summary4 beside calculation2, PID member1,
 PID1, Tag Data1, reference12/source4 and SFC2. Earlier work17 added count-only
 PID member summary1 while preserving
 PID1, Tag Data1/reference12/source4/SFC2/access2 summaries. Documented member

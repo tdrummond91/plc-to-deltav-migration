@@ -58,6 +58,7 @@ WORK_MACHINE_MODULES = {
         "test_pid", "test_pid_summary", "test_pid_workflow",
         "test_pid_members", "test_pid_member_summary", "test_pid_member_workflow",
         "test_calculations", "test_calculation_summary", "test_calculation_workflow",
+        "test_cpt_access", "test_cpt_access_summary", "test_cpt_access_workflow",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

@@ -378,7 +378,8 @@ class AccessWorkReportTests(unittest.TestCase):
                 result = work_check._analyze(root, source, root, REVISION)
             capture.assert_called_once_with(source)
             analyze.assert_called_once()
-            self.assertEqual(save.call_args.kwargs['access'].to_dict(), analyze_access(*analyze.call_args.args).to_dict())
+            self.assertEqual(save.call_args.kwargs['access'].to_dict(),
+                             analyze_access(*analyze.call_args.args, **analyze.call_args.kwargs).to_dict())
             self.assertEqual(result['access_summary']['status'], 'complete')
             self.assertEqual(save.call_args.args[1].data, COMPLETE)
             with patch.object(work_check, 'analyze_access', side_effect=AccessError('PRIVATE_ERROR')):

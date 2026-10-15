@@ -202,7 +202,12 @@ class CalculationReviewStorageTests(unittest.TestCase):
                     patch('plc_workbench.calculations.analyze_calculations', wraps=analyze_calculations) as analyze:
                 code, output, error = invoke(['review', str(source), '--workspace', str(workspace)])
             capture.assert_called_once_with(source)
-            analyze.assert_called_once()
+            # Access4 authenticates its calculation input by replay. Every
+            # replay must still use the one captured snapshot, not the file
+            # whose bytes this test replaced after capture.
+            self.assertGreaterEqual(analyze.call_count, 1)
+            for call in analyze.call_args_list:
+                self.assertEqual(call.args[0].data, DATA)
             self.assertEqual((code, error), (3, ''))
             saved, = workspace.iterdir()
             self.assertIn(str(saved / 'review.html'), output)

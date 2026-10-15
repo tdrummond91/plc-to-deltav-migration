@@ -245,11 +245,12 @@ def _review(args: argparse.Namespace) -> int:
         inventory = analyze_snapshot(snapshot)
         references = analyze_references(inventory)
         sfc = analyze_sfc_structure(snapshot, inventory)
-        access = analyze_access(inventory, references)
+        calculations = analyze_calculations(snapshot, inventory, references)
+        access = analyze_access(inventory, references, schema_version=4,
+                                snapshot=snapshot, calculations=calculations)
         tag_data = analyze_tag_data(snapshot, inventory)
         pid = analyze_pid(snapshot, inventory, references, tag_data)
         pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
-        calculations = analyze_calculations(snapshot, inventory, references)
         saved = save_run(args.workspace, snapshot, inventory, references=references,
                          sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data, pid=pid,
                          pid_members=pid_members, calculations=calculations)
