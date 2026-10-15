@@ -45,7 +45,8 @@ _V7_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 7, "workflow_version": "w
 _V8_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 8, "workflow_version": "work-check-8"}
 _V9_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 9, "workflow_version": "work-check-9"}
 _V10_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 10, "workflow_version": "work-check-10"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 11, "workflow_version": "work-check-11"}
+_V11_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 11, "workflow_version": "work-check-11"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 12, "workflow_version": "work-check-12"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _GIT_REPOSITORY_OVERRIDES = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
@@ -74,7 +75,7 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = {"diagnostic_sample"} if version >= 2 else set()
@@ -103,14 +104,15 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["tool_revision"] != revision
+            if (sfc["schema_version"] != {11: 1, 12: 2}[version]
+                    or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
             expected_analysis = "partial" if "partial" in (nested["status"], sfc["status"]) else "complete"
@@ -146,7 +148,7 @@ def validate_work_check_report(report: Any) -> None:
             if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
                 # This fallback needs dedicated rack evidence. Historical v2
                 # reports retain their original malformed-only sample contract.
-                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12)}
+                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12)}
                         or nested["rack_candidates"]["matches"]["direct_operands"]
                         ["by_status"]["no_candidate_match"] == 0):
                     _invalid()

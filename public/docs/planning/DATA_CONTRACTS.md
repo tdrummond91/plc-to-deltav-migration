@@ -4,27 +4,27 @@ Status: updated 2026-10-14. Private source inventory, derived root references an
 
 ## Current separate SFC structure contract (2026-10-14)
 
-SfcStructureResult schema1 / sfc-structure-1 captures routine/content identities,
+SfcStructureResult schema2 / sfc-structure-2 captures routine/content identities,
 edit metadata, every SFCContent descendant, opaque text, scoped numeric block IDs,
 conservative links and fixed issues. It uses the original captured bytes, checks
 declaration/snapshot identity and supports strict canonical replay. Unknown
 routine siblings produce markers and coverage gaps. Existing inventory3,
 reference6/source-references-9 and public source4/reference12 remain exact.
 
-SFC aggregate1 / sfc-structure-summary-1 shares only fixed counts, standard code
+SFC aggregate2 / sfc-structure-summary-2 shares only fixed counts, standard code
 revision and source SFC routine total under policy2. No source IDs, names, XML
 attributes, ST text or links are published. Partitions, ID/link capacities,
 eligible text-issue populations and exact issue counts are checked. The publisher
 recognizes this separate report kind and retains its size/path/no-overwrite rules.
 
-Work11 / work-check-11 keeps reference12 and requires the additional
+Work12 / work-check-12 keeps reference12 and requires the additional
 analysis.sfc_structure_summary on successful analysis; failed/not-run require
 null. Revision and SFC population reconcile with the outer/reference records.
-Work10 and earlier retain their exact envelopes. Optional SFC storage adds two
+Historical work11 requires frozen SFC1; work12 requires SFC2. Work10 and earlier retain their exact envelopes. Optional SFC storage adds two
 private artifacts and manifest3; ordinary source/reference-only runs keep1/2.
 New work runs combine source/reference/SFC status and store seven artifacts.
-No ST/execution semantics or edit selection is introduced. See
-[exact scope and validation](../reviews/SFC_STRUCTURE_REVIEW.md).
+Private SFC2 adds separate typed annotations and immediate TextBox Text children. Public2 adds annotation/endpoint partitions and raw text-shape/character counts, without text or pairs. Fully resolved pairs alone supply distinct note/target counts. Direct and child fragments remain separate; there is no automatic description assignment. No ST/execution semantics or edit selection is introduced. See
+[annotation scope and validation](../reviews/SFC_ANNOTATION_REVIEW.md) and the [original structure contract](../reviews/SFC_STRUCTURE_REVIEW.md).
 
 ## Static JSR candidate graph contract checkpoint (2026-10-14)
 

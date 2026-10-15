@@ -21,12 +21,13 @@ SFC_SOURCE = SOURCE.replace(b'</Routines>', b'''<Routine Name="PrivateChart" Typ
 <Line Number="0"><![CDATA[PRIVATE_VALUE > 932;]]></Line></STContent></Condition></Transition>
 <DirectedLink FromID="1" ToID="2"/></SFCContent></Routine></Routines>''')
 PREVIOUS = Path(__file__).resolve().parents[2] / 'public/inspection/work-check-20261015T012257Z-0878989d.json'
+PREVIOUS_SFC = Path(__file__).resolve().parents[2] / 'public/inspection/work-check-20261015T015742Z-873f283d.json'
 
 
 class SfcWorkReportTests(unittest.TestCase):
-    def test_current_work11_adds_separate_summary_without_changing_reference_contract(self) -> None:
+    def test_current_work12_keeps_separate_summary_without_changing_reference_contract(self) -> None:
         payload = report(SFC_SOURCE)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (11, 'work-check-11'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (12, 'work-check-12'))
         analysis = payload['analysis']
         self.assertEqual(analysis['reference_summary']['schema_version'], 12)
         self.assertEqual(analysis['sfc_structure_summary']['source_sfc_routines'], 1)
@@ -39,6 +40,23 @@ class SfcWorkReportTests(unittest.TestCase):
         inventory = analyze_snapshot(snapshot_from_bytes(SFC_SOURCE))
         self.assertEqual(build_reference_summary(inventory, analyze_references(inventory), revision=REVISION),
                          analysis['reference_summary'])
+
+    def test_frozen_work11_keeps_sfc1_and_rejects_new_summary_pair(self) -> None:
+        before = PREVIOUS_SFC.read_bytes()
+        old = json.loads(before)
+        self.assertEqual((old['schema_version'], old['analysis']['sfc_structure_summary']['schema_version']), (11, 1))
+        self.assertEqual(json.loads(work_check.render_work_check_report(old)), old)
+        current = report(SFC_SOURCE)
+        self.assertEqual(current['analysis']['sfc_structure_summary']['schema_version'], 2)
+        changed = deepcopy(current)
+        changed.update(schema_version=11, workflow_version='work-check-11')
+        with self.assertRaises(ValueError):
+            work_check.validate_work_check_report(changed)
+        changed = deepcopy(old)
+        changed.update(schema_version=12, workflow_version='work-check-12')
+        with self.assertRaises(ValueError):
+            work_check.validate_work_check_report(changed)
+        self.assertEqual(PREVIOUS_SFC.read_bytes(), before)
 
     def test_source_population_revision_and_summary_presence_must_match(self) -> None:
         original = report(SFC_SOURCE)

@@ -180,3 +180,21 @@ creation prohibited; standalone CLI revision collection is mocked for those test
 
 Development uses invented fixtures and approved public reports; project
 confidential files and the disabled listener are not used here.
+
+## Returned structure checkpoint and annotation follow-up (2026-10-14)
+
+Report `42e0188` tests clean `4b00f5a`: 399 application cases (one skip) and
+139 helpers pass, with partial analysis and a saved private run. Its 14 SFC
+routines each have one content with absent edit-kind attributes. It observes
+145 steps, 155 transitions, 14 branches, 34 legs, 324 directed links, 280 boxes,
+213 attachments and 280 unknown elements. All 628 IDs are valid and unique per
+content, all 648 flow endpoints resolve, and all 280 issues are unknown elements.
+ST totals are 329 lines/5,390 characters. No action descriptors are observed.
+Earlier reference12/source4 counters match except code revision.
+
+The next slice captures immediate Text children and direct TextBox notes plus
+separate typed attachments. The fixture suggests Text wrappers may explain the
+unknowns, but the public counts do not prove that. Current contracts advance to
+privateSFC2/publicSFC2/work12, retaining work11/SFC1 exactly and leaving earlier
+inventory/reference/graph coverage intact. See the [annotation follow-up](SFC_ANNOTATION_REVIEW.md)
+for source evidence, safeguards, validation and the next work-PC comparison.

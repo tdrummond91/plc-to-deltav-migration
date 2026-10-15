@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/SFC_ANNOTATION_REVIEW.md,
 public/docs/reviews/SFC_STRUCTURE_REVIEW.md,
 public/docs/reviews/ROUTINE_GRAPH_REVIEW.md,
 public/docs/reviews/ROUTINE_METADATA_REVIEW.md,
@@ -52,8 +53,8 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available, excluding the ignored listener
-loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9/10 remain readable. Current
-schema11 requires reference12 and a separate SFC summary1 and retains at most one authorized operand example.
+loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9/10/11 remain readable. Current
+schema12 requires reference12 and a separate SFC summary2 and retains at most one authorized operand example.
 The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
@@ -78,7 +79,7 @@ Current baseline: 139 passing helper tests. Also run the full development
 application command in SFC_STRUCTURE_REVIEW.md, which explicitly excludes the
 ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in SFC_STRUCTURE_REVIEW.md;
+Use the final application test count and tested revision in SFC_ANNOTATION_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -218,18 +219,7 @@ or runtime reachability are inferred. Read ROUTINE_GRAPH_REVIEW.md. Returned
 helpers: 69 nodes/68 pairs/76 linked calls, three repeats/eight extras, three
 unique mains, one isolated node, no cycles/self edges. Earlier counts are stable.
 
-Current slice adds independent SFC schema1/sfc-structure-1 and count summary1,
-using the same captured bytes with another bounded XML pass. Capture all
-SFCContent descendants, keep online edits separate, preserve raw ST without
-interpreting it, and resolve only unique eligible IDs within each content block.
-Unknown routine siblings are markers/coverage gaps; their payload stays in the
-snapshot. Work11 keeps reference12 and adds analysis.sfc_structure_summary.
-Combined manifest3 stores seven artifacts; ordinary inventory/reference calls
-retain manifest1/2. Inventory3/reference6/analyzer9/source4 remain unchanged.
-Read SFC_STRUCTURE_REVIEW.md. Next report should preserve earlier counters and
-cover 14 SFC routines; content/element/ID/link partitions remain unknown until
-returned. Choose subsequent ST/action/control-flow analysis from that evidence.
-Partial remains expected; structural capture does not complete Phase1.
+Returned `42e0188` tests clean `4b00f5a`: 399 application cases (one skip) and 139 helpers pass. SFC has 14 contents, 145 steps, 155 transitions, 324 links with all 648 endpoints resolved, 280 boxes, 213 attachments and 280 unknown elements; earlier reference counts are exact except revision. The current slice adds privateSFC2/publicSFC2/work12: immediate TextBox Text children and direct note text stay independent, while typed annotations resolve separately from control flow. No automatic engineering-description assignment or execution inference is introduced. Inventory3/reference6/analyzer9/source4/publicreference12 remain unchanged, as do manifest3 layout and ordinary manifests1/2. Historical work11/SFC1 remains exact. Read SFC_ANNOTATION_REVIEW.md. Next report should retain previous flow/ST/ID/reference counts and measure annotation/text shapes. The 280 unknown elements may be Text children, but that remains an inference until the run. Partial overall analysis remains expected.
 Continue authorized work until a specific evidence gap or phase boundary needs
 Tyler's input. Do not activate the listener or access confidential inputs.
 

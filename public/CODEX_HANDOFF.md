@@ -9,7 +9,16 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `2f37ae3` confirms 76 calls/68 grouped pairs, three matched main designations, one isolated routine and no observed candidate cycles. Both suites passed and earlier counts stayed unchanged. The new slice captures SFC structure separately: steps, transitions, action descriptors, edit versions, opaque ST text and conservative links. Existing ladder/reference results remain exact. Read [SFC scope and evidence](docs/reviews/SFC_STRUCTURE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `42e0188` validates SFC capture: 145 steps, 155 transitions, 324 links with all endpoints resolved, and 280 unknown elements. Earlier reference/graph counts stay unchanged. The new slice captures direct and child TextBox text plus separate annotation attachments, without assigning engineering descriptions. See the [annotation review](docs/reviews/SFC_ANNOTATION_REVIEW.md) and [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+Current annotation validation: 512 development cases pass (one existing symlink
+skip), and 17 stored reports validate unchanged. Independent review has no
+remaining blockers after fixing repeated endpoint-payload rendering. Two actual
+synthetic launcher runs each pass 416 application cases (one skip) and 139
+helpers, preserving prior artifacts and making report-only local commits with
+no remote Git calls. Next real run measures note shapes and attachment statuses;
+280 unknowns becoming recognized Text children is an inference to test, not a
+confirmed source finding. See the annotation review for exact evidence.
 
 ## Development-only listener files (2026-10-14)
 
@@ -100,8 +109,8 @@ schema 6 carries reference 8 with MVM/SWPB roles and schema 7 carries
 reference 9 with observation-only routine-instruction shapes. Schema 8
 carries reference 10 with declared JSR first-field candidates; schema 9
 carries reference 11 with unique-candidate metadata observations. Schema
-10 carries reference 12 with static candidate graph counts. Current schema11
-keeps reference12 and adds a separate SFC-structure summary1.
+10 carries reference 12 with static candidate graph counts. Current schema12
+keeps reference12 and carries separate SFC-structure summary2; frozen work11 retains SFC1.
 Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
@@ -139,7 +148,7 @@ now describe unknown backing instead of omitted declarations. The sample is null
 
 Current contracts: private inventory/reference schemas 3/6 with
 `source-inventory-3` / `source-references-9`; public source/reference schemas 4/12;
-work-check schema11 with separate SFC schema1 / sfc-structure-1. Plain
+work-check schema12 with separate private SFC schema2 / sfc-structure-2 and public SFC summary2. Plain
 reference runs retain manifest2; combined work runs use manifest3 with SFC
 JSON/text artifacts. Inventory/reference JSON retain their exact structures:
 private reference JSON includes
@@ -148,8 +157,8 @@ reports still validate with exact original status vocabularies. Work schema 3
 still requires reference 5, work schema 4 requires reference 6, and work schema
 5 requires reference 7, work schema 6 requires reference 8 and work schema 7
 requires reference 9; work schema 8 requires reference 10 and work schema 9
-requires reference 11. Work10/11 require reference12; only work11 has the SFC
-summary sibling. Read [SFC review](docs/reviews/SFC_STRUCTURE_REVIEW.md)
+requires reference 11. Work10/11/12 require reference12; work11/12 have SFC
+summary siblings1/2 respectively. Read [SFC review](docs/reviews/SFC_STRUCTURE_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 
 Rack validation: 316 development application/workflow tests passed (one existing

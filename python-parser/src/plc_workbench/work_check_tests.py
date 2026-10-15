@@ -50,6 +50,7 @@ WORK_MACHINE_MODULES = {
         "test_bit_operations",
         "test_routine_shapes", "test_routine_targets", "test_routine_metadata", "test_routine_graph", "test_sfc_structure", "test_sfc_summary",
         "test_sfc_cli", "test_sfc_storage", "test_sfc_work_report",
+        "test_sfc_annotations", "test_sfc_annotation_summary",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

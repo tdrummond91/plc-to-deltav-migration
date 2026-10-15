@@ -22,18 +22,21 @@ uv run --project python-parser --locked plc sfc-summary \
 ```
 
 `sfc-structure` emits private step/transition/action descriptors, edit-version
-content blocks, raw attributes/opaque ST and conservative diagram links. Numeric
+content blocks, raw attributes/opaque ST and conservative diagram links. TextBox
+notes preserve direct text and immediate Text-child fragments independently;
+annotation attachments have separate typed endpoints and do not become flow
+edges or automatic engineering descriptions. Numeric
 IDs resolve only within a content block; missing, invalid and duplicate IDs
 remain gaps. All edit versions stay separate. This uses another bounded XML pass
 over the same captured bytes, keeping existing inventory/reference results exact.
 Private text/JSON can be saved in an append-only workspace. Exit0/3 describes
 complete/partial structural capture, not complete Phase1 or valid execution.
 
-`sfc-summary` publishes only closed counts and code revision under schema1/policy2.
+`sfc-summary` publishes only closed counts and code revision under schema2/policy2.
 It contains no raw descriptors, values, source IDs or topology. The ordinary
 source/reference commands keep their existing contracts. Optional SFC storage
 adds sfc-structure.json/txt and manifest3; ordinary source/reference-only runs
-retain manifest1/2. See [the SFC review](../public/docs/reviews/SFC_STRUCTURE_REVIEW.md).
+retain manifest1/2. See [the annotation review](../public/docs/reviews/SFC_ANNOTATION_REVIEW.md) and [the SFC review](../public/docs/reviews/SFC_STRUCTURE_REVIEW.md).
 
 ## Scoped tag and alias references
 
@@ -280,9 +283,9 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema11 and carries unchanged reference12/source4 plus
-analysis.sfc_structure_summary (SFC schema1) when analysis succeeds. Historical
-schema-1/2/3/4/5/6/7/8/9/10 reports remain readable;
+The outer report is schema12 and carries unchanged reference12/source4 plus
+analysis.sfc_structure_summary (SFC schema2) when analysis succeeds. Historical work11 requires frozen SFC1.
+Historical schema-1/2/3/4/5/6/7/8/9/10 reports remain readable;
 schemas 3/4/5/6/7/8/9 require references 5/6/7/8/9/10/11 respectively. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
@@ -332,11 +335,12 @@ Report `2f37ae3`, testing clean `e17ceeb`, confirms 69 graph nodes, 68 pairs,
 node and no observed cycles. All 354 application cases (one skip) and 139 helpers
 pass; earlier counts are unchanged.
 
-The next run adds separate SFC structural counts for 14 routines, while every
-existing source/reference/graph count should remain unchanged. Work11 saves
-sfc-structure.json/txt alongside source/reference artifacts under combined
-manifest3 (seven artifacts). SFC step/action/transition records and opaque ST
-remain private. New element/edit/ID/link counts are unknown until returned.
+Returned `42e0188` confirms 14 SFC contents, 145 steps, 155 transitions and
+324 links with all 648 endpoints resolved, plus 280 boxes/213 attachments and
+280 unknown elements. Earlier source/reference counts are unchanged. The next
+work12 run measures separate annotations and text-shape counts under SFC2.
+Immediate Text children may explain those unknowns; this is not yet confirmed.
+Private sfc-structure.json/txt remain under combined manifest3 (seven artifacts).
 Partial remains expected; runtime SFC logic and ST semantics remain unimplemented.
 
 Review the local feedback report before sharing, then run `git push` when ready.

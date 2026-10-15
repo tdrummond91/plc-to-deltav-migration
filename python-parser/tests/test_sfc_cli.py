@@ -55,7 +55,7 @@ class SfcCliTests(unittest.TestCase):
             self.assertEqual((code, stderr), (0, ''))
             report = json.loads(stdout)
             self.assertEqual((report['schema_version'], report['analysis_scope'], report['status']),
-                             (1, 'sfc_structure_only', 'complete'))
+                             (2, 'sfc_structure_only', 'complete'))
             self.assertEqual(list(Path(directory).iterdir()), [source])
             code, text, stderr = invoke(['sfc-structure', str(source)])
             self.assertEqual((code, stderr), (0, ''))

@@ -1,6 +1,6 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. The next SFC-structure check is on
+Use **main** for the consolidated baseline. The next SFC-annotation check is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
@@ -56,12 +56,20 @@ eight extra occurrences, three matched mains, one isolated node and no observed
 cycles. Earlier counters are stable.
 See [the confirmed graph review](ROUTINE_GRAPH_REVIEW.md).
 
-The next check uses work-check schema11 with unchanged reference12/source4 and
-new analysis.sfc_structure_summary (schema1). Expect 14 source SFC routines with
-earlier counts unchanged. New content/edit/step/action/transition/ID/link counts
-remain unknown until returned. SFC descriptors, raw ST and topology stay private
-in sfc-structure.json/txt. Partial remains expected. See
-[the SFC review](SFC_STRUCTURE_REVIEW.md).
+Returned SFC evidence: `42e0188` tests clean `4b00f5a`, passing 399 application
+cases (one skip) and 139 helpers. All 14 contents have absent edit-kind attributes;
+145 steps, 155 transitions, 324 links and all 648 endpoints resolve. There are
+280 text boxes, 213 attachments and 280 unknown elements; ST is 329 lines/5,390
+characters. Every earlier reference count stays unchanged.
+
+The next check uses work-check12, unchanged reference12/source4 and separate
+SFC summary2. It supports direct and immediate Text-child notes plus independent
+attachment resolution; earlier flow/ID/ST/reference counts should stay unchanged.
+The 280 unknowns may be Text children, which the run must confirm. Attachment
+statuses and text-shape counts are new and remain unknown. Raw notes/descriptors,
+ST and topology stay private in sfc-structure.json/txt. Overall partial remains
+expected. See [the annotation review](SFC_ANNOTATION_REVIEW.md).
+
 
 ## Manual runs
 

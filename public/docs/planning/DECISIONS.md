@@ -213,6 +213,18 @@ their payload preserved in the snapshot. Keep runtime transition/action semantic
 and target sequence design for later evidence-driven work. See
 [the SFC contract](../reviews/SFC_STRUCTURE_REVIEW.md).
 
+### Keep authored SFC notes separate from flow and engineering descriptions (2026-10-14)
+
+Returned `42e0188` confirms resolved SFC flow endpoints and 280 unknown elements.
+The approved fixture suggests immediate Text children as a bounded compatibility
+extension. Capture direct/child note fragments separately and resolve Attachment
+FromID TextBox to ToID flow block/Action within each content namespace. Preserve
+uncertainty, collisions and edit boundaries; do not reverse wrong endpoints or
+select a description automatically. PrivateSFC2/publicSFC2/work12 carry this slice;
+existing reference results and historical contracts stay exact. Keep output size
+proportional to retained evidence by printing endpoint payloads once. See the
+[annotation evidence and tests](../reviews/SFC_ANNOTATION_REVIEW.md).
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?

@@ -15,12 +15,15 @@ from .models import InventoryResult, SourceSnapshot
 from .sfc_structure import (
     SfcStructureResult, SFC_ELEMENT_KINDS, SFC_EDIT_KINDS,
     SFC_BLOCK_ID_STATUSES, SFC_ENDPOINT_STATUSES, SFC_ISSUE_CODES,
+    SFC_ELEMENT_KINDS_V1, SFC_ISSUE_CODES_V1,
+    SFC_OPAQUE_TEXT_KINDS, SFC_OPAQUE_TEXT_KINDS_V1,
     MAX_SFC_ELEMENTS, MAX_SFC_CONTENTS, MAX_SFC_LINKS, MAX_SFC_EVIDENCE_CHARS,
+    MAX_SFC_ANNOTATIONS,
     validate_sfc_structure,
 )
 from .summary import MAX_COUNT, MAX_REPORT_BYTES
 
-CONSTANTS = {
+CONSTANTS_V1 = {
     'schema_version': 1,
     'policy_version': 2,
     'report_kind': 'l5x_sfc_structure_review_summary',
@@ -29,6 +32,11 @@ CONSTANTS = {
     'analysis_scope': 'sfc_structure_only',
     'semantic_analysis': 'not_implemented',
     'sharing_status': 'aggregate_sync_allowed',
+}
+CONSTANTS = CONSTANTS_V1 | {
+    'schema_version': 2,
+    'exporter_version': 'sfc-structure-summary-2',
+    'analyzer_version': 'sfc-structure-2',
 }
 
 
@@ -91,6 +99,19 @@ def build_sfc_summary(
         endpoints = Counter(link[field] for link in result.links for field in ('from_status', 'to_status'))
         issue_counts = _tally(result.issues, 'code', SFC_ISSUE_CODES)
         resolved = sum(link['from_status'] == link['to_status'] == 'resolved' for link in result.links)
+        annotations = [row for row in result.annotations
+                       if row['from_status'] == row['to_status'] == 'resolved']
+        annotation_endpoints = Counter(row[field] for row in result.annotations
+                                       for field in ('from_status', 'to_status'))
+        text_boxes = [row for row in result.elements if row['kind'] == 'text_box']
+        text_children = [row for row in result.elements if row['kind'] == 'text_box_text']
+        text_parents = {row['parent_id'] for row in text_children}
+        text_shapes: Counter[str] = Counter()
+        for row in text_boxes:
+            direct = bool(row['direct_text'].strip())
+            child = row['id'] in text_parents
+            text_shapes['mixed' if direct and child else 'direct_only' if direct else
+                        'child_only' if child else 'empty'] += 1
         with_content = sum(bool(row['content_ids']) for row in result.routines)
         summary = dict(CONSTANTS) | {
             'tool_revision': dict(revision) if revision is not None else {'commit': None, 'worktree': 'unavailable'},
@@ -114,6 +135,24 @@ def build_sfc_summary(
                           'by_status': {'resolved': resolved, 'unresolved': len(result.links) - resolved}},
                 'link_endpoints': {'total': 2 * len(result.links),
                                    'by_status': {key: endpoints[key] for key in sorted(SFC_ENDPOINT_STATUSES)}},
+                'annotations': {
+                    'total': len(result.annotations),
+                    'by_status': {'resolved': len(annotations),
+                                  'unresolved': len(result.annotations) - len(annotations)},
+                    'distinct_text_boxes': len({row['from_element_id'] for row in annotations}),
+                    'distinct_targets': len({row['to_element_id'] for row in annotations}),
+                },
+                'annotation_endpoints': {
+                    'total': 2 * len(result.annotations),
+                    'by_status': {key: annotation_endpoints[key] for key in sorted(SFC_ENDPOINT_STATUSES)},
+                },
+                'annotation_text': {
+                    'text_boxes': len(text_boxes),
+                    'by_shape': {key: text_shapes[key]
+                                 for key in ('empty', 'direct_only', 'child_only', 'mixed')},
+                    'child_elements': len(text_children),
+                    'total_characters': sum(len(row['direct_text']) for row in text_boxes + text_children),
+                },
                 'structured_text': {'lines': sum(row['kind'] == 'st_line' for row in result.elements),
                                     'total_characters': sum(len(row['direct_text']) for row in result.elements
                                                             if row['kind'] == 'st_line')},
@@ -129,7 +168,16 @@ def build_sfc_summary(
 def validate_sfc_summary(summary: dict[str, Any]) -> None:
     """Reject unknown fields, raw strings and inconsistent aggregate evidence."""
     _keys(summary, set(CONSTANTS) | {'tool_revision', 'source_sfc_routines', 'status', 'counts'})
-    for key, expected in CONSTANTS.items():
+    if type(summary['schema_version']) is not int or summary['schema_version'] not in (1, 2):
+        _invalid()
+    current = summary['schema_version'] == 2
+    constants = CONSTANTS if current else CONSTANTS_V1
+    element_kinds = SFC_ELEMENT_KINDS if current else SFC_ELEMENT_KINDS_V1
+    issue_codes = SFC_ISSUE_CODES if current else SFC_ISSUE_CODES_V1
+    opaque_kinds = SFC_OPAQUE_TEXT_KINDS if current else SFC_OPAQUE_TEXT_KINDS_V1
+    # The old summary treated unknown elements as opaque, too.
+    opaque_kinds = opaque_kinds | {'unmodeled'}
+    for key, expected in constants.items():
         if type(summary[key]) is not type(expected) or summary[key] != expected:
             _invalid()
     if summary['status'] not in ('complete', 'partial'):
@@ -146,14 +194,17 @@ def validate_sfc_summary(summary: dict[str, Any]) -> None:
         _invalid()
     _count(summary['source_sfc_routines'])
     counts = summary['counts']
-    _keys(counts, {'routines', 'contents', 'elements', 'blocks', 'links', 'link_endpoints', 'structured_text', 'issues'})
+    count_keys = {'routines', 'contents', 'elements', 'blocks', 'links', 'link_endpoints', 'structured_text', 'issues'}
+    if current:
+        count_keys |= {'annotations', 'annotation_endpoints', 'annotation_text'}
+    _keys(counts, count_keys)
     routines = counts['routines']
     _counts(routines, {'total', 'with_content', 'without_content', 'with_protection', 'with_unmodeled_content'})
     contents = counts['contents']
     _keys(contents, {'total', 'by_edit_kind'})
     _count(contents['total'])
     _counts(contents['by_edit_kind'], SFC_EDIT_KINDS)
-    _partition(counts['elements'], SFC_ELEMENT_KINDS)
+    _partition(counts['elements'], element_kinds)
     blocks = counts['blocks']
     _keys(blocks, {'total', 'by_id_status', 'duplicate_groups', 'duplicate_members'})
     for key in ('total', 'duplicate_groups', 'duplicate_members'):
@@ -170,7 +221,7 @@ def validate_sfc_summary(summary: dict[str, Any]) -> None:
     issues = counts['issues']
     _keys(issues, {'total', 'by_code'})
     _count(issues['total'])
-    _counts(issues['by_code'], SFC_ISSUE_CODES)
+    _counts(issues['by_code'], issue_codes)
     if (routines['total'] != summary['source_sfc_routines']
             or routines['with_content'] + routines['without_content'] != routines['total']
             or routines['with_protection'] > routines['total']
@@ -223,12 +274,70 @@ def validate_sfc_summary(summary: dict[str, Any]) -> None:
         'block_id_duplicate': blocks['duplicate_members'],
         'link_endpoint_unresolved': counts['link_endpoints']['total'] - resolved,
     }
-    opaque_kinds = frozenset({'preset', 'limit_high', 'limit_low', 'body', 'condition',
-                             'st_content', 'st_line', 'description', 'unmodeled'})
+    if current:
+        _validate_annotations(counts, flow_blocks)
+        exact_issues['annotation_endpoint_unresolved'] = (
+            counts['annotation_endpoints']['total']
+            - counts['annotation_endpoints']['by_status']['resolved']
+        )
     text_issue_capacity = contents['total'] + sum(count for kind, count in kinds.items()
                                                   if kind not in opaque_kinds)
     if (any(by_code[key] != value for key, value in exact_issues.items())
             or by_code['unexpected_direct_text'] > text_issue_capacity):
+        _invalid()
+
+
+def _validate_annotations(counts: dict[str, Any], flow_blocks: int) -> None:
+    """Check feasible count-only annotation evidence without publishing ID pairs."""
+    annotations = counts['annotations']
+    _keys(annotations, {'total', 'by_status', 'distinct_text_boxes', 'distinct_targets'})
+    for key in ('total', 'distinct_text_boxes', 'distinct_targets'):
+        _count(annotations[key])
+    _counts(annotations['by_status'], {'resolved', 'unresolved'})
+    endpoints = counts['annotation_endpoints']
+    _keys(endpoints, {'total', 'by_status'})
+    _count(endpoints['total'])
+    _counts(endpoints['by_status'], SFC_ENDPOINT_STATUSES)
+    resolved = annotations['by_status']['resolved']
+    unresolved = annotations['by_status']['unresolved']
+    endpoint_resolved = endpoints['by_status']['resolved']
+    blocks = counts['blocks']
+    unique_valid = blocks['by_id_status']['valid'] - blocks['duplicate_members']
+    kinds = counts['elements']['by_kind']
+    target_blocks = flow_blocks + kinds['action']
+    text_boxes = annotations['distinct_text_boxes']
+    targets = annotations['distinct_targets']
+    text = counts['annotation_text']
+    _keys(text, {'text_boxes', 'by_shape', 'child_elements', 'total_characters'})
+    for key in ('text_boxes', 'child_elements', 'total_characters'):
+        _count(text[key])
+    _counts(text['by_shape'], {'empty', 'direct_only', 'child_only', 'mixed'})
+    child_shapes = text['by_shape']['child_only'] + text['by_shape']['mixed']
+    direct_shapes = text['by_shape']['direct_only'] + text['by_shape']['mixed']
+    if (resolved + unresolved != annotations['total']
+            or annotations['total'] != kinds['attachment']
+            or annotations['total'] > MAX_SFC_ANNOTATIONS
+            or endpoints['total'] != 2 * annotations['total']
+            or sum(endpoints['by_status'].values()) != endpoints['total']
+            or not 2 * resolved <= endpoint_resolved <= 2 * resolved + unresolved
+            or bool(text_boxes) != bool(resolved) or bool(targets) != bool(resolved)
+            or text_boxes > min(resolved, kinds['text_box'])
+            or targets > min(resolved, target_blocks)
+            or text_boxes + targets > unique_valid
+            or endpoint_resolved and not unique_valid
+            or endpoint_resolved and not (kinds['text_box'] or target_blocks)
+            or endpoint_resolved > annotations['total'] and not (kinds['text_box'] and target_blocks)
+            or endpoints['by_status']['ambiguous_target'] and not blocks['duplicate_groups']
+            or endpoints['by_status']['unsupported_kind'] and not unique_valid):
+        _invalid()
+    if (text['text_boxes'] != kinds['text_box']
+            or sum(text['by_shape'].values()) != text['text_boxes']
+            or text['child_elements'] != kinds['text_box_text']
+            or child_shapes > text['child_elements']
+            or bool(child_shapes) != bool(text['child_elements'])
+            or direct_shapes > text['total_characters']
+            or not text['text_boxes'] and text['total_characters']
+            or text['total_characters'] > MAX_SFC_EVIDENCE_CHARS):
         _invalid()
 
 

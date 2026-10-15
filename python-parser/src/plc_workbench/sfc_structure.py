@@ -18,26 +18,29 @@ from .source import MAX_SOURCE_BYTES, SourceError, _entity_id, _read_nodes
 MAX_SFC_ELEMENTS = 100_000
 MAX_SFC_CONTENTS = 10_000
 MAX_SFC_LINKS = 100_000
+MAX_SFC_ANNOTATIONS = 100_000
 MAX_SFC_EVIDENCE_CHARS = 8_000_000
 MAX_SFC_ID_LENGTH = 65_536
-SFC_ELEMENT_KINDS = frozenset({
+SFC_ELEMENT_KINDS_V1 = frozenset({
     'step', 'transition', 'branch', 'leg', 'sbr_ret', 'stop', 'action',
     'action_list', 'directed_link', 'text_box', 'attachment', 'preset',
     'limit_high', 'limit_low', 'body', 'condition', 'st_content', 'st_line',
     'description', 'unmodeled',
 })
+SFC_ELEMENT_KINDS = SFC_ELEMENT_KINDS_V1 | {'text_box_text'}
 SFC_EDIT_KINDS = frozenset({'absent', 'empty', 'Original', 'PendingEdits', 'TestEdits', 'other'})
 SFC_BLOCK_ID_STATUSES = frozenset({'missing', 'invalid', 'valid'})
 SFC_ENDPOINT_STATUSES = frozenset({
     'resolved', 'missing_attribute', 'invalid_id', 'missing_target',
     'ambiguous_target', 'unsupported_kind',
 })
-SFC_ISSUE_CODES = frozenset({
+SFC_ISSUE_CODES_V1 = frozenset({
     'content_missing', 'protection_present', 'edit_kind_unmodeled',
     'element_unmodeled', 'unexpected_direct_text', 'block_id_missing',
     'block_id_invalid', 'block_id_duplicate', 'link_endpoint_unresolved',
     'routine_content_unmodeled',
 })
+SFC_ISSUE_CODES = SFC_ISSUE_CODES_V1 | {'annotation_endpoint_unresolved'}
 ELEMENT_KINDS = SFC_ELEMENT_KINDS
 EDIT_KINDS = SFC_EDIT_KINDS
 BLOCK_ID_STATUSES = SFC_BLOCK_ID_STATUSES
@@ -54,7 +57,9 @@ _KINDS = {
 _TOP = frozenset({'Step', 'Transition', 'Branch', 'SbrRet', 'Stop', 'DirectedLink', 'TextBox', 'Attachment'})
 _BLOCKS = frozenset({'step', 'transition', 'branch', 'leg', 'sbr_ret', 'stop', 'action', 'text_box'})
 _FLOW = frozenset({'step', 'transition', 'branch', 'leg', 'sbr_ret', 'stop'})
-_OPAQUE_TEXT = frozenset({'preset', 'limit_high', 'limit_low', 'body', 'condition', 'st_content', 'st_line', 'description'})
+SFC_OPAQUE_TEXT_KINDS_V1 = frozenset({'preset', 'limit_high', 'limit_low', 'body', 'condition', 'st_content', 'st_line', 'description'})
+SFC_OPAQUE_TEXT_KINDS = SFC_OPAQUE_TEXT_KINDS_V1 | {'text_box', 'text_box_text'}
+_OPAQUE_TEXT = SFC_OPAQUE_TEXT_KINDS
 _PROTECTION = frozenset({'EncodedData', 'EncryptedContent', 'EncryptedSegments'})
 _DECIMAL = re.compile(r'[0-9]+', re.ASCII)
 
@@ -70,10 +75,11 @@ class SfcStructureResult:
     contents: list[dict[str, Any]]
     elements: list[dict[str, Any]]
     links: list[dict[str, Any]]
+    annotations: list[dict[str, Any]]
     issues: list[dict[str, str]]
     status: str
-    schema_version: int = 1
-    analyzer_version: str = 'sfc-structure-1'
+    schema_version: int = 2
+    analyzer_version: str = 'sfc-structure-2'
     analysis_scope: str = 'sfc_structure_only'
     semantic_analysis: str = 'not_implemented'
 
@@ -101,6 +107,8 @@ def _canonical_id(value: str | None) -> tuple[str, str | None]:
 
 
 def _kind(name: str, parent_kind: str | None) -> str:
+    if name == 'Text' and parent_kind == 'text_box':
+        return 'text_box_text'
     if parent_kind is None and name in _TOP:
         return _KINDS[name]
     parents = {
@@ -112,7 +120,7 @@ def _kind(name: str, parent_kind: str | None) -> str:
     }
     if parent_kind in parents.get(name, set()):
         return _KINDS[name]
-    if name == 'Description' and parent_kind not in {None, 'unmodeled', 'st_line', 'description'}:
+    if name == 'Description' and parent_kind not in {None, 'unmodeled', 'st_line', 'description', 'text_box_text'}:
         return 'description'
     return 'unmodeled'
 
@@ -180,6 +188,7 @@ def analyze_sfc_structure(snapshot: SourceSnapshot, inventory: InventoryResult) 
     contents: list[dict[str, Any]] = []
     elements: list[dict[str, Any]] = []
     links: list[dict[str, Any]] = []
+    annotations: list[dict[str, Any]] = []
     issues: list[dict[str, str]] = []
     retained = 0
 
@@ -251,6 +260,7 @@ def analyze_sfc_structure(snapshot: SourceSnapshot, inventory: InventoryResult) 
                 issue('unexpected_direct_text', content_id)
             block_index: dict[str, list[dict[str, Any]]] = defaultdict(list)
             content_links: list[dict[str, Any]] = []
+            content_annotations: list[dict[str, Any]] = []
             pending = [(i, None, None) for i in reversed(content.children)]
             while pending:
                 index, parent_id, parent_kind = pending.pop()
@@ -280,35 +290,48 @@ def analyze_sfc_structure(snapshot: SourceSnapshot, inventory: InventoryResult) 
                     if len(links) + len(content_links) >= MAX_SFC_LINKS:
                         _fail()
                     content_links.append(row)
+                if kind == 'attachment':
+                    if len(annotations) + len(content_annotations) >= MAX_SFC_ANNOTATIONS:
+                        _fail()
+                    content_annotations.append(row)
                 pending.extend((i, element_id, kind) for i in reversed(node.children))
             for candidates in block_index.values():
                 if len(candidates) > 1:
                     for candidate in candidates:
                         issue('block_id_duplicate', candidate['id'])
-            for row in content_links:
-                link = {'element_id': row['id'], 'content_id': content_id}
-                for side, attribute in (('from', 'FromID'), ('to', 'ToID')):
-                    id_status, canonical_id = _canonical_id(row['attributes'].get(attribute))
-                    candidates = block_index.get(canonical_id, [])
-                    status = ('missing_attribute' if id_status == 'missing' else
-                              'invalid_id' if id_status == 'invalid' else
-                              'missing_target' if not candidates else
-                              'ambiguous_target' if len(candidates) > 1 else
-                              'unsupported_kind' if candidates[0]['kind'] not in _FLOW else 'resolved')
-                    link[f'{side}_status'] = status
-                    link[f'{side}_element_id'] = candidates[0]['id'] if status == 'resolved' else None
-                    if status != 'resolved':
-                        issue('link_endpoint_unresolved', row['id'])
-                retain(link)
-                links.append(link)
+            # Attachments describe annotation ownership, never control flow.
+            # Both link types use this content's complete ID index, so an
+            # unknown or duplicate declaration cannot be bypassed by filtering.
+            for rows, output, issue_code, from_kinds, to_kinds in (
+                (content_links, links, 'link_endpoint_unresolved', _FLOW, _FLOW),
+                (content_annotations, annotations, 'annotation_endpoint_unresolved',
+                 frozenset({'text_box'}), _FLOW | {'action'}),
+            ):
+                for row in rows:
+                    link = {'element_id': row['id'], 'content_id': content_id}
+                    for side, attribute, allowed in (('from', 'FromID', from_kinds),
+                                                      ('to', 'ToID', to_kinds)):
+                        id_status, canonical_id = _canonical_id(row['attributes'].get(attribute))
+                        candidates = block_index.get(canonical_id, [])
+                        status = ('missing_attribute' if id_status == 'missing' else
+                                  'invalid_id' if id_status == 'invalid' else
+                                  'missing_target' if not candidates else
+                                  'ambiguous_target' if len(candidates) > 1 else
+                                  'unsupported_kind' if candidates[0]['kind'] not in allowed else 'resolved')
+                        link[f'{side}_status'] = status
+                        link[f'{side}_element_id'] = candidates[0]['id'] if status == 'resolved' else None
+                        if status != 'resolved':
+                            issue(issue_code, row['id'])
+                    retain(link)
+                    output.append(link)
         retain(routine_row)
         routines.append(routine_row)
-    result = SfcStructureResult(identity, routines, contents, elements, links, issues,
+    result = SfcStructureResult(identity, routines, contents, elements, links, annotations, issues,
                                 'partial' if issues else 'complete')
     # Top-level keys, snapshot identity and fixed metadata also contribute to
     # the serialized evidence budget. Child records were charged as built.
     retain({**vars(result), 'routines': [], 'contents': [], 'elements': [],
-            'links': [], 'issues': []})
+            'links': [], 'annotations': [], 'issues': []})
     return result
 
 
@@ -354,16 +377,21 @@ def render_sfc_text(result: SfcStructureResult, *, inventory: InventoryResult | 
     labels = {} if inventory is None else {e.id: e.name for e in inventory.entities}
     lines = ['PRIVATE SFC structure', f'Status: {result.status}',
              'Structure only; execution and ST semantics are not implemented.',
-             'Content edit versions remain separate; no active version is selected.']
+             'Content edit versions remain separate; no active version is selected.',
+             'Annotations preserve attachments and raw text; no automatic description assignment.']
     contents = defaultdict(list)
     elements = defaultdict(list)
     links = defaultdict(list)
+    annotations = defaultdict(list)
+    by_id = {row['id']: row for row in result.elements}
     for row in result.contents:
         contents[row['routine_id']].append(row)
     for row in result.elements:
         elements[row['content_id']].append(row)
     for row in result.links:
         links[row['content_id']].append(row)
+    for row in result.annotations:
+        annotations[row['content_id']].append(row)
     for routine in result.routines:
         routine_id = routine['routine_id']
         lines.append(f'Routine: {labels.get(routine_id) or routine_id} [{routine_id}]')
@@ -378,9 +406,12 @@ def render_sfc_text(result: SfcStructureResult, *, inventory: InventoryResult | 
             lines.append(f'    Attributes: {json.dumps(content["attributes"], ensure_ascii=False)}')
             if content['direct_text'].strip():
                 lines.append(f'    Direct text: {json.dumps(content["direct_text"], ensure_ascii=False)}')
+            if elements[content['id']]:
+                lines.append('    Element descriptors (attributes and raw text shown once):')
             for element in elements[content['id']]:
                 lines.append(f'    {element["kind"]}: {element["id"]} '
-                             f'ID={element["canonical_id"]} status={element["block_id_status"]}')
+                             f'ID={element["canonical_id"]} status={element["block_id_status"]} '
+                             f'parent={element["parent_id"]}')
                 lines.append(f'      Attributes: {json.dumps(element["attributes"], ensure_ascii=False)}')
                 if element['direct_text'].strip():
                     lines.append(f'      Opaque/direct text: {json.dumps(element["direct_text"], ensure_ascii=False)}')
@@ -388,6 +419,17 @@ def render_sfc_text(result: SfcStructureResult, *, inventory: InventoryResult | 
                 lines.append(f'    Link: {link["element_id"]} '
                              f'from={link["from_status"]}:{link["from_element_id"]} '
                              f'to={link["to_status"]}:{link["to_element_id"]}')
+            if annotations[content['id']]:
+                lines.append('    Annotation attachments (separate from control flow):')
+                lines.append('      Endpoint IDs refer to the element descriptors above.')
+            for annotation in annotations[content['id']]:
+                source = by_id.get(annotation['from_element_id'])
+                target = by_id.get(annotation['to_element_id'])
+                lines.append(f'      Annotation: {annotation["element_id"]} '
+                             f'from={annotation["from_status"]}:{annotation["from_element_id"]}'
+                             f':{source["kind"] if source is not None else None} '
+                             f'to={annotation["to_status"]}:{annotation["to_element_id"]}'
+                             f':{target["kind"] if target is not None else None}')
     for issue in result.issues:
         lines.append(f'Issue: {issue["code"]} [{issue["source_id"]}]')
     return '\n'.join(lines) + '\n'

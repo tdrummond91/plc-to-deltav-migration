@@ -54,8 +54,8 @@ class SfcStorageTests(unittest.TestCase):
                     if include_sfc:
                         self.assertEqual(manifest['artifact_kind'],
                                          'source_reference_sfc_structure_run' if include_refs else 'source_sfc_structure_run')
-                        self.assertEqual(manifest['sfc_schema_version'], 1)
-                        self.assertEqual(manifest['sfc_analyzer_version'], 'sfc-structure-1')
+                        self.assertEqual(manifest['sfc_schema_version'], 2)
+                        self.assertEqual(manifest['sfc_analyzer_version'], 'sfc-structure-2')
                         self.assertEqual(manifest['sfc_analysis_scope'], 'sfc_structure_only')
                         self.assertEqual(manifest['status'], 'partial')
                         self.assertEqual(json.loads((run / 'sfc-structure.json').read_text()), sfc.to_dict())
