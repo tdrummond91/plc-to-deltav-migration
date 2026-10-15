@@ -65,7 +65,7 @@ class AccessStorageTests(unittest.TestCase):
             self.assertEqual((manifest['review_schema_version'], manifest['review_version']),
                              (2, 'engineering-review-2'))
             self.assertEqual((manifest['access_schema_version'], manifest['access_analyzer_version']),
-                             (2, 'instruction-access-2'))
+                             (3, 'instruction-access-3'))
             self.assertEqual(manifest['status'], 'complete')
             self.assertEqual(len(manifest['artifacts']), 9)
             self.assertEqual(json.loads((run / 'access.json').read_bytes()), access.to_dict())
@@ -137,8 +137,8 @@ class AccessStorageTests(unittest.TestCase):
 class AccessWorkReportTests(unittest.TestCase):
     def test_current_work_closed_summary_and_historical_work12_remain_separate(self) -> None:
         payload = report(COMPLETE)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (19, 'work-check-19'))
-        self.assertEqual(payload['analysis']['access_summary']['schema_version'], 2)
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (20, 'work-check-20'))
+        self.assertEqual(payload['analysis']['access_summary']['schema_version'], 3)
         rendered = work_check.render_work_check_report(payload)
         for private in ('PRIVATE_', 'snapshot', 'terminal_root', 'instruction_id', 'raw_text'):
             self.assertNotIn(private, rendered)
@@ -192,8 +192,8 @@ class AccessWorkReportTests(unittest.TestCase):
         payload = report(ladder('TON(A,?,?)TOF(A,100,0)RTO(A,?,5)RES(A)COP(A,A,3)CPS(A,A,4);'))
         analysis = payload['analysis']
         access = analysis['access_summary']
-        self.assertEqual((payload['schema_version'], access['schema_version']), (19, 2))
-        self.assertEqual(access['exporter_version'], 'access-summary-2')
+        self.assertEqual((payload['schema_version'], access['schema_version']), (20, 3))
+        self.assertEqual(access['exporter_version'], 'access-summary-3')
         self.assertEqual(access['coverage']['timer_instructions'], 3)
         self.assertEqual(access['coverage']['timer_pseudo_operands_by_kind'],
                          {'placeholder': 3, 'integer_literal': 3})

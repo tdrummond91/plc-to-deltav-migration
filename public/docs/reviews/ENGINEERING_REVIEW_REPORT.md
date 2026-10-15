@@ -1,6 +1,17 @@
 # Private engineering review report
 
-## Current calculation function follow-up (2026-10-15)
+## Current extended access follow-up (2026-10-15)
+
+[Extended access](EXTENDED_ACCESS_REVIEW.md) adds counter and message controls,
+system-value operands and SFC-reset targets. The report distinguishes original
+reference findings from access-owned bindings and adds declaration reverse links
+for newly recognized operands. Message payloads, system transfer ranges and
+SFC execution remain outside this layer. Returned `760448e` confirms 45/45 CPT
+syntax trees and 132/132 reference uses root-bound. Work20 measures the new
+access3 coverage; review6/manifest9 still saves thirteen artifacts.
+Manual engineering and appearance review remains optional.
+
+## Historical calculation function follow-up (2026-10-15)
 
 The [function extension](CALCULATION_FUNCTION_REVIEW.md) adds documented older
 CPT spellings and a Function coverage panel. Counts include fully parsed

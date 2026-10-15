@@ -26,7 +26,7 @@ SOURCE = b'''<RSLogix5000Content><Controller Name="PRIVATE_CONTROLLER">
 </RLLContent></Routine></Routines></Program></Programs></Controller></RSLogix5000Content>'''
 
 
-def report(data: bytes = SOURCE) -> dict:
+def report(data: bytes = SOURCE, *, schema_version: int = 20) -> dict:
     from plc_workbench.access import analyze_access
     from plc_workbench.access_summary import build_access_summary
     from plc_workbench.tag_data import analyze_tag_data
@@ -45,7 +45,8 @@ def report(data: bytes = SOURCE) -> dict:
     nested = build_reference_summary(inventory, references, revision=REVISION)
     sfc = build_sfc_summary(snapshot, inventory,
         analyze_sfc_structure(snapshot, inventory), revision=REVISION)
-    access = build_access_summary(inventory, references, analyze_access(inventory, references), revision=REVISION)
+    access = build_access_summary(inventory, references,
+        analyze_access(inventory, references, schema_version=3 if schema_version >= 20 else 2), revision=REVISION)
     captured_tag_data = analyze_tag_data(snapshot, inventory)
     tag_data = build_tag_data_summary(snapshot, inventory, captured_tag_data, revision=REVISION)
     captured_pid = analyze_pid(snapshot, inventory, references, captured_tag_data)
@@ -53,7 +54,8 @@ def report(data: bytes = SOURCE) -> dict:
     pid_members = build_pid_member_summary(snapshot, inventory, references, captured_tag_data, captured_pid,
         analyze_pid_members(snapshot, inventory, references, captured_tag_data, captured_pid), revision=REVISION)
     calculations = build_calculation_summary(snapshot, inventory, references,
-        analyze_calculations(snapshot, inventory, references), revision=REVISION)
+        analyze_calculations(snapshot, inventory, references,
+                             schema_version=2 if schema_version >= 19 else 1), revision=REVISION)
     status = 'partial' if 'partial' in (nested['status'], sfc['status'], access['status'], tag_data['status'],
                                       pid['status'], pid_members['status'], calculations['status']) else 'complete'
     result = {
@@ -63,7 +65,8 @@ def report(data: bytes = SOURCE) -> dict:
         'failed_test_ids': [], 'failure_ids_omitted': 0,
     }
     return {
-        'schema_version': 19, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-19',
+        'schema_version': schema_version, 'report_kind': 'l5x_work_machine_check',
+        'workflow_version': f'work-check-{schema_version}',
         'run_id': '20261014T180000Z-1234abcd', 'tool_revision': deepcopy(REVISION),
         'tests': {'application': deepcopy(result), 'helpers': deepcopy(result)},
         'analysis': {'status': status, 'failure_code': None, 'private_run_saved': True,

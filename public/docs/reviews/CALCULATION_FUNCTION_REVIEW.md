@@ -1,6 +1,19 @@
 # Legacy CPT function spellings and bounded diagnostics
 
-## Returned evidence and next question
+## Confirmed return (2026-10-15)
+
+Returned `760448e` tests clean `36c0ff4`. All 668 application cases passed with
+one expected Windows skip, and all 139 helpers passed. The private run was saved.
+All 45 CPT expressions parse into 592 nodes with 132 reference occurrences,
+all root-bound; all 45 destinations bind. Four retained function nodes use SQR.
+All expression-error and unsupported-function counters are zero. Six prior
+summaries match after removing only tool_revision; source-byte identity and
+engineering meaning are not established. All 26 historical reports validate.
+The report is 31,380 bytes. The next slice is
+[extended operand access](EXTENDED_ACCESS_REVIEW.md); no calculation-only rerun
+is needed. The implementation-time hypotheses and evidence below are historical.
+
+## Historical returned evidence and next question
 
 Returned `6d19d5e` tests clean `40df4d8`. All 656 application cases passed with
 one expected Windows skip; all 139 helpers passed. The private run was saved.
@@ -60,7 +73,7 @@ The 3 KiB summary and 32 KiB work-report caps remain unchanged. Work checks stil
 make only a report commit locally; pulling and pushing are manual and the
 development listener remains disabled. Source-bearing artifacts remain private.
 
-## Next work-machine run
+## Historical work-machine run
 
 On `feat/bounded-operand-example-pc`, from the repository root:
 

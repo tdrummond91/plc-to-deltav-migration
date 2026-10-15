@@ -2,17 +2,16 @@
 
 Status: updated 2026-10-15. Phase 1 includes source inventory, I/O declarations,
 reference bindings, routine-call candidates, SFC structure/notes, PID stored
-member evidence and a private offline source explorer. Returned `6d19d5e`
-confirms 43 of 45 CPT expressions parsed, all 122 captured reference uses bound,
-and all 45 destinations bound. Two unsupported function names remain unidentified.
-It passed 656 application cases (one expected skip) and 139 helpers.
-The [function extension](public/docs/reviews/CALCULATION_FUNCTION_REVIEW.md)
-adds seven documented older spellings and fixed function counts. The next
-work-machine run checks whether it resolves those two gaps; the current report
-does not establish their cause. Expressions are not evaluated. Execution,
-dependencies and broader engineering interpretation remain incomplete.
-Editable corrections, PCSD and FHX are later phases. Manual engineering/UI
-review remains optional.
+member evidence and a private offline source explorer. Returned `760448e`
+confirms all 45 CPT expressions parsed, all 132 captured reference uses bound,
+and all 45 destinations bound. It passed 668 application cases (one expected
+skip) and 139 helpers. Calculations remain unevaluated.
+The [extended access analysis](public/docs/reviews/EXTENDED_ACCESS_REVIEW.md)
+adds counter controls, message controls, system-value operands and SFC-reset
+targets, with separate provenance for their bindings. The next work-machine run
+checks their coverage. Execution, dependencies and broader engineering
+interpretation remain incomplete. Editable corrections, PCSD and FHX are later
+phases. Manual engineering/UI review remains optional.
 
 The development listener remains disabled and paused. Manual work-machine checks
 automatically commit the validated feedback report locally; fetching, pulling

@@ -53,6 +53,7 @@ WORK_MACHINE_MODULES = {
         "test_sfc_annotations", "test_sfc_annotation_summary",
         "test_review", "test_review_html", "test_review_workflow",
         "test_access", "test_access_summary", "test_access_workflow",
+        "test_access_extended", "test_access_summary_extended", "test_access_extended_workflow",
         "test_tag_data", "test_tag_data_summary", "test_tag_evidence_workflow",
         "test_pid", "test_pid_summary", "test_pid_workflow",
         "test_pid_members", "test_pid_member_summary", "test_pid_member_workflow",

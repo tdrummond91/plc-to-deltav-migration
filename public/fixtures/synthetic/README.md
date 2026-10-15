@@ -116,3 +116,13 @@ The [HTML demonstration](../../examples/engineering-review-demo.html) now uses
 pid_member_review_demo.L5X. The original fixtures and their existing origin/hash
 contracts remain unchanged. See the [PID checkpoint](../../docs/reviews/PID_EVIDENCE_REVIEW.md)
 and [stored-data checkpoint](../../docs/reviews/TAG_DATA_REVIEW.md) for scope and validation.
+
+## Extended operand access demonstration
+
+`extended_access_review_demo.L5X` independently extends the invented calculation
+example with CTU/CTD, MSG, GSV/SSV and SFR examples. It includes alias-backed
+controls, a blank system instance, selector/tag name collisions, the initial-step
+zero sentinel, unresolved/dynamic addresses and deliberately malformed forms.
+It is not controller-ready logic. The generated
+[offline demonstration](../../examples/engineering-review-demo.html) shows
+original reference findings separately from access-owned bindings.

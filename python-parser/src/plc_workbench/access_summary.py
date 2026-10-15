@@ -7,7 +7,8 @@ import re
 from typing import Any
 
 from .access import (
-    ACCESS_CONSTANTS, COVERAGE_KEYS, INDEXED_ROLES, INSTRUCTION_STATUSES,
+    ACCESS_CONSTANTS, ACCESS2_CONSTANTS, COVERAGE_KEYS, COVERAGE_KEYS_V2,
+    EXTENDED_FAMILIES, INDEXED_ROLES, INSTRUCTION_STATUSES,
     MAX_INSTRUCTIONS, MAX_OPERANDS, OPERAND_ROLES, TIMER_PSEUDO_KINDS,
     AccessResult, validate_access,
 )
@@ -28,8 +29,11 @@ LEGACY_CONSTANTS = {
     'exporter_version': 'access-summary-1',
     'sharing_status': 'aggregate_sync_allowed',
 }
+VERSION2_CONSTANTS = {
+    **LEGACY_CONSTANTS, **ACCESS2_CONSTANTS, 'exporter_version': 'access-summary-2',
+}
 CONSTANTS = {
-    **LEGACY_CONSTANTS, **ACCESS_CONSTANTS, 'exporter_version': 'access-summary-2',
+    **LEGACY_CONSTANTS, **ACCESS_CONSTANTS, 'exporter_version': 'access-summary-3',
 }
 # Historical work13 embeds this exact contract. Never derive its closed keys or
 # status vocabulary from the current analyzer's growing timer/copy catalogue.
@@ -103,14 +107,14 @@ def _catalogue_capacity(instructions: int, roles: dict[str, int]) -> bool:
 
 
 def validate_access_summary(summary: dict[str, Any]) -> None:
-    """Validate current v2 or frozen v1 without widening the historical contract."""
+    """Validate current v3 or frozen v1/v2 without widening old contracts."""
     if type(summary) is not dict:
         _invalid()
     version = summary.get('schema_version')
-    if type(version) is not int or version not in {1, 2}:
+    if type(version) is not int or version not in {1, 2, 3}:
         _invalid()
-    constants = LEGACY_CONSTANTS if version == 1 else CONSTANTS
-    coverage_keys = LEGACY_COVERAGE_KEYS if version == 1 else COVERAGE_KEYS
+    constants = {1: LEGACY_CONSTANTS, 2: VERSION2_CONSTANTS, 3: CONSTANTS}[version]
+    coverage_keys = {1: LEGACY_COVERAGE_KEYS, 2: COVERAGE_KEYS_V2, 3: COVERAGE_KEYS}[version]
     instruction_statuses = LEGACY_INSTRUCTION_STATUSES if version == 1 else INSTRUCTION_STATUSES
     _keys(summary, set(constants) | {'tool_revision', 'status', 'coverage'})
     for key, fixed in constants.items():
@@ -134,8 +138,10 @@ def validate_access_summary(summary: dict[str, Any]) -> None:
     coverage = summary['coverage']
     _keys(coverage, coverage_keys)
     groups = {'instructions_by_status', 'operands_by_role', 'bound_by_role'}
-    if version == 2:
+    if version >= 2:
         groups.add('timer_pseudo_operands_by_kind')
+    if version == 3:
+        groups.update({'extended_instructions', 'counter_pseudo_operands_by_kind'})
     for key in coverage_keys - groups:
         _count(coverage[key])
     states = coverage['instructions_by_status']
@@ -152,9 +158,9 @@ def validate_access_summary(summary: dict[str, Any]) -> None:
     classified = states['classified']
     known = operand_total - roles['unknown']
     invalid_instructions = instruction_total - classified
-    invalid_forms = states['unsupported_operand_form'] if version == 2 else 0
+    invalid_forms = states['unsupported_operand_form'] if version >= 2 else 0
     remaining_classified, remaining_roles = classified, roles
-    if version == 2:
+    if version >= 2:
         timers = coverage['timer_instructions']
         pseudo = coverage['timer_pseudo_operands_by_kind']
         _counts(pseudo, TIMER_PSEUDO_KINDS)
@@ -164,14 +170,45 @@ def validate_access_summary(summary: dict[str, Any]) -> None:
         remaining_classified = classified - timers
         remaining_roles = dict(roles, read_write=roles['read_write'] - timers,
                                non_data=roles['non_data'] - 2 * timers)
-    if (not classified <= known <= 3 * classified
+    extra_slots = 0
+    if version == 3:
+        extended = coverage['extended_instructions']
+        _counts(extended, EXTENDED_FAMILIES)
+        counters = extended['counter']
+        counter_pseudo = coverage['counter_pseudo_operands_by_kind']
+        _counts(counter_pseudo, TIMER_PSEUDO_KINDS)
+        extended_roles = {
+            'read': extended['system_set'],
+            'write': extended['system_get'] + extended['sfc_reset_step'],
+            'read_write': counters + extended['message'],
+            'non_data': (2 * counters + 3 * (extended['system_get'] + extended['system_set'])
+                         + extended['sfc_reset_step'] + 2 * extended['sfc_reset_initial']),
+        }
+        if (sum(counter_pseudo.values()) != 2 * counters
+                or coverage['counter_invalid_forms'] > invalid_forms
+                or any(value > remaining_roles[role] for role, value in extended_roles.items())):
+            _invalid()
+        # The fresh resolver binds precisely one data slot per family except
+        # SFR's initial-step sentinel. Bound-role allocations must be possible
+        # independently of all older catalogued slots.
+        lower_bound = sum(max(0, bound[role] - (roles[role] - extended_roles[role]))
+                          for role in ('read', 'write', 'read_write'))
+        upper_bound = sum(min(bound[role], extended_roles[role])
+                          for role in ('read', 'write', 'read_write'))
+        if not lower_bound <= coverage['extended_bound_operands'] <= upper_bound:
+            _invalid()
+        remaining_classified -= sum(extended.values())
+        remaining_roles = {role: value - extended_roles.get(role, 0)
+                           for role, value in remaining_roles.items()}
+        extra_slots = extended['system_get'] + extended['system_set']
+    if (not classified <= known <= 3 * classified + extra_slots
             or not _catalogue_capacity(remaining_classified, remaining_roles)
             or roles['unknown'] < 3 * invalid_forms + states['empty_argument']
             or (roles['unknown'] and not invalid_instructions)
             or (not instruction_total and operand_total)):
         _invalid()
     if (not states['unsupported_instruction'] and not states['argument_count_mismatch']
-            and roles['unknown'] > 3 * (states['empty_argument'] + invalid_forms)):
+            and roles['unknown'] > (4 if version == 3 else 3) * states['empty_argument'] + 3 * invalid_forms):
         _invalid()
     linked = sum(bound[role] for role in INDEXED_ROLES)
     if (coverage['linked_operands'] != linked
@@ -197,7 +234,8 @@ def build_access_summary(inventory: InventoryResult, references: ReferenceResult
     try:
         validate_access(inventory, references, result)
         summary = {
-            **CONSTANTS, 'status': result.status, 'coverage': deepcopy(result.coverage),
+            **(VERSION2_CONSTANTS if result.schema_version == 2 else CONSTANTS),
+            'status': result.status, 'coverage': deepcopy(result.coverage),
             'tool_revision': revision if revision is not None else
                              {'commit': None, 'worktree': 'unavailable'},
         }

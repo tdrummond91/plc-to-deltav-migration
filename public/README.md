@@ -18,7 +18,9 @@ Start here:
 
 10. [Confirmed CPT calculation checkpoint](docs/reviews/CALCULATION_REVIEW.md).
 
-11. [Current CPT function follow-up](docs/reviews/CALCULATION_FUNCTION_REVIEW.md).
+11. [Confirmed CPT function follow-up](docs/reviews/CALCULATION_FUNCTION_REVIEW.md).
+
+12. [Current extended operand access](docs/reviews/EXTENDED_ACCESS_REVIEW.md).
 
 The fixtures are small parser inputs, not deployable controller projects. The
 read-only inventory, reference, SFC and offline engineering-review CLI commands

@@ -219,7 +219,12 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             _fail()
         canonical_access = None
         if access is not None:
-            canonical_access = analyze_access(canonical_inventory, canonical_references)
+            # The nested version freezes the operand catalogue and binding
+            # overlay. Older evidence must not acquire roles during review.
+            if type(access) is not AccessResult:
+                _fail()
+            canonical_access = analyze_access(canonical_inventory, canonical_references,
+                                              schema_version=access.schema_version)
             if not _strict_equal(canonical_access, access):
                 _fail()
         canonical_tag_data = None

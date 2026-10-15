@@ -1,7 +1,8 @@
 """Bounded possible explicit RLL operand access, independent of execution.
 
 Roles do not prove an instruction executes, an operand is type-correct, a member
-exists, or two suffixes overlap. Only existing canonical root bindings are used.
+exists, or two suffixes overlap. Version 3 adds explicit, separately attributed
+root resolution for selected slots without changing historical references.
 Implicit effects and dependencies are outside this deliberately narrow catalog.
 """
 from __future__ import annotations
@@ -14,7 +15,8 @@ from typing import Any
 
 from .models import InventoryResult
 from .references import (
-    MAX_OPERANDS, ReferenceResult, _strict_record_match, validate_references,
+    MAX_EXPANDED_EVIDENCE_CHARS, MAX_OPERANDS, ReferenceResult, _Resolver, _binding, _literal,
+    _strict_record_match, validate_references,
 )
 
 MAX_INSTRUCTIONS = 250_000
@@ -25,7 +27,7 @@ INSTRUCTION_STATUSES = frozenset({
 })
 OPERAND_ROLES = frozenset({'read', 'write', 'read_write', 'non_data', 'unknown'})
 INDEXED_ROLES = frozenset({'read', 'write', 'read_write', 'unknown'})
-ACCESS_CONSTANTS = {
+ACCESS2_CONSTANTS = {
     'schema_version': 2,
     'analyzer_version': 'instruction-access-2',
     'analysis_scope': 'explicit_rll_operand_roles',
@@ -35,11 +37,21 @@ ACCESS_CONSTANTS = {
     'initialization_analysis': 'not_implemented',
     'range_analysis': 'not_implemented',
 }
-COVERAGE_KEYS = frozenset({
+ACCESS_CONSTANTS = {
+    **ACCESS2_CONSTANTS, 'schema_version': 3, 'analyzer_version': 'instruction-access-3',
+}
+COVERAGE_KEYS_V2 = frozenset({
     'instructions_total', 'instructions_by_status', 'operands_total', 'operands_by_role',
     'bound_by_role', 'linked_operands', 'unlinked_operands', 'indexed_roots',
     'source_rungs', 'unparsed_rungs', 'access_gap_operands',
     'timer_instructions', 'timer_pseudo_operands_by_kind',
+})
+COVERAGE_KEYS = COVERAGE_KEYS_V2 | frozenset({
+    'extended_instructions', 'counter_pseudo_operands_by_kind',
+    'counter_invalid_forms', 'extended_bound_operands',
+})
+EXTENDED_FAMILIES = frozenset({
+    'counter', 'message', 'system_get', 'system_set', 'sfc_reset_step', 'sfc_reset_initial',
 })
 
 # These spellings already have reference contracts. Retention is not an explicit
@@ -65,6 +77,18 @@ _ROLES = {
     **dict.fromkeys(('COP', 'CPS'), ('read', 'write', 'read')),
 }
 _TIMER_OPCODES = frozenset({'TON', 'TOF', 'RTO'})
+_COUNTER_OPCODES = frozenset({'CTU', 'CTD'})
+_EXTENDED_ROLES = {
+    **dict.fromkeys(('CTU', 'CTD'), ('read_write', 'non_data', 'non_data')),
+    'MSG': ('read_write',),
+    'GSV': ('non_data', 'non_data', 'non_data', 'write'),
+    'SSV': ('non_data', 'non_data', 'non_data', 'read'),
+    'SFR': ('non_data', 'write'),
+}
+_EXTENDED_FAMILY = {
+    'CTU': 'counter', 'CTD': 'counter', 'MSG': 'message',
+    'GSV': 'system_get', 'SSV': 'system_set', 'SFR': 'sfc_reset_step',
+}
 TIMER_PSEUDO_KINDS = frozenset({'placeholder', 'integer_literal'})
 # Lexical exported pseudo-fields only: no value conversion, width/range check,
 # initialization model, or runtime reads. Decimal underscores are not admitted;
@@ -94,8 +118,8 @@ class AccessResult:
     operands: list[dict[str, Any]]
     roots: list[dict[str, Any]]
     coverage: dict[str, Any]
-    schema_version: int = 2
-    analyzer_version: str = 'instruction-access-2'
+    schema_version: int = 3
+    analyzer_version: str = 'instruction-access-3'
     analysis_scope: str = 'explicit_rll_operand_roles'
     execution_analysis: str = 'not_implemented'
     member_validation: str = 'not_implemented'
@@ -142,7 +166,8 @@ def _timer_pseudo_kind(raw: str) -> str | None:
     return 'integer_literal' if _INTEGER_IMMEDIATE.fullmatch(value) else None
 
 
-def _derive_access(inventory: InventoryResult, references: ReferenceResult) -> AccessResult:
+def _derive_access(inventory: InventoryResult, references: ReferenceResult,
+                   schema_version: int) -> AccessResult:
     """Consume authenticated references in their canonical occurrence order."""
     instructions: list[dict[str, Any]] = []
     operands: list[dict[str, Any]] = []
@@ -151,6 +176,11 @@ def _derive_access(inventory: InventoryResult, references: ReferenceResult) -> A
     role_counts = dict.fromkeys(sorted(OPERAND_ROLES), 0)
     bound_counts = dict.fromkeys(sorted(OPERAND_ROLES), 0)
     timer_pseudo_counts = dict.fromkeys(sorted(TIMER_PSEUDO_KINDS), 0)
+    counter_pseudo_counts = dict.fromkeys(sorted(TIMER_PSEUDO_KINDS), 0)
+    extended_counts = dict.fromkeys(sorted(EXTENDED_FAMILIES), 0)
+    counter_invalid_forms = extended_bound = 0
+    expanded_characters = 0
+    resolver: _Resolver | None = None
     source_operands = iter(references.operands)
     unparsed_rungs = access_gaps = timer_instructions = 0
     for rung in inventory.rungs:
@@ -160,50 +190,95 @@ def _derive_access(inventory: InventoryResult, references: ReferenceResult) -> A
         for instruction in rung.instructions:
             opcode = instruction.opcode
             normalized_opcode = opcode.upper() if opcode.isascii() else None
-            slots = _ROLES.get(normalized_opcode)
+            extended = schema_version == 3 and normalized_opcode in _EXTENDED_ROLES
+            slots = (_EXTENDED_ROLES if extended else _ROLES).get(normalized_opcode)
+            empty_slots = [index for index, arg in enumerate(instruction.arguments)
+                           if not arg.strip() and not (extended and normalized_opcode in {'GSV', 'SSV'}
+                                                       and index == 1)]
             status = ('unsupported_instruction' if slots is None else
                       'argument_count_mismatch' if len(instruction.arguments) != len(slots) else
-                      'empty_argument' if any(not arg.strip() for arg in instruction.arguments) else
+                      'empty_argument' if empty_slots else
                       'classified')
-            if status == 'classified' and normalized_opcode in _TIMER_OPCODES:
+            counter = extended and normalized_opcode in _COUNTER_OPCODES
+            if status == 'classified' and (normalized_opcode in _TIMER_OPCODES or counter):
                 kinds = [_timer_pseudo_kind(raw) for raw in instruction.arguments[1:]]
                 if any(kind is None for kind in kinds):
                     status = 'unsupported_operand_form'
+                    counter_invalid_forms += int(counter)
                 else:
-                    timer_instructions += 1
+                    timer_instructions += int(not counter)
                     for kind in kinds:
-                        timer_pseudo_counts[kind] += 1
+                        (counter_pseudo_counts if counter else timer_pseudo_counts)[kind] += 1
+            initial_step = (extended and normalized_opcode == 'SFR' and status == 'classified'
+                            and instruction.arguments[1].strip() == '0')
+            if extended and status == 'classified':
+                extended_counts['sfc_reset_initial' if initial_step else _EXTENDED_FAMILY[normalized_opcode]] += 1
             instruction_counts[status] += 1
             operand_ids: list[str] = []
-            for index, _ in enumerate(instruction.arguments):
+            for index, raw in enumerate(instruction.arguments):
                 reference = next(source_operands)
                 role = slots[index] if status == 'classified' else 'unknown'
+                if initial_step and index == 1:
+                    role = 'non_data'
                 reason = ('timer_pseudo_operand' if status == 'classified'
                           and normalized_opcode in _TIMER_OPCODES and index in {1, 2}
                           else _REASONS[status])
+                binding = reference
+                origin = 'source_references'
+                if extended and status == 'classified':
+                    if role == 'non_data':
+                        binding = _binding('non_data')
+                        origin = 'access_non_data'
+                        if counter and index in {1, 2}:
+                            reason = 'counter_pseudo_operand'
+                        elif initial_step and index == 1:
+                            reason = 'sfc_initial_step_sentinel'
+                    else:
+                        origin = 'access_resolver'
+                        value = raw.strip()
+                        if _literal(value):
+                            binding = _binding('literal')
+                        else:
+                            if resolver is None:
+                                resolver = _Resolver(inventory)
+                            binding = resolver.resolve(value, rung.scope_id)
+                        extended_bound += int(binding['status'] == 'root_bound')
+                if schema_version == 3:
+                    # Bound retained expansion before copying it into this
+                    # result. Many short operands may traverse the same long
+                    # alias chain; the final JSON byte cap alone is too late.
+                    # Include inherited bindings because v3 copies their chain
+                    # evidence too. Frozen v2 retains its original behavior.
+                    expanded_characters += (len(binding['suffix'])
+                                            + sum(map(len, binding['alias_chain'])))
+                    if expanded_characters > MAX_EXPANDED_EVIDENCE_CHARS:
+                        _limit()
                 operand = {
                     'id': reference['id'], 'instruction_id': instruction.id,
                     'rung_id': rung.id, 'argument_index': index,
                     'role': role, 'reason': reason,
-                    'binding_status': reference['status'],
-                    'symbol_id': reference['symbol_id'], 'target_id': reference['target_id'],
-                    'suffix': reference['suffix'],
+                    'binding_status': binding['status'],
+                    'symbol_id': binding['symbol_id'], 'target_id': binding['target_id'],
+                    'suffix': binding['suffix'],
                 }
+                if schema_version == 3:
+                    operand.update(binding_origin=origin, source_reference_status=reference['status'],
+                                   binding_reason=binding['reason'], alias_chain=list(binding['alias_chain']))
                 operands.append(operand)
                 operand_ids.append(operand['id'])
                 role_counts[role] += 1
-                if reference['status'] == 'root_bound':
+                if binding['status'] == 'root_bound':
                     bound_counts[role] += 1
                     if role in INDEXED_ROLES:
-                        target_id = reference['target_id']
+                        target_id = binding['target_id']
                         if target_id not in roots:
                             roots[target_id] = {'target_id': target_id, **{
                                 f'{item}_operand_ids': [] for item in sorted(INDEXED_ROLES)
                             }}
                         roots[target_id][f'{role}_operand_ids'].append(operand['id'])
-                if (role == 'read' and reference['status'] not in
+                if (role == 'read' and binding['status'] not in
                         {'root_bound', 'literal', 'system_flag'} or
-                        role in {'write', 'read_write'} and reference['status'] != 'root_bound'):
+                        role in {'write', 'read_write'} and binding['status'] != 'root_bound'):
                     access_gaps += 1
             instructions.append({
                 'id': instruction.id, 'rung_id': rung.id, 'opcode': opcode,
@@ -220,22 +295,31 @@ def _derive_access(inventory: InventoryResult, references: ReferenceResult) -> A
         'timer_instructions': timer_instructions,
         'timer_pseudo_operands_by_kind': timer_pseudo_counts,
     }
+    if schema_version == 3:
+        coverage.update(extended_instructions=extended_counts,
+                        counter_pseudo_operands_by_kind=counter_pseudo_counts,
+                        counter_invalid_forms=counter_invalid_forms,
+                        extended_bound_operands=extended_bound)
     partial = bool(unparsed_rungs or access_gaps or any(
         count for key, count in instruction_counts.items() if key != 'classified'))
     return AccessResult(dict(inventory.snapshot), 'partial' if partial else 'complete',
-                        instructions, operands, list(roots.values()), coverage)
+                        instructions, operands, list(roots.values()), coverage,
+                        schema_version=schema_version, analyzer_version=f'instruction-access-{schema_version}')
 
 
-def analyze_access(inventory: InventoryResult, references: ReferenceResult) -> AccessResult:
+def analyze_access(inventory: InventoryResult, references: ReferenceResult, *,
+                   schema_version: int = 3) -> AccessResult:
     """Classify possible explicit operand roles against canonical references.
 
     The caller authenticates inventory against its byte snapshot. This layer
     authenticates references against that inventory and does no source IO.
     """
     try:
+        if type(schema_version) is not int or schema_version not in {2, 3}:
+            _invalid()
         _check_limits(inventory, references)
         validate_references(inventory, references)
-        result = _derive_access(inventory, references)
+        result = _derive_access(inventory, references, schema_version)
         render_access_json(result)
         return result
     except AccessError:
@@ -248,7 +332,9 @@ def validate_access(inventory: InventoryResult, references: ReferenceResult,
                     result: AccessResult) -> None:
     """Reject every deviation from canonical access, without copying a candidate."""
     try:
-        expected = analyze_access(inventory, references)
+        if type(result) is not AccessResult:
+            _invalid()
+        expected = analyze_access(inventory, references, schema_version=result.schema_version)
         valid = (type(result) is AccessResult
                  and _strict_record_match(vars(expected), vars(result)))
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError):

@@ -1,23 +1,22 @@
 # Codex handoff: PLC analysis workbench
 
-Current checkpoint (2026-10-15): **legacy CPT function support** adds the seven
-documented older spellings and fixed function counts. Original expression text
-and function spelling remain source evidence; no expression is evaluated.
-Returned `6d19d5e` confirms 43 of 45 CPT expressions parsed, 456 syntax nodes,
-122 reference occurrences all root-bound and all 45 destinations root-bound.
-The other two expressions stop at unsupported functions; their names are not
-in the feedback. Older spellings are a possible explanation, not a confirmed
-cause. The run passed 656 application cases (one expected Windows skip) and
-139 helpers. Six earlier summaries remain equal after revision normalization.
+Current checkpoint (2026-10-15): **extended explicit operand access** adds
+counter controls, message controls, system-value operands and SFC-reset targets.
+Returned `760448e` tests clean `36c0ff4`: all 45 CPT expressions now parse into
+592 nodes, with 132 captured reference uses and all 45 destinations root-bound.
+Four retained function calls use `SQR`; all expression-error counters are zero.
+All 668 application cases passed (one expected Windows skip), as did 139 helpers.
+Six earlier summaries match after removing only tool_revision. This establishes
+syntax/root coverage for this export, not engineering validity or source-byte
+identity. All 26 historical feedback reports validate.
 
-Review6/manifest9 still saves thirteen hashed artifacts. Calculation2 and
-summary2 add fixed function-spelling counts and first-unsupported-function
-buckets; work19 requires summary2 while work18 remains strict summary1.
-Explicit calculation1 replay preserves its original grammar and evidence.
-The next work-machine run checks whether this extension resolves the two gaps.
-Only generated feedback is needed. Engineering/UI review remains optional,
-Git synchronization remains manual and the listener stays disabled. See
-[Calculation function follow-up](docs/reviews/CALCULATION_FUNCTION_REVIEW.md).
+Access3 owns the new bindings separately from unchanged reference6 evidence;
+explicit access2 replay remains available. Work20 requires access summary3,
+while work1-19 retain their exact contracts. Review6/manifest9 still saves
+thirteen artifacts with actual nested versions. The next work-machine run
+measures the new instruction families and binding gaps. Only generated feedback
+is required; engineering/UI review remains optional. Git synchronization stays
+manual and the listener stays disabled. See [Extended operand access](docs/reviews/EXTENDED_ACCESS_REVIEW.md).
 
 ## Historical PID member implementation checkpoint
 

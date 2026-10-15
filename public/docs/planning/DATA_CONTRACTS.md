@@ -2,7 +2,26 @@
 
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current calculation function contract (2026-10-15)
+## Current extended access contract (2026-10-15)
+
+Access3 / instruction-access-3 adds a versioned binding overlay for CTU/CTD, MSG,
+GSV/SSV and SFR. Operand IDs remain shared with reference evidence. Each access
+operand records its effective binding, binding_origin, source_reference_status,
+binding_reason and alias_chain. New non-data selectors never bind to tag roots.
+New address slots use the existing scoped resolver; original reference6/analyzer9
+records and summaries remain unchanged. Access3 charges suffix/alias expansion
+before retention against an 8M-character budget; 32 MiB private access and 32 KiB
+public report caps remain. Access2 explicit replay preserves its
+previous bytes; public summary1 and summary2 remain frozen.
+
+Access summary3 adds closed classified-family counts, counter pseudo-field
+counts, counter invalid-form counts and newly bound operand counts. Work20
+requires access summary3 and reconciles its additions with the older reference
+population; work1-19 retain their original checks. Review6/manifest9 still has
+thirteen artifacts and selects canonical replay by nested access version.
+See [EXTENDED_ACCESS_REVIEW.md](../reviews/EXTENDED_ACCESS_REVIEW.md).
+
+## Historical calculation function contract (2026-10-15)
 
 Calculation2 / calculation-evidence-2 preserves the occurrence/node layout and
 adds fixed `functions_by_spelling` and `unsupported_functions` coverage maps.

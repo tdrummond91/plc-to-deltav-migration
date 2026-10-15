@@ -100,7 +100,7 @@ class ReviewTests(unittest.TestCase):
         enriched = build_review_data(*args, access=access)
         self.assertEqual((enriched['schema_version'], enriched['report_version']),
                          (2, 'engineering-review-2'))
-        self.assertEqual(enriched['access']['schema_version'], 2)
+        self.assertEqual(enriched['access']['schema_version'], 3)
         self.assertEqual(enriched['access']['initialization_analysis'], 'not_implemented')
         self.assertEqual(enriched['access']['range_analysis'], 'not_implemented')
         self.assertEqual(enriched['access']['coverage']['timer_instructions'], 1)

@@ -72,9 +72,9 @@ class AccessSummaryTests(unittest.TestCase):
         secret = 'PRIVATE_SENTINEL'
         summary = report(f'TON({secret},?,16#DEAD)TOF({secret},-12345,+98765)'
                          f'RTO({secret},?,?)RES({secret})COP({secret},{secret},7);', tag(secret))
-        self.assertEqual(summary['schema_version'], 2)
-        self.assertEqual(summary['analyzer_version'], 'instruction-access-2')
-        self.assertEqual(summary['exporter_version'], 'access-summary-2')
+        self.assertEqual(summary['schema_version'], 3)
+        self.assertEqual(summary['analyzer_version'], 'instruction-access-3')
+        self.assertEqual(summary['exporter_version'], 'access-summary-3')
         self.assertEqual(summary['initialization_analysis'], 'not_implemented')
         self.assertEqual(summary['range_analysis'], 'not_implemented')
         self.assertEqual(summary['coverage']['timer_instructions'], 3)
@@ -254,8 +254,8 @@ class AccessSummaryTests(unittest.TestCase):
             validate_access_summary(summary)
         summary = report('MOV(A,);')
         coverage = summary['coverage']
-        coverage.update(operands_total=4, unlinked_operands=3)
-        coverage['operands_by_role']['unknown'] = 4
+        coverage.update(operands_total=5, unlinked_operands=4)
+        coverage['operands_by_role']['unknown'] = 5
         with self.assertRaises(AccessSummaryError):
             validate_access_summary(summary)
 

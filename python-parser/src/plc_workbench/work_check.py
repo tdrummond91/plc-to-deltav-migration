@@ -63,7 +63,8 @@ _V15_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 15, "workflow_version": 
 _V16_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 16, "workflow_version": "work-check-16"}
 _V17_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 17, "workflow_version": "work-check-17"}
 _V18_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 18, "workflow_version": "work-check-18"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 19, "workflow_version": "work-check-19"}
+_V19_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 19, "workflow_version": "work-check-19"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 20, "workflow_version": "work-check-20"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _GIT_REPOSITORY_OVERRIDES = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
@@ -86,13 +87,52 @@ def _keys(value: Any, expected: set[str]) -> None:
         _invalid()
 
 
+def _extended_access_populations(coverage: dict[str, Any], nested: dict[str, Any]) -> tuple[int, int, int]:
+    """Bound new access overlays against unchanged source/reference populations.
+
+    Every extended instruction remains unsupported in reference6. Its operand
+    rows must therefore come from that population, not from previously bound
+    rows. Case variants share one pooled source allowance across these families
+    and timers, so a withheld occurrence cannot satisfy two capacity deficits.
+    """
+    extended = coverage["extended_instructions"]
+    counter = extended["counter"]
+    message = extended["message"]
+    system_get, system_set = extended["system_get"], extended["system_set"]
+    reset_step, reset_initial = extended["sfc_reset_step"], extended["sfc_reset_initial"]
+    total = sum(extended.values())
+    non_data = 2 * counter + 3 * (system_get + system_set) + reset_step + 2 * reset_initial
+    data = counter + message + system_get + system_set + reset_step
+    invalid_counter = coverage["counter_invalid_forms"]
+    invalid_timer = coverage["instructions_by_status"]["unsupported_operand_form"] - invalid_counter
+    reference_coverage = nested["coverage"]
+    source_opcodes = nested["source_summary"]["instructions"]["counts"]
+    required = (
+        (coverage["timer_instructions"] + invalid_timer, ("TON", "TOF", "RTO")),
+        (counter + invalid_counter, ("CTU", "CTD")),
+        (message, ("MSG",)),
+        (system_get, ("GSV",)),
+        (system_set, ("SSV",)),
+        (reset_step + reset_initial, ("SFR",)),
+    )
+    pooled_needed = sum(max(0, count - sum(source_opcodes.get(opcode, 0) for opcode in opcodes))
+                        for count, opcodes in required)
+    if (invalid_timer < 0
+            or total + invalid_counter > reference_coverage["instructions_total"] - reference_coverage["instructions_catalogued"]
+            or non_data + data + 3 * invalid_counter > nested["operands"]["by_status"]["unsupported_instruction"]
+            or coverage["extended_bound_operands"] > data
+            or pooled_needed > source_opcodes.get("withheld", 0)):
+        _invalid()
+    return total, non_data, invalid_counter
+
+
 def validate_work_check_report(report: Any) -> None:
     """Reject unknown fields and reconcile test, analysis and overall status."""
     if type(report) is not dict or type(report.get("schema_version")) is not int:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = {"diagnostic_sample"} if version >= 2 else set()
@@ -126,14 +166,14 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
@@ -143,14 +183,19 @@ def validate_work_check_report(report: Any) -> None:
             validate_access_summary(access)
             coverage = access["coverage"]
             reference_coverage = nested["coverage"]
-            if access["schema_version"] != (2 if version >= 14 else 1):
+            if access["schema_version"] != (3 if version >= 20 else 2 if version >= 14 else 1):
                 _invalid()
             integer_pseudo_operands = 0
             unsupported_timer_forms = 0
+            extended_instructions = extended_non_data = extended_bound = 0
+            counter_invalid_forms = 0
+            if version >= 20:
+                extended_instructions, extended_non_data, counter_invalid_forms = _extended_access_populations(coverage, nested)
+                extended_bound = coverage["extended_bound_operands"]
             if version >= 14:
                 pseudo_operands = coverage["timer_pseudo_operands_by_kind"]
                 integer_pseudo_operands = pseudo_operands["integer_literal"]
-                unsupported_timer_forms = coverage["instructions_by_status"]["unsupported_operand_form"]
+                unsupported_timer_forms = coverage["instructions_by_status"]["unsupported_operand_form"] - counter_invalid_forms
                 source_opcodes = nested["source_summary"]["instructions"]["counts"]
                 # Source4 preserves case and pools non-public spellings, while
                 # access accepts ASCII case variants. This is a capacity bound,
@@ -163,13 +208,13 @@ def validate_work_check_report(report: Any) -> None:
             if (access["tool_revision"] != revision
                     or coverage["instructions_total"] != reference_coverage["instructions_total"]
                     or coverage["instructions_total"] != nested["source_summary"]["counts"]["instructions"]
-                    or coverage["instructions_by_status"]["classified"] + unsupported_timer_forms > reference_coverage["instructions_catalogued"]
+                    or coverage["instructions_by_status"]["classified"] - extended_instructions + unsupported_timer_forms > reference_coverage["instructions_catalogued"]
                     or coverage["operands_total"] != nested["operands"]["total"]
-                    or coverage["operands_by_role"]["non_data"] - integer_pseudo_operands > nested["operands"]["by_status"]["non_data"]
+                    or coverage["operands_by_role"]["non_data"] - integer_pseudo_operands - extended_non_data > nested["operands"]["by_status"]["non_data"]
                     or coverage["source_rungs"] != reference_coverage["rungs_total"]
                     or coverage["source_rungs"] != nested["source_summary"]["counts"]["rungs"]
                     or coverage["unparsed_rungs"] != reference_coverage["rungs_total"] - reference_coverage["rungs_analyzed"]
-                    or coverage["linked_operands"] != nested["operands"]["by_status"]["root_bound"]
+                    or coverage["linked_operands"] != nested["operands"]["by_status"]["root_bound"] + extended_bound
                     or coverage["indexed_roots"] > nested["symbols"]["total"]):
                 _invalid()
             expected_analysis = "partial" if "partial" in (expected_analysis, access["status"]) else "complete"
@@ -346,7 +391,7 @@ def validate_work_check_report(report: Any) -> None:
             if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
                 # This fallback needs dedicated rack evidence. Historical v2
                 # reports retain their original malformed-only sample contract.
-                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12), (15, 12), (16, 12), (17, 12), (18, 12), (19, 12)}
+                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12), (15, 12), (16, 12), (17, 12), (18, 12), (19, 12), (20, 12)}
                         or nested["rack_candidates"]["matches"]["direct_operands"]
                         ["by_status"]["no_candidate_match"] == 0):
                     _invalid()

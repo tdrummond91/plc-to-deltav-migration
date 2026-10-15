@@ -156,7 +156,7 @@ class AccessTests(unittest.TestCase):
                          {'placeholder': 2, 'integer_literal': 4})
         self.assertEqual(result.coverage['bound_by_role']['non_data'], 0)
         self.assertEqual(result.status, 'complete')
-        self.assertEqual((result.schema_version, result.analyzer_version), (2, 'instruction-access-2'))
+        self.assertEqual((result.schema_version, result.analyzer_version), (3, 'instruction-access-3'))
         self.assertEqual(result.initialization_analysis, 'not_implemented')
         self.assertEqual(result.range_analysis, 'not_implemented')
         for operand, reference in zip(result.operands, references.operands, strict=True):

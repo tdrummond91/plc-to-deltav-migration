@@ -91,6 +91,9 @@
   const byOperandAccess = new Map((access?.operands || []).map(x => [x.id, x]));
   const byInstructionAccess = new Map((access?.instructions || []).map(x => [x.id,x]));
   const byRootAccess = new Map(accessRoots.map(x => [x.target_id, x]));
+  const accessBindingAdditions = (access?.operands || []).filter(x =>
+    x.binding_origin && x.binding_origin !== 'source_references');
+  const rungAccessBindings = new Map(), entityAccessBindings = new Map();
   const accessGaps = (access?.instructions || []).filter(x => x.status !== 'classified');
   // A known role is separate from a usable reference. Literal destinations and
   // unresolved roots must remain inspectable even on classified instructions.
@@ -120,6 +123,12 @@
   operands.forEach(o => {
     add(rungOperands, o.rung_id, o);
     new Set([o.symbol_id, o.target_id, ...(o.alias_chain || [])]).forEach(id => add(entityOperands,id,o));
+  });
+  // Preserve the original reference index. New access bindings form a separate
+  // evidence layer; inherited bindings must not duplicate declaration links.
+  accessBindingAdditions.forEach(a => {
+    add(rungAccessBindings,a.rung_id,a);
+    new Set([a.symbol_id,a.target_id,...(a.alias_chain || [])]).forEach(id=>add(entityAccessBindings,id,a));
   });
   pidOccurrences.forEach(p => {
     add(rungPids,p.rung_id,p);
@@ -207,8 +216,34 @@
   }
   function sourceCell(id) { return id && (byEntity.has(id)||byRung.has(id)||byOperand.has(id)||byInstruction.has(id)||byElement.has(id)||byContent.has(id)||byTagContent.has(id)||byTagElement.has(id)) ? link(sourceName(id),id) : node('span','muted','No direct source link'); }
   function primary(main,secondary) { const d=node('div'); d.append(main instanceof Node?main:node('div','cell-main',main)); if(secondary)d.append(node('div','cell-sub',secondary)); return d; }
-  function accessLabel(o) { const a=byOperandAccess.get(o.id); return a?.reason==='timer_pseudo_operand'?'initialization_field':a?.role || 'unknown'; }
+  function accessLabel(o) { const a=byOperandAccess.get(o.id); return ['timer_pseudo_operand','counter_pseudo_operand'].includes(a?.reason)?'initialization_field':a?.role || 'unknown'; }
   function accessCell(o) { return badge(accessLabel(o)); }
+  function bindingRoots(binding,reason) {
+    const roots=node('div','inline-links');
+    if(binding.symbol_id)roots.append(sourceCell(binding.symbol_id));
+    if(binding.target_id && binding.target_id!==binding.symbol_id)roots.append(node('span','','→'),sourceCell(binding.target_id));
+    if(!roots.childNodes.length)roots.append(node('span','muted',human(reason || 'No root binding')));
+    return roots;
+  }
+  function accessBindingOrigin(a) {
+    return {source_references:'Original reference analysis',access_resolver:'Instruction access analysis',access_non_data:'Instruction selector or initialization field'}[a.binding_origin] || 'Original reference analysis';
+  }
+  function accessBindingTable(rows,caption) {
+    const result=node('div');
+    result.append(table(['Operand','Instruction / argument','Role','Access binding','Declared / resolved root','Resolved suffix'],rows,a=>{
+      const o=byOperand.get(a.id);
+      return [link(o.raw_text || '(blank)',o.id),
+        (byInstruction.get(a.instruction_id)?.instruction.opcode || 'Instruction')+' · '+(a.argument_index+1),
+        accessCell(a),primary(badge(a.binding_status),accessBindingOrigin(a)+(a.binding_reason?' · '+human(a.binding_reason):'')),
+        bindingRoots(a,a.binding_reason),node('span','mono',a.suffix || (a.target_id?'(root operand)':'—'))];
+    },caption));
+    const opcodes=new Set(rows.map(a=>byInstruction.get(a.instruction_id)?.instruction.opcode.toUpperCase()));
+    if(opcodes.has('CTU') || opcodes.has('CTD'))result.append(node('p','row-note','Counter preset and accumulator fields describe initialization, not separate runtime reads. A question mark supplies no value. Counter values and configuration are not validated.'));
+    if(opcodes.has('MSG'))result.append(node('p','row-note','MSG covers possible reads and writes of its control operand only. Message payload sources, destinations and communication effects are not modeled.'));
+    if(opcodes.has('GSV') || opcodes.has('SSV'))result.append(node('p','row-note','GSV/SSV class, instance and attribute selectors are not tag bindings. A blank instance is allowed; system state and the selected attribute are not validated.'));
+    if(opcodes.has('SFR'))result.append(node('p','row-note','SFR records a possible write to an explicit step, or an initial-step selector of 0. SFC membership and wider reset effects are not validated.'));
+    return result;
+  }
   function roleIds(root,role) { return root[role+'_operand_ids'] || []; }
   const accessRoles=['read','write','read_write','unknown'];
   function table(headers, rows, rowFn, caption, options={}) {
@@ -298,7 +333,7 @@
   }
   function objectList(){const rows=entities.filter(e=>matches(e)&&(state.filter==='all'||e.kind===state.filter));content.append(table(['Object','Type','Scope','Description'],rows,e=>[primary(link(e.name || '(unnamed)',e.id),e.attributes?.DataType),human(e.kind),entityPath(e.scope_id),short(e.description || 'No description captured.')],'Source objects',{emptyTitle:'No objects match your search',emptyDetail:'Search by name, scope, description or attribute value.'}));}
   function accessNotice() {
-    return notice('Explicit operand uses only','Reads and writes describe possible uses of supported ladder operand slots. Rung conditions, scan order, implicit status flags, SFC/ST code and unsupported instructions are not modeled. A shared root does not prove that members or array elements overlap. Missing accesses do not establish that a tag is unused or read-only.'+(access.schema_version>=2?' Timer initialization fields are not runtime inputs; their values are not validated. Copy roles identify starting operands and length use, not the copied range or overlap.':''));
+    return notice('Explicit operand uses only','Reads and writes describe possible uses of supported ladder operand slots. Rung conditions, scan order, implicit status flags, SFC/ST code and unsupported instructions are not modeled. A shared root does not prove that members or array elements overlap. Missing accesses do not establish that a tag is unused or read-only.'+(access.schema_version>=2?' Timer initialization fields are not runtime inputs; their values are not validated. Copy roles identify starting operands and length use, not the copied range or overlap.':'')+(access.schema_version>=3?' Counter initialization fields are also not runtime inputs. MSG covers its control operand only; message payloads are not modeled. GSV/SSV class, instance and attribute selectors are not tag bindings; a blank instance is allowed. SFR records a possible write to an explicit step, or an initial-step selector of 0; SFC membership and wider reset effects are not validated.':''));
   }
   function accessList() {
     content.append(accessNotice());
@@ -311,6 +346,16 @@
     if(access.schema_version>=2)totals.append(values({'Classified timer instructions':c.timer_instructions,
       'Timer initialization placeholders':c.timer_pseudo_operands_by_kind.placeholder,
       'Timer integer initialization fields':c.timer_pseudo_operands_by_kind.integer_literal}));
+    if(access.schema_version>=3)totals.append(values({'Classified counter instructions':c.extended_instructions.counter,
+      'Classified MSG control operands':c.extended_instructions.message,
+      'Classified GSV instructions':c.extended_instructions.system_get,
+      'Classified SSV instructions':c.extended_instructions.system_set,
+      'Classified SFR target operands':c.extended_instructions.sfc_reset_step,
+      'Classified SFR initial-step selectors':c.extended_instructions.sfc_reset_initial,
+      'Counter initialization placeholders':c.counter_pseudo_operands_by_kind.placeholder,
+      'Counter integer initialization fields':c.counter_pseudo_operands_by_kind.integer_literal,
+      'Counter instructions with invalid initialization forms':c.counter_invalid_forms,
+      'Root bindings from additional instruction analysis':c.extended_bound_operands}));
     content.append(totals);
     const rows=accessRoots.filter(matches);
     const roots=section('Resolved tag roots','Read/write is a separate category; it is not counted twice. Open a count to inspect its exact operands and suffixes.');
@@ -335,11 +380,11 @@
     [['all','All roles'],...accessRoles.map(r=>[r,human(r)])].forEach(([v,t])=>{const o=node('option','',t);o.value=v;select.append(o);});
     select.value=state.accessRole || 'all';select.addEventListener('change',()=>{state.accessRole=select.value;render();});label.append(select);box.append(label);content.append(box);
     const roles=state.accessRole && state.accessRole!=='all'?[state.accessRole]:accessRoles;
-    const rows=roles.flatMap(role=>roleIds(root,role)).map(id=>byOperand.get(id)).filter(Boolean);
-    content.append(table(['Operand','Role','Rung','Instruction / argument','Resolved suffix'],rows,o=>[
-      link(o.raw_text,o.id),accessCell(o),sourceCell(o.rung_id),
-      (byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),
-      node('span','mono',o.suffix || '(root operand)')
+    const rows=roles.flatMap(role=>roleIds(root,role)).map(id=>byOperandAccess.get(id)).filter(Boolean);
+    content.append(table(['Operand','Role','Rung','Instruction / argument','Declared / resolved root','Resolved suffix','Binding analysis'],rows,a=>[
+      link(byOperand.get(a.id).raw_text,a.id),accessCell(a),sourceCell(a.rung_id),
+      (byInstruction.get(a.instruction_id)?.instruction.opcode||'Instruction')+' · '+(a.argument_index+1),
+      bindingRoots(a,a.binding_reason),node('span','mono',a.suffix || '(root operand)'),accessBindingOrigin(a)
     ],'Root access occurrences'));
   }
   function rungList(rows=rungs.filter(r=>matches(r)&&(state.filter==='all'||r.parse_status===state.filter))){return table(['Rung','Routine / scope','Source preview','Parse status'],rows,r=>[link('Rung '+(r.number??r.ordinal),r.id),entityPath(r.parent_id),node('div','snippet',short(r.text,180)),badge(r.parse_status)],'Ladder rungs');}
@@ -362,25 +407,36 @@
     if(byRootAccess.has(e.id))content.append(button('Inspect root access occurrences',()=>openDetail('access',e.id,{accessRole:'all'})));
     if(ownerPids.has(e.id)){const p=section('PID instruction occurrences','These occurrences name this declaration or resolve to it. Storage association may remain unresolved.');p.append(pidTable(ownerPids.get(e.id),'Object PID occurrences'));content.append(p);}
     if(ownerCalculations.has(e.id)){const p=section('Calculation occurrences','This declaration appears in a destination binding or a parsed expression reference, directly or through an alias. These links do not establish execution or data dependencies.');p.append(calculationTable(ownerCalculations.get(e.id),'Object calculation occurrences'));content.append(p);}
-    const p=section('Operand occurrences',access
-      ? 'Occurrences include the declared root, resolved target and traversed alias chain. Roles describe possible explicit operand use; they do not prove execution or member validity.'
+    const p=section(access?.schema_version>=3?'Original reference occurrences':'Operand occurrences',access
+      ? 'Occurrences include the declared root, resolved target and traversed alias chain from the original reference analysis. Roles describe possible explicit operand use; they do not prove execution or member validity.'
       : 'Occurrences include the declared root, resolved target and traversed alias chain. They do not describe reads or writes.');
     p.append(table(['Operand','Rung','Instruction / argument','Binding',...(access?['Operand role']:[])],entityOperands.get(e.id)||[],o=>[link(o.raw_text,o.id),sourceCell(o.rung_id),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · argument '+(o.argument_index+1),badge(o.status),...(access?[accessCell(o)]:[])],'Object operand occurrences',{emptyTitle:'No captured operand occurrences',emptyDetail:'This does not establish that the object is unused; unsupported source or indirect expressions may refer to it.'}));content.append(p);
+    if(entityAccessBindings.has(e.id)){
+      const extra=section('Additional instruction access occurrences','These operand bindings come from instruction access analysis. They include the declared root, resolved target and traversed aliases. The original reference findings remain available separately.');
+      extra.append(accessBindingTable(entityAccessBindings.get(e.id),'Object additional access occurrences'));content.append(extra);
+    }
     content.append(technical({'Source ID':e.id,'Parent ID':e.parent_id,'Scope ID':e.scope_id,'XML location':e.locator}));
   }
   function rungDetail(r){
     setDetailHeading('LADDER SOURCE',rungName(r),entityPath(r.parent_id));
     const meta=node('div','detail-meta');meta.append(badge(r.parse_status),sourceCell(r.parent_id));content.append(meta);
-    if(state.focusOperand && byOperand.get(state.focusOperand)?.rung_id===r.id){const o=byOperand.get(state.focusOperand);content.append(notice('Selected operand · argument '+(o.argument_index+1),o.raw_text+' · '+human(o.status)+(access?' · role: '+human(accessLabel(o)):'')));}
+    if(state.focusOperand && byOperand.get(state.focusOperand)?.rung_id===r.id){
+      const o=byOperand.get(state.focusOperand),a=byOperandAccess.get(o.id);
+      content.append(notice('Selected operand · argument '+(o.argument_index+1),(o.raw_text || '(blank)')+' · original reference binding: '+human(o.status)+(access?' · role: '+human(accessLabel(o)):'')+(a?.binding_origin && a.binding_origin!=='source_references'?' · instruction access binding: '+human(a.binding_status):'')));
+    }
     if(state.focusInstruction && byInstruction.get(state.focusInstruction)?.rung.id===r.id)content.append(notice('Selected instruction',byInstruction.get(state.focusInstruction).instruction.opcode));
     const text=panel('Rung text','Exact captured ladder source. No execution behavior is inferred.');text.append(sourceText(r.text));content.append(text);
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
     if(rungPids.has(r.id)){const p=section('PID evidence on this rung');p.append(pidTable(rungPids.get(r.id),'Rung PID occurrences'));content.append(p);}
     if(rungCalculations.has(r.id)){const p=section('Calculations on this rung');p.append(calculationTable(rungCalculations.get(r.id),'Rung calculation occurrences'));content.append(p);}
-    const ops=section('Operand bindings','Root resolution is source evidence only. A binding does not validate a member, array bound, data type or instruction effect.');
+    const ops=section(access?.schema_version>=3?'Original reference bindings':'Operand bindings','Root resolution is source evidence only. A binding does not validate a member, array bound, data type or instruction effect.'+(access?.schema_version>=3?' These rows retain the original reference analysis; additional instruction access bindings appear separately below.':''));
     if((rungOperands.get(r.id)||[]).some(o=>byOperandAccess.get(o.id)?.reason==='timer_pseudo_operand'))ops.append(node('p','row-note','Timer preset and accumulator fields describe initialization, not separate runtime reads. A question mark supplies no value here. Timer values, units and configuration are not validated.'));
-    ops.append(table(['Operand','Instruction / argument','Binding','Declared / resolved root',...(access?['Operand role']:[])],rungOperands.get(r.id)||[],o=>{const root=node('div','inline-links');if(o.symbol_id)root.append(sourceCell(o.symbol_id));if(o.target_id && o.target_id!==o.symbol_id)root.append(node('span','','→'),sourceCell(o.target_id));if(!root.childNodes.length)root.append(node('span','muted',human(o.reason || 'No root binding')));return[node('span','mono',o.raw_text),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),primary(badge(o.status),o.reason?human(o.reason):''),root,...(access?[accessCell(o)]:[])];},'Rung operand bindings'));content.append(ops);
+    ops.append(table(['Operand','Instruction / argument','Binding','Declared / resolved root',...(access?['Operand role']:[])],rungOperands.get(r.id)||[],o=>[node('span','mono',o.raw_text || '(blank)'),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),primary(badge(o.status),o.reason?human(o.reason):''),bindingRoots(o,o.reason),...(access?[accessCell(o)]:[])],'Rung operand bindings'));content.append(ops);
+    if(rungAccessBindings.has(r.id)){
+      const extra=section('Instruction access bindings','These bindings use supported instruction operand roles. Selector text is not a tag reference, even if a declaration has the same name. The original reference findings are preserved above.');
+      extra.append(accessBindingTable(rungAccessBindings.get(r.id),'Rung instruction access bindings'));content.append(extra);
+    }
     const pattern=routinePatterns.get(r.id);if(pattern)content.append(button('Open syntax pattern · '+fmt(pattern.count)+' occurrences',()=>openDetail('pattern',pattern.id)));
     const structure=node('details','technical');structure.append(node('summary','','Parsed branch structure'),sourceText(JSON.stringify(r.structure,null,2)));content.append(structure,technical({'Source ID':r.id,'Routine ID':r.parent_id,'Scope ID':r.scope_id,'XML location':r.locator}));
   }
@@ -440,12 +496,18 @@
     const shape=node('details','technical');shape.append(node('summary','','Ordered syntax shape'),sourceText(p.shape));content.append(shape,technical({'Pattern ID':p.id}));
   }
   function findingsList(){
+    if(access?.schema_version>=3)content.append(notice('Original reference findings are retained','Operand and alias findings come from the original reference analysis. Additional instruction access bindings may resolve a root or identify selector text without removing the original finding. Open its source operand to compare both evidence layers.'));
     const rows=findings.filter(f=>matches(f)&&(state.filter==='all'||f.origin===state.filter));
     content.append(table(['Finding','Origin / severity','Source context','Detail'],rows,f=>[button(human(f.code),()=>openDetail('finding',f.id),'text-link'),primary(badge(f.severity),human(f.origin)),sourceCell(f.source_id),short(f.message,170)],'Review findings',{emptyTitle:'No findings match this selection',emptyDetail:findings.length?'Try another search or origin filter.':'No capture or binding findings were emitted. Engineering interpretation still requires review.'}));
   }
   function findingDetail(f){
     setDetailHeading('REVIEW FINDING',human(f.code),f.message);
     const meta=node('div','detail-meta');meta.append(badge(f.severity),badge(f.origin));content.append(meta);
+    const binding=byOperandAccess.get(f.source_id);
+    if(f.origin==='operand' && binding?.binding_origin && binding.binding_origin!=='source_references'){
+      const current=section('Instruction access analysis','This finding retains the original reference status. The separate access analysis for the same operand is shown below.');
+      current.append(accessBindingTable([binding],'Finding instruction access binding'));content.append(current);
+    }
     const evidence=panel('Source evidence','Follow the originating record and its context before deciding whether a parser correction is needed.');
     evidence.append(sourceCell(f.source_id));const ids=Array.from(new Set(f.related_ids||[])).filter(id=>id!==f.source_id);
     if(ids.length)evidence.append(table(['Related evidence'],ids,id=>[sourceCell(id)],'Finding related evidence'));content.append(evidence);

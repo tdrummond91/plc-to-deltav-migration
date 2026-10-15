@@ -219,7 +219,7 @@ class CalculationReviewStorageTests(unittest.TestCase):
 class CalculationWorkReportTests(unittest.TestCase):
     def test_work18_and_work19_require_their_exact_calculation_summary_versions(self) -> None:
         data = DATA.replace(b'A.SP+937291', b'SQR(A.SP)')
-        current = report(data)
+        current = report(data, schema_version=19)
         legacy_parts = captured(data, schema_version=1)
         legacy_summary = build_calculation_summary(*legacy_parts[:3], legacy_parts[-1], revision=REVISION)
         historical = deepcopy(current)
@@ -281,9 +281,9 @@ class CalculationWorkReportTests(unittest.TestCase):
         rendered = work_check.render_work_check_report(returned)
         self.assertLess(len(rendered.encode('utf-8')), work_check.MAX_REPORT_BYTES)
 
-    def test_work19_is_count_only_and_all_historical_reports_remain_frozen(self) -> None:
+    def test_current_work_is_count_only_and_all_historical_reports_remain_frozen(self) -> None:
         payload = report(DATA)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (19, 'work-check-19'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (20, 'work-check-20'))
         self.assertEqual(payload['analysis']['calculation_summary']['schema_version'], 2)
         rendered = work_check.render_work_check_report(payload)
         self.assertEqual(json.loads(rendered), payload)

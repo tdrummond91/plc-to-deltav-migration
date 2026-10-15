@@ -7,15 +7,19 @@ source inventory, references, explicit operand access, stored Tag Data, PID occu
 `review.html` path to search objects, follow source context, inspect findings,
 compare repeated rung syntax and navigate routine/SFC evidence. The report is
 self-contained and opens without a server. Phase 1 now classifies potential
-explicit operand uses for 34 supported mnemonic spellings, including bounded
-timer/reset/copy roles. These roles are not
+explicit operand uses for 40 supported mnemonic spellings, including bounded
+timer/reset/copy, counter, message-control, system-value and SFC-reset roles.
+Access-owned bindings retain separate provenance from the original reference
+analysis; new declaration links use the access binding and alias chain. These roles are not
 execution effects or dependencies, and root groups do not establish overlap
 between member/index suffixes. Engineering classifications remain later work.
 
 Tyler has not inspected the source/report and explicitly deferred engineering
 and UI review. Such inspection is optional later; it is not a gate to continued
 parser work. The next work-machine run should return only generated aggregate
-feedback for the legacy CPT function extension.
+feedback for the extended operand access analysis. Returned `760448e` confirms
+all 45 CPT expressions parse, with 132 bound reference uses and 45 bound
+destinations. See [the access contract and limits](../public/docs/reviews/EXTENDED_ACCESS_REVIEW.md).
 
 ```bash
 uv run --project python-parser --locked plc review \
@@ -41,7 +45,9 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work17 adds count-only PID member summary1 while preserving
+manual. Current work20 adds access summary3 beside calculation2, PID member1,
+PID1, Tag Data1, reference12/source4 and SFC2. Earlier work17 added count-only
+PID member summary1 while preserving
 PID1, Tag Data1/reference12/source4/SFC2/access2 summaries. Documented member
 groups, type/shape checks and missing/duplicate catalog fields complement the
 existing operand and storage links. Scalar values, array contents, flags and
@@ -54,7 +60,8 @@ Its clean `1e9aaae` run passed 586 application cases (one skip) and 139 helpers;
 prior summaries matched after revision normalization. This establishes capture
 coverage, not 46 engineered loops or valid settings. Read the
 [PID member review](../public/docs/reviews/PID_MEMBER_REVIEW.md) for current
-scope and validation. The next normal work-machine run measures member coverage.
+scope and validation. That historical handoff measured PID member coverage;
+the current handoff measures extended access roles.
 
 Historical Tag Data/work15 validation: 642 development cases passed with one
 existing Windows symlink skip. Two isolated runs each passed 546 application
@@ -97,10 +104,17 @@ in their two preset/accumulator pseudo-operands. Accepted timer storage is
 read-write and both pseudo-operands are non-data; an unsupported pseudo form
 leaves the whole instruction unknown. RES storage is a possible write.
 COP/CPS provide source-read/destination-write/length-read roles without expanding
-copy extents or validating types, bounds, overlap or execution. It does not
-rebind unknown operands or infer effects for CPT, PID, AOIs, JSR or ST.
-Every argument must be present and nonempty before any slot
-receives a known role.
+copy extents or validating types, bounds, overlap or execution.
+
+Access3 adds CTU/CTD counter read/write with the same pseudo-field grammar,
+MSG control read/write, GSV destination write, SSV source read and SFR explicit
+step possible write. Exact trimmed SFR target `0` is an initial-step selector.
+The three GSV/SSV selectors and SFR routine names are non-data. Their data slots
+use separately attributed root bindings without changing original reference
+records. GSV/SSV may have an empty instance field; other required slots must be
+present and nonempty. Message payloads, system transfer ranges, SFC execution
+and step membership remain unmodeled. CPT, PID, AOI, JSR and ST effects are not
+inferred by this access layer.
 
 Only canonical `root_bound` occurrences enter the disjoint resolved-root groups.
 Read-write storage remains one occurrence, OTL/OTU are explicit writes, and MVM
@@ -109,19 +123,23 @@ No mask evaluation, member validation or source-to-destination dependency edges
 are added. A literal destination can retain a declared write role while remaining
 unbound; it is an access gap and never supplies bound write evidence.
 
-`access.json` is private schema2 (`instruction-access-2`). Its coverage accounts
-for all parsed instructions, operands by role/binding, linked and unlinked
-occurrences, indexed roots, unparsed rungs and known-access binding gaps. It adds
-accepted timer counts and fixed placeholder/integer pseudo-operand counts;
-timer settings and initialization are not interpreted.
-`analysis.access_summary` schema2 in work16 publishes only fixed metadata, status,
-revision and these counts, with no names, IDs, values, opcode histogram or topology.
-Frozen work13 retains summary1's exact fields and vocabulary. The timer
-capacity includes published TON/TOF/RTO plus pooled `withheld` spellings to retain
-case-insensitive access without changing source4; it is not exact timer membership.
+`access.json` is private schema3 (`instruction-access-3`). Its coverage accounts
+for all parsed instructions, operands by role/binding, linked/unlinked occurrences,
+indexed roots, unparsed rungs and known-role binding gaps. Separate timer and
+counter pseudo-field counts retain their populations. Fixed extended-family
+counts and fresh-bound counts reconcile access additions with unchanged original
+references. Each private operand includes its binding origin and original
+reference status; the report shows these scopes separately.
+
+`analysis.access_summary` schema3 in work20 publishes only fixed metadata,
+status, revision and counts. It contains no names, IDs, values or source-defined
+keys. Frozen work13 retains summary1; work14-19 retain summary2. Explicit private
+access2 replay reproduces earlier evidence. A shared withheld-opcode allowance
+covers case variants without treating pooled spellings as known family members.
 The source/reference contracts and standalone `references` output are unchanged.
-See [TIMER_COPY_ACCESS_REVIEW.md](../public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md) for exact
-scope, catalogue, validation and remaining work.
+See [EXTENDED_ACCESS_REVIEW.md](../public/docs/reviews/EXTENDED_ACCESS_REVIEW.md)
+for the current contract and [TIMER_COPY_ACCESS_REVIEW.md](../public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md)
+for the preserved earlier checkpoint.
 
 ## Source inventory
 
