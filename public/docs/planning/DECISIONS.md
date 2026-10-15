@@ -225,6 +225,20 @@ existing reference results and historical contracts stay exact. Keep output size
 proportional to retained evidence by printing endpoint payloads once. See the
 [annotation evidence and tests](../reviews/SFC_ANNOTATION_REVIEW.md).
 
+### Deliver source evidence as an offline review package (2026-10-14)
+
+After the returned SFC annotation run and independent state assessment, bundle
+existing evidence into a private read-only HTML explorer before adding more
+small aggregate-only checkpoints. Include searchable objects, exact rung
+occurrences, content-scoped SFC notes, syntax groups and linked findings. Use
+the same captured snapshot as the saved JSON, embed all assets, and keep real
+reports private. A separate independently invented demo supports appearance
+review on the development PC. Do not require an editor/database choice for
+this reading milestone or imply that root bindings establish instruction effects.
+Public feedback remains unchanged; work-machine pull/push stay manual. The next
+run should test actual-unit generation and navigation and collect content/bug/
+appearance feedback. See [the report contract](../reviews/ENGINEERING_REVIEW_REPORT.md).
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?

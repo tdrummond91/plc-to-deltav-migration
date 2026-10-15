@@ -1,5 +1,13 @@
 # Project state after the returned SFC annotation run
 
+Follow-up milestone: the [offline source-review package](ENGINEERING_REVIEW_REPORT.md)
+is now implemented and locally validated, awaiting the next work-machine run
+and Tyler's content/navigation/appearance review. This delivers the organized
+evidence browser portion of the recommendation below. Conservative access
+roles and dependency interpretation remain outstanding. The assessment and
+iteration ranges below are preserved as the preceding checkpoint, not a new
+estimate after actual-unit report feedback.
+
 Assessment date: 2026-10-14. Reviewed code/report HEAD: `90923ab`, whose only
 change is the work-machine feedback from clean parent `f8411bc`. Tyler requested
 an independent subagent assessment after this report was analyzed, including

@@ -1,5 +1,34 @@
 # Work-machine check: local results and manual publication
 
+The next run now builds the **first organized offline engineering review**.
+It presents existing source context, findings, repeated rung syntax, routine
+declarations and SFC evidence for read-only navigation and appearance review.
+Engineering interpretation is still incomplete. Read
+[ENGINEERING_REVIEW_REPORT.md](ENGINEERING_REVIEW_REPORT.md) for capabilities
+and limits; the evidence checkpoints below remain historical.
+
+In Git Bash at the repository root on `feat/bounded-operand-example-pc`:
+
+```bash
+git pull
+bash ./run-work-check.sh
+# If this checkout has no remembered source, use instead:
+# bash ./run-work-check.sh A19CHL02-unencrypted.L5X
+```
+
+Open the private `review.html` path printed by the runner. Review whether the
+report is readable, whether search and source links provide enough context,
+and which views or labels need improvement. After reviewing the new feedback
+JSON, run `git push` manually. The script commits that report locally; no manual
+staging or commit is needed. Keep the HTML and engineering artifacts private.
+
+Current validation: 535 development cases pass (one existing symlink skip);
+two actual synthetic launcher runs each pass 439 application cases (one skip)
+and 139 helpers. Report-only local commits, parent pinning, append-only artifacts,
+unchanged canonical parser results and no remote Git calls were verified.
+Overall `partial` remains expected. Review runs use manifest4 with eight hashed
+artifacts, including `review.html`; legacy reference/SFC runs retain manifest2/3.
+
 Use **main** for the consolidated baseline. The current Phase 1 work is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
@@ -67,8 +96,8 @@ application cases (one skip) and 139 helpers. All 280 boxes have recognized
 Text children, all 213 attachments/426 endpoints resolve, and SFC structural
 status is complete with zero issues. Previous reference/flow/ID/ST counts stay
 unchanged. Overall partial remains expected because engineering interpretation
-is incomplete. No repeat annotation-only run is needed; wait for the next
-implementation checkpoint before rerunning. See [the confirmed annotation
+is incomplete. No repeat annotation-only run is needed; the engineering-review
+checkpoint above is now ready for the next run. See [the confirmed annotation
 review](SFC_ANNOTATION_REVIEW.md) and [project state](PROJECT_STATE_REVIEW.md).
 
 ## Manual runs
@@ -109,7 +138,7 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 11 and their tested SHA identifies which suite
+check. New reports use schema 12 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
@@ -118,14 +147,22 @@ implementation ran; older reports can therefore have a broader test scope.
 |---|---|
 | `public/inspection/work-check-<run-id>.json` | Automatically committed feedback: tested revision, suite results, reference/structural counts, and at most one actual mystery operand with instruction/argument position |
 | `confidential/work-checks/<run-id>/` | Local test logs and structured results; analysis exception details if needed |
-| `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt, sfc-structure.json, sfc-structure.txt and manifest.json |
+| `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt, sfc-structure.json, sfc-structure.txt, review.html and manifest.json |
 | Git metadata `plc-work-check.json` | Local remembered source path; not committed or pushed |
+
+Open `review.html` first for the organized offline report. It includes private
+source evidence and bundled assets, and opens without a server. For a separate
+new run, use `uv run --project python-parser --locked plc review FILE
+--workspace confidential/workspaces/review`; `--workspace` is required. The
+command prints the HTML path, and exit 3 means usable partial output.
 
 Open `overview.txt` for the source overview and `references.txt` for declarations,
 alias chains, operand occurrences and rack candidate lookups. Their JSON counterparts preserve structured
 records and source links for later analysis. Open sfc-structure.txt for SFC edit
 blocks, descriptors, opaque ST and scoped links; its JSON preserves canonical
-records. Combined work runs use manifest3 with seven hashed artifacts. Every run gets new output locations;
+records. Combined review work runs use manifest4 with eight hashed artifacts.
+Plain reference runs retain manifest2 and standalone SFC runs retain manifest3.
+Every run gets new output locations;
 the original source and previous runs are preserved.
 
 The public report includes at most one actual operand in `diagnostic_sample`,

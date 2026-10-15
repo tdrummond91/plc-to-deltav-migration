@@ -1,0 +1,170 @@
+# Private engineering review report
+
+## Purpose and scope
+
+This is the first organized review package following the
+[project-state assessment](PROJECT_STATE_REVIEW.md). It brings the existing
+snapshot inventory, references, SFC structure, syntax groups and findings into
+one private HTML document. The report is a read-only source explorer. Persistent
+engineering edits, read/write effects, equipment classifications and PCSD/FHX
+generation remain later work. Dedicated routine-call candidate/graph navigation
+is also a follow-up; this interface shows routine declarations and source context.
+
+The next work-machine run should produce a report suitable for Tyler to review
+navigation, source correspondence, missing information, bugs and appearance.
+There is no need to install Python or run a server just to open the resulting
+HTML, although generating it currently uses the existing parser environment.
+
+## Commands and saved output
+
+The ordinary work-machine command now also saves review.html:
+
+```bash
+git pull
+bash ./run-work-check.sh
+```
+
+The script prints `Private review report:` followed by its complete path. Open
+that file in a browser. It is inside the new private run under
+confidential/workspaces/work-check/. The script still automatically commits only
+its validated public feedback JSON locally; review that JSON and run `git push`
+manually when ready. It does not open a browser, start a server or contact a
+remote Git repository automatically.
+
+To generate a private report directly without running/committing test feedback:
+
+```bash
+uv run --project python-parser --locked plc review \
+  "confidential/plc-code/A19CHL02-unencrypted.L5X" \
+  --workspace "confidential/workspaces/review"
+```
+
+The workspace is required. Each invocation saves a new run; existing input and
+run files remain intact. Exit3 means a usable report with partial underlying
+coverage, not a failed HTML export. All styling, scripts and evidence are embedded
+in review.html, so the file can be opened offline without its neighboring files.
+**The actual-unit HTML contains private names, values and logic and stays local.**
+Its data boundary is different from the small public feedback JSON.
+
+## What to review
+
+- Overview: source populations, underlying coverage and navigation into records.
+- Objects: locate a named source object, inspect its scope/description/attributes
+  and follow its recorded operand occurrences back to rungs.
+- Ladder: inspect original rung text, comments, instruction operands and binding
+  status. The displayed source is not a graphical ladder simulator.
+- SFC: distinguish routine/content edit versions; inspect steps, conditions,
+  opaque ST, authored notes, flow links and separate annotation attachments.
+- Patterns: inspect groups of exact ordered opcode/arity/branch shapes and their
+  rung occurrences. Matching shapes omit operands and do not prove equivalent
+  behavior or the same engineering role.
+- Findings: follow source, reference and SFC gaps to the available evidence;
+  source diagnostics without IDs retain their XML locator.
+
+For a first local review, choose a familiar tag, one repeated rung pattern and
+one SFC note. Verify their names/context, links and findings against your source.
+Check whether search, filtering, pagination and Back let you investigate without
+losing your place. Note unreadable text, clipped controls, awkward column widths
+and any missing context. Record desired interpretation fixes separately from
+layout/navigation bugs; this version does not persist edited classifications.
+Describe issues or share approved bounded examples instead of sending the full
+private HTML. The independently invented demo can be used freely for appearance
+feedback.
+
+Open [the invented demonstration](../../examples/engineering-review-demo.html)
+locally in a browser to review the layout immediately. It is generated solely
+from the synthetic fixture below; its private badge demonstrates how real
+reports are labeled. The full HTML from a real unit must remain on the work PC.
+
+## Data and publication contracts
+
+Private review schema1 / engineering-review-1 contains the captured snapshot
+identity, original inventory/reference/SFC payloads, syntax pattern occurrences,
+findings and statistics. It has no stable engineering-object identity or accepted
+correction overlay. Canonical replay validates supplied evidence against the same
+immutable bytes; it does not reread the live input. Compact JSON is limited to
+64MiB, findings to 500,000 and pattern groups to 100,000. HTML has its own 80MiB
+limit. Model errors contain no source text.
+
+Pattern IDs and finding IDs are snapshot-scoped. The shape representation keeps
+exact opcode spelling, argument count and ordered series/parallel structure;
+operand names, values and reuse are excluded deliberately. Parsed unknown
+opcodes remain eligible for syntax grouping. Supported literal/non-data/system
+flag slots do not become unresolved findings. An informational no-operand record
+does not claim a zero-argument instruction is unsupported.
+
+`save_run(..., include_review=True)` requires inventory, references and SFC
+evidence. It builds the report before allocating the destination and adds an
+eighth artifact to optional manifest4, artifact_kind
+source_reference_sfc_review_run. The manifest records review schema/version and
+the HTML hash/size. A write failure cannot publish a final manifest. Defaults and
+ordinary inventory/reference/SFC commands retain manifests1/2/3 and their exact
+artifact layouts.
+
+Public work12/reference12/source4/SFC2 remain unchanged. The tested revision and
+private-run success identify report-capable runs; HTML contents, source IDs and
+individual findings are not added to public feedback. Earlier stored reports
+remain readable. The existing listener stays disabled and excluded from tracking.
+
+## Browser boundary
+
+The report uses embedded assets and fixed application code. Source values are
+JSON-escaped at the HTML boundary and displayed as text rather than interpreted
+as markup. A hash-based Content Security Policy disallows external network
+content and connections. Lists are paginated, source identifiers are retained
+for drill-down, and display previews must not discard the original evidence.
+No active content is generated from an authored source note.
+
+To bound memory, ancestor-path previews/search cover at most eight ancestor
+segments and 80 characters per segment. Full object names and attributes remain
+available in their own records. A descendant search can miss a very long
+ancestor-name suffix outside that preview; search the ancestor object directly.
+
+## Demonstration source
+
+[engineering_review_demo.L5X](../../fixtures/synthetic/engineering_review_demo.L5X)
+is independently invented for this interface. It contains 12 rungs, ordinary and
+unresolved references, repeated shapes, a PID signature and CPT expression, and
+two SFC content versions with direct/child notes and a deliberately unresolved
+attachment. It is not controller-ready logic or a reference process design.
+The existing canonical synthetic fixture remains unchanged.
+
+## Development validation
+
+- Full tracked application/development suite: 535 cases pass, with one existing
+  Windows symlink-capability skip; the ignored listener loader is excluded.
+- The final label polish also passes all seven HTML tests and JavaScript syntax
+  validation. Independent model/UI/workflow review has no remaining blockers.
+- Two actual work-runner invocations in a fresh temporary checkout, first with
+  an explicit invented input and then its remembered path: 439 selected
+  application cases (one skip) and 139 helper tests pass on each run.
+- Those invocations produce manifest4 with eight correctly hashed artifacts.
+  Standalone plc review returns a usable partial exit3, prints the path and
+  produces byte-identical HTML. Ordinary reference and SFC commands retain
+  their manifest2 and manifest3 layouts. Inputs and earlier runs are unchanged.
+- Report-only local commits have the tested revision as parent and leave clean
+  trees. No Git fetch, pull or push occurs. The embedded HTML evidence matches
+  the saved JSON. Baseline 9cd65a4 inventory, references, SFC and public summaries
+  remain exact after normalizing the standard revision field.
+- All 18 historical public work reports validate unchanged. The built wheel
+  contains exact copies of both embedded report assets; its extracted renderer
+  generates byte-identical demonstration HTML.
+
+Chrome browser checks over a temporary loopback server confirm object-search
+results and occurrence links, correct rung/operand focus after navigation,
+separate SFC edit versions and empty sections, syntax-pattern and finding
+drill-down, empty search results, and the final overview layout. A source comment
+containing a script-closing tag, image markup and event-handler text remains
+literal text with no image, dialog or page JavaScript error.
+
+A separate independently generated scale fixture has 4,606 rungs, 6,417 objects,
+23,030 operands, 14 SFC routines and 280 attachments. Its HTML is about 35.6MB;
+snapshot analysis plus report generation took about 10.8 seconds on this PC.
+The browser opens it and successfully searches the final rung, pages through
+50-row results and returns from a detail to page2 of93. This is a synthetic scale
+check, not a measurement of the real export or the work machine.
+
+Direct file:// navigation is blocked by the browser automation URL policy, so
+browser QA used loopback HTTP. The generated HTML has no external resource or
+network dependency, but opening the file directly under work-PC browser policy
+and real-export size/performance remain required checks on the next run.

@@ -1,3 +1,30 @@
+Current checkpoint (2026-10-14): the first organized offline engineering review
+is ready for the next work-PC run. Read
+[ENGINEERING_REVIEW_REPORT.md](ENGINEERING_REVIEW_REPORT.md) and
+[WORK_MACHINE_REFERENCES_RUN.md](WORK_MACHINE_REFERENCES_RUN.md) first. Manually
+pull the current `feat/bounded-operand-example-pc` branch, run the normal
+`bash ./run-work-check.sh`, inspect its printed private `review.html` path, then
+manually push the automatically committed feedback report. Supply the local
+L5X filename on a checkout without a remembered source. No listener is required.
+
+This report organizes existing source evidence for context, navigation,
+findings and appearance review. It is read-only; engineering classifications,
+behavioral interpretation, editable corrections, PCSD and FHX remain later
+milestones. Ask Tyler to identify confusing navigation, missing source context
+or useful report views after the real-source run. Do not infer semantics from
+pattern equality, JSR candidates, SFC links or annotation ownership.
+
+Current evidence: 535 development cases pass with one existing symlink skip;
+two actual synthetic launcher runs each pass 439 application cases (one skip)
+and 139 helpers. The standalone command is `uv run --project python-parser
+--locked plc review FILE --workspace PRIVATE_DIRECTORY`; the workspace is
+required, the printed HTML path is private, and exit 3 is usable partial output.
+Review runs use manifest4 with eight hashed artifacts. Plain reference manifest2
+and standalone SFC manifest3 remain unchanged. Public work12/reference12/source4/
+SFC2 and private inventory3/reference6/SFC2 contracts remain unchanged. Canonical
+JSON/public counts match baseline `9cd65a4` for identical invented input, apart
+from revision metadata. Preserve the historical checkpoints below.
+
 Read public/CODEX_HANDOFF.md,
 public/docs/reviews/PROJECT_STATE_REVIEW.md,
 public/docs/reviews/SFC_ANNOTATION_REVIEW.md,
@@ -80,7 +107,7 @@ Current baseline: 139 passing helper tests. Also run the full development
 application command in SFC_STRUCTURE_REVIEW.md, which explicitly excludes the
 ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in SFC_ANNOTATION_REVIEW.md;
+Use the final application test count and tested revision in ENGINEERING_REVIEW_REPORT.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -228,9 +255,10 @@ unchanged. The report-only commit has its tested revision as parent. Overall
 analysis remains partial; semantic/effect/member analysis remains unimplemented.
 No repeat annotation-only work-PC run is needed. Read SFC_ANNOTATION_REVIEW.md
 for confirmation and PROJECT_STATE_REVIEW.md for the independent state audit,
-next user-facing milestone and provisional iteration estimates. The recommendation
-is to bundle coherent improvements into a private engineering review package,
-using local synthetic validation before requesting another work-machine run.
+next user-facing milestone and provisional iteration estimates. That review's
+recommendation to bundle a private engineering review package is implemented
+at the current checkpoint above; local synthetic validation is complete and
+the next work-machine run should assess the report's usefulness on real data.
 Preserve existing identity/provenance contracts and keep edits/correction survival
 as explicit future design work, not a capability implied by immutable snapshots.
 Continue authorized work until a specific evidence gap or phase boundary needs

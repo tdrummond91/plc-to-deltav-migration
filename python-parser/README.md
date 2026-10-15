@@ -1,6 +1,42 @@
-# L5X source inventory, references and SFC structure
+# L5X engineering review, inventory, references and SFC structure
 
-`plc inspect` is the first read-only application slice. It captures one local L5X as
+## Offline engineering review
+
+`plc review` builds the first organized, read-only engineering report from the
+existing source inventory, references and SFC evidence. Open its printed
+`review.html` path to search objects, follow source context, inspect findings,
+compare repeated rung syntax and navigate routine/SFC evidence. The report is
+self-contained and opens without a server. Its first work-machine review should
+focus on source context, navigation and appearance; engineering classifications
+and execution semantics remain later work.
+
+```bash
+uv run --project python-parser --locked plc review \
+  "confidential/plc-code/A19CHL02-unencrypted.L5X" \
+  --workspace "confidential/workspaces/review"
+```
+
+`--workspace` is required. Each invocation saves a new private run and prints
+the HTML path. Exit 3 means usable partial output was saved. Review runs use
+manifest4 with eight hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+references.json/txt, sfc-structure.json/txt and review.html. Existing plain
+reference and standalone SFC workspaces retain manifest2 and manifest3.
+All HTML and source-bearing artifacts are private and belong under
+`confidential/`. Read [the engineering-review checkpoint](../public/docs/reviews/ENGINEERING_REVIEW_REPORT.md).
+
+The normal work-machine launcher also creates this report. Manually `git pull`,
+run `bash ./run-work-check.sh` (supply the local L5X filename if needed), inspect
+the printed HTML path and feedback JSON, then manually `git push`. The runner
+automatically commits only its validated feedback report; synchronization stays
+manual. Current validation is 535 development cases with one existing symlink
+skip, plus two actual synthetic launcher runs each passing 439 application cases
+(one skip) and 139 helpers. Canonical inventory/reference/SFC JSON and public
+counts match baseline `9cd65a4` on identical invented input, apart from revision
+metadata. See [the work-machine procedure](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+## Source inventory
+
+`plc inspect` provides the underlying read-only source inventory. It captures one local L5X as
 immutable in-memory bytes, inventories source envelopes and scoped tags, and
 reports each rung's preserved text, outer syntax, instruction arguments, offsets
 and structural coverage. JSON and readable text use the same inventory records.
@@ -260,14 +296,14 @@ selection saved in this checkout's Git metadata.
 
 The application and helper checks use explicit module allowlists in fresh
 processes. Work-machine checks exclude listener, Windows process-host, Bash
-bootstrap and Git-fixture tests. Full unittest discovery remains available for
-development validation; its test totals must not be compared as if it had the
+bootstrap and Git-fixture tests. The development command below excludes the
+ignored listener loader; its test totals must not be compared as if it had the
 same scope as the work-machine checks.
 
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. The feedback includes test counts, bounded
 code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 11 includes `diagnostic_sample`: one actual direct malformed
+Work-check schema 12 includes `diagnostic_sample`: one actual direct malformed
 operand, or a direct unresolved colon operand with no rack candidate when no
 eligible malformed sample exists. It retains at most 128 printable characters,
 a standard instruction and zero-based argument position; otherwise it is null.
@@ -339,8 +375,9 @@ Returned `90923ab` confirms SFC2 structural capture is complete for this export:
 280 recognized child-text boxes and 213 attachments with all 426 endpoints
 resolved. SFC issues fall from 280 to zero; all earlier reference, flow-link,
 ID and ST counts remain unchanged. The report passes 416 application cases
-(one skip) and 139 helpers. Private sfc-structure.json/txt remain under combined
-manifest3 (seven artifacts). Overall partial remains expected: runtime SFC logic,
+(one skip) and 139 helpers. That checkpoint saved private sfc-structure.json/txt
+under combined manifest3 (seven artifacts); current review runs use manifest4
+with the additional HTML artifact. Overall partial remains expected: runtime SFC logic,
 ST semantics and engineering classifications remain unimplemented. No repeat
 annotation-only work run is needed. See the [project-state assessment](../public/docs/reviews/PROJECT_STATE_REVIEW.md).
 
@@ -438,9 +475,20 @@ therefore intentionally returns exit 3.
 Run from the repository root:
 
 ```bash
-uv run --project python-parser python -m unittest discover -s python-parser/tests -v
-uv run --project python-parser python -m unittest discover -s tools/l5x_inspect/tests -v
+uv run --project python-parser --locked python -B - <<'PY'
+from pathlib import Path
+import sys, unittest
+folder = Path.cwd() / 'python-parser/tests'
+sys.path.insert(0, str(folder))
+suite = unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromName(p.stem)
+    for p in sorted(folder.glob('test_*.py')) if p.stem != 'test_feedback_listener')
+result = unittest.TextTestRunner().run(suite)
+raise SystemExit(not result.wasSuccessful())
+PY
+uv run --project python-parser --locked python -B -m unittest discover -s tools/l5x_inspect/tests -v
 ```
 
 Tests use invented data or the reviewed public fixtures. The private workspace
 tests use temporary directories; no proprietary source is required.
+Do not use broad application discovery on a development checkout that retains
+the ignored listener test loader. The explicit command above leaves it excluded.

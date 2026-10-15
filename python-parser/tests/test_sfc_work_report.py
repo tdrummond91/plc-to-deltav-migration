@@ -95,10 +95,10 @@ class SfcWorkReportTests(unittest.TestCase):
             self.assertTrue(result['private_run_saved'])
             saved, = (root / 'confidential/workspaces/work-check').glob('run-*')
             manifest = json.loads((saved / 'manifest.json').read_bytes())
-            self.assertEqual(manifest['schema_version'], 3)
-            self.assertEqual(manifest['artifact_kind'], 'source_reference_sfc_structure_run')
+            self.assertEqual(manifest['schema_version'], 4)
+            self.assertEqual(manifest['artifact_kind'], 'source_reference_sfc_review_run')
             self.assertEqual(set(manifest['artifacts']), {'snapshot.L5X', 'inventory.json', 'overview.txt',
-                'references.json', 'references.txt', 'sfc-structure.json', 'sfc-structure.txt'})
+                'references.json', 'references.txt', 'sfc-structure.json', 'sfc-structure.txt', 'review.html'})
             sfc = json.loads((saved / 'sfc-structure.json').read_bytes())
             self.assertEqual(sfc['status'], 'complete')
             self.assertIn('PRIVATE_VALUE', (saved / 'sfc-structure.txt').read_text(encoding='utf-8'))

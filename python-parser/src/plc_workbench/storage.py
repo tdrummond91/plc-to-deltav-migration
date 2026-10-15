@@ -72,6 +72,7 @@ def save_run(
     workspace: Path, snapshot: SourceSnapshot, result: InventoryView,
     *, references: ReferenceResult | None = None,
     sfc_structure: SfcStructureResult | None = None,
+    include_review: bool = False,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -79,6 +80,8 @@ def save_run(
     private run for inspection; it never marks that run complete.
     """
     try:
+        if type(include_review) is not bool or (include_review and (references is None or sfc_structure is None)):
+            raise StorageError("A review run requires inventory, references and SFC structure.")
         payload = result.to_dict()
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
@@ -111,6 +114,14 @@ def save_run(
             or snapshot.id != f"sha256:{digest}"
         ):
             raise StorageError("Captured source bytes do not match their identity.")
+        if include_review:
+            from .review import ReviewError, build_review_data
+            from .review_html import ReviewHtmlError, render_review_html
+            try:
+                review_data = build_review_data(snapshot, result, references, sfc_structure)
+                review_html = render_review_html(review_data).encode("utf-8")
+            except (ReviewError, ReviewHtmlError) as exc:
+                raise StorageError("Could not build the private engineering review report.") from exc
         destination = _workspace_path(workspace)
         destination.mkdir(parents=True, exist_ok=True)
         if destination.resolve() != destination:
@@ -143,6 +154,8 @@ def save_run(
                 "sfc-structure.json": render_sfc_json(sfc_structure).encode("utf-8"),
                 "sfc-structure.txt": render_sfc_text(sfc_structure, inventory=result).encode("utf-8"),
             })
+        if include_review:
+            contents["review.html"] = review_html
         artifacts = {
             name: _write_artifact(destination, run_dir, name, data)
             for name, data in contents.items()
@@ -181,6 +194,13 @@ def save_run(
                 "sfc_schema_version": sfc_payload["schema_version"],
                 "sfc_analyzer_version": sfc_payload["analyzer_version"],
                 "sfc_analysis_scope": sfc_payload["analysis_scope"],
+            })
+        if include_review:
+            manifest.update({
+                "schema_version": 4,
+                "artifact_kind": "source_reference_sfc_review_run",
+                "review_schema_version": review_data["schema_version"],
+                "review_version": review_data["report_version"],
             })
         _write_artifact(
             destination, run_dir, ".manifest.pending",

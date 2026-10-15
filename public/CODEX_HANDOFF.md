@@ -1,5 +1,33 @@
 # Codex handoff: PLC analysis workbench
 
+Current checkpoint (2026-10-14): **the first read-only, organized offline
+engineering review report is implemented and ready for a work-machine run**.
+The normal launcher now prints the private `review.html` path. Use it to review
+source context, navigation, findings, repeated rung syntax, routine declarations
+and SFC structure/annotations, and to judge the report's appearance and usefulness.
+Engineering classifications and execution semantics remain later work. Read
+[ENGINEERING_REVIEW_REPORT.md](docs/reviews/ENGINEERING_REVIEW_REPORT.md) first,
+then the [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+On the current `feat/bounded-operand-example-pc` branch, manually `git pull`,
+run `bash ./run-work-check.sh` (supply `A19CHL02-unencrypted.L5X` if the checkout
+has no remembered source), inspect the printed HTML path, then manually
+`git push` to return the automatically committed bounded feedback report.
+Keep the HTML, source and engineering artifacts under `confidential/`.
+Standalone generation is `uv run --project python-parser --locked plc review
+FILE --workspace PRIVATE_DIRECTORY`; `--workspace` is required and exit 3 means
+a usable partial report was saved.
+
+Current validation: 535 development cases pass with one existing symlink skip.
+Two actual synthetic launcher runs each pass 439 application cases (one skip)
+and 139 helpers. They verify report-only local commits, tested-parent pinning,
+preserved inputs/prior runs and no remote Git calls. CLI review output matches
+the work-run HTML; its embedded evidence matches the saved canonical JSON.
+Review runs use manifest4 with eight hashed artifacts, adding `review.html`.
+Plain reference runs retain manifest2 and standalone SFC runs retain manifest3.
+Inventory/reference/SFC JSON and their public summaries remain identical to
+baseline `9cd65a4` for the same invented input, apart from revision metadata.
+
 Current listener hold (2026-10-14): Tyler reported repeated endpoint-security
 alerts involving bash.exe after the work-machine check of `1419af7`. The local
 listener task is disabled and state is paused with no pending worker. Do not
@@ -11,7 +39,7 @@ using the local-only workflow below. Earlier restoration evidence is history.
 
 Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `90923ab` confirms SFC structural capture is complete for this export: all 280 text boxes are recognized, all 213 annotation attachments resolve, and SFC issues are zero. All earlier reference and SFC flow/ST counts remain unchanged. Phase 1 engineering interpretation is still incomplete. Read the [project-state assessment](docs/reviews/PROJECT_STATE_REVIEW.md), [annotation evidence](docs/reviews/SFC_ANNOTATION_REVIEW.md) and [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
-Current annotation validation: 512 development cases pass (one existing symlink
+Annotation checkpoint validation: 512 development cases pass (one existing symlink
 skip), and 17 stored reports validate unchanged. Independent review has no
 remaining blockers after fixing repeated endpoint-payload rendering. Two actual
 synthetic launcher runs each pass 416 application cases (one skip) and 139
@@ -150,8 +178,9 @@ now describe unknown backing instead of omitted declarations. The sample is null
 Current contracts: private inventory/reference schemas 3/6 with
 `source-inventory-3` / `source-references-9`; public source/reference schemas 4/12;
 work-check schema12 with separate private SFC schema2 / sfc-structure-2 and public SFC summary2. Plain
-reference runs retain manifest2; combined work runs use manifest3 with SFC
-JSON/text artifacts. Inventory/reference JSON retain their exact structures:
+reference runs retain manifest2; standalone SFC runs retain manifest3. Combined
+review work runs use manifest4 with SFC JSON/text and `review.html`, eight hashed
+artifacts in total. Inventory/reference JSON retain their exact structures:
 private reference JSON includes
 canonical routine_targets occurrences and routine_graph; public output contains closed counts only. Historical public
 reports still validate with exact original status vocabularies. Work schema 3
@@ -295,13 +324,13 @@ slice. Returned `2f37ae3` confirms 69 nodes (54 parsed RLL, one partial RLL,
 unique mains, one isolated node and no candidate cycles/self pairs. All earlier
 counters remain unchanged; 354 application cases (one skip) and 139 helpers pass.
 
-Current SFC slice adds a separate immutable-snapshot structural result, keeping
+The earlier SFC structural slice adds a separate immutable-snapshot result, keeping
 edit-version namespaces separate and preserving opaque ST. Missing/invalid/
 duplicate IDs, unresolved endpoints, protection and unmodeled content remain
 explicit. Work11 adds count-only SFC feedback and saves two private SFC artifacts
 under combined manifest3; old inventory/reference/source contracts remain exact.
-Next report should preserve earlier counts and cover 14 SFC routines. New
-content/element/ID/link counts remain unknown until returned. Partial remains
+Its returned counts and the later annotation confirmation are recorded above.
+The new review report preserves that evidence and adds navigation. Partial remains
 expected; SFC execution and process interpretation remain unimplemented.
 
 SFC validation: 495 development cases pass (one symlink skip), excluding the

@@ -2,6 +2,30 @@
 
 Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
+## Private offline source-review contract (2026-10-14)
+
+Review schema1 / engineering-review-1 combines the canonical inventory3,
+reference6 and SFC2 records from one captured snapshot with source-linked syntax
+groups and findings. IDs remain snapshot-scoped. Patterns preserve ordered
+branches, exact opcode spelling and arity; they omit operands and do not imply
+equivalent behavior. Findings retain source links and available XML locators.
+Semantic/effect analysis remains explicitly not_implemented. This is a read-only
+report, not an editable engineering-object or accepted-correction contract.
+
+Optional include_review=True requires both reference and SFC evidence and adds
+review.html to the seven-artifact combined run. Manifest4 has artifact_kind
+source_reference_sfc_review_run, review_schema_version=1 and
+review_version=engineering-review-1, plus the HTML size/hash. Model/render
+validation happens before allocating the run; the final manifest is published
+last. Ordinary commands retain manifests1/2/3 and their existing artifact sets.
+The work runner now requests this eight-artifact variant. Public work12,
+reference12, source4 and SFC2 contracts remain unchanged.
+
+The self-contained HTML contains private source evidence and opens offline.
+Bounded embedded JSON and fixed local assets use text-only source rendering and
+a restrictive hash-based CSP. No source-derived HTML, source URL or external
+request is needed. See [limits, commands and validation](../reviews/ENGINEERING_REVIEW_REPORT.md).
+
 ## Current separate SFC structure contract (2026-10-14)
 
 SfcStructureResult schema2 / sfc-structure-2 captures routine/content identities,
@@ -22,7 +46,8 @@ analysis.sfc_structure_summary on successful analysis; failed/not-run require
 null. Revision and SFC population reconcile with the outer/reference records.
 Historical work11 requires frozen SFC1; work12 requires SFC2. Work10 and earlier retain their exact envelopes. Optional SFC storage adds two
 private artifacts and manifest3; ordinary source/reference-only runs keep1/2.
-New work runs combine source/reference/SFC status and store seven artifacts.
+The original combined runs store seven artifacts; the current work runner adds
+the private review HTML using manifest4 above.
 Private SFC2 adds separate typed annotations and immediate TextBox Text children. Public2 adds annotation/endpoint partitions and raw text-shape/character counts, without text or pairs. Fully resolved pairs alone supply distinct note/target counts. Direct and child fragments remain separate; there is no automatic description assignment. No ST/execution semantics or edit selection is introduced. See
 [annotation scope and validation](../reviews/SFC_ANNOTATION_REVIEW.md) and the [original structure contract](../reviews/SFC_STRUCTURE_REVIEW.md).
 

@@ -360,7 +360,9 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         workspace = root / "confidential" / "workspaces" / "work-check"
         if workspace.resolve() != workspace:
             raise WorkCheckError("Private workspace must remain inside this checkout.")
-        save_run(workspace, snapshot, inventory, references=references, sfc_structure=sfc_structure)
+        saved_run = save_run(workspace, snapshot, inventory, references=references,
+                             sfc_structure=sfc_structure, include_review=True)
+        print(f"Private review report: {saved_run / 'review.html'}", flush=True)
         result["private_run_saved"] = True
         result["failure_code"] = "summary_error"
         summary = build_reference_summary(inventory, references, revision=revision)
