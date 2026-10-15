@@ -1,5 +1,17 @@
 # CPT calculation reads and destination writes
 
+## Confirmed automated run result
+
+Returned `f93f744` tests clean `ae97f10`. All 732 application cases pass with one
+expected Windows skip, as do 139 helpers. All 45 CPT instructions now classify,
+with 45 parsed containers and 132 bound expression reads across 72 roots. There
+are 17,746 classified instructions, 128 unsupported instructions and 505 unknown
+source slots. The 321 ordinary binding gaps remain unchanged; expression gaps
+are zero. Six other summaries match after revision normalization, and all 28
+historical reports validate. This is automated validation, not engineering
+feedback or approval of rung purpose. The next work is explained in the
+[Phase 1 analysis plan](../planning/PHASE_1_ENGINEERING_ANALYSIS.md).
+
 ## Confirmed starting point
 
 Returned `cbb2965` tests clean `456786a`. All 695 application cases pass with

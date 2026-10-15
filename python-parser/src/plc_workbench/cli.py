@@ -234,6 +234,7 @@ def _review(args: argparse.Namespace) -> int:
     from .pid import PidError, analyze_pid
     from .pid_members import PidMemberError, analyze_pid_members
     from .calculations import CalculationError, analyze_calculations
+    from .rung_analysis import RungAnalysisError, analyze_rungs
     from .references import ReferenceError, analyze_references
     from .sfc_structure import SfcStructureError, analyze_sfc_structure
     from .source import SourceError, analyze_snapshot, capture_snapshot
@@ -248,15 +249,16 @@ def _review(args: argparse.Namespace) -> int:
         calculations = analyze_calculations(snapshot, inventory, references)
         access = analyze_access(inventory, references, schema_version=4,
                                 snapshot=snapshot, calculations=calculations)
+        rung_analysis = analyze_rungs(snapshot, inventory, references, access, calculations)
         tag_data = analyze_tag_data(snapshot, inventory)
         pid = analyze_pid(snapshot, inventory, references, tag_data)
         pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
         saved = save_run(args.workspace, snapshot, inventory, references=references,
                          sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data, pid=pid,
-                         pid_members=pid_members, calculations=calculations)
+                         pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis)
         print(f"Private review report: {saved / 'review.html'}")
         return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status,
-                                tag_data.status, pid.status, pid_members.status, calculations.status) else 0
+                                tag_data.status, pid.status, pid_members.status, calculations.status, rung_analysis.status) else 0
     except SourceError:
         print("plc: Cannot read or analyze source; no review report was produced.", file=sys.stderr)
         return 1
@@ -271,6 +273,9 @@ def _review(args: argparse.Namespace) -> int:
         return 1
     except CalculationError:
         print("plc: Cannot analyze calculation evidence; no review report was produced.", file=sys.stderr)
+        return 1
+    except RungAnalysisError:
+        print("plc: Cannot analyze rung structure; no review report was produced.", file=sys.stderr)
         return 1
     except PidMemberError:
         print("plc: Cannot analyze PID member headers; no review report was produced.", file=sys.stderr)

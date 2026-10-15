@@ -53,10 +53,20 @@ def publish_summary(output: Path, rendered: str, *, input_path: Path) -> None:
         # This entry point can write into the synced tree. Validate independently
         # of the CLI and serialize canonical output rather than copying arbitrary
         # caller text (including duplicate JSON keys or hidden extra fields).
-        if len(rendered.encode('utf-8')) > MAX_REPORT_BYTES:
+        # The larger work22 envelope adds only closed rung-analysis counts.
+        # Bound parsing first, then retain the original cap for every other
+        # contract; a caller cannot obtain the larger allowance via a flag.
+        from .work_check import MAX_REPORT_V22_BYTES
+        supplied_bytes = len(rendered.encode('utf-8'))
+        if supplied_bytes > max(MAX_REPORT_BYTES, MAX_REPORT_V22_BYTES):
             raise SummaryOutputError('Summary exceeds its publication size limit.')
         try:
             payload = json.loads(rendered)
+            current_work = (type(payload) is dict and payload.get('report_kind') == 'l5x_work_machine_check'
+                            and type(payload.get('schema_version')) is int and payload['schema_version'] == 22)
+            limit = MAX_REPORT_V22_BYTES if current_work else MAX_REPORT_BYTES
+            if supplied_bytes > limit:
+                raise SummaryOutputError('Summary exceeds its publication size limit.')
             # Dispatch only known closed publication contracts. Callers cannot
             # provide their own validator or bypass validation for private data.
             if isinstance(payload, dict) and payload.get('report_kind') == 'l5x_reference_review_summary':

@@ -22,6 +22,8 @@ from uuid import uuid4
 
 from .access import analyze_access
 from .calculations import analyze_calculations
+from .rung_analysis import analyze_rungs
+from .rung_analysis_summary import build_rung_summary, validate_rung_summary
 from .calculation_summary import build_calculation_summary, validate_calculation_summary
 from .access_summary import build_access_summary, validate_access_summary
 from .diagnostic_sample import (
@@ -41,6 +43,7 @@ from .tag_data_summary import build_tag_data_summary, validate_tag_data_summary
 from .work_check_tests import unavailable_result, validate_test_result
 
 MAX_REPORT_BYTES = 32 * 1024
+MAX_REPORT_V22_BYTES = 48 * 1024
 _LEGACY_CONSTANTS = {
     "schema_version": 1,
     "report_kind": "l5x_work_machine_check",
@@ -65,7 +68,8 @@ _V17_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 17, "workflow_version": 
 _V18_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 18, "workflow_version": "work-check-18"}
 _V19_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 19, "workflow_version": "work-check-19"}
 _V20_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 20, "workflow_version": "work-check-20"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 21, "workflow_version": "work-check-21"}
+_V21_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 21, "workflow_version": "work-check-21"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 22, "workflow_version": "work-check-22"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _GIT_REPOSITORY_OVERRIDES = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
@@ -141,7 +145,7 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = {"diagnostic_sample"} if version >= 2 else set()
@@ -167,7 +171,8 @@ def validate_work_check_report(report: Any) -> None:
           | ({"tag_data_summary"} if version >= 15 else set())
           | ({"pid_summary"} if version >= 16 else set())
           | ({"pid_member_summary"} if version >= 17 else set())
-          | ({"calculation_summary"} if version >= 18 else set()))
+          | ({"calculation_summary"} if version >= 18 else set())
+          | ({"rung_analysis_summary"} if version >= 22 else set()))
     if type(analysis["private_run_saved"]) is not bool or type(analysis["status"]) is not str:
         _invalid()
     if analysis["status"] in ("complete", "partial"):
@@ -175,14 +180,14 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
@@ -403,6 +408,29 @@ def validate_work_check_report(report: Any) -> None:
                 if not minimum_extended_bound <= access_coverage["extended_bound_operands"] <= maximum_extended_bound:
                     _invalid()
             expected_analysis = "partial" if "partial" in (expected_analysis, calculations["status"]) else "complete"
+        if version >= 22:
+            rungs = analysis["rung_analysis_summary"]
+            validate_rung_summary(rungs)
+            rung_coverage = rungs["coverage"]
+            access_coverage = analysis["access_summary"]["coverage"]
+            ladder_totals = nested["source_summary"]["ladder_metrics"]["totals"]
+            if (rungs["schema_version"] != 1 or rungs["tool_revision"] != revision
+                    or rung_coverage["source_rungs"] != access_coverage["source_rungs"]
+                    or rung_coverage["structures"]["unparsed"] != access_coverage["unparsed_rungs"]
+                    or rung_coverage["source_instructions"] != access_coverage["instructions_total"]
+                    or rung_coverage["source_operands"] != access_coverage["operands_total"]
+                    or rung_coverage["branches"] != ladder_totals["branch_groups"]
+                    or rung_coverage["branch_legs"] != ladder_totals["branch_legs"]
+                    or rung_coverage["empty_legs"] != ladder_totals["empty_branch_legs"]
+                    or rung_coverage["block_identification"]["roles_known"] != access_coverage["instructions_by_status"]["classified"]
+                    or rung_coverage["block_identification"]["signature_known"] != analysis["pid_summary"]["coverage"]["occurrences_by_signature"]["recognized"]
+                    or rung_coverage["expression_uses"] != access_coverage["expression_uses_total"]
+                    or rung_coverage["access_gap_operands"] != access_coverage["access_gap_operands"]
+                    or rung_coverage["expression_gap_uses"] != (
+                        access_coverage["expression_uses_total"] - access_coverage["expression_uses_by_binding"]["root_bound"])
+                    or rung_coverage["unknown_role_operands"] != access_coverage["operands_by_role"]["unknown"]):
+                _invalid()
+            expected_analysis = "partial" if "partial" in (expected_analysis, rungs["status"]) else "complete"
         if expected_analysis != analysis["status"] or nested["source_summary"]["tool_revision"] != revision:
             _invalid()
     elif analysis["status"] == "failed":
@@ -413,7 +441,8 @@ def validate_work_check_report(report: Any) -> None:
                     | ({"tag_data_error"} if version >= 15 else set())
                     | ({"pid_error"} if version >= 16 else set())
                     | ({"pid_member_error"} if version >= 17 else set())
-                    | ({"calculation_error"} if version >= 18 else set())) or analysis["reference_summary"] is not None):
+                    | ({"calculation_error"} if version >= 18 else set())
+                    | ({"rung_analysis_error"} if version >= 22 else set())) or analysis["reference_summary"] is not None):
             _invalid()
         if analysis["private_run_saved"] and analysis["failure_code"] not in ("summary_error", "unexpected_error"):
             _invalid()
@@ -434,6 +463,8 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     if version >= 18 and analysis["status"] in ("failed", "not_run") and analysis["calculation_summary"] is not None:
         _invalid()
+    if version >= 22 and analysis["status"] in ("failed", "not_run") and analysis["rung_analysis_summary"] is not None:
+        _invalid()
     expected = "failed" if not tests_passed or analysis["status"] == "failed" else (
         "partial" if analysis["status"] == "partial" else "passed"
     )
@@ -451,7 +482,7 @@ def validate_work_check_report(report: Any) -> None:
             if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
                 # This fallback needs dedicated rack evidence. Historical v2
                 # reports retain their original malformed-only sample contract.
-                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12), (15, 12), (16, 12), (17, 12), (18, 12), (19, 12), (20, 12), (21, 12)}
+                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12), (15, 12), (16, 12), (17, 12), (18, 12), (19, 12), (20, 12), (21, 12), (22, 12)}
                         or nested["rack_candidates"]["matches"]["direct_operands"]
                         ["by_status"]["no_candidate_match"] == 0):
                     _invalid()
@@ -461,6 +492,7 @@ def validate_work_check_report(report: Any) -> None:
                 if nested["schema_version"] >= 6 and _system_flag(
                         sample["opcode"], sample["argument_index"], sample["raw_text"]):
                     _invalid()
+                _report_size(report)
                 return
             if sample["kind"] != MALFORMED_SAMPLE_KIND:
                 _invalid()
@@ -476,12 +508,21 @@ def validate_work_check_report(report: Any) -> None:
                     or operands["by_reason"]["unsupported_address"]["malformed_address"]
                     <= operands["malformed_address_shapes"]["alias_target_failure"]):
                 _invalid()
+    _report_size(report)
+
+
+def _report_size(report: dict[str, Any]) -> None:
+    """Keep historical envelopes bounded while adding the fixed rung counts."""
+    rendered = json.dumps(report, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
+    limit = MAX_REPORT_V22_BYTES if report["schema_version"] == 22 else MAX_REPORT_BYTES
+    if len(rendered.encode("utf-8")) > limit:
+        raise WorkCheckError("Work-machine report exceeds its publication size limit.")
 
 
 def render_work_check_report(report: Any) -> str:
     validate_work_check_report(report)
     rendered = json.dumps(report, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
-    if len(rendered.encode("utf-8")) > MAX_REPORT_BYTES:
+    if len(rendered.encode("utf-8")) > (MAX_REPORT_V22_BYTES if report["schema_version"] == 22 else MAX_REPORT_BYTES):
         raise WorkCheckError("Work-machine report exceeds its publication size limit.")
     return rendered
 
@@ -651,7 +692,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
     result: dict[str, Any] = {"status": "failed", "failure_code": "read_error", "private_run_saved": False,
                               "reference_summary": None, "sfc_structure_summary": None,
                               "access_summary": None, "tag_data_summary": None, "pid_summary": None,
-                              "pid_member_summary": None, "calculation_summary": None,
+                              "pid_member_summary": None, "calculation_summary": None, "rung_analysis_summary": None,
                               "diagnostic_sample": None}
     try:
         snapshot = capture_snapshot(source)
@@ -667,6 +708,8 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         result["failure_code"] = "access_error"
         access = analyze_access(inventory, references, schema_version=4,
                                 snapshot=snapshot, calculations=calculations)
+        result["failure_code"] = "rung_analysis_error"
+        rung_analysis = analyze_rungs(snapshot, inventory, references, access, calculations)
         result["failure_code"] = "tag_data_error"
         tag_data = analyze_tag_data(snapshot, inventory)
         result["failure_code"] = "pid_error"
@@ -679,7 +722,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
             raise WorkCheckError("Private workspace must remain inside this checkout.")
         saved_run = save_run(workspace, snapshot, inventory, references=references,
                              sfc_structure=sfc_structure, include_review=True, access=access, tag_data=tag_data, pid=pid,
-                             pid_members=pid_members, calculations=calculations)
+                             pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis)
         print(f"Private review report: {saved_run / 'review.html'}", flush=True)
         result["private_run_saved"] = True
         result["failure_code"] = "summary_error"
@@ -692,9 +735,10 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         pid_member_summary = build_pid_member_summary(
             snapshot, inventory, references, tag_data, pid, pid_members, revision=revision)
         calculation_summary = build_calculation_summary(snapshot, inventory, references, calculations, revision=revision)
+        rung_summary = build_rung_summary(snapshot, inventory, references, access, calculations, rung_analysis, revision=revision)
         sample = build_diagnostic_sample(inventory, references)
         status = "partial" if "partial" in (summary["status"], sfc_summary["status"], access.status,
-                                           tag_data.status, pid.status, pid_members.status, calculations.status) else "complete"
+                                           tag_data.status, pid.status, pid_members.status, calculations.status, rung_analysis.status) else "complete"
         result.update(status=status, failure_code=None, reference_summary=summary,
                       sfc_structure_summary=sfc_summary,
                       access_summary=access_summary,
@@ -702,6 +746,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
                       pid_summary=pid_summary,
                       pid_member_summary=pid_member_summary,
                       calculation_summary=calculation_summary,
+                      rung_analysis_summary=rung_summary,
                       diagnostic_sample=sample)
     except Exception:
         # All raw exception text stays private, including OS paths and values
@@ -736,7 +781,7 @@ def run_check(root: Path, supplied_source: str | None) -> int:
     else:
         analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False,
                     "reference_summary": None, "sfc_structure_summary": None, "access_summary": None,
-                    "tag_data_summary": None, "pid_summary": None, "pid_member_summary": None, "calculation_summary": None}
+                    "tag_data_summary": None, "pid_summary": None, "pid_member_summary": None, "calculation_summary": None, "rung_analysis_summary": None}
     status = "failed" if analysis["status"] in ("not_run", "failed") else (
         "partial" if analysis["status"] == "partial" else "passed"
     )

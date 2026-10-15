@@ -1,6 +1,31 @@
 # Codex handoff: PLC analysis workbench
 
-Current checkpoint (2026-10-15): **CPT calculation access** connects the existing
+Current checkpoint (2026-10-15): **rung structure and function candidates**
+brings existing source/access evidence into a complete rung census, ordered block
+dossiers, branch outlines and overlapping candidate families. Interpretations
+remain unreviewed, with reasons and missing evidence. Supported roles, recognized
+mnemonics, declaration links and weak text hints stay distinguishable.
+
+Returned `f93f744` tests clean `ae97f10`: 732 application cases passed (one
+expected Windows skip), plus 139 helpers. All 45 CPTs were classified and all
+132 expression reads bound across 72 roots. There are 17,746 classified
+instructions, 128 unsupported instructions, 505 unknown source operand roles
+and 321 unchanged ordinary binding gaps. Six other summaries match after only
+tool_revision normalization; all 28 historical reports validate.
+
+Review7/manifest10 adds rung-analysis.json as the fourteenth artifact. Work22
+adds a fixed-count rung summary1 and a 48 KiB outer cap only for this version;
+older report caps/contracts stay unchanged. Access4/calculation2 remain intact.
+The next work-machine run supplies automated coverage for this broader layer.
+Pushed results are not human feedback. Continue resolving script-addressable
+relationships, loops, alarms and sequence questions before team review; no
+manual review is requested now. Git synchronization stays manual and the
+listener stays disabled. See [Rung analysis](docs/reviews/RUNG_ANALYSIS_REVIEW.md) and the
+[Phase 1 completion gate](docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md).
+
+## Historical CPT access implementation checkpoint
+
+Historical checkpoint (2026-10-15): **CPT calculation access** connects the existing
 expression trees to possible destination writes and individual tag reads.
 Returned `cbb2965` tests clean `456786a`: all 175 newly supported instructions
 and 336 operand slots were classified, and all 175 new data operands bound.

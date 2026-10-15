@@ -2,26 +2,25 @@
 
 ## Offline engineering review
 
-`plc review` builds an organized, read-only engineering report from the
-source inventory, references, explicit operand access, stored Tag Data, PID occurrence/member, CPT calculation and SFC evidence. Open its printed
-`review.html` path to search objects, follow source context, inspect findings,
-compare repeated rung syntax and navigate routine/SFC evidence. The report is
-self-contained and opens without a server. Phase 1 now classifies potential
-explicit operand uses for 41 supported mnemonic spellings, including bounded
-timer/reset/copy, counter, message-control, system-value, SFC-reset and CPT roles. CPT expression reads have separate
-counts and exact node/span links; repeated references stay separate.
-Access-owned bindings retain separate provenance from the original reference
-analysis; new declaration links use the access binding and alias chain. These roles are not
-execution effects or dependencies, and root groups do not establish overlap
-between member/index suffixes. Engineering classifications remain later work.
+`plc review` builds a self-contained, read-only report from source, reference,
+access, Tag Data, PID, CPT calculation, SFC and rung-analysis evidence. Open the
+printed `review.html` path. The Engineering analysis view accounts for every
+rung and captured block, groups candidate functions, explains uncertainty, and
+shows structural branches and possible results. Search and combined filters
+find families, unresolved blocks, empty bypasses and missing comments/metadata.
+Existing tag, PID, calculation and source views provide deeper evidence links.
 
-Tyler has not inspected the source/report and explicitly deferred engineering
-and UI review. Such inspection is optional later; it is not a gate to continued
-parser work. The next work-machine run should return only generated aggregate
-feedback for CPT access integration. Returned `cbb2965` confirms 175 newly
-classified access instructions and 175 newly bound operands, with no new binding
-gaps. The next run measures the projected 45 CPT classifications and 132
-expression reads. See [the access contract and limits](../public/docs/reviews/CPT_ACCESS_REVIEW.md).
+Candidate interpretations are unreviewed. Instruction roles, recognized
+mnemonics, structural motifs, declaration references and weak name/comment
+hints are separate. Internal Boolean outputs do not imply physical DOs; no
+known local result does not prove dead code. CPT expression reads retain their
+own population, node/span links and repeated occurrences.
+
+The latest automated return (`f93f744`) confirms 45 CPT classifications and 132
+bound expression reads. The next run measures rung-analysis coverage. Continue
+the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)
+before requesting team feedback. No manual engineering/UI review is needed now.
+See [rung-analysis scope and contracts](../public/docs/reviews/RUNG_ANALYSIS_REVIEW.md).
 
 ```bash
 uv run --project python-parser --locked plc review \
@@ -31,8 +30,8 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-review6/manifest9 with thirteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
-references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json and review.html. Existing plain
+review7/manifest10 with fourteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json, rung-analysis.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
 `confidential/`. Read [the function follow-up](../public/docs/reviews/CALCULATION_FUNCTION_REVIEW.md),
@@ -47,8 +46,10 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work21 adds access summary4 beside calculation2, PID member1,
-PID1, Tag Data1, reference12/source4 and SFC2. Earlier work17 added count-only
+manual. Current work22 adds rung-analysis summary1 beside access4, calculation2,
+PID member1, PID1, Tag Data1, reference12/source4 and SFC2. Only work22 permits
+48 KiB for the complete public report; older versions retain 32 KiB.
+Earlier work17 added count-only
 PID member summary1 while preserving
 PID1, Tag Data1/reference12/source4/SFC2/access2 summaries. Documented member
 groups, type/shape checks and missing/duplicate catalog fields complement the

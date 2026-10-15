@@ -74,6 +74,16 @@
   const pid = data.pid || null, pidOccurrences = pid?.occurrences || [];
   const pidMembers = data.pid_members || null;
   const calculations = data.calculations || null, calculationOccurrences = calculations?.occurrences || [];
+  const rungAnalysis = data.rung_analysis || null, analyzedRungs = rungAnalysis?.rungs || [];
+  const byRungAnalysis = new Map(analyzedRungs.map(x => [x.id,x]));
+  const byRungBlock = new Map((rungAnalysis?.blocks || []).map(x => [x.id,x]));
+  const byRungCandidate = new Map((rungAnalysis?.candidates || []).map(x => [x.id,x]));
+  const ENGINEERING_FAMILIES = {
+    pid_control:'PID / control',calculation:'Calculations',boolean_output:'Boolean outputs',
+    timer_counter:'Timers / counters',data_transfer:'Data transfers',communication_system:'Communications / system',
+    sequence_control:'Sequence control',control_flow:'Program control flow',io_input:'I/O inputs',io_output:'I/O outputs',
+    alarm:'Possible alarms',equipment:'Possible equipment',sensor:'Possible sensors',miscellaneous:'Miscellaneous logic'
+  };
   const byCalculation = new Map(calculationOccurrences.map(x => [x.id,x]));
   const byCalculationNode = new Map((calculations?.nodes || []).map(x => [x.id,x]));
   const rungCalculations = new Map(), ownerCalculations = new Map();
@@ -175,8 +185,10 @@
   headings.tagdata=['Stored tag data','Search values and member names retained in this export, then follow their declaration and ladder occurrences.'];
   headings.pid=['PID instruction evidence','Inspect captured PID operand functions, source declarations and stored data. Each row is an instruction occurrence.'];
   headings.calculations=['Calculations','Read captured CPT expressions, their syntax grouping and source references. Expressions are not evaluated.'];
+  headings.engineering=['Engineering analysis','Explore recognized instruction functions and possible purpose, with every rung accounted for and gaps kept in context.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
-  const labels = {overview:'Overview',objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
+  const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
+  if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
   if(access){labels.access='Tag access';navCounts.access=accessRoots.length;}
   if(tagData){labels.tagdata='Stored tag data';navCounts.tagdata=tagContents.length;}
   if(pid){labels.pid='PID evidence';navCounts.pid=pidOccurrences.length;}
@@ -216,7 +228,8 @@
     if(e)names.unshift('…');
     const result=names.join(' / '); entityPathCache.set(id,result); return result;
   }
-  function rungName(r) { return 'Rung '+short(r.number ?? String(r.ordinal),30)+' · '+short(entityName(r.parent_id),100); }
+  function rungNumber(r) { return String(r.number ?? '').trim() ? 'Rung '+short(r.number,30) : 'Unnumbered rung · position '+r.ordinal; }
+  function rungName(r) { return rungNumber(r)+' · '+short(entityName(r.parent_id),100); }
   function elementName(e) { return e.attributes?.Name || e.attributes?.Operand || human(e.kind)+(e.attributes?.ID !== undefined ? ' '+e.attributes.ID : ''); }
   function sourceName(id) {
     if(byEntity.has(id)) return short(entityName(id));
@@ -306,6 +319,12 @@
   function searchable(row, words) { searchIndex.set(row,words.join(' ').toLocaleLowerCase()); }
   entities.forEach(e=>searchable(e,[e.name,e.kind,e.description,entityPath(e.parent_id),...Object.values(e.attributes || {})]));
   rungs.forEach(r=>searchable(r,[r.number,r.text,r.comment,r.parse_status,entityPath(r.parent_id)]));
+  analyzedRungs.forEach(a=>{
+    const r=byRung.get(a.id),candidates=a.candidate_ids.map(id=>byRungCandidate.get(id));
+    searchable(a,[rungName(r),r.number,r.text,r.comment,entityPath(r.parent_id),a.identification,a.structure,a.result_kind,
+      ...a.block_ids.map(id=>byRungBlock.get(id)?.opcode),
+      ...candidates.flatMap(c=>[ENGINEERING_FAMILIES[c.category],c.basis,c.reason,...c.missing_evidence])]);
+  });
   patterns.forEach(p=>searchable(p,[p.shape,...(p.opcode_summary||[]).map(o=>o.opcode)]));
   findings.forEach(f=>searchable(f,[f.code,f.message,f.origin,f.severity,f.locator,sourceName(f.source_id)]));
   accessRoots.forEach(r=>searchable(r,[entityName(r.target_id),entityPath(r.target_id)]));
@@ -333,7 +352,8 @@
   function countsFilter(rows,key) { const m=new Map();rows.forEach(r=>m.set(r[key],(m.get(r[key])||0)+1));return [['all','All types'],...Array.from(m).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([k,v])=>[k,human(k)+' ('+fmt(v)+')'])]; }
   function notice(title,text){const n=node('div','notice');const body=node('div');body.append(node('strong','',title),node('div','',text));n.append(node('span','notice-icon','i'),body);return n;}
   function overview() {
-    content.append(notice('A source review, ready for engineering interpretation',access
+    content.append(notice(rungAnalysis?'Automated analysis in progress':'Captured source for analysis',rungAnalysis
+      ? 'Start with Engineering analysis to see recognized functions, possible purpose and unresolved blocks together. These are automated findings; engineering confirmation has not been recorded.' : access
       ? 'Supported ladder operand roles now identify possible reads and writes. Root grouping does not establish member overlap, execution, shutdown effects, alarm priority or sequence behavior.'
       : 'Browse captured evidence and follow exact references. Root bindings do not validate members or establish reads, writes, shutdown effects, alarm priority or sequence behavior.'));
     const cards=node('div','cards');
@@ -347,6 +367,7 @@
     if(calculations){const row=node('div','status-row');row.append(node('span','','CPT expression syntax and references'),badge(calculations.status));capture.append(row);}
     capture.append(node('p','row-note',fmt(bySfcRoutine.size)+' SFC routines · '+fmt((sfc.links||[]).length)+' structural links · '+fmt((sfc.annotations||[]).length)+' note attachments'));
     const start=panel('Start your review','Each view links back to the exact evidence in this captured source snapshot.');
+    if(rungAnalysis){const b=button('',()=>go('engineering'),'jump-card');const copy=node('span');copy.append(node('strong','','Explore engineering analysis'),node('small','','Follow function families, branch structure and uncertainty before reviewing individual instructions.'));b.append(copy,node('span','jump-arrow','→'));start.append(b);}
     [['objects','Find an object','Inspect declarations, source descriptions and where operands refer to them.'],['patterns','Compare repeated ladder','Group repeated syntax and open each occurrence in its own context.'],['findings','Work through capture gaps','Inspect unresolved and unsupported evidence before choosing a correction.']].forEach(([view,title,detail])=>{const b=button('',()=>go(view),'jump-card');const copy=node('span');copy.append(node('strong','',title),node('small','',detail));b.append(copy,node('span','jump-arrow','→'));start.append(b);});
     grid.append(capture,start);content.append(grid);
     if(access)content.append(button('Explore tag reads and writes',()=>go('access')));
@@ -435,7 +456,143 @@
       expressions.append(expressionUseTable((byExpressionRoot.get(root.target_id)?.read_use_ids || []).map(id=>byExpressionUse.get(id)),'Root expression read occurrences'));content.append(expressions);
     }
   }
-  function rungList(rows=rungs.filter(r=>matches(r)&&(state.filter==='all'||r.parse_status===state.filter))){return table(['Rung','Routine / scope','Source preview','Parse status'],rows,r=>[link('Rung '+(r.number??r.ordinal),r.id),entityPath(r.parent_id),node('div','snippet',short(r.text,180)),badge(r.parse_status)],'Ladder rungs');}
+  function engineeringCandidates(a){return a.candidate_ids.map(id=>byRungCandidate.get(id));}
+  function engineeringGroup(a){return a.identification==='identified'?'identified':a.identification==='partial'?'partial':'unclassified';}
+  function engineeringGroupLabel(a){return ({identified:'Recognized functions',partial:'Possible / partial functions',unclassified:'Unclassified / unparsed'})[engineeringGroup(a)];}
+  function engineeringBasis(c){return ({instruction_signature:'Instruction signature',known_mnemonic:'Mnemonic only',structural_pattern:'Structural pattern',module_root:'Module root evidence',declaration_type:'Declared type evidence',text_hint:'Text hint only'})[c.basis] || human(c.basis);}
+  function engineeringReason(c){
+    if(c.basis==='instruction_signature')return 'Supported '+(ENGINEERING_FAMILIES[c.category] || human(c.category)).toLowerCase()+' instruction signature.';
+    if(c.basis==='known_mnemonic')return 'The mnemonic suggests this function; operand effects remain unresolved.';
+    if(c.basis==='module_root')return 'A source reference resolves to an exported module root. Read/write roles remain separate.';
+    if(c.basis==='declaration_type')return 'A referenced declaration has a PID data type. This suggests loop-related logic; it does not establish a PID execution.';
+    if(c.basis==='text_hint')return 'A whole word in a declaration name, description or rung comment suggests this family.';
+    return ({conditional_boolean_assign:'Condition blocks lead to one final Boolean assignment.',conditional_boolean_latch:'Condition blocks lead to one final Boolean latch.',conditional_boolean_unlatch:'Condition blocks lead to one final Boolean unlatch.',boolean_assign:'One Boolean assignment block.',boolean_latch:'One Boolean latch block.',boolean_unlatch:'One Boolean unlatch block.',no_supported_function_candidate:'No modeled function candidate for these blocks yet.'})[c.reason] || human(c.reason);
+  }
+  function engineeringMissing(code){return ({engineering_purpose_unconfirmed:'Engineering purpose is unconfirmed.',instruction_effects_not_analyzed:'Instruction effects have not been analyzed.',execution_not_simulated:'Execution has not been simulated.',channel_type_not_verified:'Channel type has not been verified.',name_or_comment_is_not_behavior:'A name or comment alone does not establish behavior.',pid_execution_not_established:'PID execution has not been established.'})[code] || human(code);}
+  function engineeringShape(a){return ({series:'Series · no branch split',branched:'Multiple branch paths',empty:'Empty rung',unparsed:'Structure unavailable'})[a.structure];}
+  function engineeringResult(a){return ({single_known_result:'One bound result address',multiple_known_results:'Multiple bound result addresses',no_known_result:'No known local result',stateful_or_external:'Stateful / external candidate'})[a.result_kind];}
+  function engineeringFamilies(a){return [...new Set(engineeringCandidates(a).map(c=>c.category))];}
+  function engineeringChoose(key,value){state[key]=value;state.listPages={};render();}
+  function engineeringToolbar(){
+    toolbarFor('Search rung comments, names, opcodes or function families',[
+      ['all','All evidence groups'],['identified','Recognized functions'],['partial','Possible / partial functions'],['unclassified','Unclassified / unparsed']]);
+    const box=toolbar.querySelector('.toolbar');
+    const choice=(title,key,options)=>{
+      const label=node('label','filter-wrap',title),select=node('select');select.setAttribute('aria-label',title);
+      options.forEach(([value,text])=>{const option=node('option','',text);option.value=value;select.append(option);});
+      select.value=state[key] || 'all';select.addEventListener('change',()=>{state[key]=select.value;state.listPages={};renderList();});label.append(select);box.append(label);
+    };
+    choice('Function family','engineeringFamily',[['all','All function families'],...Object.entries(ENGINEERING_FAMILIES)]);
+    choice('Structure / gaps','engineeringShape',[['all','All structures / gaps'],['series','Series without branch split'],['branched','Multiple branch paths'],['empty','Empty rung'],['unparsed','Unparsed structure'],['bypass','Empty branch / bypass'],['no_result','No known local result'],['unknown','Unresolved block functions'],['comment','Missing / ambiguous comment'],['metadata','Missing rung identifiers']]);
+  }
+  function engineeringMatches(a){
+    if(!matches(a)||(state.filter!=='all'&&engineeringGroup(a)!==state.filter))return false;
+    if(state.engineeringFamily && state.engineeringFamily!=='all'&&!engineeringFamilies(a).includes(state.engineeringFamily))return false;
+    const filter=state.engineeringShape || 'all';
+    return filter==='all'||filter===a.structure||(filter==='bypass'&&a.empty_legs>0)||(filter==='no_result'&&a.result_kind==='no_known_result')
+      ||(filter==='unknown'&&a.unknown_block_ids.length>0)||(filter==='comment'&&a.comment_status!=='present')||(filter==='metadata'&&a.missing_metadata.length>0);
+  }
+  function engineeringFamilyBadges(a){
+    const box=node('div','engineering-labels'),candidates=engineeringCandidates(a);
+    for(const family of engineeringFamilies(a)){
+      const evidence=candidates.filter(c=>c.category===family);
+      box.append(primary(node('span','badge',ENGINEERING_FAMILIES[family] || human(family)),[...new Set(evidence.map(engineeringBasis))].join(' · ')));
+    }
+    if(!candidates.length)box.append(node('span','muted','No function candidate yet'));
+    return box;
+  }
+  function engineeringList(){
+    const groups=[['identified','Recognized instruction functions'],['partial','Possible / partial functions'],['unclassified','Unclassified / unparsed']];
+    const cards=node('div','cards engineering-groups');
+    for(const [key,title] of groups){const count=analyzedRungs.filter(a=>engineeringGroup(a)===key).length;
+      const card=button('',()=>engineeringChoose('filter',key),'metric engineering-group');
+      card.append(node('div','metric-label',title),node('div','metric-value',fmt(count)),node('div','metric-hint',key==='identified'?'Instruction roles or signatures recognized; purpose remains unconfirmed':key==='partial'?'Useful clues with unresolved blocks or bindings':'Includes empty rungs and unavailable syntax'));cards.append(card);
+    }
+    content.append(cards,node('p','panel-intro',fmt(analyzedRungs.length)+' rungs accounted for once in the groups above. Function families may overlap on a rung.'));
+    const families=panel('Function families','Counts are rungs with source clues, not confirmed equipment or independent control loops. Select a family to inspect its evidence.');
+    const familyGrid=node('div','engineering-families');
+    for(const [key,title] of Object.entries(ENGINEERING_FAMILIES)){
+      const matches=analyzedRungs.filter(a=>engineeringFamilies(a).includes(key));
+      const hints=matches.filter(a=>engineeringCandidates(a).filter(c=>c.category===key).every(c=>c.basis==='text_hint')).length;
+      const b=button('',()=>engineeringChoose('engineeringFamily',key),'engineering-family');
+      b.append(node('strong','',title),node('span','family-count',fmt(matches.length)),node('small','',matches.length?(hints?fmt(hints)+' with text hints only':'Source evidence available'):'No candidates found'));familyGrid.append(b);
+    }
+    families.append(familyGrid,node('p','row-note','Alarm shutdown behavior, priorities, sensor roles and equipment identity are not yet modeled. Zero candidates do not establish absence.'));content.append(families);
+    const rows=analyzedRungs.filter(engineeringMatches);
+    const selection=section('Rung analysis',fmt(rows.length)+' of '+fmt(analyzedRungs.length)+' rungs match the current selection. Open a rung for the evidence, gaps and ordered blocks.');
+    selection.append(table(['Rung / source comment','Function clues','Evidence group / layout','Result / gaps'],rows,a=>{
+      const r=byRung.get(a.id),gaps=[];
+      if(a.structure==='unparsed')gaps.push('Rung structure could not be parsed');
+      if(a.unknown_block_ids.length)gaps.push(fmt(a.unknown_block_ids.length)+' unresolved block functions');
+      if(a.operand_ids_by_role.unknown.length)gaps.push(fmt(a.operand_ids_by_role.unknown.length)+' unresolved operand roles');
+      if(a.access_gap_operand_ids.length+a.expression_gap_use_ids.length)gaps.push(fmt(a.access_gap_operand_ids.length+a.expression_gap_use_ids.length)+' binding / expression gaps');
+      if((a.operand_ids_by_role.expression_read || []).some(id=>byOperandAccess.get(id)?.binding_status==='unsupported_expression'))gaps.push('Unsupported calculation expression');
+      if(a.empty_legs)gaps.push(fmt(a.empty_legs)+' empty branch legs');
+      if(a.comment_status!=='present')gaps.push(human(a.comment_status)+' comment');
+      if(a.missing_metadata.length)gaps.push('Missing '+a.missing_metadata.join(', '));
+      const comment=a.comment_status==='ambiguous'?'Comment is ambiguous; see source findings.':short(r.comment || 'No comment captured.',160);
+      return [primary(link(rungName(r),r.id),comment),engineeringFamilyBadges(a),primary(badge(engineeringGroupLabel(a)),engineeringShape(a)),primary(engineeringResult(a),gaps.join(' · ') || 'No capture/binding gaps in this view')];
+    },'Engineering rung analysis',{emptyTitle:'No rungs match these filters',emptyDetail:'Change the evidence group, function family or structure filter, or clear the search.'}));content.append(selection);
+    content.append(notice('Local results and branch shape','An internal Boolean write is not automatically a physical output. Series syntax does not prove a single runtime data path; branch paths are structural. No known local result is a lead to investigate, not proof of dead or unreachable logic.'));
+  }
+  function engineeringEvidence(id){
+    if(byCalculationNode.has(id)){const n=byCalculationNode.get(id);return button(n.raw_text || 'Expression node',()=>openDetail('calculation',n.instruction_id,{focusCalculationNode:id}),'text-link');}
+    if(byPid.has(id))return button(pidName(byPid.get(id)),()=>openDetail('pid',id),'text-link');
+    if(byCalculation.has(id))return button(calculationName(byCalculation.get(id)),()=>openDetail('calculation',id),'text-link');
+    return sourceCell(id);
+  }
+  function engineeringIdTable(ids,caption){return table(['Source evidence'],ids,id=>[engineeringEvidence(id)],caption);}
+  function engineeringOutline(r){
+    const rows=[],stack=[{item:r.structure,depth:0,label:'Series'}];
+    while(stack.length){
+      const {item,depth,label}=stack.pop();
+      if(item.kind==='instruction')rows.push({depth,id:item.instruction_id,label:byInstruction.get(item.instruction_id)?.instruction.opcode || 'Instruction'});
+      else if(item.kind==='sequence'){
+        rows.push({depth,label:item.items.length?label:label+' · empty / bypass'});
+        for(let i=item.items.length-1;i>=0;i--)stack.push({item:item.items[i],depth:depth+1,label:''});
+      }else if(item.kind==='branch'){
+        rows.push({depth,label:'Branch · '+item.legs.length+' alternatives'});
+        for(let i=item.legs.length-1;i>=0;i--)stack.push({item:item.legs[i],depth:depth+1,label:'Path '+(i+1)});
+      }
+    }
+    return table(['Branch outline / source order'],rows,row=>{
+      const line=node('div','engineering-outline');line.style.paddingLeft=Math.min(row.depth,12)*12+'px';
+      if(row.depth>12)line.append(node('span','muted','Depth '+row.depth+' · '));
+      line.append(row.id?link(row.label,row.id):node('span','',row.label));return [line];
+    },'Rung branch outline');
+  }
+  function engineeringRungDetail(r,a){
+    const summary=panel('Engineering analysis','Instruction functions and possible purpose from this snapshot. No engineering confirmation has been recorded.');
+    const structureAvailable=a.structure!=='unparsed',unavailable='Unavailable: rung not parsed';
+    summary.append(values({'Evidence group':engineeringGroupLabel(a),'Structure':engineeringShape(a),'Result evidence':engineeringResult(a),'Captured blocks':a.block_ids.length,'Branches / legs':structureAvailable?a.branch_count+' / '+a.branch_legs:unavailable,'Empty branch legs':structureAvailable?a.empty_legs:unavailable,'A path bypasses all blocks':structureAvailable?(a.nullable?'Yes':'No'):unavailable,'Comment':human(a.comment_status),'Missing rung identifiers':a.missing_metadata.join(', ') || 'None'}));
+    const candidates=engineeringCandidates(a);
+    summary.append(table(['Possible function / evidence','Why this grouping','Still unresolved'],candidates,c=>{
+      const proof=node('div');proof.append(node('p','',engineeringReason(c)));
+      const detail=node('details','technical');detail.append(node('summary','','Supporting evidence ('+c.evidence_ids.length+')'),engineeringIdTable(c.evidence_ids,'Candidate evidence '+c.id));proof.append(detail);
+      const missing=node('div');for(const item of c.missing_evidence)missing.append(node('p','row-note',engineeringMissing(item)));
+      if(!c.missing_evidence.length)missing.append(node('span','muted','No additional gap from this rule; purpose remains unconfirmed.'));
+      const rule=node('details','technical');rule.append(node('summary','','Analysis rule'),values({'Rule':c.rule_id,'Version':c.rule_version,'Review status':human(c.review_status)}));missing.append(rule);
+      return [primary(ENGINEERING_FAMILIES[c.category] || human(c.category),engineeringBasis(c)),proof,missing];
+    },'Rung function candidates',{emptyTitle:'No function candidate yet',emptyDetail:'The rung remains in the unclassified group. Its captured source and any parsed blocks remain below.'}));content.append(summary);
+    const blocks=section('Ordered block functions','Every parsed instruction appears in source order. A known mnemonic can still have unresolved operand functions.');
+    blocks.append(table(['Order / instruction','Function family','Evidence level','Operand roles'],a.block_ids.map(id=>byRungBlock.get(id)),(b,n)=>[
+      primary(link(b.opcode,b.id),'Block '+(n+1)),human(b.family),human(b.identification),
+      b.operand_ids.map(id=>human(byOperandAccess.get(id)?.role)).join(' · ') || 'No operands'
+    ],'Rung ordered block functions'));content.append(blocks);
+    if(r.structure){const outline=node('details','technical');outline.append(node('summary','','Series and branch paths'),engineeringOutline(r));content.append(outline);}
+    const uses=section('Explicit inputs and results','Operand reads and writes are possible uses. They do not establish execution, member overlap or a complete input-to-output relationship.');
+    const reads=a.operand_ids_by_role.read || [],writes=a.result_operand_ids;
+    const readDetail=node('details','technical');readDetail.append(node('summary','','Read operands ('+reads.length+')'),engineeringIdTable(reads,'Engineering read operands'));
+    const resultDetail=node('details','technical');resultDetail.append(node('summary','','Result operands ('+writes.length+')'),engineeringIdTable(writes,'Engineering result operands'));
+    const exprDetail=node('details','technical');exprDetail.append(node('summary','','Expression reads ('+a.expression_use_ids.length+')'),engineeringIdTable(a.expression_use_ids,'Engineering expression reads'));
+    uses.append(readDetail,resultDetail,exprDetail);
+    const rw=a.operand_ids_by_role.read_write || [];
+    if(rw.length){const detail=node('details','technical');detail.append(node('summary','','Stateful read/write operands ('+rw.length+')'),engineeringIdTable(rw,'Engineering stateful operands'));uses.append(detail);}
+    if(a.unknown_block_ids.length){const unknown=node('details','technical');unknown.append(node('summary','','Unresolved block functions ('+a.unknown_block_ids.length+')'),engineeringIdTable(a.unknown_block_ids,'Engineering unknown blocks'));uses.append(unknown);}
+    if(a.result_kind==='no_known_result')uses.append(node('p','row-note','No known local result is an investigation candidate. This does not establish that the rung is dead, unused or unreachable.'));
+    uses.append(node('p','row-note','A final lexical instruction is not necessarily a definite physical output. I/O candidates require separate module-root evidence.'));content.append(uses);
+  }
+  function rungList(rows=rungs.filter(r=>matches(r)&&(state.filter==='all'||r.parse_status===state.filter))){return table(['Rung','Routine / scope','Source preview','Parse status'],rows,r=>[link(rungNumber(r),r.id),entityPath(r.parent_id),node('div','snippet',short(r.text,180)),badge(r.parse_status)],'Ladder rungs');}
   function objectDetail(e){
     setDetailHeading('SOURCE OBJECT',e.name || '(unnamed '+human(e.kind)+')',entityPath(e.parent_id));
     const meta=node('div','detail-meta');meta.append(badge(e.kind));if(e.attributes?.DataType)meta.append(badge(e.attributes.DataType));content.append(meta);
@@ -479,6 +636,7 @@
     if(state.focusInstruction && byInstruction.get(state.focusInstruction)?.rung.id===r.id)content.append(notice('Selected instruction',byInstruction.get(state.focusInstruction).instruction.opcode));
     const text=panel('Rung text','Exact captured ladder source. No execution behavior is inferred.');text.append(sourceText(r.text));content.append(text);
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
+    if(byRungAnalysis.has(r.id))engineeringRungDetail(r,byRungAnalysis.get(r.id));
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
     if(rungPids.has(r.id)){const p=section('PID evidence on this rung');p.append(pidTable(rungPids.get(r.id),'Rung PID occurrences'));content.append(p);}
     if(rungCalculations.has(r.id)){const p=section('Calculations on this rung');p.append(calculationTable(rungCalculations.get(r.id),'Rung calculation occurrences'));content.append(p);}
@@ -1049,6 +1207,7 @@
   function renderList(){
     content.replaceChildren();
     if(state.view==='overview')overview();
+    else if(state.view==='engineering')engineeringList();
     else if(state.view==='objects')objectList();
     else if(state.view==='ladder')content.append(rungList());
     else if(state.view==='sfc')sfcList();
@@ -1077,7 +1236,8 @@
       else if(d.type==='calculation')calculationDetail(byCalculation.get(d.id));
     }else{
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));
-      if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
+      if(state.view==='engineering')engineeringToolbar();
+      else if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
       else if(state.view==='ladder')toolbarFor('Search rung text, comments or routine names',countsFilter(rungs,'parse_status'));
       else if(state.view==='sfc')toolbarFor('Search SFC routines, elements and source text');
       else if(state.view==='patterns')toolbarFor('Search opcode or syntax shape',[['all','All patterns'],['repeated','Repeated patterns'],['single','Single occurrences']]);

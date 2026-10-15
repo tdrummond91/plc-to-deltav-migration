@@ -496,6 +496,13 @@ class GitAndWorkflowTests(unittest.TestCase):
             analysis_payload["calculation_summary"] = build_calculation_summary(
                 snapshot, inventory, references, analyze_calculations(snapshot, inventory, references),
                 revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.rung_analysis import analyze_rungs
+            from plc_workbench.rung_analysis_summary import build_rung_summary
+            access = analyze_access(inventory, references, schema_version=4, snapshot=snapshot, calculations=calculations)
+            analysis_payload["rung_analysis_summary"] = build_rung_summary(
+                snapshot, inventory, references, access, calculations,
+                analyze_rungs(snapshot, inventory, references, access, calculations),
+                revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))
             stack.enter_context(redirect_stdout(io.StringIO()))

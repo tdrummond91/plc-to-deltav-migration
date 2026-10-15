@@ -1,6 +1,22 @@
 # Private engineering review report
 
-## Current CPT access follow-up (2026-10-15)
+## Current rung-analysis follow-up (2026-10-15)
+
+[Rung analysis](RUNG_ANALYSIS_REVIEW.md) adds the primary Engineering analysis
+view: every rung, overlapping candidate families, evidence/gap filters,
+ordered blocks and a readable branch outline. Candidates explain their source
+links, rules and missing knowledge. Known functions, possible functions and
+unclassified/empty rungs remain discoverable. Name/comment clues stay weak;
+internal coils do not become physical outputs through naming alone.
+
+This is the first broad interpretation layer, not the completion of Phase 1.
+The work-machine returns have been automated results, not human feedback.
+Continue the [automated analysis sequence](../planning/PHASE_1_ENGINEERING_ANALYSIS.md)
+before team review. Review7/manifest10 saves fourteen hashed artifacts, adding
+rung-analysis.json; work22 adds a closed count-only summary. The invented HTML
+demo includes normal, ambiguous and deliberately unsupported cases.
+
+## Historical CPT access follow-up (2026-10-15)
 
 [CPT access](CPT_ACCESS_REVIEW.md) adds destination writes and separately counted
 expression reads. Tag access includes expression-only roots, repeated reads,

@@ -2,6 +2,16 @@
 
 Prepared: 2026-10-08, planning revision 0.2.
 
+## Current rung-analysis checkpoint (2026-10-15)
+
+The [rung-analysis validation record](docs/reviews/RUNG_ANALYSIS_REVIEW.md)
+records the full development suite, independent review, final UI checks, two
+actual isolated launcher runs, fourteen artifact hashes, legacy byte comparisons,
+historical report replay and browser/scale checks. Work-machine pushes are
+automated run results; team engineering feedback has not started. Follow the
+[Phase 1 completion gate](docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md) before
+requesting that review.
+
 ## Completed checks
 
 - Inspected the copied project's root and both ignore files read-only. Expected folders were present; no .git directory was present at that inspection.

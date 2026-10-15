@@ -27,23 +27,26 @@ def _payload(data: dict[str, Any]) -> str:
             or (data.get('schema_version'), data.get('report_version')) not in
                ((1, 'engineering-review-1'), (2, 'engineering-review-2'),
                 (3, 'engineering-review-3'), (4, 'engineering-review-4'),
-                (5, 'engineering-review-5'), (6, 'engineering-review-6'))
+                (5, 'engineering-review-5'), (6, 'engineering-review-6'),
+                (7, 'engineering-review-7'))
             or (data.get('schema_version') == 1 and 'access' in data)
-            or (data.get('schema_version') in (2, 3, 4, 5, 6) and type(data.get('access')) is not dict)
+            or (data.get('schema_version') in (2, 3, 4, 5, 6, 7) and type(data.get('access')) is not dict)
             or (data.get('schema_version') in (1, 2) and 'tag_data' in data)
-            or (data.get('schema_version') in (3, 4, 5, 6) and type(data.get('tag_data')) is not dict)
+            or (data.get('schema_version') in (3, 4, 5, 6, 7) and type(data.get('tag_data')) is not dict)
             or (data.get('schema_version') in (1, 2, 3) and 'pid' in data)
-            or (data.get('schema_version') in (4, 5, 6) and type(data.get('pid')) is not dict)
+            or (data.get('schema_version') in (4, 5, 6, 7) and type(data.get('pid')) is not dict)
             or (data.get('schema_version') in (1, 2, 3, 4) and 'pid_members' in data)
-            or (data.get('schema_version') in (5, 6) and type(data.get('pid_members')) is not dict)
+            or (data.get('schema_version') in (5, 6, 7) and type(data.get('pid_members')) is not dict)
             or (data.get('schema_version') in (1, 2, 3, 4, 5) and 'calculations' in data)
-            or (data.get('schema_version') == 6 and type(data.get('calculations')) is not dict)
+            or (data.get('schema_version') in (6, 7) and type(data.get('calculations')) is not dict)
+            or (data.get('schema_version') != 7 and 'rung_analysis' in data)
+            or (data.get('schema_version') == 7 and type(data.get('rung_analysis')) is not dict)
             or any(type(data.get(key)) is not dict
                    for key in ('snapshot', 'inventory', 'references', 'sfc', 'statistics'))
             or any(type(data.get(key)) is not list for key in ('patterns', 'findings'))):
         raise ReviewHtmlError('Engineering review data is not supported.')
-    payload_limit = MAX_REVIEW_V3_PAYLOAD_BYTES if data['schema_version'] in (3, 4, 5, 6) else MAX_REVIEW_PAYLOAD_BYTES
-    html_limit = MAX_REVIEW_V3_HTML_BYTES if data['schema_version'] in (3, 4, 5, 6) else MAX_REVIEW_HTML_BYTES
+    payload_limit = MAX_REVIEW_V3_PAYLOAD_BYTES if data['schema_version'] in (3, 4, 5, 6, 7) else MAX_REVIEW_PAYLOAD_BYTES
+    html_limit = MAX_REVIEW_V3_HTML_BYTES if data['schema_version'] in (3, 4, 5, 6, 7) else MAX_REVIEW_HTML_BYTES
     output = io.StringIO()
     size = escaped_size = 0
     try:
@@ -88,7 +91,7 @@ def render_review_html(data: dict[str, Any]) -> str:
               "frame-src 'none'; base-uri 'none'; form-action 'none'")
     page = (_TEMPLATE.replace('__POLICY__', policy).replace('__CSS__', css)
             .replace('__APP__', script).replace('__PAYLOAD__', payload))
-    html_limit = MAX_REVIEW_V3_HTML_BYTES if data['schema_version'] in (3, 4, 5, 6) else MAX_REVIEW_HTML_BYTES
+    html_limit = MAX_REVIEW_V3_HTML_BYTES if data['schema_version'] in (3, 4, 5, 6, 7) else MAX_REVIEW_HTML_BYTES
     if len(page.encode('utf-8')) > html_limit:
         raise ReviewHtmlError('Engineering review exceeds the report size limit.')
     return page

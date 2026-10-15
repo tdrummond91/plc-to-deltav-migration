@@ -35,3 +35,6 @@ development needs only the generated work-machine feedback at each run boundary.
 Edit this material deliberately as development advances. Do not direct production report output here. A file being in public/ does not automatically make it suitable for publication; review new content before committing.
 
 For the first parsing discussion, read [L5X structure and branch locations](docs/planning/L5X_STRUCTURE.md).
+
+14. [Current rung analysis and candidates](docs/reviews/RUNG_ANALYSIS_REVIEW.md),
+    with the [Phase 1 completion gate](docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md).

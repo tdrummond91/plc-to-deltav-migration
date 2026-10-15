@@ -2,7 +2,27 @@
 
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current CPT access contract (2026-10-15)
+## Current rung-analysis contract (2026-10-15)
+
+Rung-analysis1 / rung-analysis-1 authenticates snapshot/inventory/references,
+access4 and calculation2 before deriving every rung and captured block. Records
+link structural endpoints, branch/empty paths, separate source/CPT uses,
+metadata gaps and unreviewed multi-label candidates with rule/evidence IDs.
+No execution simulation, physical-channel typing, dead-code proof or confirmed
+equipment/loop count is claimed. Snapshot IDs are not durable correction IDs.
+
+Optional review7 / manifest10 adds rung-analysis.json as the fourteenth hashed
+artifact. The private companion allows 32 MiB, bounded records/evidence links
+and a shared hint-text scan budget. Review retains the existing 128 MiB JSON /
+160 MiB HTML caps. Omitting the new companion retains older replay paths.
+
+Rung summary1 has fixed vocabularies/counts only and a 4 KiB cap. Work22 reconciles
+its populations with the existing summaries and allows 48 KiB for the complete
+report, including the actual publisher. Work1-21 remain capped at 32 KiB.
+Existing companion schemas and bytes remain unchanged. See
+[RUNG_ANALYSIS_REVIEW.md](../reviews/RUNG_ANALYSIS_REVIEW.md).
+
+## Historical CPT access contract (2026-10-15)
 
 Access4 / instruction-access-4 requires the snapshot and canonical calculation2
 companion. Exact two-slot nonempty CPTs classify a destination write and an

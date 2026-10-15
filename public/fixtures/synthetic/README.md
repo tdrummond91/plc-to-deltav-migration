@@ -1,12 +1,24 @@
 # Independently synthetic L5X fixture
 
-## CPT access demonstration
+## Current rung-analysis demonstration
+
+[rung_analysis_review_demo.L5X](rung_analysis_review_demo.L5X) extends the
+independently invented CPT access fixture with module input/output roots,
+conditional outputs, branching outputs, empty bypasses, an unsupported block,
+empty/unparsed rungs, ambiguous comments, missing metadata and weak PID/alarm/
+equipment hints. All names, values and connections are invented. The
+[current HTML demo](../../examples/engineering-review-demo.html) uses this fixture.
+These deliberately mixed cases are parser examples, not controller-ready logic.
+Earlier fixtures remain unchanged. See
+[rung-analysis review](../../docs/reviews/RUNG_ANALYSIS_REVIEW.md).
+
+## Historical CPT access demonstration
 
 [cpt_access_review_demo.L5X](cpt_access_review_demo.L5X) extends the independently
 invented extended-access fixture with an expression-only root, repeated reads
 through its alias, a destination read within its own expression, and a constant
 expression. The [current HTML demo](../../examples/engineering-review-demo.html)
-uses this fixture. No plant source or connections were read to construct it.
+previously used this fixture. No plant source or connections were read to construct it.
 Earlier fixtures remain unchanged; these are parser cases, not controller-ready
 logic. See [the CPT access contract](../../docs/reviews/CPT_ACCESS_REVIEW.md).
 

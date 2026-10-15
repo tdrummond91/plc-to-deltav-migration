@@ -1,7 +1,8 @@
 """Private, snapshot-bound evidence for the offline engineering review report.
 
-Patterns compare exact ordered syntax only. Findings expose existing gaps; they
-do not infer equipment, dependencies, instruction effects, or engineering intent.
+Patterns compare exact ordered syntax. Findings expose existing gaps; the
+optional rung companion adds explicit, unreviewed structure and purpose
+candidates without asserting execution, dependencies, or confirmed intent.
 This module performs no filesystem, process, or network operations.
 """
 from __future__ import annotations
@@ -18,6 +19,7 @@ from .models import InventoryResult, SourceSnapshot
 from .pid import PidResult, analyze_pid
 from .pid_members import PidMemberResult, analyze_pid_members
 from .calculations import CalculationResult, analyze_calculations
+from .rung_analysis import RungAnalysisResult, analyze_rungs
 from .references import ReferenceResult, analyze_references
 from .sfc_structure import SfcStructureResult, analyze_sfc_structure
 from .source import analyze_snapshot
@@ -80,7 +82,8 @@ def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     rendered = io.StringIO() if retain else None
     limit = (MAX_REVIEW_V3_BYTES if (data.get('schema_version'), data.get('report_version'))
              in ((3, 'engineering-review-3'), (4, 'engineering-review-4'),
-                 (5, 'engineering-review-5'), (6, 'engineering-review-6')) else MAX_REVIEW_BYTES)
+                 (5, 'engineering-review-5'), (6, 'engineering-review-6'),
+                 (7, 'engineering-review-7')) else MAX_REVIEW_BYTES)
     total = 0
     for chunk in json.JSONEncoder(ensure_ascii=False, separators=(',', ':'),
                                   allow_nan=False).iterencode(data):
@@ -186,7 +189,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       tag_data: TagDataResult | None = None,
                       pid: PidResult | None = None,
                       pid_members: PidMemberResult | None = None,
-                      calculations: CalculationResult | None = None) -> dict[str, Any]:
+                      calculations: CalculationResult | None = None,
+                      rung_analysis: RungAnalysisResult | None = None) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -207,6 +211,9 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         if pid_members is not None and (pid is None or tag_data is None or access is None):
             _fail()
         if calculations is not None and (pid_members is None or pid is None or tag_data is None or access is None):
+            _fail()
+        if rung_analysis is not None and (calculations is None or pid_members is None or pid is None
+                                         or tag_data is None or access is None):
             _fail()
         canonical_inventory = analyze_snapshot(snapshot)
         if not _strict_equal(canonical_inventory, inventory):
@@ -255,6 +262,14 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             canonical_pid_members = analyze_pid_members(
                 snapshot, canonical_inventory, canonical_references, canonical_tag_data, canonical_pid)
             if not _strict_equal(canonical_pid_members, pid_members):
+                _fail()
+        canonical_rungs = None
+        if rung_analysis is not None:
+            if type(rung_analysis) is not RungAnalysisResult:
+                _fail()
+            canonical_rungs = analyze_rungs(snapshot, canonical_inventory, canonical_references,
+                                           canonical_access, canonical_calculations)
+            if not _strict_equal(canonical_rungs, rung_analysis):
                 _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)
@@ -318,6 +333,15 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             })
             if canonical_calculations.status == 'partial':
                 data['status'] = 'partial'
+        if canonical_rungs is not None:
+            data.update({
+                'schema_version': 7, 'report_version': 'engineering-review-7',
+                'analysis_scope': 'source_evidence_with_rung_structure_and_purpose_candidates',
+                'semantic_analysis': 'structural_and_candidate_evidence',
+                'rung_analysis': canonical_rungs.to_dict(),
+            })
+            if canonical_rungs.status == 'partial':
+                data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
@@ -330,12 +354,14 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          tag_data: TagDataResult | None = None,
                          pid: PidResult | None = None,
                          pid_members: PidMemberResult | None = None,
-                         calculations: CalculationResult | None = None) -> None:
+                         calculations: CalculationResult | None = None,
+                         rung_analysis: RungAnalysisResult | None = None) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
         if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
                                           access=access, tag_data=tag_data, pid=pid,
-                                          pid_members=pid_members, calculations=calculations), data):
+                                          pid_members=pid_members, calculations=calculations,
+                                          rung_analysis=rung_analysis), data):
             return
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
         pass
