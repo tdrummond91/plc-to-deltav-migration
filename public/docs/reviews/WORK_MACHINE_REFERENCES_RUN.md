@@ -1,6 +1,33 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-15): **exact-address relationships and operand-reuse patterns**
+Current checkpoint (2026-10-15): **Boolean conditions and output actions**
+adds compact local condition graphs for series and parallel rungs, individual
+predicate occurrences, and incoming-condition records for OTE/OTL/OTU. Unknown
+block behavior remains explicit. Ordinary output, latch and unlatch actions stay
+distinct; no PLC execution, final value or equipment/alarm purpose is inferred.
+
+Returned `f7d91f0` tests clean `ddd087c`: 821 application cases passed (one
+expected Windows skip), plus 139 helpers. There are 7,591 exact addresses,
+3,778 used across rungs and 1,453 with multiple captured writers. Stronger
+patterns cover 4,286 rungs in 1,489 groups; 320 rungs retain explicit exclusions.
+No composed-suffix gaps were found. The narrow local calculation analysis found
+one link; 13,053 instructions were excluded because their rungs contain branches.
+All eight preceding summaries match after tool_revision normalization, and all
+30 historical reports validate. Pushed results are automated, not team feedback.
+
+Review9/manifest12 adds boolean-conditions.json as the sixteenth hashed artifact.
+Work24 adds closed condition summary1. Work22-24 retain 48 KiB outer envelopes;
+work1-21 retain 32 KiB. Earlier companions and optional replay remain intact.
+The next normal work-machine run measures local condition/output coverage.
+Continue source-addressable Phase 1 analysis before asking for team review.
+Git synchronization stays manual; the launcher commits only its new validated
+feedback report locally, and the listener remains disabled.
+
+See [condition scope and validation](CONDITION_REVIEW.md).
+
+## Historical relationship implementation checkpoint
+
+Historical checkpoint (2026-10-15): **exact-address relationships and operand-reuse patterns**
 adds exact expanded suffix identities, separate source/expression read occurrences,
 possible local calculation links and stronger rung groups. Existing root-only
 access and opcode-shape views remain available. Source-order links do not establish

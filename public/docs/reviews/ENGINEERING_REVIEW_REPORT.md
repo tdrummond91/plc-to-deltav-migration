@@ -1,6 +1,21 @@
 # Private engineering review report
 
-## Current relationship follow-up (2026-10-15)
+## Current conditional-output follow-up (2026-10-15)
+
+Conditional outputs explains incoming conditions for OTE, OTL and OTU records,
+including outputs inside branches and unresolved targets. A compact node table
+shows ALL/ANY relationships, predicate occurrences, rung entry and explicit
+unknown transfers. Node links preserve shared structure without expanding every
+path. Guard quality, target identity and normal-scan action remain separate.
+
+Rung and exact-address dossiers link to their outputs. Module declaration kinds
+provide source context only. These records do not establish equipment, alarms,
+shutdown effects, final values or execution schedules. Review9/manifest12 saves
+sixteen artifacts; work24 adds a closed condition summary. The independent demo
+contains 120 rungs. Continue automated Phase 1 analysis before team review.
+See [scope and validation](CONDITION_REVIEW.md).
+
+## Historical relationship follow-up (2026-10-15)
 
 The Address relationships view separates exact suffixes beneath each root.
 Open an address to inspect ordinary reads, writes, stateful uses, unknown roles,

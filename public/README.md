@@ -40,3 +40,5 @@ For the first parsing discussion, read [L5X structure and branch locations](docs
     with the [Phase 1 completion gate](docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md).
 
 15. [Current exact-address relationships and operand-reuse patterns](docs/reviews/RELATIONSHIP_REVIEW.md).
+
+16. [Current Boolean conditions and output actions](docs/reviews/CONDITION_REVIEW.md).

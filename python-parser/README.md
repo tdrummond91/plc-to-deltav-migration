@@ -3,7 +3,7 @@
 ## Offline engineering review
 
 `plc review` builds a self-contained, read-only report from source, reference,
-access, Tag Data, PID, CPT calculation, SFC, rung and relationship evidence. Open the
+access, Tag Data, PID, CPT calculation, SFC, rung, relationship and condition evidence. Open the
 printed `review.html` path. The Engineering analysis view accounts for every
 rung and captured block, groups candidate functions, explains uncertainty, and
 shows structural branches and possible results. Search and combined filters
@@ -11,7 +11,10 @@ find families, unresolved blocks, empty bypasses and missing comments/metadata.
 Address relationships separates exact member/index spellings, possible local
 calculation links and operand-reuse patterns. Root-only access and opcode-shape
 patterns remain separate views. Existing tag, PID, calculation and source views
-provide deeper evidence links.
+provide deeper evidence links. Conditional outputs links OTE/OTL/OTU records to
+their incoming series/parallel condition graphs. Each source read stays a separate
+occurrence; unknown transfers, binding gaps and malformed actions remain visible.
+No PLC execution or final output value is inferred.
 
 Candidate interpretations are unreviewed. Instruction roles, recognized
 mnemonics, structural motifs, declaration references and weak name/comment
@@ -19,11 +22,11 @@ hints are separate. Internal Boolean outputs do not imply physical DOs; no
 known local result does not prove dead code. CPT expression reads retain their
 own population, node/span links and repeated occurrences.
 
-The latest automated return (`4a3406b`) confirms coverage of all 4,606 rungs and
-17,874 blocks, including 1,863 branched rungs. The next run measures exact-address
-relationships. Continue the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)
+The latest automated return (`f7d91f0`) confirms 7,591 exact addresses and 1,489
+operand-reuse patterns covering 4,286 rungs. The next run measures Boolean
+conditions and output actions. Continue the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)
 before requesting team feedback. No manual engineering/UI review is needed now.
-See [relationship scope and contracts](../public/docs/reviews/RELATIONSHIP_REVIEW.md).
+See [condition scope and contracts](../public/docs/reviews/CONDITION_REVIEW.md).
 
 ```bash
 uv run --project python-parser --locked plc review \
@@ -33,8 +36,8 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-review8/manifest11 with fifteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
-references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json, rung-analysis.json, relationships.json and review.html. Existing plain
+review9/manifest12 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json, rung-analysis.json, relationships.json, boolean-conditions.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
 `confidential/`. Read [the function follow-up](../public/docs/reviews/CALCULATION_FUNCTION_REVIEW.md),
@@ -49,9 +52,9 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work23 adds relationship summary1 beside rung-analysis1, access4,
-calculation2, PID member1, PID1, Tag Data1, reference12/source4 and SFC2. Work22
-and 23 permit 48 KiB for the complete public report; work1-21 retain 32 KiB.
+manual. Current work24 adds condition summary1 beside relationship1, rung-analysis1,
+access4, calculation2, PID member1, PID1, Tag Data1, reference12/source4 and SFC2.
+Work22-24 permit 48 KiB for the complete public report; work1-21 retain 32 KiB.
 Earlier work17 added count-only
 PID member summary1 while preserving
 PID1, Tag Data1/reference12/source4/SFC2/access2 summaries. Documented member
@@ -179,7 +182,7 @@ IDs resolve only within a content block; missing, invalid and duplicate IDs
 remain gaps. All edit versions stay separate. This uses another bounded XML pass
 over the same captured bytes, keeping existing inventory/reference results exact.
 Private text/JSON can be saved in an append-only workspace. Exit0/3 describes
-complete/partial structural capture, not complete Phase1 or valid execution.
+complete/partial structural capture, not complete Phase 1 or valid execution.
 
 `sfc-summary` publishes only closed counts and code revision under schema2/policy2.
 It contains no raw descriptors, values, source IDs or topology. The ordinary

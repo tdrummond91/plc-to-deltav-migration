@@ -2,16 +2,16 @@
 
 Status: updated 2026-10-15. Phase 1 includes source inventory, I/O declarations,
 reference bindings, routine-call candidates, SFC structure/notes, PID stored
-member evidence and a private offline source explorer. Returned `cbb2965`
-confirms all 175 new counter/message/system/SFC access instructions classified,
-with all 175 data operands bound and no new binding gaps. All 695 application
-cases passed (one expected skip), as did 139 helpers.
-The [CPT access integration](public/docs/reviews/CPT_ACCESS_REVIEW.md) adds
-possible destination writes and separately traced expression reads to Tag access.
-The next work-machine run checks its projected 45 CPT classifications and 132
-reads. Calculations remain unevaluated. Execution, dependencies and broader
+member evidence, calculations, rung structure and a private offline source
+explorer. Returned `f7d91f0` confirms 7,591 exact addresses and 4,286 rungs in
+1,489 operand-reuse patterns, with all eight earlier summaries unchanged.
+All 821 application cases passed (one expected skip), as did 139 helpers.
+The [conditional-output analysis](public/docs/reviews/CONDITION_REVIEW.md)
+adds source-ordered series/parallel guards and distinct OTE/OTL/OTU actions,
+while preserving unknown block behavior and binding gaps. Its next work-machine
+run measures those guards against the private source. Execution and broader
 engineering interpretation remain incomplete. Editable corrections, PCSD and
-FHX are later phases. Manual engineering/UI review remains optional.
+FHX are later phases. Automated analysis continues before team review.
 
 The development listener remains disabled and paused. Manual work-machine checks
 automatically commit the validated feedback report locally; fetching, pulling

@@ -1,6 +1,18 @@
 # Independently synthetic L5X fixture
 
-## Current relationship demonstration
+## Current condition demonstration
+
+`condition_review_demo.L5X` independently extends the relationship demo with 28
+invented rungs (120 total). Cases include nested series/parallel conditions,
+empty bypasses, outputs within legs, shared guards, repeated reads after writes,
+opaque block transfers, invalid signatures, identity gaps, comparison predicates,
+first-scan flags and module-root context. These exercise the analyzer; they are
+not validated controller logic or extracts from a plant export.
+
+The [HTML demo](../../examples/engineering-review-demo.html) now uses review9 and
+adds Conditional outputs. Earlier independent fixtures remain unchanged.
+
+## Historical relationship demonstration
 
 `relationship_review_demo.L5X` independently extends the earlier rung demo with
 20 invented rungs (92 total) and eight declarations. Cases cover exact aliases,

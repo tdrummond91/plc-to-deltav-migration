@@ -77,6 +77,11 @@
   const calculations = data.calculations || null, calculationOccurrences = calculations?.occurrences || [];
   const rungAnalysis = data.rung_analysis || null, analyzedRungs = rungAnalysis?.rungs || [];
   const relationships = data.relationships || null, addresses = relationships?.addresses || [];
+  const conditions = data.conditions || null, conditionalOutputs = conditions?.outputs || [];
+  const conditionNodes = conditions?.nodes || [], byConditionNode = new Map(conditionNodes.map(n=>[n.id,n]));
+  const conditionNodeOrder = new Map(conditionNodes.map((n,i)=>[n.id,i]));
+  const byConditionalOutput = new Map(conditionalOutputs.map(o=>[o.id,o]));
+  const outputsByRung = new Map(), outputsByAddress = new Map();
   const localLinks = relationships?.local_links || [], reusePatterns = relationships?.patterns || [];
   const byAddress = new Map(addresses.map(a=>[a.id,a])), byUseAddress = new Map();
   const byReusePattern = new Map(reusePatterns.map(p=>[p.id,p]));
@@ -151,6 +156,7 @@
     ['read_operand_ids','write_operand_ids','read_write_operand_ids','unknown_operand_ids','expression_use_ids'].forEach(key=>a[key].forEach(id=>byUseAddress.set(id,a)));
   });
   localLinks.forEach(l=>{add(linksByRung,l.rung_id,l);add(linksByAddress,l.address_id,l);});
+  conditionalOutputs.forEach(o=>{add(outputsByRung,o.rung_id,o);add(outputsByAddress,o.target_address_id,o);});
   tagElements.forEach(x => {add(tagContentElements,x.content_id,x);add(tagChildren,x.parent_id,x);});
   (tagData?.issues || []).forEach(x => add(tagIssues,x.content_id,x));
   entities.forEach(x => add(entityChildren, x.parent_id, x));
@@ -201,10 +207,12 @@
   headings.calculations=['Calculations','Read captured CPT expressions, their syntax grouping and source references. Expressions are not evaluated.'];
   headings.engineering=['Engineering analysis','Explore recognized instruction functions and possible purpose, with every rung accounted for and gaps kept in context.'];
   headings.relationships=['Address relationships','Follow exact expanded address spelling, its captured uses, and possible source-order calculation reuse.'];
+  headings.conditions=['Conditional outputs','Trace captured conditions leading to OTE, OTL and OTU instructions, with branch paths and unknown transfers kept visible.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
   if(relationships){labels.relationships='Address relationships';navCounts.relationships=addresses.length;}
+  if(conditions){labels.conditions='Conditional outputs';navCounts.conditions=conditionalOutputs.length;}
   if(access){labels.access='Tag access';navCounts.access=accessRoots.length;}
   if(tagData){labels.tagdata='Stored tag data';navCounts.tagdata=tagContents.length;}
   if(pid){labels.pid='PID evidence';navCounts.pid=pidOccurrences.length;}
@@ -318,7 +326,7 @@
       actions.append(prev,node('span','','Page '+(page+1)+' / '+Math.ceil(rows.length/PAGE_SIZE)),next);pager.append(status,actions);wrap.append(pager);
     }; render();return wrap;
   }
-  function openDetail(type,id,extra={}) { backStack.push({...state});state={...state,detail:{type,id},focusOperand:null,focusInstruction:null,focusCalculationNode:null,...(type==='pid'?{pidMemberQuery:'',pidMemberGroup:'all'}:{}),...extra};render(true); }
+  function openDetail(type,id,extra={}) { backStack.push({...state});state={...state,detail:{type,id},focusOperand:null,focusInstruction:null,focusCalculationNode:null,focusConditionNode:null,...(type==='pid'?{pidMemberQuery:'',pidMemberGroup:'all'}:{}),...extra};render(true); }
   function openSource(id) {
     if(byTagContent.has(id)){openDetail('tagcontent',id);return;}
     if(byTagElement.has(id)){openDetail('tagelement',id);return;}
@@ -345,6 +353,9 @@
   findings.forEach(f=>searchable(f,[f.code,f.message,f.origin,f.severity,f.locator,sourceName(f.source_id)]));
   accessRoots.forEach(r=>searchable(r,[entityName(r.target_id),entityPath(r.target_id)]));
   addresses.forEach(a=>searchable(a,[addressName(a),entityPath(a.target_id),addressProfile(a)]));
+  // One bounded label per output; never copy ancestor conditions or complete
+  // rung source into every coil's search record.
+  conditionalOutputs.forEach(o=>searchable(o,[o.opcode,conditionTargetName(o),sourceName(o.rung_id),conditionGuardLabel(o.guard_status),conditionActionLabel(o.action),human(o.target_status)]));
   localLinks.forEach(l=>searchable(l,[addressName(byAddress.get(l.address_id)),sourceName(l.rung_id),sourceName(l.producer_instruction_id),sourceName(l.consumer_instruction_id),l.read_kind==='expression'?'Expression read':'Operand read']));
   reusePatterns.forEach(p=>searchable(p,[rungName(byRung.get(p.representative_rung_id)),byRung.get(p.representative_rung_id)?.text,p.rung_ids.length>1?'Repeated operand reuse':'Single occurrence',p.address_variables+' address variables']));
   (relationships?.identity_gaps || []).forEach(g=>searchable(g,[byOperand.get(g.id)?.raw_text,byCalculationNode.get(g.id)?.raw_text,'Expanded suffix cannot form an address',g.kind]));
@@ -551,7 +562,81 @@
     rungs.append(table(['Rung'],a.rung_ids,id=>[sourceCell(id)],'Exact address rungs'));content.append(rungs);
     const local=linksByAddress.get(a.id)||[];
     if(local.length){const p=section('Possible local calculation reuse');p.append(localLinkNotice(),relationshipLinkTable(local,'Exact address local links'));content.append(p);}
+    const outputs=outputsByAddress.get(a.id)||[];
+    if(outputs.length){const p=section('Conditional coil outputs targeting this address','These are captured OTE, OTL or OTU occurrences, not proof of a physical output or process effect.');p.append(conditionalOutputTable(outputs,'Exact address conditional outputs'));content.append(p);}
     content.append(technical({'Address group ID':a.id,'Resolved declaration ID':a.target_id,'Identity rule':'Exact expanded spelling'}));
+  }
+  function conditionTargetName(o){
+    const address=byAddress.get(o.target_address_id);
+    return address?addressName(address):short(byOperand.get(o.target_operand_id)?.raw_text || '(target unresolved)',180);
+  }
+  function conditionGuardLabel(status){return ({modeled:'Modeled condition structure',binding_gaps:'Condition binding gaps',opaque:'Contains unknown transfer'})[status] || human(status);}
+  function conditionActionLabel(action){return ({assign_condition:'Assign incoming condition',set_if_true:'Set when true',clear_if_true:'Clear when true',unresolved:'Output signature unresolved'})[action] || human(action);}
+  function conditionTarget(o){
+    const a=byAddress.get(o.target_address_id);
+    return a?button('Address: '+addressName(a),()=>openDetail('address',a.id),'text-link'):primary(sourceCell(o.target_operand_id),human(o.target_status));
+  }
+  function conditionNotice(){return notice('Source condition structure for normal execution','Incoming rung context is retained as a symbolic input, not assumed to be true. Contacts and comparisons remain separate source occurrences; intervening writes can change later reads. This is not PLC simulation, scan-order proof, or an assessment of alarms, shutdowns or physical outputs. Prescan and postscan behavior are not modeled.');}
+  function conditionalOutputTable(rows,caption){return table(['Output occurrence','Target evidence','Normal-execution action','Condition evidence','Rung'],rows,o=>[
+    button(o.opcode+' · '+conditionTargetName(o),()=>openDetail('condition',o.id),'text-link'),conditionTarget(o),conditionActionLabel(o.action),conditionGuardLabel(o.guard_status),sourceCell(o.rung_id)
+  ],caption,{emptyTitle:'No conditional outputs in this selection',emptyDetail:'This layer covers captured OTE, OTL and OTU occurrences. Other instruction effects remain in their source and access views.'});}
+  function conditionsToolbar(){
+    toolbarFor('Search output targets, opcodes, rung context or condition quality',[['all','All output opcodes'],['OTE','OTE'],['OTL','OTL'],['OTU','OTU']]);
+    const label=node('label','filter-wrap','Condition quality'),select=node('select');select.setAttribute('aria-label','Condition quality');
+    [['all','All condition qualities'],['modeled','Modeled condition structure'],['binding_gaps','Condition binding gaps'],['opaque','Contains unknown transfer']].forEach(([v,t])=>{const option=node('option','',t);option.value=v;select.append(option);});
+    select.value=state.conditionQuality || 'all';select.addEventListener('change',()=>{state.conditionQuality=select.value;state.listPages={};renderList();});label.append(select);toolbar.querySelector('.toolbar').append(label);
+  }
+  function conditionsList(){
+    content.append(conditionNotice());
+    const summary=panel('Captured coil occurrences','Each row is one output instruction. A modeled guard describes syntax, not an approved engineering function.');
+    summary.append(values({'OTE / OTL / OTU occurrences':conditionalOutputs.length,'Modeled condition structure':conditionalOutputs.filter(o=>o.guard_status==='modeled').length,'Condition binding gaps':conditionalOutputs.filter(o=>o.guard_status==='binding_gaps').length,'Contains unknown transfer':conditionalOutputs.filter(o=>o.guard_status==='opaque').length,'Guards containing a branch join':conditions.coverage.outputs_with_branches}));content.append(summary);
+    content.append(conditionalOutputTable(conditionalOutputs.filter(o=>matches(o)&&(state.filter==='all'||o.opcode===state.filter)&&(!state.conditionQuality||state.conditionQuality==='all'||o.guard_status===state.conditionQuality)),'Conditional output occurrences'));
+  }
+  function reachableConditionNodes(guardId){
+    // Only the selected output is traversed. Shared subgraphs are visited once;
+    // no recursive formula expansion or per-output ancestor cache is created.
+    const seen=new Set(),pending=[guardId],rows=[];
+    while(pending.length){const id=pending.pop();if(seen.has(id))continue;seen.add(id);const n=byConditionNode.get(id);if(!n)continue;rows.push(n);for(const child of n.child_ids)if(!seen.has(child))pending.push(child);}
+    return rows.sort((a,b)=>conditionNodeOrder.get(a.id)-conditionNodeOrder.get(b.id));
+  }
+  function conditionNodeLabel(n){
+    if(n.kind==='entry')return 'Incoming rung context';
+    if(n.kind==='all')return 'All inputs must hold';
+    if(n.kind==='any')return 'Any branch input may hold';
+    const opcode=byInstruction.get(n.instruction_id)?.instruction.opcode || 'Instruction';
+    return n.kind==='predicate'?'Test '+opcode:'Unknown transfer through '+short(opcode,80);
+  }
+  function conditionDetail(o){
+    setDetailHeading('CONDITIONAL OUTPUT EVIDENCE',o.opcode+' · '+conditionTargetName(o),sourceName(o.rung_id));
+    content.append(conditionNotice());
+    const summary=panel('Output action',({assign_condition:'During normal execution, OTE writes 1 when its incoming condition is true and writes 0 when false.',set_if_true:'During normal execution, OTL sets its target when its incoming condition is true; a false condition leaves the target unchanged.',clear_if_true:'During normal execution, OTU clears its target when its incoming condition is true; a false condition leaves the target unchanged.',unresolved:'The captured output signature is unresolved. No target action is assigned.'})[o.action]);
+    summary.append(values({'Opcode':o.opcode,'Action':conditionActionLabel(o.action),'Guard quality':conditionGuardLabel(o.guard_status),'Target identity':human(o.target_status)}));
+    const links=node('div','inline-links');links.append(conditionTarget(o),sourceCell(o.target_operand_id),sourceCell(o.instruction_id),sourceCell(o.rung_id));summary.append(links);
+    const target=byEntity.get(byAddress.get(o.target_address_id)?.target_id);
+    if(['module_input_tag','module_output_tag'].includes(target?.kind))summary.append(node('p','row-note','Source declaration kind: '+human(target.kind)+'. This identifies module-tag context; a physical channel or process effect has not been confirmed.'));
+    content.append(summary);
+    const rows=reachableConditionNodes(o.guard_id),labels=new Map(rows.map((n,i)=>[n.id,'C'+(i+1)]));
+    const selectNode=id=>{state.focusConditionNode=id;render();};
+    const childLink=id=>button(labels.get(id)||'Condition',()=>selectNode(id),'text-link');
+    const graph=section('Condition structure','Each dependency appears once. All combines conditions in series; Any joins branch results, including empty bypass paths. An unknown transfer keeps its incoming condition as context without assuming Boolean AND behavior. Labels describe this selected guard only.');
+    graph.append(values({'Output guard':labels.get(o.guard_id)||'Unavailable','Distinct dependency nodes':rows.length}));
+    graph.append(table(['Node','Meaning / inputs','Source instruction','Evidence limits'],rows,n=>{
+      const meaning=node('div');meaning.append(node('div','cell-main',conditionNodeLabel(n)));
+      if(n.child_ids.length){const children=node('div','inline-links');children.append(node('span','muted',n.kind==='all'?'All of: ':n.kind==='any'?'Any of: ':'Incoming context: '));n.child_ids.slice(0,8).forEach(id=>children.append(childLink(id)));meaning.append(children);if(n.child_ids.length>8)meaning.append(button('Inspect all '+fmt(n.child_ids.length)+' inputs',()=>selectNode(n.id),'text-link'));}
+      if(n.operand_ids.length)meaning.append(node('div','cell-sub',n.operand_ids.slice(0,4).map(id=>short(byOperand.get(id)?.raw_text || '(blank)',80)).join(' · ')+(n.operand_ids.length>4?' · additional operands':'')));
+      return[button(labels.get(n.id),()=>selectNode(n.id),'text-link'),meaning,sourceCell(n.instruction_id),[n.has_opaque?'Contains unknown transfer':'',n.has_binding_gap?'Contains binding gap':'',n.reason?human(n.reason):''].filter(Boolean).join(' · ') || 'No gap from this rule'];
+    },'Output condition nodes'));content.append(graph);
+    const selected=byConditionNode.get(state.focusConditionNode);
+    if(selected&&labels.has(selected.id)){
+      const detail=section('Selected condition '+labels.get(selected.id),conditionNodeLabel(selected));
+      detail.append(values({'Node kind':human(selected.kind),'Includes a branch join':selected.has_branch?'Yes':'No','Reason':selected.reason?human(selected.reason):'No gap from this rule'}));
+      if(selected.instruction_id)detail.append(sourceCell(selected.instruction_id));
+      if(selected.child_ids.length)detail.append(table(['Input occurrence','Condition node','Meaning'],selected.child_ids,(id,i)=>[i+1,childLink(id),conditionNodeLabel(byConditionNode.get(id))],'Selected condition inputs'));
+      if(selected.operand_ids.length)detail.append(table(['Source operand','Exact address evidence','Occurrence identity'],selected.operand_ids,id=>[sourceCell(id),addressCell(id),technical({'Operand ID':id})],'Selected condition operands'));
+      detail.append(technical({'Condition node ID':selected.id,'Instruction ID':selected.instruction_id}));
+      detail.tabIndex=-1;content.append(detail);detail.focus();
+    }
+    content.append(technical({'Output ID':o.id,'Guard node ID':o.guard_id,'Instruction ID':o.instruction_id,'Evaluation scope':'Normal execution only'}));
   }
   function reusePatternDetail(p){
     setDetailHeading('OPERAND-REUSE PATTERN',fmt(p.rung_ids.length)+' rung'+(p.rung_ids.length===1?'':'s')+' with matching operand reuse',rungName(byRung.get(p.representative_rung_id)));
@@ -605,6 +690,7 @@
     return box;
   }
   function engineeringList(){
+    if(conditions){const conditional=panel('Follow conditions to coil outputs','Inspect the incoming conditions at OTE, OTL and OTU occurrences, with branch joins, bypasses and unmodeled transfers retained.');conditional.append(button('Explore conditional outputs',()=>go('conditions'),'text-link'));content.append(conditional);}
     if(relationships){const connected=panel('Follow relationships between blocks','Inspect exact address readers and writers, possible local calculation reuse, and patterns that retain repeated-address structure.');connected.append(button('Explore address relationships',()=>go('relationships'),'text-link'));content.append(connected);}
     const groups=[['identified','Recognized instruction functions'],['partial','Possible / partial functions'],['unclassified','Unclassified / unparsed']];
     const cards=node('div','cards engineering-groups');
@@ -695,6 +781,7 @@
     if(a.unknown_block_ids.length){const unknown=node('details','technical');unknown.append(node('summary','','Unresolved block functions ('+a.unknown_block_ids.length+')'),engineeringIdTable(a.unknown_block_ids,'Engineering unknown blocks'));uses.append(unknown);}
     if(a.result_kind==='no_known_result')uses.append(node('p','row-note','No known local result is an investigation candidate. This does not establish that the rung is dead, unused or unreachable.'));
     uses.append(node('p','row-note','A final lexical instruction is not necessarily a definite physical output. I/O candidates require separate module-root evidence.'));content.append(uses);
+    if(conditions){const outputs=section('Conditional coil outputs in this rung','Inspect the captured incoming condition for each output occurrence. Source ordering and condition structure do not establish runtime values or an engineering purpose.');outputs.append(conditionalOutputTable(outputsByRung.get(r.id)||[],'Rung conditional outputs'));content.append(outputs);}
     if(relationships){
       const related=section('Relationships in this rung');
       const pattern=byRungReuse.get(r.id);
@@ -1323,6 +1410,7 @@
     if(state.view==='overview')overview();
     else if(state.view==='engineering')engineeringList();
     else if(state.view==='relationships')relationshipsList();
+    else if(state.view==='conditions')conditionsList();
     else if(state.view==='objects')objectList();
     else if(state.view==='ladder')content.append(rungList());
     else if(state.view==='sfc')sfcList();
@@ -1346,6 +1434,7 @@
       else if(d.type==='finding')findingDetail(byFinding.get(d.id));
       else if(d.type==='access')accessDetail(byRootAccess.get(d.id));
       else if(d.type==='address')addressDetail(byAddress.get(d.id));
+      else if(d.type==='condition')conditionDetail(byConditionalOutput.get(d.id));
       else if(d.type==='reusepattern')reusePatternDetail(byReusePattern.get(d.id));
       else if(d.type==='tagcontent')tagContentDetail(byTagContent.get(d.id));
       else if(d.type==='tagelement')tagElementDetail(byTagElement.get(d.id));
@@ -1355,6 +1444,7 @@
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));
       if(state.view==='engineering')engineeringToolbar();
       else if(state.view==='relationships')relationshipsToolbar();
+      else if(state.view==='conditions')conditionsToolbar();
       else if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
       else if(state.view==='ladder')toolbarFor('Search rung text, comments or routine names',countsFilter(rungs,'parse_status'));
       else if(state.view==='sfc')toolbarFor('Search SFC routines, elements and source text');

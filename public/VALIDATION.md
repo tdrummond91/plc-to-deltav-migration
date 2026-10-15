@@ -2,7 +2,16 @@
 
 Prepared: 2026-10-08, planning revision 0.2.
 
-## Current relationship checkpoint (2026-10-15)
+## Current condition checkpoint (2026-10-15)
+
+See the [condition validation record](docs/reviews/CONDITION_REVIEW.md) for
+canonical evidence, private/public bounds, historical compatibility, independent
+review, browser checks, scale testing and actual isolated launcher runs. The
+latest real return `f7d91f0` confirms the prior relationship bundle with 821
+application cases (one expected skip) and 139 helpers. The next run measures
+conditional-output coverage; team feedback has not started.
+
+## Historical relationship checkpoint (2026-10-15)
 
 See the [relationship validation record](docs/reviews/RELATIONSHIP_REVIEW.md)
 for independent review, canonical artifact and summary comparisons, actual

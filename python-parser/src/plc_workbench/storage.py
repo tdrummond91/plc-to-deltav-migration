@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from .calculations import CalculationResult
     from .rung_analysis import RungAnalysisResult
     from .relationships import RelationshipResult
+    from .conditions import ConditionResult
     from .references import ReferenceResult
     from .sfc_structure import SfcStructureResult
     from .tag_data import TagDataResult
@@ -87,6 +88,7 @@ def save_run(
     calculations: CalculationResult | None = None,
     rung_analysis: RungAnalysisResult | None = None,
     relationships: RelationshipResult | None = None,
+    conditions: ConditionResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -111,6 +113,8 @@ def save_run(
             raise StorageError("Rung analysis records require a complete engineering review with calculation evidence.")
         if relationships is not None and (rung_analysis is None or not include_review):
             raise StorageError("Relationship records require a complete engineering review with rung evidence.")
+        if conditions is not None and (relationships is None or not include_review):
+            raise StorageError("Condition records require a complete engineering review with relationship evidence.")
         payload = result.to_dict()
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
@@ -150,7 +154,8 @@ def save_run(
                 review_data = build_review_data(snapshot, result, references, sfc_structure,
                                                 access=access, tag_data=tag_data, pid=pid,
                                                 pid_members=pid_members, calculations=calculations,
-                                                rung_analysis=rung_analysis, relationships=relationships)
+                                                rung_analysis=rung_analysis, relationships=relationships,
+                                                conditions=conditions)
                 review_html = render_review_html(review_data).encode("utf-8")
             except (ReviewError, ReviewHtmlError) as exc:
                 raise StorageError("Could not build the private engineering review report.") from exc
@@ -223,6 +228,13 @@ def save_run(
                 contents["relationships.json"] = render_relationships_json(relationships).encode("utf-8")
             except RelationshipError as exc:
                 raise StorageError("Could not render captured relationship records.") from exc
+        if conditions is not None:
+            from .conditions import ConditionError, render_conditions_json
+            try:
+                condition_payload = conditions.to_dict()
+                contents["boolean-conditions.json"] = render_conditions_json(conditions).encode("utf-8")
+            except ConditionError as exc:
+                raise StorageError("Could not render captured condition records.") from exc
         destination = _workspace_path(workspace)
         destination.mkdir(parents=True, exist_ok=True)
         if destination.resolve() != destination:
@@ -343,6 +355,15 @@ def save_run(
                 "analysis_scope": review_data["analysis_scope"],
                 "relationship_schema_version": relationship_payload["schema_version"],
                 "relationship_analyzer_version": relationship_payload["analyzer_version"],
+            })
+        if conditions is not None:
+            manifest.update({
+                "schema_version": 12,
+                "artifact_kind": "source_reference_sfc_access_tag_data_pid_member_calculation_rung_relationship_condition_review_run",
+                "status": "partial" if "partial" in (manifest["status"], condition_payload["status"]) else "complete",
+                "analysis_scope": review_data["analysis_scope"],
+                "condition_schema_version": condition_payload["schema_version"],
+                "condition_analyzer_version": condition_payload["analyzer_version"],
             })
         _write_artifact(
             destination, run_dir, ".manifest.pending",

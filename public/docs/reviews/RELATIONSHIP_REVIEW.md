@@ -1,5 +1,17 @@
 # Exact-address relationships and operand-reuse patterns
 
+## Confirmed automated result (2026-10-15)
+
+Returned `f7d91f0` tests clean `ddd087c`: 821 application cases passed (one
+expected skip) and 139 helpers. The source yields 7,591 exact address groups,
+3,778 used across rungs and 1,453 with multiple writers. All 132 CPT reads are
+indexed with no composed-suffix gaps. Operand-reuse patterns cover 4,286 rungs
+in 1,489 groups; 320 rungs have exclusions (128 unknown instruction roles, 192
+unresolved addresses). The narrow calculation rule found one local link while
+excluding 13,053 branched instructions. All eight earlier summaries match after
+revision normalization; all 30 historical reports validate. Continue with
+[Boolean conditions](CONDITION_REVIEW.md); no team review is requested.
+
 ## Why this layer follows rung analysis
 
 Returned `4a3406b` tests clean `938d72d`: 778 application cases passed with one

@@ -2,7 +2,29 @@
 
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current relationship contract (2026-10-15)
+## Current condition contract (2026-10-15)
+
+Private condition schema1 (`condition-analysis-1`) authenticates the full prior
+relationship1/rung1/access4/calculation2 and source evidence chain. Ordered DAG
+nodes preserve rung entry, predicate occurrences, ALL/ANY joins and opaque
+instruction transfers without expanding combinations or merging repeated reads.
+Each OTE/OTL/OTU record retains its incoming guard, normal-scan action and separate
+target status. No source values are evaluated and no final runtime result is
+claimed. Binding gaps and unmodeled transfer behavior remain distinct.
+
+Optional review9/manifest12 adds `boolean-conditions.json` as artifact16 while
+retaining the fourteen earlier non-HTML artifact bytes. All prior optional paths
+remain available. Private evidence is capped at 32 MiB with incremental record/ID
+budgets and native-only serialization; review9 retains 128 MiB JSON / 160 MiB HTML
+caps. Public condition summary1 contains closed counts only, capped at 4 KiB.
+
+Work24 reconciles those counts against source, opcode, rung and relationship
+populations. No names, graph IDs, operands, guard text or addresses enter that
+summary. Work22-24 permit 48 KiB outer reports; work1-21 retain 32 KiB. The normal
+runner commits only its new validated feedback file locally; Git network
+synchronization stays manual. See [condition review](../reviews/CONDITION_REVIEW.md).
+
+## Historical relationship contract (2026-10-15)
 
 Private relationship schema1 (`relationship-analysis-1`) authenticates snapshot,
 inventory, references, access4, calculation2 and rung-analysis1. Exact final-root
@@ -935,7 +957,7 @@ Include:
 - source references and relevant context;
 - proposed English, alternatives, uncertain tokens, and reason for abstention;
 - model/provider, prompt/glossary version, input digest, response provenance;
-- estimated confidence percent (0â€“100 or null);
+- estimated confidence percent (0-100 or null);
 - confidence basis (`model_estimate`, `rule_score`, `calibrated`, or unavailable);
 - status: proposed / unresolved / approved / corrected / rejected / deferred;
 - final reviewer-approved English and reviewer comment.

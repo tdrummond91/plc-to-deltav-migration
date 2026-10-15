@@ -166,6 +166,7 @@ class RungAnalysisWorkflowTests(unittest.TestCase):
             self.assertEqual(save.call_args.kwargs['rung_analysis'].to_dict(), parts[-1].to_dict())
             outcome.pop('diagnostic_sample')
             self.assertIsNotNone(outcome.pop('relationship_summary'))
+            self.assertIsNotNone(outcome.pop('condition_summary'))
             self.assertEqual(outcome, report()['analysis'])
             with patch('plc_workbench.rung_analysis.analyze_rungs', side_effect=RungAnalysisError('PRIVATE_FAILURE')):
                 code, output, error = invoke(['review', str(source), '--workspace', str(root / 'failed')])

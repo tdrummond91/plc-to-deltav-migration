@@ -402,10 +402,10 @@ class AccessWorkReportTests(unittest.TestCase):
             self.assertEqual((result['status'], result['failure_code'], result['private_run_saved']),
                              ('failed', 'summary_error', True))
             self.assertTrue(all(result[key] is None for key in
-                ('reference_summary', 'sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary', 'pid_member_summary', 'calculation_summary', 'rung_analysis_summary', 'relationship_summary', 'diagnostic_sample')))
+                ('reference_summary', 'sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary', 'pid_member_summary', 'calculation_summary', 'rung_analysis_summary', 'relationship_summary', 'condition_summary', 'diagnostic_sample')))
             result.pop('diagnostic_sample')
             payload = report(COMPLETE)
-            payload.update(schema_version=23, workflow_version='work-check-23', analysis=result, status='failed')
+            payload.update(schema_version=24, workflow_version='work-check-24', analysis=result, status='failed')
             self.assertNotIn('PRIVATE_SUMMARY', work_check.render_work_check_report(payload))
 
 
