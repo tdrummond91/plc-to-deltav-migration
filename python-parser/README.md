@@ -335,13 +335,14 @@ Report `2f37ae3`, testing clean `e17ceeb`, confirms 69 graph nodes, 68 pairs,
 node and no observed cycles. All 354 application cases (one skip) and 139 helpers
 pass; earlier counts are unchanged.
 
-Returned `42e0188` confirms 14 SFC contents, 145 steps, 155 transitions and
-324 links with all 648 endpoints resolved, plus 280 boxes/213 attachments and
-280 unknown elements. Earlier source/reference counts are unchanged. The next
-work12 run measures separate annotations and text-shape counts under SFC2.
-Immediate Text children may explain those unknowns; this is not yet confirmed.
-Private sfc-structure.json/txt remain under combined manifest3 (seven artifacts).
-Partial remains expected; runtime SFC logic and ST semantics remain unimplemented.
+Returned `90923ab` confirms SFC2 structural capture is complete for this export:
+280 recognized child-text boxes and 213 attachments with all 426 endpoints
+resolved. SFC issues fall from 280 to zero; all earlier reference, flow-link,
+ID and ST counts remain unchanged. The report passes 416 application cases
+(one skip) and 139 helpers. Private sfc-structure.json/txt remain under combined
+manifest3 (seven artifacts). Overall partial remains expected: runtime SFC logic,
+ST semantics and engineering classifications remain unimplemented. No repeat
+annotation-only work run is needed. See the [project-state assessment](../public/docs/reviews/PROJECT_STATE_REVIEW.md).
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in

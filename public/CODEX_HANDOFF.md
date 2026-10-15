@@ -9,16 +9,17 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `42e0188` validates SFC capture: 145 steps, 155 transitions, 324 links with all endpoints resolved, and 280 unknown elements. Earlier reference/graph counts stay unchanged. The new slice captures direct and child TextBox text plus separate annotation attachments, without assigning engineering descriptions. See the [annotation review](docs/reviews/SFC_ANNOTATION_REVIEW.md) and [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `90923ab` confirms SFC structural capture is complete for this export: all 280 text boxes are recognized, all 213 annotation attachments resolve, and SFC issues are zero. All earlier reference and SFC flow/ST counts remain unchanged. Phase 1 engineering interpretation is still incomplete. Read the [project-state assessment](docs/reviews/PROJECT_STATE_REVIEW.md), [annotation evidence](docs/reviews/SFC_ANNOTATION_REVIEW.md) and [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
 Current annotation validation: 512 development cases pass (one existing symlink
 skip), and 17 stored reports validate unchanged. Independent review has no
 remaining blockers after fixing repeated endpoint-payload rendering. Two actual
 synthetic launcher runs each pass 416 application cases (one skip) and 139
 helpers, preserving prior artifacts and making report-only local commits with
-no remote Git calls. Next real run measures note shapes and attachment statuses;
-280 unknowns becoming recognized Text children is an inference to test, not a
-confirmed source finding. See the annotation review for exact evidence.
+no remote Git calls. Returned `90923ab` now confirms all 280 unknowns were recognized Text children
+and all 213 attachments resolve. No repeat annotation-only run is needed. See
+the annotation review for exact evidence and the project-state assessment for
+remaining milestones.
 
 ## Development-only listener files (2026-10-14)
 

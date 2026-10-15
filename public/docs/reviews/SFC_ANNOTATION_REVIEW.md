@@ -127,3 +127,26 @@ unmodeled should fall from 280 to zero. Attachment resolution and text-shape
 counts remain unknown until returned. A structurally complete SFC result still
 does not establish runtime semantics or finish Phase 1. Keep listener execution
 disabled; local report commits are automatic and pull/push remain manual.
+
+## Returned annotation checkpoint (2026-10-14)
+
+Commit `90923ab` adds only
+`public/inspection/work-check-20261015T030020Z-8c576eed.json`, testing its clean
+parent `f8411bc`. The report validates with 416 application cases (one existing
+Windows symlink skip) and 139 helpers, all without failures/errors. A private
+run was saved, the diagnostic sample is null, and overall analysis stays partial.
+
+SFC2 is now structurally complete with zero issues for this export. All 280
+previously unknown elements are recognized text_box_text children. All 280 boxes
+are child_only, with 16,481 raw text characters. All 213 attachments resolve
+both endpoints (426 total), covering 213 distinct boxes and 213 distinct targets.
+There are 67 boxes without an attachment in this captured chart population;
+free-standing notes are supported and this does not itself imply a defect.
+Earlier SFC element totals, flow links, block IDs and ST counts are unchanged.
+The entire reference12/source4 summary is unchanged except code revision.
+
+This confirms the predicted compatibility correction and completes this bounded
+SFC structural/annotation slice. It does not prove source byte identity across
+runs, execute transition expressions, determine alarm effects, or complete
+Phase 1. No repeat annotation-only work-PC run is required. See the
+[project-state assessment](PROJECT_STATE_REVIEW.md) for the broader milestone.

@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/PROJECT_STATE_REVIEW.md,
 public/docs/reviews/SFC_ANNOTATION_REVIEW.md,
 public/docs/reviews/SFC_STRUCTURE_REVIEW.md,
 public/docs/reviews/ROUTINE_GRAPH_REVIEW.md,
@@ -219,7 +220,19 @@ or runtime reachability are inferred. Read ROUTINE_GRAPH_REVIEW.md. Returned
 helpers: 69 nodes/68 pairs/76 linked calls, three repeats/eight extras, three
 unique mains, one isolated node, no cycles/self edges. Earlier counts are stable.
 
-Returned `42e0188` tests clean `4b00f5a`: 399 application cases (one skip) and 139 helpers pass. SFC has 14 contents, 145 steps, 155 transitions, 324 links with all 648 endpoints resolved, 280 boxes, 213 attachments and 280 unknown elements; earlier reference counts are exact except revision. The current slice adds privateSFC2/publicSFC2/work12: immediate TextBox Text children and direct note text stay independent, while typed annotations resolve separately from control flow. No automatic engineering-description assignment or execution inference is introduced. Inventory3/reference6/analyzer9/source4/publicreference12 remain unchanged, as do manifest3 layout and ordinary manifests1/2. Historical work11/SFC1 remains exact. Read SFC_ANNOTATION_REVIEW.md. Next report should retain previous flow/ST/ID/reference counts and measure annotation/text shapes. The 280 unknown elements may be Text children, but that remains an inference until the run. Partial overall analysis remains expected.
+Returned `90923ab` tests clean `f8411bc`: 416 application cases (one skip) and
+139 helpers pass. The bounded SFC structural/annotation slice is complete for
+this export: 280 Text-child boxes, 213 attachments with all 426 endpoints
+resolved, zero SFC issues. All earlier reference and SFC flow/ID/ST counts are
+unchanged. The report-only commit has its tested revision as parent. Overall
+analysis remains partial; semantic/effect/member analysis remains unimplemented.
+No repeat annotation-only work-PC run is needed. Read SFC_ANNOTATION_REVIEW.md
+for confirmation and PROJECT_STATE_REVIEW.md for the independent state audit,
+next user-facing milestone and provisional iteration estimates. The recommendation
+is to bundle coherent improvements into a private engineering review package,
+using local synthetic validation before requesting another work-machine run.
+Preserve existing identity/provenance contracts and keep edits/correction survival
+as explicit future design work, not a capability implied by immutable snapshots.
 Continue authorized work until a specific evidence gap or phase boundary needs
 Tyler's input. Do not activate the listener or access confidential inputs.
 

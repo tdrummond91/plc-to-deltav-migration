@@ -1,6 +1,6 @@
 # Implementation roadmap and acceptance gates
 
-Status: source inventory, scoped root references and bounded summary exports implemented; later milestones remain proposals. Build small complete slices, each ending with a runnable command, a report, tests, and a handoff update. See [current implementation evidence](../reviews/SOURCE_REFERENCES_REVIEW.md).
+Status: Phase 1 source inventory, scoped root references, SFC structural/annotation capture and bounded summary exports are implemented. Returned `90923ab` confirms the current SFC structural slice with zero issues; engineering interpretation and Phases 2-5 remain open. See the [current state and provisional iteration estimates](../reviews/PROJECT_STATE_REVIEW.md). Build coherent complete slices with runnable reports, tests and handoff updates; batch related changes before requesting work-machine feedback.
 
 ## Confirmed product phases (2026-10-12)
 

@@ -1,6 +1,6 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. The next SFC-annotation check is on
+Use **main** for the consolidated baseline. The current Phase 1 work is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
@@ -62,14 +62,14 @@ cases (one skip) and 139 helpers. All 14 contents have absent edit-kind attribut
 280 text boxes, 213 attachments and 280 unknown elements; ST is 329 lines/5,390
 characters. Every earlier reference count stays unchanged.
 
-The next check uses work-check12, unchanged reference12/source4 and separate
-SFC summary2. It supports direct and immediate Text-child notes plus independent
-attachment resolution; earlier flow/ID/ST/reference counts should stay unchanged.
-The 280 unknowns may be Text children, which the run must confirm. Attachment
-statuses and text-shape counts are new and remain unknown. Raw notes/descriptors,
-ST and topology stay private in sfc-structure.json/txt. Overall partial remains
-expected. See [the annotation review](SFC_ANNOTATION_REVIEW.md).
-
+Latest annotation evidence: `90923ab` tests clean `f8411bc`, passing 416
+application cases (one skip) and 139 helpers. All 280 boxes have recognized
+Text children, all 213 attachments/426 endpoints resolve, and SFC structural
+status is complete with zero issues. Previous reference/flow/ID/ST counts stay
+unchanged. Overall partial remains expected because engineering interpretation
+is incomplete. No repeat annotation-only run is needed; wait for the next
+implementation checkpoint before rerunning. See [the confirmed annotation
+review](SFC_ANNOTATION_REVIEW.md) and [project state](PROJECT_STATE_REVIEW.md).
 
 ## Manual runs
 
