@@ -1,14 +1,20 @@
-# L5X engineering review, inventory, references and SFC structure
+# L5X engineering review, operand access, references and SFC structure
 
 ## Offline engineering review
 
-`plc review` builds the first organized, read-only engineering report from the
-existing source inventory, references and SFC evidence. Open its printed
+`plc review` builds an organized, read-only engineering report from the
+source inventory, references, explicit operand access and SFC evidence. Open its printed
 `review.html` path to search objects, follow source context, inspect findings,
 compare repeated rung syntax and navigate routine/SFC evidence. The report is
-self-contained and opens without a server. Its first work-machine review should
-focus on source context, navigation and appearance; engineering classifications
-and execution semantics remain later work.
+self-contained and opens without a server. Phase 1 now classifies potential
+explicit operand uses for 28 supported mnemonic spellings. These roles are not
+execution effects or dependencies, and root groups do not establish overlap
+between member/index suffixes. Engineering classifications remain later work.
+
+Tyler has not inspected the source/report and explicitly deferred engineering
+and UI review. Such inspection is optional later; it is not a gate to continued
+parser work. The next work-machine run should return only generated aggregate
+feedback for this access slice.
 
 ```bash
 uv run --project python-parser --locked plc review \
@@ -18,21 +24,53 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-manifest4 with eight hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
-references.json/txt, sfc-structure.json/txt and review.html. Existing plain
+review2/manifest5 with nine hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+references.json/txt, sfc-structure.json/txt, access.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
-`confidential/`. Read [the engineering-review checkpoint](../public/docs/reviews/ENGINEERING_REVIEW_REPORT.md).
+`confidential/`. Read [the access-role checkpoint](../public/docs/reviews/ACCESS_ROLE_REVIEW.md).
 
 The normal work-machine launcher also creates this report. Manually `git pull`,
-run `bash ./run-work-check.sh` (supply the local L5X filename if needed), inspect
-the printed HTML path and feedback JSON, then manually `git push`. The runner
+run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
+the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current validation is 535 development cases with one existing symlink
-skip, plus two actual synthetic launcher runs each passing 439 application cases
-(one skip) and 139 helpers. Canonical inventory/reference/SFC JSON and public
-counts match baseline `9cd65a4` on identical invented input, apart from revision
-metadata. See [the work-machine procedure](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+manual. Current development validation is 574 cases with one existing symlink
+skip. Two final synthetic launcher runs each pass 478 application cases (one
+skip) and 139 helpers, with nine artifact hashes and canonical access/review
+evidence verified and CLI HTML identical. Seven legacy artifacts are byte-identical
+to baseline `1332543` on the same invented input; source/reference/SFC summaries
+match after revision normalization. All 19 historical work1-12 reports validate. Returned
+`1332543` confirms the preceding review run tested clean `c36d10b`, passed 439
+application cases (one skip) and 139 helpers, and saved the private HTML report.
+Work13 adds access summary1 and private access1; reference12/source4/SFC2 and
+private inventory3/reference6/SFC2 retain their contracts. See
+[the work-machine procedure](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+## Explicit operand access
+
+The independent access analyzer consumes validated inventory/reference evidence
+and preserves existing instruction and operand identities. Its supported
+catalogue labels `read`, `write`, `read_write` and `non_data`; unsupported
+instructions and wrong/empty signatures retain `unknown` roles. It does not
+rebind unknown operands or infer effects for CPT, PID, timers, RES, COP/CPS,
+AOIs, JSR or ST. Every argument must be present and nonempty before any slot
+receives a known role.
+
+Only canonical `root_bound` occurrences enter the disjoint resolved-root groups.
+Read-write storage remains one occurrence, OTL/OTU are explicit writes, and MVM
+conservatively includes a destination read because unmasked bits are retained.
+No mask evaluation, member validation or source-to-destination dependency edges
+are added. A literal destination can retain a declared write role while remaining
+unbound; it is an access gap and never supplies bound write evidence.
+
+`access.json` is private schema1 (`instruction-access-1`). Its coverage accounts
+for all parsed instructions, operands by role/binding, linked and unlinked
+occurrences, indexed roots, unparsed rungs and known-access binding gaps.
+`analysis.access_summary` in work13 publishes only fixed metadata, status,
+revision and these counts, with no names, IDs, opcode histogram or topology.
+The source/reference contracts and standalone `references` output are unchanged.
+See [ACCESS_ROLE_REVIEW.md](../public/docs/reviews/ACCESS_ROLE_REVIEW.md) for exact
+scope, catalogue, validation and remaining work.
 
 ## Source inventory
 
@@ -303,7 +341,7 @@ same scope as the work-machine checks.
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. The feedback includes test counts, bounded
 code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 12 includes `diagnostic_sample`: one actual direct malformed
+Work-check schema 13 retains `diagnostic_sample`: one actual direct malformed
 operand, or a direct unresolved colon operand with no rack candidate when no
 eligible malformed sample exists. It retains at most 128 printable characters,
 a standard instruction and zero-based argument position; otherwise it is null.
@@ -319,9 +357,11 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema12 and carries unchanged reference12/source4 plus
-analysis.sfc_structure_summary (SFC schema2) when analysis succeeds. Historical work11 requires frozen SFC1.
-Historical schema-1/2/3/4/5/6/7/8/9/10 reports remain readable;
+The outer report is schema13 and carries unchanged reference12/source4 plus
+`analysis.sfc_structure_summary` (SFC schema2) and separate
+`analysis.access_summary` (access schema1) when analysis succeeds. Historical
+work12 retains SFC2 without access, and work11 requires frozen SFC1.
+Historical schema-1/2/3/4/5/6/7/8/9/10/11/12 reports remain readable;
 schemas 3/4/5/6/7/8/9 require references 5/6/7/8/9/10/11 respectively. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
@@ -376,8 +416,8 @@ Returned `90923ab` confirms SFC2 structural capture is complete for this export:
 resolved. SFC issues fall from 280 to zero; all earlier reference, flow-link,
 ID and ST counts remain unchanged. The report passes 416 application cases
 (one skip) and 139 helpers. That checkpoint saved private sfc-structure.json/txt
-under combined manifest3 (seven artifacts); current review runs use manifest4
-with the additional HTML artifact. Overall partial remains expected: runtime SFC logic,
+under combined manifest3 (seven artifacts); current review2 runs use manifest5
+with the additional access JSON and HTML artifacts. Overall partial remains expected: runtime SFC logic,
 ST semantics and engineering classifications remain unimplemented. No repeat
 annotation-only work run is needed. See the [project-state assessment](../public/docs/reviews/PROJECT_STATE_REVIEW.md).
 

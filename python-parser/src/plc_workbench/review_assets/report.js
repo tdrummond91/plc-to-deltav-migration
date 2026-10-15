@@ -4,6 +4,17 @@
   const PAGE_SIZE = 50;
   const data = JSON.parse(document.getElementById('review-data').textContent);
   const inv = data.inventory, refs = data.references, sfc = data.sfc;
+  const access = data.access || null;
+  const accessRoots = access?.roots || [];
+  const byOperandAccess = new Map((access?.operands || []).map(x => [x.id, x]));
+  const byInstructionAccess = new Map((access?.instructions || []).map(x => [x.id,x]));
+  const byRootAccess = new Map(accessRoots.map(x => [x.target_id, x]));
+  const accessGaps = (access?.instructions || []).filter(x => x.status !== 'classified');
+  // A known role is separate from a usable reference. Literal destinations and
+  // unresolved roots must remain inspectable even on classified instructions.
+  const accessBindingGaps = (access?.operands || []).filter(x =>
+    x.role==='read' ? !['root_bound','literal','system_flag'].includes(x.binding_status)
+      : ['write','read_write'].includes(x.role) && x.binding_status!=='root_bound');
   const entities = inv.entities || [], rungs = inv.rungs || [], operands = refs.operands || [];
   const elements = sfc.elements || [], patterns = data.patterns || [], findings = data.findings || [];
   const byEntity = new Map(entities.map(x => [x.id, x]));
@@ -39,8 +50,10 @@
     patterns:['Ladder patterns','Compare repeated syntax shapes. Matching opcode and branch structure does not establish equivalent behavior.'],
     findings:['Review findings','Trace capture and binding gaps to their source evidence. This queue is not an assessment of process safety.']
   };
+  headings.access=['Tag access','Find explicit operand reads and writes from supported ladder signatures. These are possible uses, not proof that an instruction executes.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
+  if(access){labels.access='Tag access';navCounts.access=accessRoots.length;}
   let state = {view:'overview',query:'',filter:'all',detail:null,contentId:null,listPages:{}};
   const backStack = [];
   const heading = document.getElementById('page-heading');
@@ -52,7 +65,7 @@
   function human(v) { return String(v || 'unknown').replace(/_/g,' '); }
   function short(v, max=120) { const s=String(v ?? ''); return s.length>max ? s.slice(0,max-1)+'…' : s; }
   function badge(v) {
-    const good=['complete','parsed','resolved','root_bound','literal','non_data','system_flag','info'].includes(v);
+    const good=['complete','parsed','resolved','root_bound','literal','non_data','system_flag','info','read','write','read_write','classified'].includes(v);
     const bad=['error','malformed','ambiguous','alias_cycle'].includes(v);
     return node('span','badge '+(good?'good':bad?'bad':'warn'),human(v));
   }
@@ -89,6 +102,9 @@
   }
   function sourceCell(id) { return id && (byEntity.has(id)||byRung.has(id)||byOperand.has(id)||byInstruction.has(id)||byElement.has(id)||byContent.has(id)) ? link(sourceName(id),id) : node('span','muted','No direct source link'); }
   function primary(main,secondary) { const d=node('div'); d.append(main instanceof Node?main:node('div','cell-main',main)); if(secondary)d.append(node('div','cell-sub',secondary)); return d; }
+  function accessCell(o) { return badge(byOperandAccess.get(o.id)?.role || 'unknown'); }
+  function roleIds(root,role) { return root[role+'_operand_ids'] || []; }
+  const accessRoles=['read','write','read_write','unknown'];
   function table(headers, rows, rowFn, caption, options={}) {
     const pageKey=(state.detail?state.detail.type+':'+state.detail.id+':'+(state.contentId||''):state.view)+':'+caption;
     const wrap=node('div'); let page=Math.min(state.listPages[pageKey]||0,Math.max(0,Math.ceil(rows.length/PAGE_SIZE)-1));
@@ -126,6 +142,9 @@
   rungs.forEach(r=>searchable(r,[r.number,r.text,r.comment,r.parse_status,entityPath(r.parent_id)]));
   patterns.forEach(p=>searchable(p,[p.shape,...(p.opcode_summary||[]).map(o=>o.opcode)]));
   findings.forEach(f=>searchable(f,[f.code,f.message,f.origin,f.severity,f.locator,sourceName(f.source_id)]));
+  accessRoots.forEach(r=>searchable(r,[entityName(r.target_id),entityPath(r.target_id)]));
+  accessGaps.forEach(i=>searchable(i,[i.opcode,i.status,sourceName(i.rung_id)]));
+  accessBindingGaps.forEach(o=>searchable(o,[byOperand.get(o.id)?.raw_text,o.role,o.binding_status,sourceName(o.rung_id)]));
   const sfcSearch = new Map();elements.forEach(e=>add(sfcSearch,e.routine_id,[e.kind,e.direct_text,...Object.values(e.attributes||{})].join(' ')));
   (sfc.routines || []).forEach(r=>searchable(r,[entityPath(r.routine_id),...(sfcSearch.get(r.routine_id)||[])]));
   function matches(row) { return !state.query || (searchIndex.get(row)||'').includes(state.query.toLocaleLowerCase()); }
@@ -139,19 +158,64 @@
   function countsFilter(rows,key) { const m=new Map();rows.forEach(r=>m.set(r[key],(m.get(r[key])||0)+1));return [['all','All types'],...Array.from(m).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([k,v])=>[k,human(k)+' ('+fmt(v)+')'])]; }
   function notice(title,text){const n=node('div','notice');const body=node('div');body.append(node('strong','',title),node('div','',text));n.append(node('span','notice-icon','i'),body);return n;}
   function overview() {
-    content.append(notice('A source review, ready for engineering interpretation','Browse captured evidence and follow exact references. Root bindings do not validate members or establish reads, writes, shutdown effects, alarm priority or sequence behavior.'));
+    content.append(notice('A source review, ready for engineering interpretation',access
+      ? 'Supported ladder operand roles now identify possible reads and writes. Root grouping does not establish member overlap, execution, shutdown effects, alarm priority or sequence behavior.'
+      : 'Browse captured evidence and follow exact references. Root bindings do not validate members or establish reads, writes, shutdown effects, alarm priority or sequence behavior.'));
     const cards=node('div','cards');
     [[entities.length,'Source objects',fmt(refs.symbols?.length)+' reference symbols'],[rungs.length,'Ladder rungs',fmt(data.statistics.parsed_rungs)+' parsed syntax trees'],[patterns.length,'Syntax patterns',fmt(data.statistics.repeated_pattern_groups)+' repeated group'+(data.statistics.repeated_pattern_groups===1?'':'s')],[findings.length,'Review findings','Capture and binding gaps']].forEach(([n,title,hint])=>{const card=node('div','metric');card.append(node('div','metric-label',title),node('div','metric-value',fmt(n)),node('div','metric-hint',hint));cards.append(card);});content.append(cards);
     const grid=node('div','grid-two'), capture=panel('Capture at a glance','Status applies to each capture scope. A complete structural result does not mean complete engineering analysis.');
     [['Source inventory',inv.status],['Reference bindings',refs.status],['SFC structure & annotations',sfc.status]].forEach(([title,status])=>{const row=node('div','status-row');row.append(node('span','',title),badge(status));capture.append(row);});
+    if(access){const row=node('div','status-row');row.append(node('span','','Explicit ladder operand roles'),badge(access.status));capture.append(row);}
     capture.append(node('p','row-note',fmt(bySfcRoutine.size)+' SFC routines · '+fmt((sfc.links||[]).length)+' structural links · '+fmt((sfc.annotations||[]).length)+' note attachments'));
     const start=panel('Start your review','Each view links back to the exact evidence in this captured source snapshot.');
     [['objects','Find an object','Inspect declarations, source descriptions and where operands refer to them.'],['patterns','Compare repeated ladder','Group repeated syntax and open each occurrence in its own context.'],['findings','Work through capture gaps','Inspect unresolved and unsupported evidence before choosing a correction.']].forEach(([view,title,detail])=>{const b=button('',()=>go(view),'jump-card');const copy=node('span');copy.append(node('strong','',title),node('small','',detail));b.append(copy,node('span','jump-arrow','→'));start.append(b);});
     grid.append(capture,start);content.append(grid);
+    if(access)content.append(button('Explore tag reads and writes',()=>go('access')));
     const meta=panel('Snapshot details','This report is read-only. IDs belong to this byte snapshot and are not persistent equipment or correction identities.');
     meta.append(values({'Source size':fmt(data.snapshot.size_bytes)+' bytes','SHA-256':data.snapshot.sha256,'Report format':data.report_version,'Inventory parser':inv.parser_version,'Reference analyzer':refs.analyzer_version,'SFC analyzer':sfc.analyzer_version}));content.append(meta);
   }
   function objectList(){const rows=entities.filter(e=>matches(e)&&(state.filter==='all'||e.kind===state.filter));content.append(table(['Object','Type','Scope','Description'],rows,e=>[primary(link(e.name || '(unnamed)',e.id),e.attributes?.DataType),human(e.kind),entityPath(e.scope_id),short(e.description || 'No description captured.')],'Source objects',{emptyTitle:'No objects match your search',emptyDetail:'Search by name, scope, description or attribute value.'}));}
+  function accessNotice() {
+    return notice('Explicit operand uses only','Reads and writes describe possible uses of supported ladder operand slots. Rung conditions, scan order, implicit status flags, SFC/ST code and unsupported instructions are not modeled. A shared root does not prove that members or array elements overlap. Missing accesses do not establish that a tag is unused or read-only.');
+  }
+  function accessList() {
+    content.append(accessNotice());
+    const c=access.coverage;
+    const totals=panel('Access coverage','Counts describe captured operand slots, not execution frequency or migration completeness.');
+    totals.append(values({'Classified instructions':c.instructions_by_status.classified,
+      'Instructions with unknown roles':accessGaps.length,'Operand slots':c.operands_total,
+      'Root-linked operand slots':c.linked_operands,'Known access roles without usable bindings':c.access_gap_operands,
+      'Unparsed rungs':c.unparsed_rungs}));content.append(totals);
+    const rows=accessRoots.filter(matches);
+    const roots=section('Resolved tag roots','Read/write is a separate category; it is not counted twice. Open a count to inspect its exact operands and suffixes.');
+    roots.append(table(['Root','Scope','Read','Write','Read/write','Unknown'],rows,r=>[
+      link(entityName(r.target_id),r.target_id),entityPath(byEntity.get(r.target_id)?.scope_id),
+      ...accessRoles.map(role=>button(fmt(roleIds(r,role).length),()=>openDetail('access',r.target_id,{accessRole:role}),'text-link'))
+    ],'Root access groups'));content.append(roots);
+    const bindingGaps=section('Known roles with unresolved access','A known instruction role does not make its operand a valid tag reference. These slots are excluded from the resolved-root groups.');
+    bindingGaps.append(table(['Operand','Role','Binding','Rung'],accessBindingGaps.filter(matches),a=>[
+      sourceCell(a.id),badge(a.role),badge(a.binding_status),sourceCell(a.rung_id)
+    ],'Unresolved operand accesses',{emptyTitle:'No unresolved access slots match',emptyDetail:'Unknown instruction roles are listed separately below.'}));content.append(bindingGaps);
+    const gaps=section('Instructions with unknown roles','These instructions may access data even when the reference parser cannot link their operands. Zero-argument instructions remain visible. Search also matches opcode and rung context.');
+    gaps.append(table(['Instruction','Rung','Access classification'],accessGaps.filter(matches),i=>[
+      link(i.opcode,i.id),sourceCell(i.rung_id),badge(i.status)
+    ],'Unclassified access instructions',{emptyTitle:'No unclassified instructions match',emptyDetail:'This does not cover uncaptured logic, implicit effects or languages outside ladder.'}));content.append(gaps);
+  }
+  function accessDetail(root) {
+    setDetailHeading('ROOT ACCESS',entityName(root.target_id),entityPath(byEntity.get(root.target_id)?.parent_id));
+    content.append(accessNotice(),sourceCell(root.target_id));
+    const box=node('div','toolbar'),label=node('label','filter-wrap','Operand role'),select=node('select');
+    select.setAttribute('aria-label','Access operand role');
+    [['all','All roles'],...accessRoles.map(r=>[r,human(r)])].forEach(([v,t])=>{const o=node('option','',t);o.value=v;select.append(o);});
+    select.value=state.accessRole || 'all';select.addEventListener('change',()=>{state.accessRole=select.value;render();});label.append(select);box.append(label);content.append(box);
+    const roles=state.accessRole && state.accessRole!=='all'?[state.accessRole]:accessRoles;
+    const rows=roles.flatMap(role=>roleIds(root,role)).map(id=>byOperand.get(id)).filter(Boolean);
+    content.append(table(['Operand','Role','Rung','Instruction / argument','Resolved suffix'],rows,o=>[
+      link(o.raw_text,o.id),accessCell(o),sourceCell(o.rung_id),
+      (byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),
+      node('span','mono',o.suffix || '(root operand)')
+    ],'Root access occurrences'));
+  }
   function rungList(rows=rungs.filter(r=>matches(r)&&(state.filter==='all'||r.parse_status===state.filter))){return table(['Rung','Routine / scope','Source preview','Parse status'],rows,r=>[link('Rung '+(r.number??r.ordinal),r.id),entityPath(r.parent_id),node('div','snippet',short(r.text,180)),badge(r.parse_status)],'Ladder rungs');}
   function objectDetail(e){
     setDetailHeading('SOURCE OBJECT',e.name || '(unnamed '+human(e.kind)+')',entityPath(e.parent_id));
@@ -162,20 +226,23 @@
     const ownRungs=entityRungs.get(e.id)||[];if(ownRungs.length){const p=section('Routine ladder');p.append(rungList(ownRungs));content.append(p);}
     const child=entityChildren.get(e.id)||[];if(child.length){const p=section('Child declarations');p.append(table(['Object','Type','Description'],child,x=>[link(x.name || '(unnamed)',x.id),human(x.kind),short(x.description || '')],'Child declarations'));content.append(p);}
     const aliases=entityAliases.get(e.id)||[];if(aliases.length){const p=section('Alias bindings','Declared alias targets and root-resolution results; suffixes have not been validated.');p.append(table(['Alias','Declared target','Binding','Resolved root'],aliases,a=>[sourceCell(a.source_id),node('span','mono',a.raw_target),badge(a.status),sourceCell(a.target_id)],'Alias bindings'));content.append(p);}
-    const p=section('Operand occurrences','Occurrences include the declared root, resolved target and traversed alias chain. They do not describe reads or writes.');
-    p.append(table(['Operand','Rung','Instruction / argument','Binding'],entityOperands.get(e.id)||[],o=>[link(o.raw_text,o.id),sourceCell(o.rung_id),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · argument '+(o.argument_index+1),badge(o.status)],'Object operand occurrences',{emptyTitle:'No captured operand occurrences',emptyDetail:'This does not establish that the object is unused; unsupported source or indirect expressions may refer to it.'}));content.append(p);
+    if(byRootAccess.has(e.id))content.append(button('Inspect root access occurrences',()=>openDetail('access',e.id,{accessRole:'all'})));
+    const p=section('Operand occurrences',access
+      ? 'Occurrences include the declared root, resolved target and traversed alias chain. Roles describe possible explicit operand use; they do not prove execution or member validity.'
+      : 'Occurrences include the declared root, resolved target and traversed alias chain. They do not describe reads or writes.');
+    p.append(table(['Operand','Rung','Instruction / argument','Binding',...(access?['Operand role']:[])],entityOperands.get(e.id)||[],o=>[link(o.raw_text,o.id),sourceCell(o.rung_id),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · argument '+(o.argument_index+1),badge(o.status),...(access?[accessCell(o)]:[])],'Object operand occurrences',{emptyTitle:'No captured operand occurrences',emptyDetail:'This does not establish that the object is unused; unsupported source or indirect expressions may refer to it.'}));content.append(p);
     content.append(technical({'Source ID':e.id,'Parent ID':e.parent_id,'Scope ID':e.scope_id,'XML location':e.locator}));
   }
   function rungDetail(r){
     setDetailHeading('LADDER SOURCE',rungName(r),entityPath(r.parent_id));
     const meta=node('div','detail-meta');meta.append(badge(r.parse_status),sourceCell(r.parent_id));content.append(meta);
-    if(state.focusOperand && byOperand.get(state.focusOperand)?.rung_id===r.id){const o=byOperand.get(state.focusOperand);content.append(notice('Selected operand · argument '+(o.argument_index+1),o.raw_text+' · '+human(o.status)));}
+    if(state.focusOperand && byOperand.get(state.focusOperand)?.rung_id===r.id){const o=byOperand.get(state.focusOperand);content.append(notice('Selected operand · argument '+(o.argument_index+1),o.raw_text+' · '+human(o.status)+(access?' · role: '+human(byOperandAccess.get(o.id)?.role):'')));}
     if(state.focusInstruction && byInstruction.get(state.focusInstruction)?.rung.id===r.id)content.append(notice('Selected instruction',byInstruction.get(state.focusInstruction).instruction.opcode));
     const text=panel('Rung text','Exact captured ladder source. No execution behavior is inferred.');text.append(sourceText(r.text));content.append(text);
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
-    const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status'],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status)],'Parsed rung instructions'));content.append(inst);
+    const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
     const ops=section('Operand bindings','Root resolution is source evidence only. A binding does not validate a member, array bound, data type or instruction effect.');
-    ops.append(table(['Operand','Instruction / argument','Binding','Declared / resolved root'],rungOperands.get(r.id)||[],o=>{const root=node('div','inline-links');if(o.symbol_id)root.append(sourceCell(o.symbol_id));if(o.target_id && o.target_id!==o.symbol_id)root.append(node('span','','→'),sourceCell(o.target_id));if(!root.childNodes.length)root.append(node('span','muted',human(o.reason || 'No root binding')));return[node('span','mono',o.raw_text),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),primary(badge(o.status),o.reason?human(o.reason):''),root];},'Rung operand bindings'));content.append(ops);
+    ops.append(table(['Operand','Instruction / argument','Binding','Declared / resolved root',...(access?['Operand role']:[])],rungOperands.get(r.id)||[],o=>{const root=node('div','inline-links');if(o.symbol_id)root.append(sourceCell(o.symbol_id));if(o.target_id && o.target_id!==o.symbol_id)root.append(node('span','','→'),sourceCell(o.target_id));if(!root.childNodes.length)root.append(node('span','muted',human(o.reason || 'No root binding')));return[node('span','mono',o.raw_text),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),primary(badge(o.status),o.reason?human(o.reason):''),root,...(access?[accessCell(o)]:[])];},'Rung operand bindings'));content.append(ops);
     const pattern=routinePatterns.get(r.id);if(pattern)content.append(button('Open syntax pattern · '+fmt(pattern.count)+' occurrences',()=>openDetail('pattern',pattern.id)));
     const structure=node('details','technical');structure.append(node('summary','','Parsed branch structure'),sourceText(JSON.stringify(r.structure,null,2)));content.append(structure,technical({'Source ID':r.id,'Routine ID':r.parent_id,'Scope ID':r.scope_id,'XML location':r.locator}));
   }
@@ -259,6 +326,7 @@
     else if(state.view==='sfc')sfcList();
     else if(state.view==='patterns')patternList();
     else if(state.view==='findings')findingsList();
+    else if(state.view==='access')accessList();
   }
   function render(focus=false){
     heading.replaceChildren();toolbar.replaceChildren();content.replaceChildren();
@@ -271,6 +339,7 @@
       else if(d.type==='element')elementDetail(byElement.get(d.id));
       else if(d.type==='pattern')patternDetail(byPattern.get(d.id));
       else if(d.type==='finding')findingDetail(byFinding.get(d.id));
+      else if(d.type==='access')accessDetail(byRootAccess.get(d.id));
     }else{
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));
       if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
@@ -278,6 +347,7 @@
       else if(state.view==='sfc')toolbarFor('Search SFC routines, elements and source text');
       else if(state.view==='patterns')toolbarFor('Search opcode or syntax shape',[['all','All patterns'],['repeated','Repeated patterns'],['single','Single occurrences']]);
       else if(state.view==='findings')toolbarFor('Search finding codes, source context or detail',countsFilter(findings,'origin'));
+      else if(state.view==='access')toolbarFor('Search root names, scopes, opcodes or rung context');
       renderList();
     }
     if(focus){document.getElementById('main').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}

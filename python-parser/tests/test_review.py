@@ -8,6 +8,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
+from plc_workbench.access import analyze_access
 from plc_workbench.references import analyze_references
 from plc_workbench.review import (
     ReviewError, build_review_data, render_review_json, validate_review_data,
@@ -35,6 +36,50 @@ def fixture(texts: tuple[str, ...] = ('XIC(A)OTE(B);',), *, tags: str = '',
 
 
 class ReviewTests(unittest.TestCase):
+    def test_access_review_keeps_original_evidence_and_legacy_default_exact(self) -> None:
+        args = fixture(('XIC(A)OTE(B);', 'MOV(B,A);'))
+        original = build_review_data(*args)
+        access = analyze_access(args[1], args[2])
+        enriched = build_review_data(*args, access=access)
+        self.assertEqual(enriched['schema_version'], 2)
+        self.assertEqual(enriched['report_version'], 'engineering-review-2')
+        self.assertEqual(enriched['access'], access.to_dict())
+        for field in ('inventory', 'references', 'sfc', 'patterns', 'findings', 'statistics'):
+            self.assertEqual(enriched[field], original[field])
+        self.assertNotIn('access', original)
+        self.assertEqual(build_review_data(*args), original)
+        validate_review_data(*args, enriched, access=access)
+        with self.assertRaises(ReviewError):
+            validate_review_data(*args, enriched)
+
+    def test_access_is_replayed_and_forged_roles_roots_or_metadata_are_rejected(self) -> None:
+        args = fixture(('XIC(A)OTE(B);',))
+        access = analyze_access(args[1], args[2])
+        forged = deepcopy(access)
+        forged.operands[0]['role'] = 'write'
+        cycle: list = []
+        cycle.append(cycle)
+        for candidate in (forged, replace(access, roots=[]),
+                          replace(access, schema_version=True),
+                          replace(access, operands=cycle), True):
+            with self.subTest(candidate=type(candidate)), self.assertRaises(ReviewError):
+                build_review_data(*args, access=candidate)
+        data = build_review_data(*args, access=access)
+        data['access']['operands'][0]['role'] = 'write'
+        with self.assertRaises(ReviewError):
+            validate_review_data(*args, data, access=access)
+
+    def test_invalid_destination_role_makes_enriched_review_partial(self) -> None:
+        args = fixture(('MOV(A,12);',))
+        access = analyze_access(args[1], args[2])
+        self.assertEqual(access.status, 'partial')
+        data = build_review_data(*args, access=access)
+        self.assertEqual(data['status'], 'partial')
+        destination = data['access']['operands'][1]
+        self.assertEqual((destination['role'], destination['binding_status']), ('write', 'literal'))
+        self.assertIsNone(destination['target_id'])
+        self.assertEqual(data['access']['coverage']['access_gap_operands'], 1)
+
     def test_exact_pattern_groups_ignore_values_but_preserve_order_branches_case_arity(self) -> None:
         args = fixture(('XIC(A)OTE(B);', 'XIC(B)OTE(A);', 'OTE(B)XIC(A);',
                         '[XIC(A),XIO(B)]OTE(B);', '[XIO(B),XIC(A)]OTE(B);',

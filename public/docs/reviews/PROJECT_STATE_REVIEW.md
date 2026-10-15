@@ -1,12 +1,36 @@
-# Project state after the returned SFC annotation run
+# Project state: explicit operand access and prior SFC assessment
 
-Follow-up milestone: the [offline source-review package](ENGINEERING_REVIEW_REPORT.md)
-is now implemented and locally validated, awaiting the next work-machine run
-and Tyler's content/navigation/appearance review. This delivers the organized
-evidence browser portion of the recommendation below. Conservative access
-roles and dependency interpretation remain outstanding. The assessment and
-iteration ranges below are preserved as the preceding checkpoint, not a new
-estimate after actual-unit report feedback.
+Current milestone (2026-10-14): [explicit operand access](ACCESS_ROLE_REVIEW.md)
+is implemented for 28 supported mnemonic spellings alongside the
+[offline source-review package](ENGINEERING_REVIEW_REPORT.md). Roles describe
+potential explicit reads, writes, read-writes and non-data uses; unsupported or
+invalid signatures remain unknown. Existing root bindings are grouped without
+claiming member/index overlap, execution effects or dependencies. This advances
+Phase 1 interpretation while preserving its stated limits.
+
+Returned [work report `1332543`](../../inspection/work-check-20261015T041710Z-a3c2dc50.json)
+confirms the preceding review package: clean tested `c36d10b`, 439 application
+cases (one skip), 139 helpers and a saved private HTML report. Tyler has not
+inspected the source/report and explicitly deferred engineering and UI review.
+That optional later review is not a gate to continued parser work. The next
+work-machine run is needed for this access slice; only its generated aggregate
+feedback is required, without familiar-tag or SFC manual checks.
+
+Current development validation is 574 cases with one existing symlink skip;
+two final synthetic launcher runs each pass 478 application cases (one skip)
+and 139 helpers. Both verify manifest hashes, canonical access/review evidence
+and identical CLI HTML. Seven legacy artifacts match baseline `1332543` byte
+for byte on the same invented input, source/reference/SFC summaries match after
+revision normalization, and all 19 historical work1-12 reports validate. Work13 adds
+access summary1 beside unchanged reference12/source4/SFC2. Private access1 and
+review2 use manifest5 with nine hashed artifacts. Historical contracts remain
+readable. See [ACCESS_ROLE_REVIEW.md](ACCESS_ROLE_REVIEW.md) for current evidence
+and remaining access limitations.
+
+The assessment and iteration ranges below are preserved as the preceding SFC
+checkpoint, not a new estimate after access coverage or deferred UI feedback.
+
+## Historical assessment after the returned SFC annotation run
 
 Assessment date: 2026-10-14. Reviewed code/report HEAD: `90923ab`, whose only
 change is the work-machine feedback from clean parent `f8411bc`. Tyler requested
@@ -34,7 +58,7 @@ semantics or complete Phase 1. No repeat annotation-only run is needed.
 
 | Phase | Current position |
 |---|---|
-| 1: Understand L5X | Source-evidence foundation is implemented and repeatedly checked against this unit. Engineering interpretation and organized review still need substantial work. |
+| 1: Understand L5X | At this historical SFC checkpoint, source evidence was implemented and repeatedly checked against this unit. The current milestone above adds organized review and initial explicit operand roles; broader engineering interpretation remains. |
 | 2: Editable files/editor | Proposed. Raw private JSON exists, but a nonprogrammer editing workflow and persistent engineering-object store are not implemented. |
 | 3: Naming and corrections | Proposed. Target naming, approved interpretation overlays and preservation of decisions across changing sources are not implemented. |
 | 4: PCSD and feedback | Proposed. PCSD/test sheets and upstream correction import are not implemented. |
@@ -63,10 +87,12 @@ still requires investigation.
 
 ## Recommended next milestone and batching
 
-Build a private, navigable engineer-review package using existing evidence:
+The historical recommendation was to build a private, navigable engineer-review package using existing evidence:
 routine/SFC hierarchy, object/reference lookup, grouped pattern occurrences and
 an unresolved-work queue. Add a first conservative set of instruction access
 roles and dependency views with evidence links and explicit unknown effects.
+The current package and role layer now cover the first parts of that recommendation;
+dependency interpretation remains future work and deferred manual review is not a prerequisite.
 This can be generated locally through the library/CLI before committing to the
 standalone editor's storage and packaging design.
 

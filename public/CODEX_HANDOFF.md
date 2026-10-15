@@ -1,32 +1,44 @@
 # Codex handoff: PLC analysis workbench
 
-Current checkpoint (2026-10-14): **the first read-only, organized offline
-engineering review report is implemented and ready for a work-machine run**.
-The normal launcher now prints the private `review.html` path. Use it to review
-source context, navigation, findings, repeated rung syntax, routine declarations
-and SFC structure/annotations, and to judge the report's appearance and usefulness.
-Engineering classifications and execution semantics remain later work. Read
-[ENGINEERING_REVIEW_REPORT.md](docs/reviews/ENGINEERING_REVIEW_REPORT.md) first,
-then the [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+Current checkpoint (2026-10-14): **Phase 1 explicit instruction operand access
+roles are implemented for 28 supported mnemonic spellings**. The private review
+now links possible reads, writes, read-writes and unknown uses to existing
+operand occurrences and resolved roots. These are potential explicit uses,
+not execution effects or dependencies; grouped roots do not establish overlap
+between member/index suffixes. Read
+[ACCESS_ROLE_REVIEW.md](docs/reviews/ACCESS_ROLE_REVIEW.md) first, then the
+[work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+Returned `1332543` confirms the preceding offline-review run: clean `c36d10b`,
+439 application cases (one skip), 139 helpers and a saved private HTML report.
+Tyler has not inspected the source/report and has explicitly deferred engineering
+and UI review. That review is optional later and is not a gate to continued
+parser work. The next work-machine run is required to measure this access slice;
+only its generated aggregate feedback is needed.
 
 On the current `feat/bounded-operand-example-pc` branch, manually `git pull`,
 run `bash ./run-work-check.sh` (supply `A19CHL02-unencrypted.L5X` if the checkout
-has no remembered source), inspect the printed HTML path, then manually
+has no remembered source), then manually
 `git push` to return the automatically committed bounded feedback report.
 Keep the HTML, source and engineering artifacts under `confidential/`.
 Standalone generation is `uv run --project python-parser --locked plc review
 FILE --workspace PRIVATE_DIRECTORY`; `--workspace` is required and exit 3 means
 a usable partial report was saved.
 
-Current validation: 535 development cases pass with one existing symlink skip.
-Two actual synthetic launcher runs each pass 439 application cases (one skip)
-and 139 helpers. They verify report-only local commits, tested-parent pinning,
-preserved inputs/prior runs and no remote Git calls. CLI review output matches
-the work-run HTML; its embedded evidence matches the saved canonical JSON.
-Review runs use manifest4 with eight hashed artifacts, adding `review.html`.
-Plain reference runs retain manifest2 and standalone SFC runs retain manifest3.
-Inventory/reference/SFC JSON and their public summaries remain identical to
-baseline `9cd65a4` for the same invented input, apart from revision metadata.
+Current development validation: 574 cases pass with one existing symlink skip.
+Two final synthetic launcher runs each pass 478 application cases (one skip)
+and 139 helpers. Both verify all nine manifest hashes, canonical review/access
+evidence and identical CLI HTML. On the same invented input, seven legacy
+artifacts match baseline `1332543` byte for byte; source/reference/SFC summaries
+match after revision normalization. All 19 historical work1-12 reports validate.
+Work13 adds a
+separate count-only access summary1; private access1 and review2 are saved under
+manifest5 with nine hashed artifacts, including `access.json` and `review.html`.
+Public reference12/source4/SFC2 and private inventory3/reference6/SFC2 stay
+unchanged. Plain reference runs retain manifest2 and standalone SFC runs retain
+manifest3; historical review1/manifest4 runs remain readable. The
+[preceding review checkpoint](docs/reviews/ENGINEERING_REVIEW_REPORT.md) retains
+its original validation evidence.
 
 Current listener hold (2026-10-14): Tyler reported repeated endpoint-security
 alerts involving bash.exe after the work-machine check of `1419af7`. The local
@@ -138,8 +150,9 @@ schema 6 carries reference 8 with MVM/SWPB roles and schema 7 carries
 reference 9 with observation-only routine-instruction shapes. Schema 8
 carries reference 10 with declared JSR first-field candidates; schema 9
 carries reference 11 with unique-candidate metadata observations. Schema
-10 carries reference 12 with static candidate graph counts. Current schema12
-keeps reference12 and carries separate SFC-structure summary2; frozen work11 retains SFC1.
+10 carries reference 12 with static candidate graph counts. Current schema13
+keeps reference12 and SFC-structure summary2 and adds separate access summary1;
+frozen work12 retains the prior fields, and frozen work11 retains SFC1.
 Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
@@ -177,18 +190,20 @@ now describe unknown backing instead of omitted declarations. The sample is null
 
 Current contracts: private inventory/reference schemas 3/6 with
 `source-inventory-3` / `source-references-9`; public source/reference schemas 4/12;
-work-check schema12 with separate private SFC schema2 / sfc-structure-2 and public SFC summary2. Plain
+work-check schema13 with separate access summary1, private access1 /
+instruction-access-1, and private SFC schema2 / sfc-structure-2 with public SFC summary2. Plain
 reference runs retain manifest2; standalone SFC runs retain manifest3. Combined
-review work runs use manifest4 with SFC JSON/text and `review.html`, eight hashed
-artifacts in total. Inventory/reference JSON retain their exact structures:
+review work runs use review2/manifest5 with SFC JSON/text, `access.json` and
+`review.html`, nine hashed artifacts in total. Inventory/reference JSON retain their exact structures:
 private reference JSON includes
 canonical routine_targets occurrences and routine_graph; public output contains closed counts only. Historical public
 reports still validate with exact original status vocabularies. Work schema 3
 still requires reference 5, work schema 4 requires reference 6, and work schema
 5 requires reference 7, work schema 6 requires reference 8 and work schema 7
 requires reference 9; work schema 8 requires reference 10 and work schema 9
-requires reference 11. Work10/11/12 require reference12; work11/12 have SFC
-summary siblings1/2 respectively. Read [SFC review](docs/reviews/SFC_STRUCTURE_REVIEW.md)
+requires reference 11. Work10/11/12/13 require reference12; work11/12 have SFC
+summary siblings1/2 respectively, and work13 adds access summary1 beside SFC2.
+Read [SFC review](docs/reviews/SFC_STRUCTURE_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 
 Rack validation: 316 development application/workflow tests passed (one existing

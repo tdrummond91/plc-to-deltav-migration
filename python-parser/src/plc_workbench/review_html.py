@@ -22,8 +22,10 @@ class ReviewHtmlError(ValueError):
 
 def _payload(data: dict[str, Any]) -> str:
     if (type(data) is not dict or type(data.get('schema_version')) is not int
-            or data.get('schema_version') != 1
-            or data.get('report_version') != 'engineering-review-1'
+            or (data.get('schema_version'), data.get('report_version')) not in
+               ((1, 'engineering-review-1'), (2, 'engineering-review-2'))
+            or (data.get('schema_version') == 1 and 'access' in data)
+            or (data.get('schema_version') == 2 and type(data.get('access')) is not dict)
             or any(type(data.get(key)) is not dict
                    for key in ('snapshot', 'inventory', 'references', 'sfc', 'statistics'))
             or any(type(data.get(key)) is not list for key in ('patterns', 'findings'))):
@@ -95,7 +97,7 @@ _TEMPLATE = '''<!doctype html>
 <span class="topbar-badge">Read-only source evidence</span></header>
 <main id="main" tabindex="-1"><div id="page-heading"></div>
 <div id="toolbar"></div><div id="content"></div></main>
-<footer>Source structure and reference bindings only. Effects, safety behavior and engineering meaning require review.</footer>
+<footer>Captured source evidence. Effects, safety behavior and engineering meaning require review.</footer>
 </div></div><noscript><p class="noscript">Enable JavaScript to navigate this offline report. The private JSON artifact in the same run contains the underlying evidence.</p></noscript>
 <script type="application/json" id="review-data">__PAYLOAD__</script>
 <script>__APP__</script></body></html>'''

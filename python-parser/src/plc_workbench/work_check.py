@@ -20,6 +20,8 @@ import traceback
 from typing import Any
 from uuid import uuid4
 
+from .access import analyze_access
+from .access_summary import build_access_summary, validate_access_summary
 from .diagnostic_sample import (
     MALFORMED_SAMPLE_KIND, UNMATCHED_COLON_SAMPLE_KIND,
     build_diagnostic_sample, validate_diagnostic_sample,
@@ -46,7 +48,8 @@ _V8_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 8, "workflow_version": "w
 _V9_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 9, "workflow_version": "work-check-9"}
 _V10_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 10, "workflow_version": "work-check-10"}
 _V11_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 11, "workflow_version": "work-check-11"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 12, "workflow_version": "work-check-12"}
+_V12_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 12, "workflow_version": "work-check-12"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 13, "workflow_version": "work-check-13"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _GIT_REPOSITORY_OVERRIDES = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
@@ -75,7 +78,7 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = {"diagnostic_sample"} if version >= 2 else set()
@@ -96,7 +99,8 @@ def validate_work_check_report(report: Any) -> None:
     tests_passed = all(result["status"] == "passed" for result in report["tests"].values())
     analysis = report["analysis"]
     _keys(analysis, {"status", "failure_code", "private_run_saved", "reference_summary"}
-          | ({"sfc_structure_summary"} if version >= 11 else set()))
+          | ({"sfc_structure_summary"} if version >= 11 else set())
+          | ({"access_summary"} if version >= 13 else set()))
     if type(analysis["private_run_saved"]) is not bool or type(analysis["status"]) is not str:
         _invalid()
     if analysis["status"] in ("complete", "partial"):
@@ -104,23 +108,43 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
             expected_analysis = "partial" if "partial" in (nested["status"], sfc["status"]) else "complete"
+        if version >= 13:
+            access = analysis["access_summary"]
+            validate_access_summary(access)
+            coverage = access["coverage"]
+            reference_coverage = nested["coverage"]
+            if (access["schema_version"] != 1 or access["tool_revision"] != revision
+                    or coverage["instructions_total"] != reference_coverage["instructions_total"]
+                    or coverage["instructions_total"] != nested["source_summary"]["counts"]["instructions"]
+                    or coverage["instructions_by_status"]["classified"] > reference_coverage["instructions_catalogued"]
+                    or coverage["operands_total"] != nested["operands"]["total"]
+                    or coverage["operands_by_role"]["non_data"] > nested["operands"]["by_status"]["non_data"]
+                    or coverage["source_rungs"] != reference_coverage["rungs_total"]
+                    or coverage["source_rungs"] != nested["source_summary"]["counts"]["rungs"]
+                    or coverage["unparsed_rungs"] != reference_coverage["rungs_total"] - reference_coverage["rungs_analyzed"]
+                    or coverage["linked_operands"] != nested["operands"]["by_status"]["root_bound"]
+                    or coverage["indexed_roots"] > nested["symbols"]["total"]):
+                _invalid()
+            expected_analysis = "partial" if "partial" in (expected_analysis, access["status"]) else "complete"
         if expected_analysis != analysis["status"] or nested["source_summary"]["tool_revision"] != revision:
             _invalid()
     elif analysis["status"] == "failed":
         if (not tests_passed or type(analysis["failure_code"]) is not str
-                or analysis["failure_code"] not in (_FAILURE_CODES | ({"sfc_structure_error"} if version >= 11 else set())) or analysis["reference_summary"] is not None):
+                or analysis["failure_code"] not in (_FAILURE_CODES
+                    | ({"sfc_structure_error"} if version >= 11 else set())
+                    | ({"access_error"} if version >= 13 else set())) or analysis["reference_summary"] is not None):
             _invalid()
         if analysis["private_run_saved"] and analysis["failure_code"] not in ("summary_error", "unexpected_error"):
             _invalid()
@@ -130,6 +154,8 @@ def validate_work_check_report(report: Any) -> None:
     else:
         _invalid()
     if version >= 11 and analysis["status"] in ("failed", "not_run") and analysis["sfc_structure_summary"] is not None:
+        _invalid()
+    if version >= 13 and analysis["status"] in ("failed", "not_run") and analysis["access_summary"] is not None:
         _invalid()
     expected = "failed" if not tests_passed or analysis["status"] == "failed" else (
         "partial" if analysis["status"] == "partial" else "passed"
@@ -148,7 +174,7 @@ def validate_work_check_report(report: Any) -> None:
             if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
                 # This fallback needs dedicated rack evidence. Historical v2
                 # reports retain their original malformed-only sample contract.
-                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12)}
+                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12)}
                         or nested["rack_candidates"]["matches"]["direct_operands"]
                         ["by_status"]["no_candidate_match"] == 0):
                     _invalid()
@@ -346,7 +372,8 @@ def _run_suite(root: Path, logs: Path, suite: str) -> dict[str, Any]:
 
 def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> dict[str, Any]:
     result: dict[str, Any] = {"status": "failed", "failure_code": "read_error", "private_run_saved": False,
-                              "reference_summary": None, "sfc_structure_summary": None, "diagnostic_sample": None}
+                              "reference_summary": None, "sfc_structure_summary": None,
+                              "access_summary": None, "diagnostic_sample": None}
     try:
         snapshot = capture_snapshot(source)
         inventory = analyze_snapshot(snapshot)
@@ -356,21 +383,25 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         from .sfc_summary import build_sfc_summary
         result["failure_code"] = "sfc_structure_error"
         sfc_structure = analyze_sfc_structure(snapshot, inventory)
+        result["failure_code"] = "access_error"
+        access = analyze_access(inventory, references)
         result["failure_code"] = "save_error"
         workspace = root / "confidential" / "workspaces" / "work-check"
         if workspace.resolve() != workspace:
             raise WorkCheckError("Private workspace must remain inside this checkout.")
         saved_run = save_run(workspace, snapshot, inventory, references=references,
-                             sfc_structure=sfc_structure, include_review=True)
+                             sfc_structure=sfc_structure, include_review=True, access=access)
         print(f"Private review report: {saved_run / 'review.html'}", flush=True)
         result["private_run_saved"] = True
         result["failure_code"] = "summary_error"
         summary = build_reference_summary(inventory, references, revision=revision)
         sfc_summary = build_sfc_summary(snapshot, inventory, sfc_structure, revision=revision)
+        access_summary = build_access_summary(inventory, references, access, revision=revision)
         sample = build_diagnostic_sample(inventory, references)
-        status = "partial" if "partial" in (summary["status"], sfc_summary["status"]) else "complete"
+        status = "partial" if "partial" in (summary["status"], sfc_summary["status"], access.status) else "complete"
         result.update(status=status, failure_code=None, reference_summary=summary,
                       sfc_structure_summary=sfc_summary,
+                      access_summary=access_summary,
                       diagnostic_sample=sample)
     except Exception:
         # All raw exception text stays private, including OS paths and values
@@ -404,7 +435,7 @@ def run_check(root: Path, supplied_source: str | None) -> int:
         analysis = _analyze(root, source, logs, revision)
     else:
         analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False,
-                    "reference_summary": None, "sfc_structure_summary": None}
+                    "reference_summary": None, "sfc_structure_summary": None, "access_summary": None}
     status = "failed" if analysis["status"] in ("not_run", "failed") else (
         "partial" if analysis["status"] == "partial" else "passed"
     )

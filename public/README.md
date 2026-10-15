@@ -11,12 +11,15 @@ Start here:
 5. [Fresh Git workflow](docs/planning/GIT_FRESH_START.md).
 6. [Engineering review guide](docs/reviews/ENGINEERING_REVIEW_REPORT.md) and
    [invented HTML demonstration](examples/engineering-review-demo.html).
+7. [Explicit operand reads/writes and current checkpoint](docs/reviews/ACCESS_ROLE_REVIEW.md).
 
 The fixtures are small parser inputs, not deployable controller projects. The
 read-only inventory, reference, SFC and offline engineering-review CLI commands
 are implemented. Editable engineering records, PCSD and FHX generation remain
 planned. Download/open the invented HTML demonstration in a browser to explore
 the report interface; GitHub's source view does not execute its navigation.
+Manual source or interface review can wait until you are ready; current parser
+development needs only the generated work-machine feedback at each run boundary.
 
 Edit this material deliberately as development advances. Do not direct production report output here. A file being in public/ does not automatically make it suitable for publication; review new content before committing.
 

@@ -1,0 +1,176 @@
+"""Closed count-only publication boundary for possible explicit RLL access."""
+from __future__ import annotations
+
+from copy import deepcopy
+import json
+import re
+from typing import Any
+
+from .access import (
+    ACCESS_CONSTANTS, COVERAGE_KEYS, INDEXED_ROLES, INSTRUCTION_STATUSES,
+    MAX_INSTRUCTIONS, MAX_OPERANDS, OPERAND_ROLES, AccessResult, validate_access,
+)
+from .models import InventoryResult
+from .references import ReferenceResult
+
+MAX_COUNT = 10**12
+MAX_REPORT_BYTES = 32 * 1024
+CONSTANTS = {
+    **ACCESS_CONSTANTS,
+    'policy_version': 2,
+    'report_kind': 'l5x_access_review_summary',
+    'exporter_version': 'access-summary-1',
+    'sharing_status': 'aggregate_sync_allowed',
+}
+
+
+class AccessSummaryError(ValueError):
+    """Publication rejection containing no source evidence."""
+
+
+def _invalid() -> None:
+    raise AccessSummaryError('Access summary validation failed; no summary was produced.')
+
+
+def _keys(value: Any, keys: set[str] | frozenset[str]) -> None:
+    if (type(value) is not dict or any(type(key) is not str for key in value)
+            or value.keys() != keys):
+        _invalid()
+
+
+def _count(value: Any) -> int:
+    if type(value) is not int or not 0 <= value <= MAX_COUNT:
+        _invalid()
+    return value
+
+
+def _counts(value: Any, keys: frozenset[str]) -> None:
+    _keys(value, keys)
+    for count in value.values():
+        _count(count)
+
+
+def _catalogue_capacity(instructions: int, roles: dict[str, int]) -> bool:
+    """Check aggregate slot feasibility without disclosing an opcode histogram.
+
+    Each non-data instruction is a label/jump or SWPB; each read-write
+    instruction is ONS, OSR/OSF or MVM. They are disjoint. Remaining instructions
+    have one to three reads, or a write with zero to two reads. These complete
+    intervals make the capacity calculation constant time, including parity
+    when only the non-data and read-write families are present.
+    """
+    reads, writes = roles['read'], roles['write']
+    read_writes, selectors = roles['read_write'], roles['non_data']
+    ordinary = instructions - read_writes - selectors
+    if ordinary < 0:
+        return False
+    if ordinary == 0:
+        # For s SWPBs, writes-s are OSR/OSF and (reads-s)/2 are MVM.
+        lower = max(0, writes - read_writes, (2 * writes + reads - 2 * read_writes + 2) // 3)
+        upper = min(selectors, writes, reads)
+        lower += (reads - lower) % 2
+        return lower <= upper
+    # Choose the SWPB count. Other selectors are labels/jumps. For each choice,
+    # ordinary instructions fill every read count between their lower/upper
+    # capacities, and adjacent choices overlap, so only endpoints are needed.
+    lower = max(0, writes - ordinary - read_writes)
+    upper = min(selectors, writes)
+    if lower > upper:
+        return False
+    minimum_reads = ordinary - writes + 2 * lower + max(0, writes - lower - ordinary)
+    maximum_reads = (3 * ordinary - writes + 2 * upper + 2 * read_writes
+                     - max(0, writes - upper - ordinary))
+    return minimum_reads <= reads <= maximum_reads
+
+
+def validate_access_summary(summary: dict[str, Any]) -> None:
+    """Validate exact closed keys, count partitions, capacities and gap status."""
+    _keys(summary, set(CONSTANTS) | {'tool_revision', 'status', 'coverage'})
+    for key, fixed in CONSTANTS.items():
+        if type(summary[key]) is not type(fixed) or summary[key] != fixed:
+            _invalid()
+    if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
+        _invalid()
+    revision = summary['tool_revision']
+    _keys(revision, {'commit', 'worktree'})
+    if type(revision['worktree']) is not str:
+        _invalid()
+    if revision['worktree'] == 'unavailable':
+        if revision['commit'] is not None:
+            _invalid()
+    elif revision['worktree'] in {'clean', 'modified'}:
+        if (type(revision['commit']) is not str
+                or re.fullmatch(r'[0-9a-f]{40}', revision['commit']) is None):
+            _invalid()
+    else:
+        _invalid()
+    coverage = summary['coverage']
+    _keys(coverage, COVERAGE_KEYS)
+    groups = {'instructions_by_status', 'operands_by_role', 'bound_by_role'}
+    for key in COVERAGE_KEYS - groups:
+        _count(coverage[key])
+    states = coverage['instructions_by_status']
+    roles, bound = coverage['operands_by_role'], coverage['bound_by_role']
+    _counts(states, INSTRUCTION_STATUSES)
+    _counts(roles, OPERAND_ROLES)
+    _counts(bound, OPERAND_ROLES)
+    instruction_total, operand_total = coverage['instructions_total'], coverage['operands_total']
+    if (sum(states.values()) != instruction_total or instruction_total > MAX_INSTRUCTIONS
+            or sum(roles.values()) != operand_total or operand_total > MAX_OPERANDS
+            or any(bound[role] > roles[role] for role in OPERAND_ROLES)
+            or bound['non_data'] != 0):
+        _invalid()
+    classified = states['classified']
+    known = operand_total - roles['unknown']
+    invalid_instructions = instruction_total - classified
+    if (not classified <= known <= 3 * classified
+            or not _catalogue_capacity(classified, roles)
+            or roles['unknown'] < states['empty_argument']
+            or (roles['unknown'] and not invalid_instructions)
+            or (not instruction_total and operand_total)):
+        _invalid()
+    if (not states['unsupported_instruction'] and not states['argument_count_mismatch']
+            and roles['unknown'] > 3 * states['empty_argument']):
+        _invalid()
+    linked = sum(bound[role] for role in INDEXED_ROLES)
+    if (coverage['linked_operands'] != linked
+            or coverage['unlinked_operands'] + linked != operand_total
+            or coverage['indexed_roots'] > linked
+            or bool(coverage['indexed_roots']) != bool(linked)):
+        _invalid()
+    if (coverage['unparsed_rungs'] > coverage['source_rungs']
+            or (instruction_total and coverage['unparsed_rungs'] == coverage['source_rungs'])):
+        _invalid()
+    unbound_writes = roles['write'] + roles['read_write'] - bound['write'] - bound['read_write']
+    if not (unbound_writes <= coverage['access_gap_operands'] <=
+            unbound_writes + roles['read'] - bound['read']):
+        _invalid()
+    partial = bool(invalid_instructions or coverage['unparsed_rungs'] or coverage['access_gap_operands'])
+    if summary['status'] != ('partial' if partial else 'complete'):
+        _invalid()
+
+
+def build_access_summary(inventory: InventoryResult, references: ReferenceResult,
+                         result: AccessResult, revision: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Authenticate private evidence before projecting only closed aggregate data."""
+    try:
+        validate_access(inventory, references, result)
+        summary = {
+            **CONSTANTS, 'status': result.status, 'coverage': deepcopy(result.coverage),
+            'tool_revision': revision if revision is not None else
+                             {'commit': None, 'worktree': 'unavailable'},
+        }
+        validate_access_summary(summary)
+        summary['tool_revision'] = dict(summary['tool_revision'])
+        return summary
+    except (AttributeError, KeyError, TypeError, ValueError, RecursionError):
+        _invalid()
+
+
+def render_access_summary(summary: dict[str, Any]) -> str:
+    """Render a source-free report only after exact schema validation."""
+    validate_access_summary(summary)
+    rendered = json.dumps(summary, ensure_ascii=True, sort_keys=True, indent=2) + '\n'
+    if len(rendered.encode('utf-8')) > MAX_REPORT_BYTES:
+        _invalid()
+    return rendered

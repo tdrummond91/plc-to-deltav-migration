@@ -10,6 +10,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
+from plc_workbench.access import analyze_access
 from plc_workbench.references import analyze_references
 from plc_workbench.review import build_review_data
 from plc_workbench.review_html import ReviewHtmlError, render_review_html
@@ -62,6 +63,20 @@ class ParsedPage(HTMLParser):
 
 
 class ReviewHtmlTests(unittest.TestCase):
+    def test_access_versions_are_explicit_and_evidence_round_trips(self) -> None:
+        from test_review import fixture
+        args = fixture(('XIC(A)OTE(B);', 'MOV(B,12);', 'PID(A,B,A,B,A,B,A);'))
+        access = analyze_access(args[1], args[2])
+        data = build_review_data(*args, access=access)
+        parsed = ParsedPage(render_review_html(data))
+        self.assertEqual(json.loads(parsed.scripts[0][1]), data)
+        self.assertEqual(data['access']['coverage']['access_gap_operands'], 1)
+        for candidate in (dict(data, schema_version=1), dict(data, report_version='engineering-review-1'),
+                          {k:v for k,v in data.items() if k != 'access'},
+                          dict(review_data(), access=access.to_dict())):
+            with self.assertRaises(ReviewHtmlError):
+                render_review_html(candidate)
+
     def test_markup_sentinel_cannot_escape_payload_and_unicode_round_trips(self) -> None:
         marker = '</ScRiPt><img src="https://invalid.example/secret" onerror="invented()">&\u2028\u2029é'
         data = review_data(marker)

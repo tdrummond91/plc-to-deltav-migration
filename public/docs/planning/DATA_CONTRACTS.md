@@ -2,6 +2,36 @@
 
 Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
+## Current explicit operand-access contract (2026-10-14)
+
+Private AccessResult schema1 / instruction-access-1 derives possible explicit RLL
+operand roles from canonical inventory3 and reference6/analyzer9. It assigns
+read, write, read_write, non_data or unknown to each captured operand, retains
+every parsed instruction including zero-argument unknowns, and groups existing
+root-bound occurrences by target and role. IDs and resolved suffixes remain
+source-linked. No pairwise dependency edges are generated. Shared roots do not
+prove member/element overlap, execution or control effects. The fixed scope is
+explicit_rll_operand_roles; execution/member validation are not_implemented and
+implicit effects are not_analyzed. Exact roles and records are replay-validated.
+
+The closed access-summary-1 exports only fixed metadata, code revision and
+coverage counts, with role/status partitions, binding capacities and exact
+catalogue-feasibility checks. Work13 / work-check-13 requires this summary on
+successful analysis, null otherwise. It reconciles revision, instruction/rung/
+operand populations and catalogue/non-data subset bounds with reference12.
+Work1 through12 retain their frozen contracts. Public source4/reference12/SFC2
+and their private source/reference/SFC payloads remain unchanged.
+
+Supplying access to include_review=True produces review2 / engineering-review-2
+and manifest5, artifact_kind source_reference_sfc_access_review_run, with nine
+hashed artifacts including access.json and review.html. The work runner and
+plc review request this variant. Omitting access preserves the review1/manifest4
+API path below, and ordinary source/reference/SFC commands retain manifests1/2/3.
+Rendering and validation finish before run allocation; the manifest publishes
+last. Access is limited to 250,000 instructions/operands and 32MiB serialized
+JSON; combined review64MiB and HTML80MiB limits still apply. See
+[catalogue, scope, validation and next run](../reviews/ACCESS_ROLE_REVIEW.md).
+
 ## Private offline source-review contract (2026-10-14)
 
 Review schema1 / engineering-review-1 combines the canonical inventory3,
@@ -18,8 +48,9 @@ source_reference_sfc_review_run, review_schema_version=1 and
 review_version=engineering-review-1, plus the HTML size/hash. Model/render
 validation happens before allocating the run; the final manifest is published
 last. Ordinary commands retain manifests1/2/3 and their existing artifact sets.
-The work runner now requests this eight-artifact variant. Public work12,
-reference12, source4 and SFC2 contracts remain unchanged.
+This was the initial work-runner variant; current access-enabled runs use
+manifest5 above. Public work12 remains readable; reference12, source4 and SFC2
+contracts remain unchanged.
 
 The self-contained HTML contains private source evidence and opens offline.
 Bounded embedded JSON and fixed local assets use text-only source rendering and
@@ -46,8 +77,8 @@ analysis.sfc_structure_summary on successful analysis; failed/not-run require
 null. Revision and SFC population reconcile with the outer/reference records.
 Historical work11 requires frozen SFC1; work12 requires SFC2. Work10 and earlier retain their exact envelopes. Optional SFC storage adds two
 private artifacts and manifest3; ordinary source/reference-only runs keep1/2.
-The original combined runs store seven artifacts; the current work runner adds
-the private review HTML using manifest4 above.
+The original combined runs store seven artifacts; review1 added the private
+HTML using manifest4, and current access-enabled runs use manifest5 above.
 Private SFC2 adds separate typed annotations and immediate TextBox Text children. Public2 adds annotation/endpoint partitions and raw text-shape/character counts, without text or pairs. Fully resolved pairs alone supply distinct note/target counts. Direct and child fragments remain separate; there is no automatic description assignment. No ST/execution semantics or edit selection is introduced. See
 [annotation scope and validation](../reviews/SFC_ANNOTATION_REVIEW.md) and the [original structure contract](../reviews/SFC_STRUCTURE_REVIEW.md).
 

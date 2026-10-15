@@ -1,17 +1,34 @@
 # Private engineering review report
 
+## Current access follow-up (2026-10-14)
+
+The returned 1332543 work report confirms the first HTML generation: 439 selected
+application cases (one skip), 139 helpers and a saved private run from clean
+c36d10b. The next slice adds explicit operand reads/writes for 28 instruction
+spellings, a searchable Tag access view and visible unknown/unresolved access
+queues. Current CLI/work runs use review2, manifest5 with nine artifacts and
+public work13; earlier review1/manifest4 contracts remain available.
+See [access scope, validation and current next step](ACCESS_ROLE_REVIEW.md).
+
+Tyler has not inspected the source yet. Manual source/engineering/appearance
+review is optional and deferred; it is not a gate to further parser work.
+Returning the next generated aggregate is sufficient. The review suggestions
+below are available when Tyler is ready to explore the source. Actual-unit HTML
+remains private; the invented demonstration is safe for interface discussion.
+
 ## Purpose and scope
 
 This is the first organized review package following the
 [project-state assessment](PROJECT_STATE_REVIEW.md). It brings the existing
 snapshot inventory, references, SFC structure, syntax groups and findings into
 one private HTML document. The report is a read-only source explorer. Persistent
-engineering edits, read/write effects, equipment classifications and PCSD/FHX
-generation remain later work. Dedicated routine-call candidate/graph navigation
+engineering edits, runtime effects, equipment classifications and PCSD/FHX
+generation remain later work. Possible explicit operand roles are now available
+as described above. Dedicated routine-call candidate/graph navigation
 is also a follow-up; this interface shows routine declarations and source context.
 
-The next work-machine run should produce a report suitable for Tyler to review
-navigation, source correspondence, missing information, bugs and appearance.
+The report is available for eventual navigation, source correspondence, missing
+information, bug and appearance review. That review can wait.
 There is no need to install Python or run a server just to open the resulting
 HTML, although generating it currently uses the existing parser environment.
 
@@ -46,7 +63,7 @@ in review.html, so the file can be opened offline without its neighboring files.
 **The actual-unit HTML contains private names, values and logic and stays local.**
 Its data boundary is different from the small public feedback JSON.
 
-## What to review
+## Optional review when ready
 
 - Overview: source populations, underlying coverage and navigation into records.
 - Objects: locate a named source object, inspect its scope/description/attributes
@@ -60,8 +77,11 @@ Its data boundary is different from the small public feedback JSON.
   behavior or the same engineering role.
 - Findings: follow source, reference and SFC gaps to the available evidence;
   source diagnostics without IDs retain their XML locator.
+- Tag access: inspect possible reads, writes, stored state and unknown roles;
+  follow each occurrence or binding gap to its exact operand and rung. Shared
+  roots do not prove member overlap or execution dependencies.
 
-For a first local review, choose a familiar tag, one repeated rung pattern and
+When familiar with the source, a first local review can use a tag, a repeated rung pattern and
 one SFC note. Verify their names/context, links and findings against your source.
 Check whether search, filtering, pagination and Back let you investigate without
 losing your place. Note unreadable text, clipped controls, awkward column widths
@@ -76,7 +96,7 @@ locally in a browser to review the layout immediately. It is generated solely
 from the synthetic fixture below; its private badge demonstrates how real
 reports are labeled. The full HTML from a real unit must remain on the work PC.
 
-## Data and publication contracts
+## Original review1 contracts (retained)
 
 Private review schema1 / engineering-review-1 contains the captured snapshot
 identity, original inventory/reference/SFC payloads, syntax pattern occurrences,
@@ -101,7 +121,8 @@ the HTML hash/size. A write failure cannot publish a final manifest. Defaults an
 ordinary inventory/reference/SFC commands retain manifests1/2/3 and their exact
 artifact layouts.
 
-Public work12/reference12/source4/SFC2 remain unchanged. The tested revision and
+The first delivery retained public work12/reference12/source4/SFC2. Work13 now
+adds access coverage while the other three contracts remain unchanged. The tested revision and
 private-run success identify report-capable runs; HTML contents, source IDs and
 individual findings are not added to public feedback. Earlier stored reports
 remain readable. The existing listener stays disabled and excluded from tracking.
@@ -129,7 +150,7 @@ two SFC content versions with direct/child notes and a deliberately unresolved
 attachment. It is not controller-ready logic or a reference process design.
 The existing canonical synthetic fixture remains unchanged.
 
-## Development validation
+## Original review1 development validation
 
 - Full tracked application/development suite: 535 cases pass, with one existing
   Windows symlink-capability skip; the ignored listener loader is excluded.
@@ -167,4 +188,6 @@ check, not a measurement of the real export or the work machine.
 Direct file:// navigation is blocked by the browser automation URL policy, so
 browser QA used loopback HTTP. The generated HTML has no external resource or
 network dependency, but opening the file directly under work-PC browser policy
-and real-export size/performance remain required checks on the next run.
+and real-export visual usability remain unverified. They can be checked when
+Tyler is ready and do not block continued parser work. Current access validation
+is recorded in the follow-up linked above.

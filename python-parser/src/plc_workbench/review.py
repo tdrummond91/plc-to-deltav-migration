@@ -13,6 +13,7 @@ import io
 import json
 from typing import Any
 
+from .access import AccessResult, analyze_access
 from .models import InventoryResult, SourceSnapshot
 from .references import ReferenceResult, analyze_references
 from .sfc_structure import SfcStructureResult, analyze_sfc_structure
@@ -170,7 +171,8 @@ def _findings(inventory: InventoryResult, references: ReferenceResult,
 
 def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       references: ReferenceResult,
-                      sfc_structure: SfcStructureResult) -> dict[str, Any]:
+                      sfc_structure: SfcStructureResult,
+                      *, access: AccessResult | None = None) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -193,6 +195,11 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         canonical_sfc = analyze_sfc_structure(snapshot, canonical_inventory)
         if not _strict_equal(canonical_sfc, sfc_structure):
             _fail()
+        canonical_access = None
+        if access is not None:
+            canonical_access = analyze_access(canonical_inventory, canonical_references)
+            if not _strict_equal(canonical_access, access):
+                _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)
         data = {
@@ -215,6 +222,14 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                 'sfc_links': len(sfc_structure.links), 'sfc_annotations': len(sfc_structure.annotations),
             },
         }
+        if canonical_access is not None:
+            data.update({
+                'schema_version': 2, 'report_version': 'engineering-review-2',
+                'analysis_scope': 'source_evidence_with_operand_access',
+                'access': canonical_access.to_dict(),
+            })
+            if canonical_access.status == 'partial':
+                data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
@@ -223,10 +238,11 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
 
 def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          references: ReferenceResult, sfc_structure: SfcStructureResult,
-                         data: dict[str, Any]) -> None:
+                         data: dict[str, Any], *, access: AccessResult | None = None) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
-        if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure), data):
+        if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
+                                          access=access), data):
             return
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
         pass

@@ -230,6 +230,7 @@ def _sfc(args: argparse.Namespace) -> int:
 
 
 def _review(args: argparse.Namespace) -> int:
+    from .access import AccessError, analyze_access
     from .references import ReferenceError, analyze_references
     from .sfc_structure import SfcStructureError, analyze_sfc_structure
     from .source import SourceError, analyze_snapshot, capture_snapshot
@@ -240,12 +241,16 @@ def _review(args: argparse.Namespace) -> int:
         inventory = analyze_snapshot(snapshot)
         references = analyze_references(inventory)
         sfc = analyze_sfc_structure(snapshot, inventory)
+        access = analyze_access(inventory, references)
         saved = save_run(args.workspace, snapshot, inventory, references=references,
-                         sfc_structure=sfc, include_review=True)
+                         sfc_structure=sfc, include_review=True, access=access)
         print(f"Private review report: {saved / 'review.html'}")
-        return 3 if "partial" in (inventory.status, references.status, sfc.status) else 0
+        return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status) else 0
     except SourceError:
         print("plc: Cannot read or analyze source; no review report was produced.", file=sys.stderr)
+        return 1
+    except AccessError:
+        print("plc: Cannot analyze operand access; no review report was produced.", file=sys.stderr)
         return 1
     except (ReferenceError, SfcStructureError, StorageError) as exc:
         print(f"plc: {exc}", file=sys.stderr)

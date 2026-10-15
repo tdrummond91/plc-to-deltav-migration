@@ -137,6 +137,10 @@ class ReviewWorkflowTests(unittest.TestCase):
             self.assertNotIn('PRIVATE_NOTE', out)
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), snapshot.data)
             self.assertIn('PRIVATE_NOTE', (saved / 'review.html').read_text(encoding='utf-8'))
+            access = json.loads((saved / 'access.json').read_bytes())
+            self.assertEqual(access['snapshot']['id'], snapshot.id)
+            self.assertEqual(access['snapshot']['sha256'], snapshot.sha256)
+            self.assertEqual(json.loads((saved / 'manifest.json').read_bytes())['schema_version'], 5)
 
 
 if __name__ == '__main__':

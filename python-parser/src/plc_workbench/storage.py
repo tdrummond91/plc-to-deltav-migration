@@ -19,6 +19,7 @@ from uuid import uuid4
 from .reporting import InventoryView, render_json, render_text
 
 if TYPE_CHECKING:
+    from .access import AccessResult
     from .models import SourceSnapshot
     from .references import ReferenceResult
     from .sfc_structure import SfcStructureResult
@@ -73,6 +74,7 @@ def save_run(
     *, references: ReferenceResult | None = None,
     sfc_structure: SfcStructureResult | None = None,
     include_review: bool = False,
+    access: AccessResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -82,6 +84,8 @@ def save_run(
     try:
         if type(include_review) is not bool or (include_review and (references is None or sfc_structure is None)):
             raise StorageError("A review run requires inventory, references and SFC structure.")
+        if access is not None and not include_review:
+            raise StorageError("Access records require a complete engineering review run.")
         payload = result.to_dict()
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
@@ -118,25 +122,11 @@ def save_run(
             from .review import ReviewError, build_review_data
             from .review_html import ReviewHtmlError, render_review_html
             try:
-                review_data = build_review_data(snapshot, result, references, sfc_structure)
+                review_data = build_review_data(snapshot, result, references, sfc_structure, access=access)
                 review_html = render_review_html(review_data).encode("utf-8")
             except (ReviewError, ReviewHtmlError) as exc:
                 raise StorageError("Could not build the private engineering review report.") from exc
-        destination = _workspace_path(workspace)
-        destination.mkdir(parents=True, exist_ok=True)
-        if destination.resolve() != destination:
-            raise StorageError("Workspace changed during creation.")
-        created = datetime.now(timezone.utc)
-        for _ in range(10):
-            run_id = f"run-{created.strftime('%Y%m%dT%H%M%S%fZ')}-{uuid4().hex}"
-            run_dir = destination / run_id
-            try:
-                run_dir.mkdir(mode=0o700, exist_ok=False)
-                break
-            except FileExistsError:
-                continue
-        else:
-            raise StorageError("Could not allocate a new run directory without a collision.")
+        # Finish every validation and rendering step before allocating a run.
         contents = {
             "snapshot.L5X": snapshot.data,
             "inventory.json": render_json(result).encode("utf-8"),
@@ -156,6 +146,28 @@ def save_run(
             })
         if include_review:
             contents["review.html"] = review_html
+        if access is not None:
+            from .access import AccessError, render_access_json
+            try:
+                access_payload = access.to_dict()
+                contents["access.json"] = render_access_json(access).encode("utf-8")
+            except AccessError as exc:
+                raise StorageError("Could not render captured operand access records.") from exc
+        destination = _workspace_path(workspace)
+        destination.mkdir(parents=True, exist_ok=True)
+        if destination.resolve() != destination:
+            raise StorageError("Workspace changed during creation.")
+        created = datetime.now(timezone.utc)
+        for _ in range(10):
+            run_id = f"run-{created.strftime('%Y%m%dT%H%M%S%fZ')}-{uuid4().hex}"
+            run_dir = destination / run_id
+            try:
+                run_dir.mkdir(mode=0o700, exist_ok=False)
+                break
+            except FileExistsError:
+                continue
+        else:
+            raise StorageError("Could not allocate a new run directory without a collision.")
         artifacts = {
             name: _write_artifact(destination, run_dir, name, data)
             for name, data in contents.items()
@@ -201,6 +213,14 @@ def save_run(
                 "artifact_kind": "source_reference_sfc_review_run",
                 "review_schema_version": review_data["schema_version"],
                 "review_version": review_data["report_version"],
+            })
+        if access is not None:
+            manifest.update({
+                "schema_version": 5,
+                "artifact_kind": "source_reference_sfc_access_review_run",
+                "status": "partial" if "partial" in (manifest["status"], access_payload["status"]) else "complete",
+                "access_schema_version": access_payload["schema_version"],
+                "access_analyzer_version": access_payload["analyzer_version"],
             })
         _write_artifact(
             destination, run_dir, ".manifest.pending",
