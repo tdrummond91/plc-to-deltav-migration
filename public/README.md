@@ -38,3 +38,5 @@ For the first parsing discussion, read [L5X structure and branch locations](docs
 
 14. [Current rung analysis and candidates](docs/reviews/RUNG_ANALYSIS_REVIEW.md),
     with the [Phase 1 completion gate](docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md).
+
+15. [Current exact-address relationships and operand-reuse patterns](docs/reviews/RELATIONSHIP_REVIEW.md).

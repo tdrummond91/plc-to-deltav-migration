@@ -1,6 +1,18 @@
 # Independently synthetic L5X fixture
 
-## Current rung-analysis demonstration
+## Current relationship demonstration
+
+`relationship_review_demo.L5X` independently extends the earlier rung demo with
+20 invented rungs (92 total) and eight declarations. Cases cover exact aliases,
+repeated CPT reads, self-read/write ordering, overwritten local producers,
+whole-object/member barriers, branches, conditions, unknown effects, copy ranges,
+invalid composed alias suffixes, distinct index spellings and operand-reuse versus
+literal differences. These are analyzer cases, not validated controller logic.
+
+The generated [HTML demo](../../examples/engineering-review-demo.html) uses
+review8 and includes Address relationships. Existing fixture files are retained.
+
+## Historical rung-analysis demonstration
 
 [rung_analysis_review_demo.L5X](rung_analysis_review_demo.L5X) extends the
 independently invented CPT access fixture with module input/output roots,

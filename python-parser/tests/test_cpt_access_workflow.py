@@ -102,6 +102,7 @@ class CptAccessWorkflowTests(unittest.TestCase):
             current = report()
             outcome.pop('diagnostic_sample')
             self.assertIsNotNone(outcome.pop('rung_analysis_summary'))
+            self.assertIsNotNone(outcome.pop('relationship_summary'))
             self.assertEqual(outcome, current['analysis'])
 
     def test_work21_has_separate_leaf_reads_and_exact_calculation_populations(self) -> None:

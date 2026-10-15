@@ -2,6 +2,7 @@
 (() => {
   'use strict';
   const PAGE_SIZE = 50;
+  const ADDRESS_ROOT_PREVIEW = 120, ADDRESS_SUFFIX_PREVIEW = 160;
   // Kept in step with pid_members.FIELD_CATALOG; these are display labels only.
   const PID_MEMBER_LABELS = {
     "SP": "Setpoint",
@@ -75,6 +76,14 @@
   const pidMembers = data.pid_members || null;
   const calculations = data.calculations || null, calculationOccurrences = calculations?.occurrences || [];
   const rungAnalysis = data.rung_analysis || null, analyzedRungs = rungAnalysis?.rungs || [];
+  const relationships = data.relationships || null, addresses = relationships?.addresses || [];
+  const localLinks = relationships?.local_links || [], reusePatterns = relationships?.patterns || [];
+  const byAddress = new Map(addresses.map(a=>[a.id,a])), byUseAddress = new Map();
+  const byReusePattern = new Map(reusePatterns.map(p=>[p.id,p]));
+  const byRungReuse = new Map((relationships?.rung_patterns || []).map(p=>[p.rung_id,p]));
+  const addressesByRoot = new Map(), linksByRung = new Map(), linksByAddress = new Map();
+  const addressRootPreviews = new Map();
+  const byIdentityGap = new Map((relationships?.identity_gaps || []).map(g=>[g.id,g]));
   const byRungAnalysis = new Map(analyzedRungs.map(x => [x.id,x]));
   const byRungBlock = new Map((rungAnalysis?.blocks || []).map(x => [x.id,x]));
   const byRungCandidate = new Map((rungAnalysis?.candidates || []).map(x => [x.id,x]));
@@ -137,6 +146,11 @@
   const elementLinks = new Map(), elementNotes = new Map(), entityAliases = new Map();
   const routinePatterns = new Map(), entityPathCache = new Map();
   function add(map, key, row) { if (!key) return; if (!map.has(key)) map.set(key, []); map.get(key).push(row); }
+  addresses.forEach(a=>{
+    add(addressesByRoot,a.target_id,a);
+    ['read_operand_ids','write_operand_ids','read_write_operand_ids','unknown_operand_ids','expression_use_ids'].forEach(key=>a[key].forEach(id=>byUseAddress.set(id,a)));
+  });
+  localLinks.forEach(l=>{add(linksByRung,l.rung_id,l);add(linksByAddress,l.address_id,l);});
   tagElements.forEach(x => {add(tagContentElements,x.content_id,x);add(tagChildren,x.parent_id,x);});
   (tagData?.issues || []).forEach(x => add(tagIssues,x.content_id,x));
   entities.forEach(x => add(entityChildren, x.parent_id, x));
@@ -186,9 +200,11 @@
   headings.pid=['PID instruction evidence','Inspect captured PID operand functions, source declarations and stored data. Each row is an instruction occurrence.'];
   headings.calculations=['Calculations','Read captured CPT expressions, their syntax grouping and source references. Expressions are not evaluated.'];
   headings.engineering=['Engineering analysis','Explore recognized instruction functions and possible purpose, with every rung accounted for and gaps kept in context.'];
+  headings.relationships=['Address relationships','Follow exact expanded address spelling, its captured uses, and possible source-order calculation reuse.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
+  if(relationships){labels.relationships='Address relationships';navCounts.relationships=addresses.length;}
   if(access){labels.access='Tag access';navCounts.access=accessRoots.length;}
   if(tagData){labels.tagdata='Stored tag data';navCounts.tagdata=tagContents.length;}
   if(pid){labels.pid='PID evidence';navCounts.pid=pidOccurrences.length;}
@@ -328,6 +344,10 @@
   patterns.forEach(p=>searchable(p,[p.shape,...(p.opcode_summary||[]).map(o=>o.opcode)]));
   findings.forEach(f=>searchable(f,[f.code,f.message,f.origin,f.severity,f.locator,sourceName(f.source_id)]));
   accessRoots.forEach(r=>searchable(r,[entityName(r.target_id),entityPath(r.target_id)]));
+  addresses.forEach(a=>searchable(a,[addressName(a),entityPath(a.target_id),addressProfile(a)]));
+  localLinks.forEach(l=>searchable(l,[addressName(byAddress.get(l.address_id)),sourceName(l.rung_id),sourceName(l.producer_instruction_id),sourceName(l.consumer_instruction_id),l.read_kind==='expression'?'Expression read':'Operand read']));
+  reusePatterns.forEach(p=>searchable(p,[rungName(byRung.get(p.representative_rung_id)),byRung.get(p.representative_rung_id)?.text,p.rung_ids.length>1?'Repeated operand reuse':'Single occurrence',p.address_variables+' address variables']));
+  (relationships?.identity_gaps || []).forEach(g=>searchable(g,[byOperand.get(g.id)?.raw_text,byCalculationNode.get(g.id)?.raw_text,'Expanded suffix cannot form an address',g.kind]));
   accessGaps.forEach(i=>searchable(i,[i.opcode,i.status,sourceName(i.rung_id)]));
   accessBindingGaps.forEach(o=>searchable(o,[byOperand.get(o.id)?.raw_text,o.role,o.binding_status,sourceName(o.rung_id)]));
   expressionAccessGaps.forEach(o=>searchable(o,[byOperand.get(o.id)?.raw_text,o.role,o.binding_status,sourceName(o.rung_id)]));
@@ -440,6 +460,7 @@
   function accessDetail(root) {
     setDetailHeading('ROOT ACCESS',entityName(root.target_id),entityPath(byEntity.get(root.target_id)?.parent_id));
     content.append(accessNotice(),sourceCell(root.target_id));
+    if(relationships){const exact=section('Exact expanded addresses','Root access combines all suffixes. These dossiers keep each captured suffix spelling separate.');exact.append(addressTable(addressesByRoot.get(root.target_id)||[],'Root exact address groups'));content.append(exact);}
     const box=node('div','toolbar'),label=node('label','filter-wrap',access.schema_version>=4?'Access occurrences':'Operand role'),select=node('select');
     select.setAttribute('aria-label','Access operand role');
     [['all','All roles'],...accessRoles.map(r=>[r,access.schema_version>=4 && r==='read'?'Operand reads':human(r)]),...(access.schema_version>=4?[['expression_read','Expression reads']]:[])].forEach(([v,t])=>{const o=node('option','',t);o.value=v;select.append(o);});
@@ -455,6 +476,88 @@
       const expressions=section('Potential expression reads','Each row is one captured reference occurrence. Open it to inspect the exact character span and calculation source.');
       expressions.append(expressionUseTable((byExpressionRoot.get(root.target_id)?.read_use_ids || []).map(id=>byExpressionUse.get(id)),'Root expression read occurrences'));content.append(expressions);
     }
+  }
+  function addressRootPreview(id){
+    // A shared declaration may have a very long name and thousands of suffix
+    // groups. Keep it once in source evidence, not in every label/search row.
+    if(!addressRootPreviews.has(id))addressRootPreviews.set(id,short(entityName(id),ADDRESS_ROOT_PREVIEW));
+    return addressRootPreviews.get(id);
+  }
+  function addressName(a){return addressRootPreview(a.target_id)+short(a.suffix || '',ADDRESS_SUFFIX_PREVIEW);}
+  function shortenedAddress(a){return entityName(a.target_id).length>ADDRESS_ROOT_PREVIEW||(a.suffix || '').length>ADDRESS_SUFFIX_PREVIEW;}
+  function addressPreviewNote(){return node('p','row-note','Long address labels and their search text use shortened previews. Open an address dossier for the full suffix, and its declaration for the full root name. Exact identities remain separate.');}
+  function addressProfile(a){return ({read_and_write:'Captured reads and writes',read_only:'No captured explicit writer',write_only:'No captured explicit reader',unknown_only:'Unknown roles only'})[a.profile] || human(a.profile);}
+  function addressNotice(){const box=node('div');box.append(notice('Exact spelling, captured occurrences','A dossier groups one resolved declaration and its expanded suffix spelling. Different spellings remain separate; this does not validate members or prove whether two addresses overlap. Missing captured readers or writers do not establish dead or uninitialized logic.'));if(addresses.some(shortenedAddress))box.append(addressPreviewNote());return box;}
+  function addressCell(id){
+    const a=byUseAddress.get(id);
+    if(a)return button('Address: '+addressName(a),()=>openDetail('address',a.id),'text-link');
+    if(byIdentityGap.has(id))return node('span','badge warn','Expanded suffix cannot form an address');
+    return node('span','muted','No exact address group');
+  }
+  function addressTable(rows,caption){const box=node('div');if(rows.some(shortenedAddress))box.append(addressPreviewNote());box.append(table(['Expanded address / scope','Captured use profile','Operand reads','Writes','Read/write','Unknown roles','Expression reads','Distinct rungs'],rows,a=>[
+    primary(button(addressName(a),()=>openDetail('address',a.id),'text-link'),entityPath(byEntity.get(a.target_id)?.parent_id)),addressProfile(a),
+    fmt(a.read_operand_ids.length),fmt(a.write_operand_ids.length),fmt(a.read_write_operand_ids.length),fmt(a.unknown_operand_ids.length),fmt(a.expression_use_ids.length),fmt(a.rung_ids.length)
+  ],caption,{emptyTitle:'No exact addresses match',emptyDetail:'Clear the search or change the profile filter. Unresolved roots and invalid expanded suffixes are not grouped as addresses.'}));return box;}
+  function relationshipMode(mode){state.relationshipMode=mode;state.filter='all';state.listPages={};render();}
+  function relationshipsToolbar(){
+    toolbarFor(({addresses:'Search exact addresses, suffixes, scopes or captured use labels',links:'Search intermediate addresses, opcodes or rung context',patterns:'Search representative rung source or pattern labels',gaps:'Search source uses or address gap labels'})[state.relationshipMode || 'addresses'],[
+      ['all','All address profiles'],['read_and_write','Captured reads and writes'],['read_only','No captured explicit writer'],['write_only','No captured explicit reader'],['unknown_only','Unknown roles only']]);
+    const box=toolbar.querySelector('.toolbar'),label=node('label','filter-wrap','Relationship evidence'),select=node('select');
+    select.setAttribute('aria-label','Relationship evidence');
+    [['addresses','Exact addresses'],['links','Local calculation links'],['patterns','Operand-reuse patterns'],['gaps','Address identity gaps']].forEach(([v,t])=>{const o=node('option','',t);o.value=v;select.append(o);});
+    select.value=state.relationshipMode || 'addresses';select.addEventListener('change',()=>relationshipMode(select.value));label.append(select);box.append(label);
+    const profile=box.querySelector('select');profile.disabled=(state.relationshipMode || 'addresses')!=='addresses';
+  }
+  function relationshipLinkTable(rows,caption){return table(['Rung','Earlier destination','Exact intermediate address','Later input','Input kind'],rows,l=>[
+    sourceCell(l.rung_id),primary(sourceCell(l.write_operand_id),sourceName(l.producer_instruction_id)),
+    button(addressName(byAddress.get(l.address_id)),()=>openDetail('address',l.address_id),'text-link'),
+    primary(engineeringEvidence(l.read_id),sourceName(l.consumer_instruction_id)),l.read_kind==='expression'?'Expression read occurrence':'Operand read occurrence'
+  ],caption,{emptyTitle:'No local calculation links in this selection',emptyDetail:'The analysis checks contiguous sequences of eligible calculation blocks in unbranched source. Branches, stateful or unknown instructions, range effects and writes to the same root can stop a chain.'});}
+  function localLinkNotice(){return node('p','row-note','Each link is a possible reuse of an earlier result by a later input within an eligible, unbranched source sequence. It does not prove execution, value flow or scan order. Branches, unknown or stateful blocks, range effects and potentially overlapping writes stop analysis.');}
+  function reusePatternTable(rows,caption){return table(['Representative rung','Rungs','Address variables'],rows,p=>[
+    button(rungName(byRung.get(p.representative_rung_id)),()=>openDetail('reusepattern',p.id),'text-link'),fmt(p.rung_ids.length),fmt(p.address_variables)
+  ],caption,{emptyTitle:'No operand-reuse patterns match',emptyDetail:'Rungs with insufficient address or expression evidence remain outside this grouping.'});}
+  function reuseNotice(){return node('p','row-note','These groups retain operand roles, exact suffixes, shared-root relationships, literal spelling, CPT expression structure and repeated-address relationships in addition to branch and opcode shape. They do not establish behavioral equivalence. Address variables describe repeated exact address identities, not confirmed process objects.');}
+  function relationshipsList(){
+    content.append(addressNotice());
+    const mode=state.relationshipMode || 'addresses',totals=panel('Relationship evidence','Counts distinguish exact address groups, occurrence links and rung pattern groups.');
+    const buttons=node('div','inline-links');
+    [['addresses',addresses.length,'Exact addresses'],['links',localLinks.length,'Local input-use links'],['patterns',reusePatterns.length,'Operand-reuse patterns'],['gaps',byIdentityGap.size,'Address identity gaps']].forEach(([key,count,title])=>buttons.append(button(title+' ('+fmt(count)+')',()=>relationshipMode(key),'text-link')));totals.append(buttons,values({'Address groups used on multiple rungs':relationships.coverage.cross_rung_addresses,'Address groups with multiple captured writers':relationships.coverage.multiple_writer_addresses}));content.append(totals);
+    if(mode==='addresses')content.append(addressTable(addresses.filter(a=>matches(a)&&(state.filter==='all'||a.profile===state.filter)),'Exact address groups'));
+    else if(mode==='links'){content.append(localLinkNotice(),relationshipLinkTable(localLinks.filter(matches),'Local calculation links'));}
+    else if(mode==='patterns'){
+      content.append(reuseNotice(),reusePatternTable(reusePatterns.filter(matches),'Operand-reuse patterns'));
+      const skipped=(relationships.rung_patterns || []).filter(p=>p.status==='skipped'&&(!state.query||matches(byRung.get(p.rung_id))||human(p.reason).includes(state.query.toLocaleLowerCase())));
+      const gaps=section('Rungs outside operand-reuse grouping','These rungs retain their source and engineering analysis. No partial pattern is substituted.');
+      gaps.append(table(['Rung','Reason'],skipped,p=>[sourceCell(p.rung_id),human(p.reason)],'Skipped operand-reuse rungs'));content.append(gaps);
+    }else{
+      const gaps=section('Expanded suffix gaps','The original binding remains available. An invalid suffix after alias expansion cannot be assigned an exact address identity. Other reference-binding gaps remain in Tag access.');
+      gaps.append(table(['Source use','Occurrence kind','Reason'],(relationships.identity_gaps || []).filter(matches),g=>[engineeringEvidence(g.id),g.kind==='expression'?'Expression reference':'Operand','Expanded suffix cannot form an address'],'Address identity gaps'));content.append(gaps);
+    }
+  }
+  function addressDetail(a){
+    setDetailHeading('EXACT ADDRESS EVIDENCE',addressName(a),entityPath(byEntity.get(a.target_id)?.parent_id));
+    content.append(addressNotice());
+    const summary=panel('Captured uses',addressProfile(a));
+    summary.append(values({'Resolved declaration':addressRootPreview(a.target_id),'Expanded suffix':a.suffix || '(root address)','Operand read occurrences':a.read_operand_ids.length,'Write occurrences':a.write_operand_ids.length,'Read/write occurrences':a.read_write_operand_ids.length,'Unknown-role occurrences':a.unknown_operand_ids.length,'Expression read occurrences':a.expression_use_ids.length,'Distinct rungs':a.rung_ids.length,'Distinct instructions':a.instruction_ids.length}));
+    const links=node('div','inline-links');links.append(sourceCell(a.target_id));
+    if(byRootAccess.has(a.target_id))links.append(button('Open root access and other suffixes',()=>openDetail('access',a.target_id),'text-link'));summary.append(links);content.append(summary);
+    for(const role of accessRoles){const ids=a[role+'_operand_ids'];if(!ids.length)continue;
+      const uses=section(({read:'Operand readers',write:'Operand writers',read_write:'Stateful read/write uses',unknown:'Uses with unknown roles'})[role],role==='unknown'?'A captured reference with an unresolved access role is not counted as an explicit reader or writer.':null);
+      uses.append(table(['Source operand','Rung','Instruction / argument','Role'],ids,id=>{const use=byOperandAccess.get(id);return[sourceCell(id),sourceCell(use.rung_id),sourceName(use.instruction_id)+' / '+(use.argument_index+1),accessCell(use)];},'Exact address '+role+' occurrences'));content.append(uses);
+    }
+    if(a.expression_use_ids.length){const expr=section('Expression readers','Each reference leaf remains one occurrence, including repeated spelling in the same expression.');expr.append(expressionUseTable(a.expression_use_ids.map(id=>byExpressionUse.get(id)),'Exact address expression reads'));content.append(expr);}
+    const rungs=section('Rungs using this exact address','This is a source occurrence list across rungs; its order does not establish scan order or execution.');
+    rungs.append(table(['Rung'],a.rung_ids,id=>[sourceCell(id)],'Exact address rungs'));content.append(rungs);
+    const local=linksByAddress.get(a.id)||[];
+    if(local.length){const p=section('Possible local calculation reuse');p.append(localLinkNotice(),relationshipLinkTable(local,'Exact address local links'));content.append(p);}
+    content.append(technical({'Address group ID':a.id,'Resolved declaration ID':a.target_id,'Identity rule':'Exact expanded spelling'}));
+  }
+  function reusePatternDetail(p){
+    setDetailHeading('OPERAND-REUSE PATTERN',fmt(p.rung_ids.length)+' rung'+(p.rung_ids.length===1?'':'s')+' with matching operand reuse',rungName(byRung.get(p.representative_rung_id)));
+    content.append(reuseNotice(),values({'Rungs':p.rung_ids.length,'Address variables':p.address_variables}),rungList(p.rung_ids.map(id=>byRung.get(id))));
+    const representative=panel('Representative source','Literal and expression structure are part of this grouping. Source names may differ between matching rungs.');representative.append(sourceText(byRung.get(p.representative_rung_id).text));content.append(representative);
+    content.append(technical({'Pattern ID':p.id}));
   }
   function engineeringCandidates(a){return a.candidate_ids.map(id=>byRungCandidate.get(id));}
   function engineeringGroup(a){return a.identification==='identified'?'identified':a.identification==='partial'?'partial':'unclassified';}
@@ -502,6 +605,7 @@
     return box;
   }
   function engineeringList(){
+    if(relationships){const connected=panel('Follow relationships between blocks','Inspect exact address readers and writers, possible local calculation reuse, and patterns that retain repeated-address structure.');connected.append(button('Explore address relationships',()=>go('relationships'),'text-link'));content.append(connected);}
     const groups=[['identified','Recognized instruction functions'],['partial','Possible / partial functions'],['unclassified','Unclassified / unparsed']];
     const cards=node('div','cards engineering-groups');
     for(const [key,title] of groups){const count=analyzedRungs.filter(a=>engineeringGroup(a)===key).length;
@@ -541,7 +645,7 @@
     if(byCalculation.has(id))return button(calculationName(byCalculation.get(id)),()=>openDetail('calculation',id),'text-link');
     return sourceCell(id);
   }
-  function engineeringIdTable(ids,caption){return table(['Source evidence'],ids,id=>[engineeringEvidence(id)],caption);}
+  function engineeringIdTable(ids,caption){return table(['Source evidence',...(relationships?['Exact address dossier']:[])],ids,id=>[engineeringEvidence(id),...(relationships?[addressCell(id)]:[])],caption);}
   function engineeringOutline(r){
     const rows=[],stack=[{item:r.structure,depth:0,label:'Series'}];
     while(stack.length){
@@ -591,6 +695,14 @@
     if(a.unknown_block_ids.length){const unknown=node('details','technical');unknown.append(node('summary','','Unresolved block functions ('+a.unknown_block_ids.length+')'),engineeringIdTable(a.unknown_block_ids,'Engineering unknown blocks'));uses.append(unknown);}
     if(a.result_kind==='no_known_result')uses.append(node('p','row-note','No known local result is an investigation candidate. This does not establish that the rung is dead, unused or unreachable.'));
     uses.append(node('p','row-note','A final lexical instruction is not necessarily a definite physical output. I/O candidates require separate module-root evidence.'));content.append(uses);
+    if(relationships){
+      const related=section('Relationships in this rung');
+      const pattern=byRungReuse.get(r.id);
+      if(pattern?.status==='grouped'){
+        const p=byReusePattern.get(pattern.pattern_id);related.append(button('Open operand-reuse pattern ('+fmt(p.rung_ids.length)+' rungs)',()=>openDetail('reusepattern',p.id),'text-link'),reuseNotice());
+      }else if(pattern)related.append(node('p','row-note','Outside operand-reuse grouping: '+human(pattern.reason)+'.'));
+      related.append(localLinkNotice(),relationshipLinkTable(linksByRung.get(r.id)||[],'Rung local calculation links'));content.append(related);
+    }
   }
   function rungList(rows=rungs.filter(r=>matches(r)&&(state.filter==='all'||r.parse_status===state.filter))){return table(['Rung','Routine / scope','Source preview','Parse status'],rows,r=>[link(rungNumber(r),r.id),entityPath(r.parent_id),node('div','snippet',short(r.text,180)),badge(r.parse_status)],'Ladder rungs');}
   function objectDetail(e){
@@ -1016,6 +1128,7 @@
       const o=x.operand,e=x.evidence,root=node('div');
       if(o.target_id)root.append(sourceCell(o.target_id));else root.append(node('span','muted','No resolved declaration'));
       if(o.suffix)root.append(node('div','cell-sub',o.suffix));
+      if(relationships){const exact=node('div','cell-sub');exact.append(addressCell(o.id));root.append(exact);}
       return[primary(String(e.argument_index+1),pidSlotLabel(e.slot)),link(o.raw_text,o.id),badge(o.status),root];
     },'PID operand functions'));content.append(args);
     const stored=section('Backing declaration and representations','All associated representations stay separate. Suffix, declaration and shape gaps remain visible; open the source declaration for their context.');
@@ -1106,12 +1219,13 @@
       const selected=panel('Selected expression read','This is one potential read occurrence, identified by its exact character span. Repeated spelling at other positions remains separate.');
       selected.append(sourceText(byCalculationNode.get(selectedUse.id)?.raw_text),values({'Character span':calculationSpan(selectedUse),'Binding':human(selectedUse.binding_status)}),
         calculationBinding({...selectedUse,reason:selectedUse.binding_reason}),sourceCell(selectedUse.rung_id),technical({'Calculation node ID':selectedUse.id,'Expression operand ID':selectedUse.expression_operand_id}));
+      if(relationships)selected.append(addressCell(selectedUse.id));
       content.append(selected);
     }
     const destination=byOperand.get(c.destination_operand_id),expression=byOperand.get(c.expression_operand_id);
     if(c.signature_status==='recognized'){
       const dest=panel('Destination operand','The destination slot belongs to the captured CPT signature. A root binding does not validate a writable member or establish that the instruction executes.');
-      if(destination){dest.append(sourceText(destination.raw_text),sourceCell(destination.id));const details=node('div','detail-meta');details.append(badge(destination.status));if(access?.schema_version>=4)details.append(accessCell(destination));dest.append(details,calculationBinding(destination));}
+      if(destination){dest.append(sourceText(destination.raw_text),sourceCell(destination.id));const details=node('div','detail-meta');details.append(badge(destination.status));if(access?.schema_version>=4)details.append(accessCell(destination));dest.append(details,calculationBinding(destination));if(relationships)dest.append(addressCell(destination.id));}
       else dest.append(empty('No destination operand captured','Inspect the original rung for this instruction.'));
       content.append(dest);
     }else{
@@ -1134,9 +1248,9 @@
       leaves.forEach(x=>repeatTotals.set(x.node.raw_text,(repeatTotals.get(x.node.raw_text)||0)+1));
       const references=leaves.map(x=>{const spelling=x.node.raw_text,index=(repeatSeen.get(spelling)||0)+1;repeatSeen.set(spelling,index);return{...x,index,total:repeatTotals.get(spelling)};});
       const bindings=section('Expression reference occurrences','Each reference leaf stays separate, including repeated source spelling. These are possible expression inputs; root links do not prove execution or validate a suffix. Open a declaration to inspect its source.');
-      bindings.append(table(['Reference / repeated spelling','Character span','Binding','Declared / resolved root'],references,x=>[
+      bindings.append(table(['Reference / repeated spelling','Character span','Binding','Declared / resolved root',...(relationships?['Exact address dossier']:[])],references,x=>[
         primary(node('span','mono',x.node.raw_text),x.total>1?'Occurrence '+x.index+' of '+x.total+' with this exact spelling':'One occurrence with this exact spelling'),
-        node('span','mono',calculationSpan(x.node)),badge(x.node.binding?.status),calculationBinding(x.node.binding)
+        node('span','mono',calculationSpan(x.node)),badge(x.node.binding?.status),calculationBinding(x.node.binding),...(relationships?[addressCell(x.node.id)]:[])
       ],'Calculation expression references',{emptyTitle:'No reference leaves in this parsed expression',emptyDetail:'An expression can contain only literal values. No value has been calculated.'}));content.append(bindings);
       const outline=section('Expression grouping','Parent rows precede their children in source syntax order. Indentation and child numbers show grouping, not evaluation order. Parent links refer to row numbers in this outline.');
       outline.append(table(['Row / grouping','Kind / operator','Character span','Leaf source'],rows,x=>{
@@ -1208,6 +1322,7 @@
     content.replaceChildren();
     if(state.view==='overview')overview();
     else if(state.view==='engineering')engineeringList();
+    else if(state.view==='relationships')relationshipsList();
     else if(state.view==='objects')objectList();
     else if(state.view==='ladder')content.append(rungList());
     else if(state.view==='sfc')sfcList();
@@ -1230,6 +1345,8 @@
       else if(d.type==='pattern')patternDetail(byPattern.get(d.id));
       else if(d.type==='finding')findingDetail(byFinding.get(d.id));
       else if(d.type==='access')accessDetail(byRootAccess.get(d.id));
+      else if(d.type==='address')addressDetail(byAddress.get(d.id));
+      else if(d.type==='reusepattern')reusePatternDetail(byReusePattern.get(d.id));
       else if(d.type==='tagcontent')tagContentDetail(byTagContent.get(d.id));
       else if(d.type==='tagelement')tagElementDetail(byTagElement.get(d.id));
       else if(d.type==='pid')pidDetail(byPid.get(d.id));
@@ -1237,6 +1354,7 @@
     }else{
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));
       if(state.view==='engineering')engineeringToolbar();
+      else if(state.view==='relationships')relationshipsToolbar();
       else if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
       else if(state.view==='ladder')toolbarFor('Search rung text, comments or routine names',countsFilter(rungs,'parse_status'));
       else if(state.view==='sfc')toolbarFor('Search SFC routines, elements and source text');

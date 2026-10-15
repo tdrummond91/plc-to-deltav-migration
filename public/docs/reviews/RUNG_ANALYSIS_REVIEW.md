@@ -1,5 +1,16 @@
 # Rung analysis: structure and unreviewed function candidates
 
+## Confirmed automated result (2026-10-15)
+
+Returned `4a3406b` tests clean `938d72d`: 778 application cases passed (one
+expected skip) and 139 helpers. All 4,606 rungs and 17,874 blocks were retained,
+including 1,863 branched rungs. There are 4,332 rungs with recognized roles or
+signatures, 208 partial and 66 unidentified; 82 block functions remain unresolved.
+The report contains 11,837 overlapping candidate occurrences, not confirmed
+engineering objects. All seven previous summaries match after revision
+normalization, and all 29 historical reports validate. Continue with
+[exact-address relationships](RELATIONSHIP_REVIEW.md); no team review is requested.
+
 ## Purpose and current scope
 
 The work-machine pushes are automated test/analysis results. Tyler has not

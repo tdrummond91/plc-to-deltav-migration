@@ -1,6 +1,32 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-15): **rung structure and function candidates**
+Current checkpoint (2026-10-15): **exact-address relationships and operand-reuse patterns**
+adds exact expanded suffix identities, separate source/expression read occurrences,
+possible local calculation links and stronger rung groups. Existing root-only
+access and opcode-shape views remain available. Source-order links do not establish
+runtime data flow, and pattern equality does not confirm engineering equivalence.
+
+Returned `4a3406b` tests clean `938d72d`: 778 application cases passed (one
+expected Windows skip), plus 139 helpers. All 4,606 rungs and 17,874 blocks were
+accounted for; 1,863 rungs contain branches. The rung layer found 82 blocks with
+unresolved operand behavior and 11,837 overlapping function candidates. The 1,319
+alarm candidates are text hints, not verified alarms. Seven preceding summaries
+match after tool_revision normalization; all 29 historical reports validate.
+
+Review8/manifest11 adds relationships.json as the fifteenth hashed artifact.
+Work23 adds closed relationship summary1; work22 and work23 allow 48 KiB outer
+reports, while work1-21 retain 32 KiB. Earlier companions and optional replay
+paths remain intact. The next normal work-machine run measures this relationship
+layer on the private export. Pushed results are automated evidence, not human
+feedback. Continue script-addressable Phase 1 analysis before team review.
+Git synchronization stays manual; the launcher commits only its new validated
+feedback report locally, and the listener stays disabled.
+
+See [relationship scope and validation](RELATIONSHIP_REVIEW.md).
+
+## Historical rung-analysis implementation checkpoint
+
+Historical checkpoint (2026-10-15): **rung structure and function candidates**
 brings existing source/access evidence into a complete rung census, ordered block
 dossiers, branch outlines and overlapping candidate families. Interpretations
 remain unreviewed, with reasons and missing evidence. Supported roles, recognized

@@ -2,7 +2,37 @@
 
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current rung-analysis contract (2026-10-15)
+## Current relationship contract (2026-10-15)
+
+Private relationship schema1 (`relationship-analysis-1`) authenticates snapshot,
+inventory, references, access4, calculation2 and rung-analysis1. Exact final-root
+and expanded suffix identities retain source spelling; invalid composed suffixes
+stay separate gaps. Address records hold source operand IDs by role and CPT read
+node IDs, with deduplicated rung/instruction memberships. Unknown roles never
+become reads/writes. No Cartesian writer-reader expansion is stored.
+
+Possible local links are limited to eligible contiguous unbranched instructions;
+reads precede writes and another write to the same root invalidates older member
+candidates. Operand-reuse patterns preserve branch shape, opcode/arity/roles,
+root reuse, exact suffix spelling, constants and CPT structure. Snapshot IDs,
+representatives and memberships are evidence, not persistent correction keys or
+proof of equivalent behavior. Execution and overlap analysis remain unimplemented.
+
+Optional review8/manifest11 adds `relationships.json` as artifact15. This path
+requires all prior companions and preserves thirteen older non-HTML artifact
+bytes. All optional older review/manifest paths remain available. The private
+companion permits 32 MiB, with incremental record/link/suffix budgets and native
+JSON types only; review8 retains the 128 MiB JSON / 160 MiB HTML limits.
+
+Work23 requires closed count-only `analysis.relationship_summary` schema1
+(maximum 6 KiB). Source counts, binding populations, identities, pattern coverage,
+branch populations and local links are cross-checked against existing summaries.
+No names, IDs, suffixes, rung bodies or pattern templates enter the public summary.
+Work22 and23 permit a 48 KiB outer report, including publisher admission; work1-21
+retain 32 KiB. Earlier contracts and historical report replay remain strict.
+See [relationship review](../reviews/RELATIONSHIP_REVIEW.md).
+
+## Historical rung-analysis contract (2026-10-15)
 
 Rung-analysis1 / rung-analysis-1 authenticates snapshot/inventory/references,
 access4 and calculation2 before deriving every rung and captured block. Records
@@ -905,7 +935,7 @@ Include:
 - source references and relevant context;
 - proposed English, alternatives, uncertain tokens, and reason for abstention;
 - model/provider, prompt/glossary version, input digest, response provenance;
-- estimated confidence percent (0–100 or null);
+- estimated confidence percent (0â€“100 or null);
 - confidence basis (`model_estimate`, `rule_score`, `calibrated`, or unavailable);
 - status: proposed / unresolved / approved / corrected / rejected / deferred;
 - final reviewer-approved English and reviewer comment.

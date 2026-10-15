@@ -165,6 +165,7 @@ class RungAnalysisWorkflowTests(unittest.TestCase):
             self.assertIsNone(outcome['failure_code'])
             self.assertEqual(save.call_args.kwargs['rung_analysis'].to_dict(), parts[-1].to_dict())
             outcome.pop('diagnostic_sample')
+            self.assertIsNotNone(outcome.pop('relationship_summary'))
             self.assertEqual(outcome, report()['analysis'])
             with patch('plc_workbench.rung_analysis.analyze_rungs', side_effect=RungAnalysisError('PRIVATE_FAILURE')):
                 code, output, error = invoke(['review', str(source), '--workspace', str(root / 'failed')])
@@ -197,7 +198,7 @@ class RungAnalysisWorkReportTests(unittest.TestCase):
         for path in (ROOT / 'public/inspection').glob('work-check-*.json'):
             before = path.read_bytes()
             historical = json.loads(before)
-            self.assertLessEqual(historical['schema_version'], 22)
+            self.assertLessEqual(historical['schema_version'], work_check._CONSTANTS['schema_version'])
             self.assertEqual(json.loads(work_check.render_work_check_report(historical)), historical)
             self.assertEqual(path.read_bytes(), before)
 

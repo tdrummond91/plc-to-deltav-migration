@@ -503,6 +503,13 @@ class GitAndWorkflowTests(unittest.TestCase):
                 snapshot, inventory, references, access, calculations,
                 analyze_rungs(snapshot, inventory, references, access, calculations),
                 revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.relationships import analyze_relationships
+            from plc_workbench.relationship_summary import build_relationship_summary
+            rung_analysis = analyze_rungs(snapshot, inventory, references, access, calculations)
+            relationships = analyze_relationships(snapshot, inventory, references, access, calculations, rung_analysis)
+            analysis_payload["relationship_summary"] = build_relationship_summary(
+                snapshot, inventory, references, access, calculations, rung_analysis, relationships,
+                revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))
             stack.enter_context(redirect_stdout(io.StringIO()))

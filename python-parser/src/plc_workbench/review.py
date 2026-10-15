@@ -20,6 +20,7 @@ from .pid import PidResult, analyze_pid
 from .pid_members import PidMemberResult, analyze_pid_members
 from .calculations import CalculationResult, analyze_calculations
 from .rung_analysis import RungAnalysisResult, analyze_rungs
+from .relationships import RelationshipResult, analyze_relationships
 from .references import ReferenceResult, analyze_references
 from .sfc_structure import SfcStructureResult, analyze_sfc_structure
 from .source import analyze_snapshot
@@ -83,7 +84,7 @@ def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     limit = (MAX_REVIEW_V3_BYTES if (data.get('schema_version'), data.get('report_version'))
              in ((3, 'engineering-review-3'), (4, 'engineering-review-4'),
                  (5, 'engineering-review-5'), (6, 'engineering-review-6'),
-                 (7, 'engineering-review-7')) else MAX_REVIEW_BYTES)
+                 (7, 'engineering-review-7'), (8, 'engineering-review-8')) else MAX_REVIEW_BYTES)
     total = 0
     for chunk in json.JSONEncoder(ensure_ascii=False, separators=(',', ':'),
                                   allow_nan=False).iterencode(data):
@@ -190,7 +191,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       pid: PidResult | None = None,
                       pid_members: PidMemberResult | None = None,
                       calculations: CalculationResult | None = None,
-                      rung_analysis: RungAnalysisResult | None = None) -> dict[str, Any]:
+                      rung_analysis: RungAnalysisResult | None = None,
+                      relationships: RelationshipResult | None = None) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -215,6 +217,13 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         if rung_analysis is not None and (calculations is None or pid_members is None or pid is None
                                          or tag_data is None or access is None):
             _fail()
+        if relationships is not None:
+            for companion, expected_type, version in (
+                    (relationships, RelationshipResult, 1), (rung_analysis, RungAnalysisResult, 1),
+                    (access, AccessResult, 4), (calculations, CalculationResult, 2)):
+                if (type(companion) is not expected_type or type(companion.schema_version) is not int
+                        or companion.schema_version != version):
+                    _fail()
         canonical_inventory = analyze_snapshot(snapshot)
         if not _strict_equal(canonical_inventory, inventory):
             _fail()
@@ -270,6 +279,13 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             canonical_rungs = analyze_rungs(snapshot, canonical_inventory, canonical_references,
                                            canonical_access, canonical_calculations)
             if not _strict_equal(canonical_rungs, rung_analysis):
+                _fail()
+        canonical_relationships = None
+        if relationships is not None:
+            canonical_relationships = analyze_relationships(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_calculations, canonical_rungs)
+            if not _strict_equal(canonical_relationships, relationships):
                 _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)
@@ -342,6 +358,14 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             })
             if canonical_rungs.status == 'partial':
                 data['status'] = 'partial'
+        if canonical_relationships is not None:
+            data.update({
+                'schema_version': 8, 'report_version': 'engineering-review-8',
+                'analysis_scope': 'source_evidence_with_rung_candidates_and_exact_address_relationships',
+                'relationships': canonical_relationships.to_dict(),
+            })
+            if canonical_relationships.status == 'partial':
+                data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
@@ -355,13 +379,14 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          pid: PidResult | None = None,
                          pid_members: PidMemberResult | None = None,
                          calculations: CalculationResult | None = None,
-                         rung_analysis: RungAnalysisResult | None = None) -> None:
+                         rung_analysis: RungAnalysisResult | None = None,
+                         relationships: RelationshipResult | None = None) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
         if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
                                           access=access, tag_data=tag_data, pid=pid,
                                           pid_members=pid_members, calculations=calculations,
-                                          rung_analysis=rung_analysis), data):
+                                          rung_analysis=rung_analysis, relationships=relationships), data):
             return
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
         pass

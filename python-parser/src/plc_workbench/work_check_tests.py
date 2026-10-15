@@ -60,6 +60,7 @@ WORK_MACHINE_MODULES = {
         "test_calculations", "test_calculation_summary", "test_calculation_workflow",
         "test_cpt_access", "test_cpt_access_summary", "test_cpt_access_workflow",
         "test_rung_analysis", "test_rung_analysis_summary", "test_rung_analysis_workflow",
+        "test_relationships", "test_relationship_summary", "test_relationship_workflow",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

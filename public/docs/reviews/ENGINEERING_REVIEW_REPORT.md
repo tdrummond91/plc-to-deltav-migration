@@ -1,6 +1,22 @@
 # Private engineering review report
 
-## Current rung-analysis follow-up (2026-10-15)
+## Current relationship follow-up (2026-10-15)
+
+The Address relationships view separates exact suffixes beneath each root.
+Open an address to inspect ordinary reads, writes, stateful uses, unknown roles,
+CPT read occurrences and participating rungs. Rung, CPT and PID evidence links
+navigate into these dossiers. Missing readers/writers are investigation leads;
+implicit, external and non-RLL uses have not been excluded.
+
+Possible local calculation links retain producer, read and write evidence within
+eligible series segments. Operand-reuse patterns distinguish reused addresses,
+same-root members, constants and CPT structure. Excluded rungs explain the gap;
+no equality or link establishes runtime behavior. Review8/manifest11 saves fifteen
+artifacts, including relationships.json. Work23 exports only count summaries.
+The invented demo now has 92 rungs. Continue automated Phase 1 analysis; no team
+engineering review is requested now. See [scope and validation](RELATIONSHIP_REVIEW.md).
+
+## Historical rung-analysis follow-up (2026-10-15)
 
 [Rung analysis](RUNG_ANALYSIS_REVIEW.md) adds the primary Engineering analysis
 view: every rung, overlapping candidate families, evidence/gap filters,

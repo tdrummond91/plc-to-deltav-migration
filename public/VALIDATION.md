@@ -2,7 +2,16 @@
 
 Prepared: 2026-10-08, planning revision 0.2.
 
-## Current rung-analysis checkpoint (2026-10-15)
+## Current relationship checkpoint (2026-10-15)
+
+See the [relationship validation record](docs/reviews/RELATIONSHIP_REVIEW.md)
+for independent review, canonical artifact and summary comparisons, actual
+isolated Bash runs, historical report replay, browser checks and scale evidence.
+The latest real return `4a3406b` confirms the prior rung-analysis bundle with
+778 application cases (one expected skip) and 139 helpers. Team review has not
+started; the next run supplies automated relationship coverage.
+
+## Historical rung-analysis checkpoint (2026-10-15)
 
 The [rung-analysis validation record](docs/reviews/RUNG_ANALYSIS_REVIEW.md)
 records the full development suite, independent review, final UI checks, two
