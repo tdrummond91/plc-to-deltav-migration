@@ -44,7 +44,8 @@ _V6_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 6, "workflow_version": "w
 _V7_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 7, "workflow_version": "work-check-7"}
 _V8_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 8, "workflow_version": "work-check-8"}
 _V9_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 9, "workflow_version": "work-check-9"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 10, "workflow_version": "work-check-10"}
+_V10_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 10, "workflow_version": "work-check-10"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 11, "workflow_version": "work-check-11"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _GIT_REPOSITORY_OVERRIDES = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
@@ -73,7 +74,7 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = {"diagnostic_sample"} if version >= 2 else set()
@@ -93,7 +94,8 @@ def validate_work_check_report(report: Any) -> None:
         validate_test_result(result, allow_unavailable=True)
     tests_passed = all(result["status"] == "passed" for result in report["tests"].values())
     analysis = report["analysis"]
-    _keys(analysis, {"status", "failure_code", "private_run_saved", "reference_summary"})
+    _keys(analysis, {"status", "failure_code", "private_run_saved", "reference_summary"}
+          | ({"sfc_structure_summary"} if version >= 11 else set()))
     if type(analysis["private_run_saved"]) is not bool or type(analysis["status"]) is not str:
         _invalid()
     if analysis["status"] in ("complete", "partial"):
@@ -101,13 +103,22 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12}[version]:
             _invalid()
-        if nested["status"] != analysis["status"] or nested["source_summary"]["tool_revision"] != revision:
+        expected_analysis = nested["status"]
+        if version >= 11:
+            from .sfc_summary import validate_sfc_summary
+            sfc = analysis["sfc_structure_summary"]
+            validate_sfc_summary(sfc)
+            if (sfc["tool_revision"] != revision
+                    or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
+                _invalid()
+            expected_analysis = "partial" if "partial" in (nested["status"], sfc["status"]) else "complete"
+        if expected_analysis != analysis["status"] or nested["source_summary"]["tool_revision"] != revision:
             _invalid()
     elif analysis["status"] == "failed":
         if (not tests_passed or type(analysis["failure_code"]) is not str
-                or analysis["failure_code"] not in _FAILURE_CODES or analysis["reference_summary"] is not None):
+                or analysis["failure_code"] not in (_FAILURE_CODES | ({"sfc_structure_error"} if version >= 11 else set())) or analysis["reference_summary"] is not None):
             _invalid()
         if analysis["private_run_saved"] and analysis["failure_code"] not in ("summary_error", "unexpected_error"):
             _invalid()
@@ -115,6 +126,8 @@ def validate_work_check_report(report: Any) -> None:
         if tests_passed or analysis["failure_code"] is not None or analysis["private_run_saved"] or analysis["reference_summary"] is not None:
             _invalid()
     else:
+        _invalid()
+    if version >= 11 and analysis["status"] in ("failed", "not_run") and analysis["sfc_structure_summary"] is not None:
         _invalid()
     expected = "failed" if not tests_passed or analysis["status"] == "failed" else (
         "partial" if analysis["status"] == "partial" else "passed"
@@ -133,7 +146,7 @@ def validate_work_check_report(report: Any) -> None:
             if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
                 # This fallback needs dedicated rack evidence. Historical v2
                 # reports retain their original malformed-only sample contract.
-                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12)}
+                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12)}
                         or nested["rack_candidates"]["matches"]["direct_operands"]
                         ["by_status"]["no_candidate_match"] == 0):
                     _invalid()
@@ -331,22 +344,29 @@ def _run_suite(root: Path, logs: Path, suite: str) -> dict[str, Any]:
 
 def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> dict[str, Any]:
     result: dict[str, Any] = {"status": "failed", "failure_code": "read_error", "private_run_saved": False,
-                              "reference_summary": None, "diagnostic_sample": None}
+                              "reference_summary": None, "sfc_structure_summary": None, "diagnostic_sample": None}
     try:
         snapshot = capture_snapshot(source)
         inventory = analyze_snapshot(snapshot)
         result["failure_code"] = "reference_error"
         references = analyze_references(inventory)
+        from .sfc_structure import analyze_sfc_structure
+        from .sfc_summary import build_sfc_summary
+        result["failure_code"] = "sfc_structure_error"
+        sfc_structure = analyze_sfc_structure(snapshot, inventory)
         result["failure_code"] = "save_error"
         workspace = root / "confidential" / "workspaces" / "work-check"
         if workspace.resolve() != workspace:
             raise WorkCheckError("Private workspace must remain inside this checkout.")
-        save_run(workspace, snapshot, inventory, references=references)
+        save_run(workspace, snapshot, inventory, references=references, sfc_structure=sfc_structure)
         result["private_run_saved"] = True
         result["failure_code"] = "summary_error"
         summary = build_reference_summary(inventory, references, revision=revision)
+        sfc_summary = build_sfc_summary(snapshot, inventory, sfc_structure, revision=revision)
         sample = build_diagnostic_sample(inventory, references)
-        result.update(status=summary["status"], failure_code=None, reference_summary=summary,
+        status = "partial" if "partial" in (summary["status"], sfc_summary["status"]) else "complete"
+        result.update(status=status, failure_code=None, reference_summary=summary,
+                      sfc_structure_summary=sfc_summary,
                       diagnostic_sample=sample)
     except Exception:
         # All raw exception text stays private, including OS paths and values
@@ -379,7 +399,8 @@ def run_check(root: Path, supplied_source: str | None) -> int:
         print("Analyzing source and saving private results...", flush=True)
         analysis = _analyze(root, source, logs, revision)
     else:
-        analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False, "reference_summary": None}
+        analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False,
+                    "reference_summary": None, "sfc_structure_summary": None}
     status = "failed" if analysis["status"] in ("not_run", "failed") else (
         "partial" if analysis["status"] == "partial" else "passed"
     )

@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `3431389` confirms all 76 unique JSR candidates have absent program-Type metadata; target languages are RLL62/SFC14. Both suites passed and earlier counts stayed unchanged. The next slice groups declared JSR relationships into a private static graph with structural body coverage, explicit main-designation evidence and candidate cycles. Read [graph scope and evidence](docs/reviews/ROUTINE_GRAPH_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `2f37ae3` confirms 76 calls/68 grouped pairs, three matched main designations, one isolated routine and no observed candidate cycles. Both suites passed and earlier counts stayed unchanged. The new slice captures SFC structure separately: steps, transitions, action descriptors, edit versions, opaque ST text and conservative links. Existing ladder/reference results remain exact. Read [SFC scope and evidence](docs/reviews/SFC_STRUCTURE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -99,8 +99,9 @@ schema 5 carries reference 7 with the ABS/LN/SQR signature catalog,
 schema 6 carries reference 8 with MVM/SWPB roles and schema 7 carries
 reference 9 with observation-only routine-instruction shapes. Schema 8
 carries reference 10 with declared JSR first-field candidates; schema 9
-carries reference 11 with unique-candidate metadata observations. Current schema
-10 carries reference 12 with the static candidate graph counts.
+carries reference 11 with unique-candidate metadata observations. Schema
+10 carries reference 12 with static candidate graph counts. Current schema11
+keeps reference12 and adds a separate SFC-structure summary1.
 Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
@@ -138,13 +139,17 @@ now describe unknown backing instead of omitted declarations. The sample is null
 
 Current contracts: private inventory/reference schemas 3/6 with
 `source-inventory-3` / `source-references-9`; public source/reference schemas 4/12;
-work-check schema 10 and reference-run manifest schema 2. Private JSON now includes
+work-check schema11 with separate SFC schema1 / sfc-structure-1. Plain
+reference runs retain manifest2; combined work runs use manifest3 with SFC
+JSON/text artifacts. Inventory/reference JSON retain their exact structures:
+private reference JSON includes
 canonical routine_targets occurrences and routine_graph; public output contains closed counts only. Historical public
 reports still validate with exact original status vocabularies. Work schema 3
 still requires reference 5, work schema 4 requires reference 6, and work schema
 5 requires reference 7, work schema 6 requires reference 8 and work schema 7
 requires reference 9; work schema 8 requires reference 10 and work schema 9
-requires reference 11. Read [graph review](docs/reviews/ROUTINE_GRAPH_REVIEW.md)
+requires reference 11. Work10/11 require reference12; only work11 has the SFC
+summary sibling. Read [SFC review](docs/reviews/SFC_STRUCTURE_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 
 Rack validation: 316 development application/workflow tests passed (one existing
@@ -270,14 +275,34 @@ Returned `3431389` confirms all 76 program-Type observations are absent, with
 call-weighted RLL62/SFC14 target languages. Both suites pass (335 application
 cases, one skip; 139 helpers), and every earlier counter is unchanged.
 
-Current static graph groups unique JSR calls into program-local edges while
+The preceding static graph groups unique JSR calls into program-local edges while
 retaining source instruction links. Nodes include isolated declarations, observed
 rung/body coverage and unmodeled SFC envelopes. Explicit main designations and
 iterative candidate cycles supply source context without execution, recursion,
 parameter or scheduling claims. Private6/analyzer9/public12/work10 carry this
-slice; earlier counters should remain unchanged. Next report should have 76
-linked calls and zero unlinked calls; other graph counts remain unknown. Partial
-remains expected.
+slice. Returned `2f37ae3` confirms 69 nodes (54 parsed RLL, one partial RLL,
+14 SFC), 76 linked calls/68 pairs, three repeated pairs/eight extras, three
+unique mains, one isolated node and no candidate cycles/self pairs. All earlier
+counters remain unchanged; 354 application cases (one skip) and 139 helpers pass.
+
+Current SFC slice adds a separate immutable-snapshot structural result, keeping
+edit-version namespaces separate and preserving opaque ST. Missing/invalid/
+duplicate IDs, unresolved endpoints, protection and unmodeled content remain
+explicit. Work11 adds count-only SFC feedback and saves two private SFC artifacts
+under combined manifest3; old inventory/reference/source contracts remain exact.
+Next report should preserve earlier counts and cover 14 SFC routines. New
+content/element/ID/link counts remain unknown until returned. Partial remains
+expected; SFC execution and process interpretation remain unimplemented.
+
+SFC validation: 495 development cases pass (one symlink skip), excluding the
+listener loader. Independent review passes 53 focused cases after three resource/
+aggregate fixes and an outside-content coverage fix. Two actual final script
+runs each pass 399 application cases (one skip) and 139 helpers, preserve exact
+baseline `2f37ae3` inventory/reference records, and add SFC-only private artifacts/
+bounded counts. Canonical CLI output, separate edit namespaces, storage hashes,
+source/prior-run preservation, report-only local commits and final copied bytes
+verify with no remote Git calls. All 16 stored work reports validate unchanged.
+See [full SFC evidence](docs/reviews/SFC_STRUCTURE_REVIEW.md).
 
 Static graph validation: 450 development cases pass (one symlink skip), excluding
 the listener loader. Independent review passes 37 focused cases and 150 generated

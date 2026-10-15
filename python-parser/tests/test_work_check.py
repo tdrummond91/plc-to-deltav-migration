@@ -456,7 +456,15 @@ class GitAndWorkflowTests(unittest.TestCase):
                 pin.side_effect = [None, work_check.WorkCheckError("changed during tests")]
             stack.enter_context(patch.object(work_check, "_remember_source"))
             stack.enter_context(patch.object(work_check, "_run_suite", side_effect=suite_results))
-            analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=report()["analysis"]))
+            from plc_workbench.sfc_structure import analyze_sfc_structure
+            from plc_workbench.sfc_summary import build_sfc_summary
+            snapshot = snapshot_from_bytes(SOURCE)
+            inventory = analyze_snapshot(snapshot)
+            analysis_payload = report()["analysis"]
+            analysis_payload["sfc_structure_summary"] = build_sfc_summary(
+                snapshot, inventory, analyze_sfc_structure(snapshot, inventory),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))
             stack.enter_context(redirect_stdout(io.StringIO()))
             try:

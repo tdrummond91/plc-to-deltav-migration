@@ -1,6 +1,6 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. The next routine-graph check is on
+Use **main** for the consolidated baseline. The next SFC-structure check is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
@@ -45,19 +45,23 @@ skip) and 139 helpers. All 76 JSRs have unique declared candidates covering
 66 distinct targets; all contexts remain not_analyzed. Earlier counters remain
 unchanged. See [the confirmed candidate review](ROUTINE_TARGET_REVIEW.md).
 
-Latest evidence: `3431389` tests clean `5f91400`, passing 335 application cases
+Metadata evidence: `3431389` tests clean `5f91400`, passing 335 application cases
 (one skip) and 139 helpers. All 76 program-Type observations are absent; targets
 are RLL62/SFC14 by call occurrence. Every earlier counter remains unchanged.
 See [the confirmed metadata review](ROUTINE_METADATA_REVIEW.md).
 
-The next check uses work-check schema 10 and reference/source schemas 12/4.
-`analysis.reference_summary.routine_graph` adds closed routine/body/language,
-main-designation, grouped-call and candidate-cycle counts. Expect 76 linked
-calls and zero unlinked calls; every earlier count should stay unchanged. Other
-graph partitions remain unknown until returned. Names, source IDs and topology
-stay in private references.json/references.txt. SFC outgoing logic remains
-unmodeled; these counts make no runtime claim. See
-[the graph review](ROUTINE_GRAPH_REVIEW.md).
+Latest evidence: `2f37ae3` tests clean `e17ceeb`, passing 354 application cases
+(one skip) and 139 helpers. The graph has 69 nodes, 68 pairs and 76 linked calls, with three repeated pairs,
+eight extra occurrences, three matched mains, one isolated node and no observed
+cycles. Earlier counters are stable.
+See [the confirmed graph review](ROUTINE_GRAPH_REVIEW.md).
+
+The next check uses work-check schema11 with unchanged reference12/source4 and
+new analysis.sfc_structure_summary (schema1). Expect 14 source SFC routines with
+earlier counts unchanged. New content/edit/step/action/transition/ID/link counts
+remain unknown until returned. SFC descriptors, raw ST and topology stay private
+in sfc-structure.json/txt. Partial remains expected. See
+[the SFC review](SFC_STRUCTURE_REVIEW.md).
 
 ## Manual runs
 
@@ -97,7 +101,7 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 10 and their tested SHA identifies which suite
+check. New reports use schema 11 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
@@ -106,12 +110,14 @@ implementation ran; older reports can therefore have a broader test scope.
 |---|---|
 | `public/inspection/work-check-<run-id>.json` | Automatically committed feedback: tested revision, suite results, reference/structural counts, and at most one actual mystery operand with instruction/argument position |
 | `confidential/work-checks/<run-id>/` | Local test logs and structured results; analysis exception details if needed |
-| `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt and manifest.json |
+| `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt, sfc-structure.json, sfc-structure.txt and manifest.json |
 | Git metadata `plc-work-check.json` | Local remembered source path; not committed or pushed |
 
 Open `overview.txt` for the source overview and `references.txt` for declarations,
 alias chains, operand occurrences and rack candidate lookups. Their JSON counterparts preserve structured
-records and source links for later analysis. Every run gets new output locations;
+records and source links for later analysis. Open sfc-structure.txt for SFC edit
+blocks, descriptors, opaque ST and scoped links; its JSON preserves canonical
+records. Combined work runs use manifest3 with seven hashed artifacts. Every run gets new output locations;
 the original source and previous runs are preserved.
 
 The public report includes at most one actual operand in `diagnostic_sample`,
@@ -127,7 +133,8 @@ Repeated unchanged runs select the same
 eligible example. Null means no eligible
 example was available or analysis did not succeed. The reference aggregate
 is at `analysis.reference_summary`, with the structural summary nested beneath
-`source_summary`. The top-level `tool_revision` identifies the tested code commit;
+`source_summary`. Separate SFC counts are at analysis.sfc_structure_summary.
+The top-level `tool_revision` identifies the tested code commit;
 the automatically created report commit is intentionally different.
 
 `analysis.reference_summary.rack_candidates` is the new comparison section.

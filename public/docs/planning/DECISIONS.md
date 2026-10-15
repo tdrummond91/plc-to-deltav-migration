@@ -200,6 +200,19 @@ The graph supports private reading and future source-linked engineering records;
 public feedback remains closed counts only. See
 [the graph contract](../reviews/ROUTINE_GRAPH_REVIEW.md).
 
+### Capture SFC structure separately from existing ladder coverage (2026-10-14)
+
+Returned `2f37ae3` confirms a complete candidate lookup with no observed call
+cycles, while 14 SFC bodies remain unmodeled. Build a separate bounded structural
+result over the same immutable snapshot instead of relabeling existing inventory
+or reference coverage. Preserve all SFCContent edit versions and resolve numeric
+IDs only within each block; duplicate IDs never pick a target. Capture raw
+descriptors and opaque ST for private reading and later engineering records;
+share closed counts only. Unknown routine siblings remain explicit gaps with
+their payload preserved in the snapshot. Keep runtime transition/action semantics
+and target sequence design for later evidence-driven work. See
+[the SFC contract](../reviews/SFC_STRUCTURE_REVIEW.md).
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?

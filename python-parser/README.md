@@ -1,4 +1,4 @@
-# L5X source inventory and references
+# L5X source inventory, references and SFC structure
 
 `plc inspect` is the first read-only application slice. It captures one local L5X as
 immutable in-memory bytes, inventories source envelopes and scoped tags, and
@@ -9,6 +9,31 @@ All `inspect` outputs are **private**: they can contain names, comments, raw lad
 source hashes and identifiers. This command is not a scrubber. Keep real inputs
 and outputs in approved private storage; do not put them in `public/` or Git.
 The existing `tools/l5x_inspect/` publication helpers remain a separate workflow.
+
+## SFC structural evidence
+
+```bash
+uv run --project python-parser --locked plc sfc-structure \
+  "confidential/plc-code/A19CHL02-unencrypted.L5X" --format text \
+  --workspace "confidential/workspaces/sfc"
+uv run --project python-parser --locked plc sfc-summary \
+  "confidential/plc-code/A19CHL02-unencrypted.L5X" \
+  --output "public/inspection/sfc-summary-001.json"
+```
+
+`sfc-structure` emits private step/transition/action descriptors, edit-version
+content blocks, raw attributes/opaque ST and conservative diagram links. Numeric
+IDs resolve only within a content block; missing, invalid and duplicate IDs
+remain gaps. All edit versions stay separate. This uses another bounded XML pass
+over the same captured bytes, keeping existing inventory/reference results exact.
+Private text/JSON can be saved in an append-only workspace. Exit0/3 describes
+complete/partial structural capture, not complete Phase1 or valid execution.
+
+`sfc-summary` publishes only closed counts and code revision under schema1/policy2.
+It contains no raw descriptors, values, source IDs or topology. The ordinary
+source/reference commands keep their existing contracts. Optional SFC storage
+adds sfc-structure.json/txt and manifest3; ordinary source/reference-only runs
+retain manifest1/2. See [the SFC review](../public/docs/reviews/SFC_STRUCTURE_REVIEW.md).
 
 ## Scoped tag and alias references
 
@@ -239,7 +264,7 @@ same scope as the work-machine checks.
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. The feedback includes test counts, bounded
 code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 10 includes `diagnostic_sample`: one actual direct malformed
+Work-check schema 11 includes `diagnostic_sample`: one actual direct malformed
 operand, or a direct unresolved colon operand with no rack candidate when no
 eligible malformed sample exists. It retains at most 128 printable characters,
 a standard instruction and zero-based argument position; otherwise it is null.
@@ -255,8 +280,9 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema 10 and carries reference schema 12 with source
-schema 4 when analysis succeeds. Historical schema-1/2/3/4/5/6/7/8/9 reports remain readable;
+The outer report is schema11 and carries unchanged reference12/source4 plus
+analysis.sfc_structure_summary (SFC schema1) when analysis succeeds. Historical
+schema-1/2/3/4/5/6/7/8/9/10 reports remain readable;
 schemas 3/4/5/6/7/8/9 require references 5/6/7/8/9/10/11 respectively. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
@@ -301,10 +327,17 @@ Report `3431389`, testing clean `5f91400`, confirms all 76 program-Type
 observations are absent, with target-language occurrences RLL62/SFC14. All 335
 application cases (one skip) and 139 helpers pass; earlier counts are unchanged.
 
-The next run adds static graph counts with 76 linked calls and zero unlinked
-calls. Grouped edges, callers, isolated nodes, main-designation matches, structural
-body coverage and candidate cycles remain unknown until returned. Earlier counts
-should stay unchanged. Partial remains expected; SFC outgoing logic is unmodeled.
+Report `2f37ae3`, testing clean `e17ceeb`, confirms 69 graph nodes, 68 pairs,
+76 linked calls, three repeats/eight extras, three unique mains, one isolated
+node and no observed cycles. All 354 application cases (one skip) and 139 helpers
+pass; earlier counts are unchanged.
+
+The next run adds separate SFC structural counts for 14 routines, while every
+existing source/reference/graph count should remain unchanged. Work11 saves
+sfc-structure.json/txt alongside source/reference artifacts under combined
+manifest3 (seven artifacts). SFC step/action/transition records and opaque ST
+remain private. New element/edit/ID/link counts are unknown until returned.
+Partial remains expected; runtime SFC logic and ST semantics remain unimplemented.
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in

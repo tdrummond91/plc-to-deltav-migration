@@ -149,3 +149,22 @@ Input, previous-run artifacts and manifest hashes are unchanged. Git traces
 contain no fetch/pull/push, and all copied root code/test/config hashes match the
 final tested bytes. Preliminary runs before strengthened public bounds are not
 the final workflow evidence described here.
+
+## Returned graph confirmation (2026-10-14)
+
+`2f37ae3` adds only
+[work-check-20261015T012257Z-0878989d.json](../../inspection/work-check-20261015T012257Z-0878989d.json)
+with tested clean `e17ceeb` as parent. Work10/reference12/source4 validates;
+354 application cases (one skip) and 139 helpers pass. There are 69 nodes:
+54 structurally parsed RLL, one partial RLL and 14 unmodeled SFC. All 76 calls
+link through 68 grouped pairs, including three repeated pairs/eight extras.
+All three main designations match uniquely; 68 nodes participate and one is
+isolated. Cycle/self counts are zero. Every earlier source/reference/metadata/
+shape/diagnostic field matches exactly except version/revision metadata. Partial,
+private results saved and null sample remain expected. No runtime or SFC-body
+execution conclusion follows from the observed graph.
+
+The next slice captures SFC structural records independently, preserving the
+existing source/reference results and keeping edit namespaces and unknown IDs
+explicit. Read [the SFC review](SFC_STRUCTURE_REVIEW.md) for new artifacts,
+contracts and the next run. No repeat graph-only check is needed.

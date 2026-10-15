@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/SFC_STRUCTURE_REVIEW.md,
 public/docs/reviews/ROUTINE_GRAPH_REVIEW.md,
 public/docs/reviews/ROUTINE_METADATA_REVIEW.md,
 public/docs/reviews/ROUTINE_TARGET_REVIEW.md,
@@ -51,8 +52,8 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available, excluding the ignored listener
-loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9 remain readable. Current
-schema 10 requires reference 12 and retains at most one authorized operand example.
+loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9/10 remain readable. Current
+schema11 requires reference12 and a separate SFC summary1 and retains at most one authorized operand example.
 The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
@@ -74,10 +75,10 @@ uv run --project python-parser python -B -m unittest discover \
   -s tools/l5x_inspect/tests -v
 
 Current baseline: 139 passing helper tests. Also run the full development
-application command in ROUTINE_GRAPH_REVIEW.md, which explicitly excludes the
+application command in SFC_STRUCTURE_REVIEW.md, which explicitly excludes the
 ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in ROUTINE_GRAPH_REVIEW.md;
+Use the final application test count and tested revision in SFC_STRUCTURE_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -206,16 +207,29 @@ Returned `3431389` tests clean `5f91400`, passing 335 application cases (one
 skip) and 139 helpers. All 76 program-Type observations are absent; call-weighted
 languages are RLL62/SFC14. All earlier counters remain unchanged.
 
-Current slice adds a static program-local declared-candidate JSR graph, grouping
+The preceding slice adds a static program-local declared-candidate JSR graph, grouping
 repeated calls with private instruction links, isolated routine nodes, observed
 structural body coverage, explicit main designations and iterative candidate
 cycles. Private6/analyzer9, public12 and work10 record the new derivation. SFC
 bodies remain unmodeled; no outgoing observed edges does not mean runtime leaf.
 Missing Type is still not defaulted, and no parameters, scheduling, valid-call
-or runtime reachability are inferred. Read ROUTINE_GRAPH_REVIEW.md. Next report
-should preserve earlier counters and have 76 linked/zero unlinked calls. Graph
-edge/body/designation/cycle partitions remain unknown until returned. Partial
-remains expected.
+or runtime reachability are inferred. Read ROUTINE_GRAPH_REVIEW.md. Returned
+`2f37ae3` tests clean `e17ceeb`, passes 354 application cases (one skip) and 139
+helpers: 69 nodes/68 pairs/76 linked calls, three repeats/eight extras, three
+unique mains, one isolated node, no cycles/self edges. Earlier counts are stable.
+
+Current slice adds independent SFC schema1/sfc-structure-1 and count summary1,
+using the same captured bytes with another bounded XML pass. Capture all
+SFCContent descendants, keep online edits separate, preserve raw ST without
+interpreting it, and resolve only unique eligible IDs within each content block.
+Unknown routine siblings are markers/coverage gaps; their payload stays in the
+snapshot. Work11 keeps reference12 and adds analysis.sfc_structure_summary.
+Combined manifest3 stores seven artifacts; ordinary inventory/reference calls
+retain manifest1/2. Inventory3/reference6/analyzer9/source4 remain unchanged.
+Read SFC_STRUCTURE_REVIEW.md. Next report should preserve earlier counters and
+cover 14 SFC routines; content/element/ID/link partitions remain unknown until
+returned. Choose subsequent ST/action/control-flow analysis from that evidence.
+Partial remains expected; structural capture does not complete Phase1.
 Continue authorized work until a specific evidence gap or phase boundary needs
 Tyler's input. Do not activate the listener or access confidential inputs.
 

@@ -27,7 +27,10 @@ SOURCE = b'''<RSLogix5000Content><Controller Name="PRIVATE_CONTROLLER">
 
 
 def report(data: bytes = SOURCE) -> dict:
-    inventory = analyze_snapshot(snapshot_from_bytes(data))
+    from plc_workbench.sfc_structure import analyze_sfc_structure
+    from plc_workbench.sfc_summary import build_sfc_summary
+    snapshot = snapshot_from_bytes(data)
+    inventory = analyze_snapshot(snapshot)
     references = analyze_references(inventory)
     nested = build_reference_summary(inventory, references, revision=REVISION)
     result = {
@@ -37,11 +40,13 @@ def report(data: bytes = SOURCE) -> dict:
         'failed_test_ids': [], 'failure_ids_omitted': 0,
     }
     return {
-        'schema_version': 10, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-10',
+        'schema_version': 11, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-11',
         'run_id': '20261014T180000Z-1234abcd', 'tool_revision': deepcopy(REVISION),
         'tests': {'application': deepcopy(result), 'helpers': deepcopy(result)},
         'analysis': {'status': nested['status'], 'failure_code': None, 'private_run_saved': True,
-                     'reference_summary': nested},
+                     'reference_summary': nested,
+                     'sfc_structure_summary': build_sfc_summary(snapshot, inventory,
+                         analyze_sfc_structure(snapshot, inventory), revision=REVISION)},
         'status': 'passed' if nested['status'] == 'complete' else 'partial',
         'diagnostic_sample': build_diagnostic_sample(inventory, references),
     }
@@ -65,12 +70,14 @@ class UnmatchedSampleReportTests(unittest.TestCase):
     def test_schema2_rejects_new_kind_but_preserves_null_and_malformed(self) -> None:
         payload = report()
         payload.update(schema_version=2, workflow_version='work-check-2')
+        del payload['analysis']['sfc_structure_summary']
         with self.assertRaises(ValueError):
             work_check.validate_work_check_report(payload)
         payload['diagnostic_sample'] = None
         work_check.validate_work_check_report(payload)
         malformed = report(SOURCE.replace(b'MysteryRack:7:I.Data[2].3', b'Unknown?'))
         malformed.update(schema_version=2, workflow_version='work-check-2')
+        del malformed['analysis']['sfc_structure_summary']
         self.assertEqual(malformed['diagnostic_sample']['kind'], 'direct_malformed_operand')
         work_check.validate_work_check_report(malformed)
 
@@ -118,7 +125,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
         for state in ('failed', 'not_run'):
             payload = report()
             payload['analysis'] = {'status': state, 'failure_code': 'read_error' if state == 'failed' else None,
-                                   'private_run_saved': False, 'reference_summary': None}
+                                   'private_run_saved': False, 'reference_summary': None, 'sfc_structure_summary': None}
             payload['status'] = 'failed'
             if state == 'not_run':
                 result = payload['tests']['application']
@@ -154,6 +161,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
             with self.assertRaises(SummaryOutputError):
                 publish_summary(output, json.dumps(payload), input_path=root / 'invented.L5X')
             payload.update(schema_version=2, workflow_version='work-check-2')
+            del payload['analysis']['sfc_structure_summary']
             rejected = root / 'rejected.json'
             with self.assertRaises(SummaryOutputError):
                 publish_summary(rejected, json.dumps(payload), input_path=root / 'invented.L5X')
