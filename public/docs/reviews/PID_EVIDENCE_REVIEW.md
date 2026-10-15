@@ -1,5 +1,16 @@
 # PID instruction and stored-data evidence
 
+## Confirmed PID return and next companion
+
+Returned `28b5d1f` tests clean `1e9aaae`: 586 application cases (one skip),
+139 helpers and a saved private run. Work16 validates; all 46 PID occurrences
+link to 46 backing declarations, with 46 Decorated structures and 2,346 direct
+member occurrences. There are no PID association gaps. Earlier summaries match
+after revision normalization. All 23 stored work1-16 reports validate.
+The [member companion](PID_MEMBER_REVIEW.md) is the next slice; no repeat
+association-only work-machine run is needed. The original implementation and
+validation checkpoint below is preserved.
+
 ## Confirmed stored-data return
 
 Commit `a096cae` adds only
@@ -108,7 +119,7 @@ the complete work report retains its 32 KiB cap. Canonical replay rejects altere
 or foreign evidence, and public counters reconcile with source/reference and
 Tag Data capacities while allowing repeated occurrences of the same backing data.
 
-## Next work-machine run
+## Original work-machine run (now returned)
 
 On `feat/bounded-operand-example-pc`, from the repository root:
 
@@ -167,6 +178,6 @@ unused PID declarations do not manufacture instruction occurrences. The
 canonical replay, summary construction and rendering on this development PC.
 Chrome opens it and supports PID search, detail navigation and 50-row paging
 (51 DOM rows including the header, then 11 on the final page). This is one
-bounded capacity check, not a universal performance guarantee. Actual-unit
-coverage and work-PC file opening remain unverified. All QA browser tabs and
+bounded capacity check, not a universal performance guarantee. Actual-unit PID association coverage is now confirmed above; work-PC file
+opening remains unverified. All QA browser tabs and
 temporary loopback servers have been closed.

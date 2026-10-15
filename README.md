@@ -2,13 +2,12 @@
 
 Status: updated 2026-10-15. Phase 1 includes source inventory, I/O declarations,
 reference bindings, routine-call candidates, SFC structure/notes and a private
-offline source explorer. Returned `a096cae` confirms stored-data capture with
-44,527 elements, 546 application cases and 139 helper cases (one application
-skip), while previous source/reference/access/SFC summaries stay unchanged.
-The current [PID evidence extension](public/docs/reviews/PID_EVIDENCE_REVIEW.md)
-labels instruction operand functions and links their backing declarations,
-stored representations and members. It preserves alternatives and explicit
-association gaps without selecting effective settings or approved loops.
+offline source explorer. Returned `28b5d1f` confirms all 46 PID occurrences
+linked to distinct backing declarations, with 2,346 direct member occurrences;
+586 application cases and 139 helpers passed (one application skip).
+The current [PID member extension](public/docs/reviews/PID_MEMBER_REVIEW.md)
+adds readable setting groups, documented type/shape checks, and missing or
+duplicate field evidence. Saved values remain separate from effective settings.
 Actual execution, dependencies and broader engineering
 interpretation remain incomplete. Editable corrections, PCSD and FHX are later
 phases. Manual engineering/UI review can wait; the next generated work-machine

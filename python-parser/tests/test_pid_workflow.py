@@ -195,7 +195,8 @@ class PidReviewStorageTests(unittest.TestCase):
                     patch('plc_workbench.pid.analyze_pid', wraps=analyze_pid) as analyze:
                 code, output, error = invoke(['review', str(source), '--workspace', str(workspace)])
             capture.assert_called_once_with(source)
-            analyze.assert_called_once()
+            self.assertGreaterEqual(analyze.call_count, 1)
+            self.assertTrue(all(call.args[0].data == DATA for call in analyze.call_args_list))
             self.assertEqual((code, error), (3, ''))
             saved, = workspace.iterdir()
             self.assertIn(str(saved / 'review.html'), output)
@@ -212,7 +213,7 @@ class PidReviewStorageTests(unittest.TestCase):
 class PidWorkReportTests(unittest.TestCase):
     def test_work16_count_only_summary_and_frozen_work15(self) -> None:
         payload = report(DATA)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (16, 'work-check-16'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (17, 'work-check-17'))
         self.assertEqual(payload['analysis']['pid_summary']['schema_version'], 1)
         rendered = work_check.render_work_check_report(payload)
         self.assertEqual(json.loads(rendered), payload)
@@ -278,7 +279,7 @@ class PidWorkReportTests(unittest.TestCase):
             candidate = deepcopy(original)
             candidate['analysis'] = {'status': state, 'failure_code': 'pid_error' if state == 'failed' else None,
                 'private_run_saved': False, 'reference_summary': None, 'sfc_structure_summary': None,
-                'access_summary': None, 'tag_data_summary': None, 'pid_summary': None}
+                'access_summary': None, 'tag_data_summary': None, 'pid_summary': None, 'pid_member_summary': None}
             candidate.update(status='failed', diagnostic_sample=None)
             if state == 'not_run':
                 candidate['tests']['application'] = work_check.unavailable_result('not_run')
@@ -343,7 +344,7 @@ class PidWorkReportTests(unittest.TestCase):
                 with patch.object(work_check, target, side_effect=error), patch.object(work_check, 'save_run'):
                     outcome = work_check._analyze(root, source, root, REVISION)
                 self.assertEqual((outcome['failure_code'], outcome['private_run_saved']), (expected, saved))
-                for key in ('reference_summary', 'sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary'):
+                for key in ('reference_summary', 'sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary', 'pid_member_summary'):
                     self.assertIsNone(outcome[key])
                 self.assertNotIn('PRIVATE_FAILURE', json.dumps(outcome))
                 self.assertIn('PRIVATE_FAILURE', (root / 'analysis.log').read_text(encoding='utf-8'))

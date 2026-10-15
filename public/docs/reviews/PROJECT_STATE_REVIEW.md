@@ -1,6 +1,24 @@
 # Project state: PID evidence and prior Phase 1 assessments
 
-Current checkpoint (2026-10-15): **PID occurrence evidence** links parsed PID
+Current checkpoint (2026-10-15): **documented PID member evidence** organizes
+linked stored fields into readable groups, checks captured names/types/shapes,
+and exposes absent and duplicate catalog entries without selecting effective
+values. Returned `28b5d1f` confirms all 46 PID instruction occurrences linked to
+46 distinct declarations, with 2,346 direct member occurrences and no PID
+association gaps. It passed 586 application cases (one skip) and 139 helpers;
+previous summaries stayed equal after revision normalization.
+
+Current review5/manifest8 adds `pid-members.json` as the twelfth hashed artifact.
+Work17 adds count-only `analysis.pid_member_summary` schema1 beside unchanged
+PID1, Tag Data1, access2, SFC2 and reference12/source4 summaries. Older optional
+paths and work1-16 remain strict. The next work-machine run measures member
+coverage and gaps; only generated feedback is needed. Manual engineering/UI
+review remains optional. Git synchronization stays manual and the listener
+remains disabled. See [PID member review](PID_MEMBER_REVIEW.md) for scope and validation.
+
+## Historical PID occurrence checkpoint
+
+Historical checkpoint (2026-10-15): **PID occurrence evidence** links parsed PID
 instructions and their seven named operand functions to retained references and
 conservatively eligible stored PID structures. Repeated occurrences, aliases,
 representations and duplicate members remain separate evidence. No active

@@ -86,7 +86,12 @@ operand from the saved SP member. Cases include alias reuse, an explicit master
 operand, duplicate representations/members, missing and opaque-only data, and
 a nested-member association gap. All values and relationships are invented.
 
+The [PID member demonstration](pid_member_review_demo.L5X) adds a complete
+51-entry catalog example and a separate incomplete structure with a mixed-case
+duplicate, wrong/missing types, empty value, unknown member and unexpected DATA
+dimensions. Its nine PID occurrences include the earlier association gaps.
+All values remain invented, including deliberately nonnumeric saved text.
 The [HTML demonstration](../../examples/engineering-review-demo.html) now uses
-pid_review_demo.L5X. The original fixtures and their existing origin/hash
+pid_member_review_demo.L5X. The original fixtures and their existing origin/hash
 contracts remain unchanged. See the [PID checkpoint](../../docs/reviews/PID_EVIDENCE_REVIEW.md)
 and [stored-data checkpoint](../../docs/reviews/TAG_DATA_REVIEW.md) for scope and validation.

@@ -1,10 +1,19 @@
 # Private engineering review report
 
-## Current follow-up (2026-10-15)
+## Current PID member follow-up (2026-10-15)
+
+The [PID member extension](PID_MEMBER_REVIEW.md) adds documented setting groups,
+name/type/shape checks and missing/duplicate catalog entries to PID detail.
+Review5/manifest8 saves twelve hashed artifacts; work17 adds count-only member
+feedback. Returned `28b5d1f` confirms the preceding PID association slice.
+Engineering and appearance review remains optional; saved values do not establish
+runtime modes or approved settings.
+
+## PID occurrence follow-up (2026-10-15)
 
 The [PID evidence extension](PID_EVIDENCE_REVIEW.md) adds operand-function labels,
 PV/PID/CV positions and links to stored representations and member evidence.
-Current review4/manifest7 runs have eleven artifacts and work16 count-only
+At that checkpoint, review4/manifest7 runs have eleven artifacts and work16 count-only
 feedback. Returned `a096cae` confirms the preceding stored-data capture; manual
 source and appearance review remains optional. No active loop/cascade behavior
 or effective configuration is inferred.

@@ -2,11 +2,79 @@
 (() => {
   'use strict';
   const PAGE_SIZE = 50;
+  // Kept in step with pid_members.FIELD_CATALOG; these are display labels only.
+  const PID_MEMBER_LABELS = {
+    "SP": "Setpoint",
+    "KP": "Proportional term",
+    "KI": "Integral term",
+    "KD": "Derivative term",
+    "BIAS": "Bias",
+    "DB": "Deadband",
+    "UPD": "Update interval",
+    "MAXS": "Upper engineering scale",
+    "MINS": "Lower engineering scale",
+    "MAXI": "Upper PV input scale",
+    "MINI": "Lower PV input scale",
+    "MAXCV": "Upper CV scale",
+    "MINCV": "Lower CV scale",
+    "MINTIE": "Lower tieback scale",
+    "MAXTIE": "Upper tieback scale",
+    "MAXO": "Upper output limit",
+    "MINO": "Lower output limit",
+    "SO": "Manual output setting",
+    "PV": "Stored process variable",
+    "ERR": "Stored error",
+    "OUT": "Stored output",
+    "TIE": "Stored tieback",
+    "PVH": "High PV threshold",
+    "PVL": "Low PV threshold",
+    "DVP": "Positive deviation threshold",
+    "DVN": "Negative deviation threshold",
+    "PVDB": "PV alarm deadband",
+    "DVDB": "Deviation alarm deadband",
+    "CT": "Cascade type flag",
+    "CL": "Cascade loop flag",
+    "PVT": "PV tracking flag",
+    "DOE": "Derivative basis flag",
+    "SWM": "Software mode flag",
+    "CA": "Control action flag",
+    "MO": "Station mode flag",
+    "PE": "Equation form flag",
+    "NDF": "Derivative smoothing flag",
+    "NOBC": "Bias calculation flag",
+    "NOZC": "Deadband crossing flag",
+    "EN": "Enable flag",
+    "INI": "Initialization flag",
+    "SPOR": "Setpoint range flag",
+    "OLL": "Low output flag",
+    "OLH": "High output flag",
+    "EWD": "Deadband status flag",
+    "DVNA": "Negative deviation alarm flag",
+    "DVPA": "Positive deviation alarm flag",
+    "PVLA": "Low PV alarm flag",
+    "PVHA": "High PV alarm flag",
+    "CTL": "Packed control word",
+    "DATA": "Internal state array"
+  };
+  const PID_MEMBER_GROUPS = {
+    "setpoint": ["SP"],
+    "tuning": ["KP", "KI", "KD", "BIAS", "DB", "UPD"],
+    "scaling": ["MAXS", "MINS", "MAXI", "MINI", "MAXCV", "MINCV", "MINTIE", "MAXTIE"],
+    "limits": ["MAXO", "MINO"],
+    "mode": ["SO", "CT", "CL", "PVT", "DOE", "SWM", "CA", "MO", "PE", "NDF", "NOBC", "NOZC"],
+    "process_values": ["PV", "ERR", "OUT", "TIE"],
+    "alarms": ["PVH", "PVL", "DVP", "DVN", "PVDB", "DVDB"],
+    "status": ["EN", "INI", "SPOR", "OLL", "OLH", "EWD", "DVNA", "DVPA", "PVLA", "PVHA"],
+    "internal": ["CTL", "DATA"]
+  };
   const data = JSON.parse(document.getElementById('review-data').textContent);
   const inv = data.inventory, refs = data.references, sfc = data.sfc;
   const access = data.access || null;
   const tagData = data.tag_data || null;
   const pid = data.pid || null, pidOccurrences = pid?.occurrences || [];
+  const pidMembers = data.pid_members || null;
+  const byPidMemberStructure = new Map((pidMembers?.structures || []).map(x => [x.structure_id,x]));
+  const byPidMember = new Map((pidMembers?.members || []).map(x => [x.element_id,x]));
   const byPid = new Map(pidOccurrences.map(x => [x.id,x]));
   const byPidOperand = new Map((pid?.operands || []).map(x => [x.id,x]));
   const rungPids = new Map(), ownerPids = new Map();
@@ -149,7 +217,7 @@
       actions.append(prev,node('span','','Page '+(page+1)+' / '+Math.ceil(rows.length/PAGE_SIZE)),next);pager.append(status,actions);wrap.append(pager);
     }; render();return wrap;
   }
-  function openDetail(type,id,extra={}) { backStack.push({...state});state={...state,detail:{type,id},focusOperand:null,focusInstruction:null,...extra};render(true); }
+  function openDetail(type,id,extra={}) { backStack.push({...state});state={...state,detail:{type,id},focusOperand:null,focusInstruction:null,...(type==='pid'?{pidMemberQuery:'',pidMemberGroup:'all'}:{}),...extra};render(true); }
   function openSource(id) {
     if(byTagContent.has(id)){openDetail('tagcontent',id);return;}
     if(byTagElement.has(id)){openDetail('tagelement',id);return;}
@@ -175,6 +243,8 @@
   tagContents.forEach(c=>searchable(c,[short(entityName(c.owner_id)),c.xml_name,c.format_kind,c.direct_text,...Object.values(c.attributes||{})]));
   tagElements.forEach(e=>searchable(e,[short(entityName(e.owner_id)),e.xml_name,e.kind,e.direct_text,...Object.values(e.attributes||{})]));
   pidOccurrences.forEach(p=>searchable(p,[p.signature_status,p.storage_status,sourceName(p.rung_id),entityPath(byRung.get(p.rung_id)?.parent_id),...p.operand_ids.map(id=>byOperand.get(id)?.raw_text)]));
+  // Index a member once even when several PID occurrences share its structure.
+  (pidMembers?.members || []).forEach(m=>searchable(m,[m.field,pidMemberLabel(m.field),m.group,m.status,byTagElement.get(m.element_id)?.attributes?.Name]));
   const sfcSearch = new Map();elements.forEach(e=>add(sfcSearch,e.routine_id,[e.kind,e.direct_text,...Object.values(e.attributes||{})].join(' ')));
   (sfc.routines || []).forEach(r=>searchable(r,[entityPath(r.routine_id),...(sfcSearch.get(r.routine_id)||[])]));
   function matches(row) { return !state.query || (searchIndex.get(row)||'').includes(state.query.toLocaleLowerCase()); }
@@ -198,6 +268,7 @@
     if(access){const row=node('div','status-row');row.append(node('span','','Explicit ladder operand roles'),badge(access.status));capture.append(row);}
     if(tagData){const row=node('div','status-row');row.append(node('span','','Stored tag data capture'),badge(tagData.status));capture.append(row);}
     if(pid){const row=node('div','status-row');row.append(node('span','','PID operand and storage association'),badge(pid.status));capture.append(row);}
+    if(pidMembers){const row=node('div','status-row');row.append(node('span','','PID documented member headers'),badge(pidMembers.status));capture.append(row);}
     capture.append(node('p','row-note',fmt(bySfcRoutine.size)+' SFC routines · '+fmt((sfc.links||[]).length)+' structural links · '+fmt((sfc.annotations||[]).length)+' note attachments'));
     const start=panel('Start your review','Each view links back to the exact evidence in this captured source snapshot.');
     [['objects','Find an object','Inspect declarations, source descriptions and where operands refer to them.'],['patterns','Compare repeated ladder','Group repeated syntax and open each occurrence in its own context.'],['findings','Work through capture gaps','Inspect unresolved and unsupported evidence before choosing a correction.']].forEach(([view,title,detail])=>{const b=button('',()=>go(view),'jump-card');const copy=node('span');copy.append(node('strong','',title),node('small','',detail));b.append(copy,node('span','jump-arrow','→'));start.append(b);});
@@ -367,6 +438,256 @@
     heading.replaceChildren(button('← Back to previous view',goBack,'back'),node('p','eyebrow',eyebrow),node('h1','',title),node('p','subtitle',subtitle));
   }
   function pidName(p){return 'PID · '+short(byOperand.get(p.operand_ids[0])?.raw_text || '(no storage operand)',100);}
+  const PID_MEMBER_HEADERS = {
+  "BIAS": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "CA": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "CL": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "CT": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "CTL": {
+    "datatype": "DINT",
+    "kind": "data_value_member"
+  },
+  "DATA": {
+    "datatype": "REAL",
+    "kind": "array_member"
+  },
+  "DB": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "DOE": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "DVDB": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "DVN": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "DVNA": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "DVP": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "DVPA": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "EN": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "ERR": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "EWD": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "INI": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "KD": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "KI": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "KP": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "MAXCV": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "MAXI": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "MAXO": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "MAXS": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "MAXTIE": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "MINCV": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "MINI": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "MINO": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "MINS": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "MINTIE": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "MO": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "NDF": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "NOBC": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "NOZC": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "OLH": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "OLL": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "OUT": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "PE": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "PV": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "PVDB": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "PVH": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "PVHA": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "PVL": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "PVLA": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "PVT": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "SO": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "SP": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "SPOR": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "SWM": {
+    "datatype": "BOOL",
+    "kind": "data_value_member"
+  },
+  "TIE": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  },
+  "UPD": {
+    "datatype": "REAL",
+    "kind": "data_value_member"
+  }
+};
+  function pidMemberLabel(field){return PID_MEMBER_LABELS[field] || field || 'Uncatalogued member';}
+  function pidMemberGroup(field){return Object.keys(PID_MEMBER_GROUPS).find(group=>PID_MEMBER_GROUPS[group].includes(field)) || 'unknown';}
+  function pidMemberBadge(status){return node('span','badge '+(['matched','array_header_matched'].includes(status)?'good':'warn'),({matched:'Scalar header matched',array_header_matched:'Array header matched'})[status] || human(status));}
+  function pidMemberSection(p){
+    const box=section('Saved PID members','Documented labels organize captured member evidence. Type and shape checks do not validate numeric values, units, effective settings or runtime state. Each representation and duplicate member remains separate; missing fields supply no defaults.');
+    const structures=p.structure_candidates.map(c=>byPidMemberStructure.get(c.structure_id)).filter(Boolean);
+    if(!structures.length){box.append(empty('No eligible PID structure for member comparison','Follow the storage association and declaration evidence above. This does not establish that PID settings are absent.'));return box;}
+    const rows=structures.flatMap(s=>s.member_ids.map(id=>({structure:s,member:byPidMember.get(id),element:byTagElement.get(id)}))).filter(x=>x.member&&x.element);
+    const missing=structures.flatMap(s=>s.missing_fields.map(field=>({structure:s,field,group:pidMemberGroup(field)})));
+    const controls=node('div','toolbar'),searchWrap=node('div','search-wrap'),input=node('input');
+    input.type='search';input.id='pid-member-search';input.placeholder='Search member names, labels, saved values or status';input.value=state.pidMemberQuery || '';input.autocomplete='off';input.setAttribute('aria-label','Search saved PID members');searchWrap.append(input);
+    const label=node('label','filter-wrap','Member group'),select=node('select');select.setAttribute('aria-label','Filter PID member group');
+    const groups=[...new Set([...Object.keys(PID_MEMBER_GROUPS),...rows.map(x=>x.member.group)])];
+    [['all','All groups'],...groups.map(group=>[group,human(group)])].forEach(([value,title])=>{const option=node('option','',title);option.value=value;select.append(option);});
+    select.value=state.pidMemberGroup || 'all';label.append(select);controls.append(searchWrap,label);box.append(controls);
+    const results=node('div');box.append(results);
+    const selected=group=>!state.pidMemberGroup||state.pidMemberGroup==='all'||state.pidMemberGroup===group;
+    const renderMembers=()=>{
+      const query=(state.pidMemberQuery || '').toLocaleLowerCase();
+      const filtered=rows.filter(x=>selected(x.member.group)&&(!query||[searchIndex.get(x.member),x.element.attributes?.Value,x.element.attributes?.DataType,x.element.direct_text].join(' ').toLocaleLowerCase().includes(query)));
+      const absent=missing.filter(x=>selected(x.group)&&(!query||[x.field,pidMemberLabel(x.field),x.group,'missing'].join(' ').toLocaleLowerCase().includes(query)));
+      results.replaceChildren();
+      const summary=node('p','row-note',fmt(filtered.length)+' captured member records and '+fmt(absent.length)+' missing catalog fields match this selection.');summary.setAttribute('role','status');results.append(summary);
+      results.append(table(['Setting / source member','Saved value / stored type','Group / evidence status','Representation / structure'],filtered,x=>{
+        const m=x.member,e=x.element,s=x.structure;
+        const identity=primary(sourceCell(e.id),pidMemberLabel(m.field));
+        const preview=Object.hasOwn(e.attributes||{},'Value')?(e.attributes.Value===''?'Empty value':short(e.attributes.Value,180)):e.direct_text?.trim()?short(e.direct_text,180):e.kind==='array_member'?'Array member; open source for child records':'No scalar value on this element';
+        const type='Stored type: '+(e.attributes?.DataType || 'not specified')+(Object.hasOwn(e.attributes||{},'Dimensions')?'; dimensions: '+short(e.attributes.Dimensions,80):'');
+        const header=PID_MEMBER_HEADERS[m.field];
+        const expected=header?'; catalog: '+header.datatype+' '+(header.kind==='array_member'?'array header (17 entries; contents unvalidated)':'scalar'):'';
+        const value=primary(node('div','snippet',preview),type+expected);
+        const status=primary(human(m.group));status.append(pidMemberBadge(m.status));
+        if(m.field&&s.duplicate_fields.includes(m.field))status.append(node('div','cell-sub','Duplicate field in this structure; every record is retained.'));
+        const context=primary(sourceCell(s.content_id));
+        const structureLink=node('div','cell-sub');structureLink.append(sourceCell(s.structure_id));context.append(structureLink);
+        return[identity,value,status,context];
+      },'PID catalogued member evidence',{emptyTitle:'No captured members match',emptyDetail:'Change the member search or group filter. Missing catalog fields appear separately below.'}));
+      const gaps=section('Missing catalog fields','Absence is checked separately for each captured structure. No value is supplied or borrowed from another representation. A named field with a type or shape gap appears in the member table above.');
+      gaps.append(table(['Catalog field','Group','Representation','Structure'],absent,x=>[primary(x.field,pidMemberLabel(x.field)),human(x.group),sourceCell(x.structure.content_id),sourceCell(x.structure.structure_id)],'PID missing catalog fields',{emptyTitle:'No missing catalog fields match',emptyDetail:'This does not validate values or runtime behavior. Type, shape and duplicate evidence remain in the captured-member table.'}));results.append(gaps);
+    };
+    input.addEventListener('input',()=>{state.pidMemberQuery=input.value;state.listPages={};renderMembers();});
+    select.addEventListener('change',()=>{state.pidMemberGroup=select.value;state.listPages={};renderMembers();});
+    renderMembers();return box;
+  }
   function pidSlotLabel(slot){return ({pid_structure:'PID structure',process_variable:'Process variable (PV)',tieback:'Tieback',control_variable:'Control variable (CV)',master_loop:'Master PID operand',inhold_bit:'Inhold bit',inhold_value:'Inhold value',unknown:'Unclassified slot'})[slot] || human(slot);}
   function pidNotice(){return notice('Instruction evidence for loop review','Operand functions identify the positions in a supported PID signature. Read/write effects, active cascade behavior, execution timing and approved loop settings remain unmodeled. Multiple occurrences may share a declaration; this count is not a count of independent loops.');}
   function pidTable(rows,caption='PID instruction occurrences'){
@@ -380,7 +701,8 @@
     totals.append(values({'Instruction occurrences':pidOccurrences.length,'Distinct backing declarations':c.distinct_backing_owners,
       'Occurrences with stored data':c.occurrences_with_data,'Occurrences with opaque-only data':c.occurrences_with_opaque_only,
       'Occurrences with multiple representations':c.occurrences_with_multiple_representations}));content.append(totals);
-    content.append(pidTable(pidOccurrences.filter(p=>matches(p)&&(state.filter==='all'||p.storage_status===state.filter))));
+    if(pidMembers){const m=pidMembers.coverage,memberTotals=panel('Documented member coverage','These counts inspect each stored structure once, even when several PID instructions reference it. Header matches do not validate values or execution.');memberTotals.append(values({'Stored structures inspected':m.structures_total,'Direct member records':m.members_total,'Structures with member gaps':m.structures_with_gaps,'Missing catalog fields':m.missing_catalog_fields,'Duplicate catalog fields':m.duplicate_catalog_fields}));content.append(memberTotals);}
+    content.append(pidTable(pidOccurrences.filter(p=>(matches(p)||p.structure_candidates.some(c=>c.member_ids.some(id=>byPidMember.has(id)&&matches(byPidMember.get(id)))))&&(state.filter==='all'||p.storage_status===state.filter))));
   }
   function pidDetail(p){
     setDetailHeading('PID SOURCE EVIDENCE',pidName(p),sourceName(p.rung_id));
@@ -409,11 +731,14 @@
     content.append(stored);
     const roots=section('PID structure candidates','Each row is a direct Decorated PID structure. Duplicate roots and representations are kept; no candidate is chosen as effective.');
     roots.append(table(['Representation','Structure evidence','Direct member records'],p.structure_candidates,c=>[sourceCell(c.content_id),sourceCell(c.structure_id),fmt(c.member_ids.length)],'PID structure candidates'));content.append(roots);
+    if(pidMembers)content.append(pidMemberSection(p));
+    else {
     const memberRows=p.structure_candidates.flatMap(c=>c.member_ids.map(id=>({candidate:c,element:byTagElement.get(id)}))).filter(x=>x.element);
     const members=section('Saved PID members','Values retain their exported spelling. Missing members supply no default. SP, tuning, mode and limit fields remain source evidence until engineering review; duplicate values are shown independently.');
     members.append(table(['Member','Saved value / text','Representation','Capture kind'],memberRows,x=>{
       const e=x.element;return[sourceCell(e.id),node('div','snippet',Object.hasOwn(e.attributes||{},'Value')?(e.attributes.Value===''?'Empty value':short(e.attributes.Value,180)):e.direct_text?.trim()?short(e.direct_text,180):'No scalar value on this element'),sourceCell(x.candidate.content_id),human(e.kind)];
     },'PID saved members'));content.append(members);
+    }
     content.append(technical({'Instruction ID':p.id,'Rung ID':p.rung_id,'Storage association':p.storage_status}));
   }
   function tagDataNotice(){return notice('Exported values, with source context','These are saved source values, not live readings or approved DeltaV settings. Data and DefaultData representations stay separate; no precedence, numeric conversion, member validity or effective value is inferred. Opaque and duplicate data remain visible.');}
@@ -509,7 +834,7 @@
       else if(state.view==='findings')toolbarFor('Search finding codes, source context or detail',countsFilter(findings,'origin'));
       else if(state.view==='access')toolbarFor('Search root names, scopes, opcodes or rung context');
       else if(state.view==='tagdata')toolbarFor('Search declarations, members, saved values or data text',countsFilter(tagContents,'format_kind'));
-      else if(state.view==='pid')toolbarFor('Search PID operands, rung context or association status',countsFilter(pidOccurrences,'storage_status'));
+      else if(state.view==='pid')toolbarFor(pidMembers?'Search PID operands, member labels, groups or source context':'Search PID operands, rung context or association status',countsFilter(pidOccurrences,'storage_status'));
       renderList();
     }
     if(focus){document.getElementById('main').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}
@@ -518,7 +843,7 @@
   Object.keys(labels).forEach(view=>{const b=button('',()=>go(view),'nav-button');b.dataset.view=view;b.append(node('span','',labels[view]));if(navCounts[view]!==undefined)b.append(node('span','nav-count',fmt(navCounts[view])));nav.append(b);});
   const mini=document.getElementById('snapshot-mini');mini.className='snapshot-mini';mini.textContent='SNAPSHOT '+String(data.snapshot.sha256||'').slice(0,12)+'\n'+fmt(data.snapshot.size_bytes)+' bytes';
   document.addEventListener('keydown',event=>{
-    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){const input=document.getElementById('review-search');if(input){event.preventDefault();input.focus();input.select();}}
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){const input=document.getElementById('review-search') || document.getElementById('pid-member-search');if(input){event.preventDefault();input.focus();input.select();}}
     if(event.key==='Escape'&&state.detail&&!['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)){event.preventDefault();goBack();}
   });
   render();

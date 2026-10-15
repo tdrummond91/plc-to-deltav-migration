@@ -1,9 +1,9 @@
-# L5X engineering review, PID evidence and source structure
+# L5X engineering review, PID members and source structure
 
 ## Offline engineering review
 
 `plc review` builds an organized, read-only engineering report from the
-source inventory, references, explicit operand access, stored Tag Data, PID occurrence and SFC evidence. Open its printed
+source inventory, references, explicit operand access, stored Tag Data, PID occurrence/member and SFC evidence. Open its printed
 `review.html` path to search objects, follow source context, inspect findings,
 compare repeated rung syntax and navigate routine/SFC evidence. The report is
 self-contained and opens without a server. Phase 1 now classifies potential
@@ -15,7 +15,7 @@ between member/index suffixes. Engineering classifications remain later work.
 Tyler has not inspected the source/report and explicitly deferred engineering
 and UI review. Such inspection is optional later; it is not a gate to continued
 parser work. The next work-machine run should return only generated aggregate
-feedback for this PID evidence slice.
+feedback for this PID member slice.
 
 ```bash
 uv run --project python-parser --locked plc review \
@@ -25,11 +25,12 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-review4/manifest7 with eleven hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
-references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json and review.html. Existing plain
+review5/manifest8 with twelve hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
-`confidential/`. Read [the current PID evidence review](../public/docs/reviews/PID_EVIDENCE_REVIEW.md),
+`confidential/`. Read [the current PID member review](../public/docs/reviews/PID_MEMBER_REVIEW.md),
+[the PID occurrence review](../public/docs/reviews/PID_EVIDENCE_REVIEW.md),
 [the Tag Data review](../public/docs/reviews/TAG_DATA_REVIEW.md),
 [the timer/copy checkpoint](../public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md)
 and [the initial access-role checkpoint](../public/docs/reviews/ACCESS_ROLE_REVIEW.md).
@@ -38,15 +39,20 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work16 adds count-only PID summary1 while preserving
-Tag Data1/reference12/source4/SFC2/access2. PID evidence names seven operand
-functions only for complete seven-slot signatures and links eligible ordinary
-PID declarations to every retained Decorated PID structure. Repeated occurrences,
-multiple representations and duplicate members remain visible; a master-loop
-operand does not establish active cascade. No effective values, numeric settings,
-runtime modes or control-loop count are inferred. Read the
-[PID evidence review](../public/docs/reviews/PID_EVIDENCE_REVIEW.md) for scope and
-complete validation results. The next normal work-machine run measures this slice.
+manual. Current work17 adds count-only PID member summary1 while preserving
+PID1, Tag Data1/reference12/source4/SFC2/access2 summaries. Documented member
+groups, type/shape checks and missing/duplicate catalog fields complement the
+existing operand and storage links. Scalar values, array contents, flags and
+effective configuration remain uninterpreted. Review4/manifest7 remains available
+when the optional member companion is omitted.
+
+Returned `28b5d1f` confirms all 46 PID occurrences linked to 46 distinct backing
+declarations, with 2,346 direct member occurrences and no PID association gaps.
+Its clean `1e9aaae` run passed 586 application cases (one skip) and 139 helpers;
+prior summaries matched after revision normalization. This establishes capture
+coverage, not 46 engineered loops or valid settings. Read the
+[PID member review](../public/docs/reviews/PID_MEMBER_REVIEW.md) for current
+scope and validation. The next normal work-machine run measures member coverage.
 
 Historical Tag Data/work15 validation: 642 development cases passed with one
 existing Windows symlink skip. Two isolated runs each passed 546 application

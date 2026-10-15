@@ -169,7 +169,7 @@ class BitOperationTests(unittest.TestCase):
                         source.snapshot['id'], source.snapshot['sha256']):
             self.assertNotIn(private, rendered)
         payload = report(report_source('MVM(A,1,A)SWPB(A,UnknownMode,A);'))
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (16, 'work-check-16'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (17, 'work-check-17'))
         self.assertEqual(payload['analysis']['reference_summary']['schema_version'], 12)
         self.assertEqual(payload['status'], 'passed')
         self.assertIsNone(payload['diagnostic_sample'])

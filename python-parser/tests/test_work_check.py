@@ -474,13 +474,19 @@ class GitAndWorkflowTests(unittest.TestCase):
             from plc_workbench.tag_data_summary import build_tag_data_summary
             from plc_workbench.pid import analyze_pid
             from plc_workbench.pid_summary import build_pid_summary
+            from plc_workbench.pid_members import analyze_pid_members
+            from plc_workbench.pid_member_summary import build_pid_member_summary
             tag_data = analyze_tag_data(snapshot, inventory)
             analysis_payload["tag_data_summary"] = build_tag_data_summary(
                 snapshot, inventory, tag_data,
                 revision={"commit": COMMIT, "worktree": "clean"})
+            pid = analyze_pid(snapshot, inventory, references, tag_data)
             analysis_payload["pid_summary"] = build_pid_summary(
-                snapshot, inventory, references, tag_data,
-                analyze_pid(snapshot, inventory, references, tag_data),
+                snapshot, inventory, references, tag_data, pid,
+                revision={"commit": COMMIT, "worktree": "clean"})
+            analysis_payload["pid_member_summary"] = build_pid_member_summary(
+                snapshot, inventory, references, tag_data, pid,
+                analyze_pid_members(snapshot, inventory, references, tag_data, pid),
                 revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))

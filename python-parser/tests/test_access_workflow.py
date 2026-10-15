@@ -137,7 +137,7 @@ class AccessStorageTests(unittest.TestCase):
 class AccessWorkReportTests(unittest.TestCase):
     def test_current_work_closed_summary_and_historical_work12_remain_separate(self) -> None:
         payload = report(COMPLETE)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (16, 'work-check-16'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (17, 'work-check-17'))
         self.assertEqual(payload['analysis']['access_summary']['schema_version'], 2)
         rendered = work_check.render_work_check_report(payload)
         for private in ('PRIVATE_', 'snapshot', 'terminal_root', 'instruction_id', 'raw_text'):
@@ -182,6 +182,7 @@ class AccessWorkReportTests(unittest.TestCase):
         current.update(schema_version=13, workflow_version='work-check-13')
         del current['analysis']['tag_data_summary']
         del current['analysis']['pid_summary']
+        del current['analysis']['pid_member_summary']
         with self.assertRaises(ValueError):
             work_check.validate_work_check_report(current)
         self.assertEqual(WORK13_REPORT.read_bytes(), before)
@@ -190,7 +191,7 @@ class AccessWorkReportTests(unittest.TestCase):
         payload = report(ladder('TON(A,?,?)TOF(A,100,0)RTO(A,?,5)RES(A)COP(A,A,3)CPS(A,A,4);'))
         analysis = payload['analysis']
         access = analysis['access_summary']
-        self.assertEqual((payload['schema_version'], access['schema_version']), (16, 2))
+        self.assertEqual((payload['schema_version'], access['schema_version']), (17, 2))
         self.assertEqual(access['exporter_version'], 'access-summary-2')
         self.assertEqual(access['coverage']['timer_instructions'], 3)
         self.assertEqual(access['coverage']['timer_pseudo_operands_by_kind'],
@@ -350,7 +351,7 @@ class AccessWorkReportTests(unittest.TestCase):
         for status in ('failed', 'not_run'):
             payload = deepcopy(original)
             payload['analysis'] = {'status': status, 'failure_code': 'access_error' if status == 'failed' else None,
-                'private_run_saved': False, 'reference_summary': None, 'sfc_structure_summary': None, 'access_summary': None, 'tag_data_summary': None, 'pid_summary': None}
+                'private_run_saved': False, 'reference_summary': None, 'sfc_structure_summary': None, 'access_summary': None, 'tag_data_summary': None, 'pid_summary': None, 'pid_member_summary': None}
             payload['status'] = 'failed'
             if status == 'not_run':
                 payload['tests']['application'] = work_check.unavailable_result('not_run')
@@ -399,7 +400,7 @@ class AccessWorkReportTests(unittest.TestCase):
             self.assertEqual((result['status'], result['failure_code'], result['private_run_saved']),
                              ('failed', 'summary_error', True))
             self.assertTrue(all(result[key] is None for key in
-                ('reference_summary', 'sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary', 'diagnostic_sample')))
+                ('reference_summary', 'sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary', 'pid_member_summary', 'diagnostic_sample')))
             result.pop('diagnostic_sample')
             payload = report(COMPLETE)
             payload.update(analysis=result, status='failed')

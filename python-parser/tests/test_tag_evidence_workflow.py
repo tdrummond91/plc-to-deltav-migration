@@ -180,7 +180,7 @@ class TagEvidenceStorageTests(unittest.TestCase):
 class TagEvidenceWorkTests(unittest.TestCase):
     def test_current_work_summary_is_count_only_and_version14_is_frozen(self) -> None:
         payload = report(DATA)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (16, 'work-check-16'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (17, 'work-check-17'))
         summary = payload['analysis']['tag_data_summary']
         self.assertEqual(summary['schema_version'], 1)
         rendered = work_check.render_work_check_report(payload)
@@ -266,7 +266,7 @@ class TagEvidenceWorkTests(unittest.TestCase):
             payload = deepcopy(original)
             payload['analysis'] = {'status': status, 'failure_code': 'tag_data_error' if status == 'failed' else None,
                 'private_run_saved': False, 'reference_summary': None, 'sfc_structure_summary': None,
-                'access_summary': None, 'tag_data_summary': None, 'pid_summary': None}
+                'access_summary': None, 'tag_data_summary': None, 'pid_summary': None, 'pid_member_summary': None}
             payload.update(status='failed', diagnostic_sample=None)
             if status == 'not_run':
                 payload['tests']['application'] = work_check.unavailable_result('not_run')
@@ -302,7 +302,7 @@ class TagEvidenceWorkTests(unittest.TestCase):
                 with patch.object(work_check, target, side_effect=error), patch.object(work_check, 'save_run'):
                     outcome = work_check._analyze(root, source, root, REVISION)
                 self.assertEqual((outcome['failure_code'], outcome['private_run_saved']), (expected, saved))
-                for key in ('reference_summary', 'sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary'):
+                for key in ('reference_summary', 'sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary', 'pid_member_summary'):
                     self.assertIsNone(outcome[key])
                 self.assertNotIn('PRIVATE_FAILURE', json.dumps(outcome))
                 self.assertIn('PRIVATE_FAILURE', (root / 'analysis.log').read_text(encoding='utf-8'))

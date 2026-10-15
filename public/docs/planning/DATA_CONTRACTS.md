@@ -2,7 +2,26 @@
 
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current PID occurrence contract (2026-10-15)
+## Current PID member contract (2026-10-15)
+
+Private PID member schema1 describes unique linked structures and their direct
+stored members using a fixed 51-name catalog. IDs point to unchanged PID1 and
+Tag Data1 evidence. Documented names, declared types and stored shapes are
+checked; missing and duplicate catalog fields remain explicit. Scalar values
+and DATA array contents are not interpreted. No effective setting is chosen.
+
+Review5 includes pid_members, and manifest8 adds pid-members.json as the twelfth
+hashed artifact. Work17 adds count-only pid_member_summary1; all earlier
+summaries remain unchanged. Omitting the new optional companion retains
+review4/manifest7. Historical work1-16 and prior optional API paths remain
+strict. The companion allows at most 100,000 structures and 250,000 members.
+Private evidence and JSON each have a 16 MiB cap; public member summary
+has a 4 KiB cap and the complete work report retains 32 KiB. Review5 retains
+128 MiB JSON / 160 MiB HTML. Cross-summary validation bounds unique member and
+structure populations by both PID1 and Tag Data. See
+[PID_MEMBER_REVIEW.md](../reviews/PID_MEMBER_REVIEW.md) for evidence and limits.
+
+## PID occurrence contract (2026-10-15)
 
 Private PidResult1 / pid-evidence-1 joins canonical ladder PID occurrences,
 reference operand IDs and stored-data IDs. Exact seven-slot nonempty signatures
