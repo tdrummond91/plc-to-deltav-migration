@@ -2,12 +2,13 @@
 
 Status: updated 2026-10-15. Phase 1 includes source inventory, I/O declarations,
 reference bindings, routine-call candidates, SFC structure/notes and a private
-offline source explorer. Returned `122f230` confirms 17,526 of 17,874 instruction
-occurrences have known explicit operand roles, with 496 application cases and
-139 helper tests passing (one application skip). The current
-[stored tag data extension](public/docs/reviews/TAG_DATA_REVIEW.md) adds
-searchable saved values and member evidence linked to their declarations.
-It preserves separate representations without selecting effective settings.
+offline source explorer. Returned `a096cae` confirms stored-data capture with
+44,527 elements, 546 application cases and 139 helper cases (one application
+skip), while previous source/reference/access/SFC summaries stay unchanged.
+The current [PID evidence extension](public/docs/reviews/PID_EVIDENCE_REVIEW.md)
+labels instruction operand functions and links their backing declarations,
+stored representations and members. It preserves alternatives and explicit
+association gaps without selecting effective settings or approved loops.
 Actual execution, dependencies and broader engineering
 interpretation remain incomplete. Editable corrections, PCSD and FHX are later
 phases. Manual engineering/UI review can wait; the next generated work-machine

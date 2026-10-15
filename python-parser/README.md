@@ -1,9 +1,9 @@
-# L5X engineering review, stored tag data, access and source structure
+# L5X engineering review, PID evidence and source structure
 
 ## Offline engineering review
 
 `plc review` builds an organized, read-only engineering report from the
-source inventory, references, explicit operand access, stored Tag Data and SFC evidence. Open its printed
+source inventory, references, explicit operand access, stored Tag Data, PID occurrence and SFC evidence. Open its printed
 `review.html` path to search objects, follow source context, inspect findings,
 compare repeated rung syntax and navigate routine/SFC evidence. The report is
 self-contained and opens without a server. Phase 1 now classifies potential
@@ -15,7 +15,7 @@ between member/index suffixes. Engineering classifications remain later work.
 Tyler has not inspected the source/report and explicitly deferred engineering
 and UI review. Such inspection is optional later; it is not a gate to continued
 parser work. The next work-machine run should return only generated aggregate
-feedback for this stored Tag Data slice.
+feedback for this PID evidence slice.
 
 ```bash
 uv run --project python-parser --locked plc review \
@@ -25,11 +25,12 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-review3/manifest6 with ten hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
-references.json/txt, sfc-structure.json/txt, access.json, tag-data.json and review.html. Existing plain
+review4/manifest7 with eleven hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
-`confidential/`. Read [the current Tag Data review](../public/docs/reviews/TAG_DATA_REVIEW.md),
+`confidential/`. Read [the current PID evidence review](../public/docs/reviews/PID_EVIDENCE_REVIEW.md),
+[the Tag Data review](../public/docs/reviews/TAG_DATA_REVIEW.md),
 [the timer/copy checkpoint](../public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md)
 and [the initial access-role checkpoint](../public/docs/reviews/ACCESS_ROLE_REVIEW.md).
 
@@ -37,21 +38,22 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work15 adds count-only tag-data summary1 while preserving
-reference12/source4/SFC2/access2. Stored parsed text and attributes remain private;
-missing Data means absent evidence, not zero or an invalid declaration. Capture
-does not determine effective values, runtime state, initialization or member
-validity. All 642 development cases pass with one existing Windows symlink skip.
-Two actual isolated runs, explicit then remembered source, each pass
-546 application cases (one existing symlink skip) and 139 helpers, with report-only
-local commits and no Git network calls. Ten hashes, canonical review3/Tag Data schema1
-and identical fresh CLI artifacts verify. Eight legacy artifacts match
-`122f230` byte for byte; source/reference/SFC/access summaries match after
-revision normalization. All 21 historical work1-14 reports validate. See the
-[Tag Data review](../public/docs/reviews/TAG_DATA_REVIEW.md) for complete validation results.
-Returned `122f230` confirms access2 on clean `bdcc101`: 496 application cases
-(one skip), 139 helpers, 17,526 classified instructions of 17,874, 348 unsupported
-instructions and 321 binding gaps. The next normal run measures Tag Data capture.
+manual. Current work16 adds count-only PID summary1 while preserving
+Tag Data1/reference12/source4/SFC2/access2. PID evidence names seven operand
+functions only for complete seven-slot signatures and links eligible ordinary
+PID declarations to every retained Decorated PID structure. Repeated occurrences,
+multiple representations and duplicate members remain visible; a master-loop
+operand does not establish active cascade. No effective values, numeric settings,
+runtime modes or control-loop count are inferred. Read the
+[PID evidence review](../public/docs/reviews/PID_EVIDENCE_REVIEW.md) for scope and
+complete validation results. The next normal work-machine run measures this slice.
+
+Historical Tag Data/work15 validation: 642 development cases passed with one
+existing Windows symlink skip. Two isolated runs each passed 546 application
+cases (one skip) and 139 helpers; ten artifact hashes and fresh CLI equivalence
+verified. Eight legacy artifacts matched `122f230`; all 21 then-stored work1-14
+reports validated. The returned work15 report at `a096cae` tested clean `7d0cbb1`
+and is the unchanged baseline for the PID extension.
 
 Historical access2/work14 validation was 592 development cases with one
 existing symlink skip. Two actual isolated runs, explicit then remembered source,
@@ -104,7 +106,7 @@ for all parsed instructions, operands by role/binding, linked and unlinked
 occurrences, indexed roots, unparsed rungs and known-access binding gaps. It adds
 accepted timer counts and fixed placeholder/integer pseudo-operand counts;
 timer settings and initialization are not interpreted.
-`analysis.access_summary` schema2 in work15 publishes only fixed metadata, status,
+`analysis.access_summary` schema2 in work16 publishes only fixed metadata, status,
 revision and these counts, with no names, IDs, values, opcode histogram or topology.
 Frozen work13 retains summary1's exact fields and vocabulary. The timer
 capacity includes published TON/TOF/RTO plus pooled `withheld` spellings to retain
@@ -398,13 +400,14 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema15 and carries unchanged reference12/source4 plus
+The outer report is schema16 and carries unchanged reference12/source4 plus
 `analysis.sfc_structure_summary` (SFC schema2), `analysis.access_summary`
-(access schema2) and `analysis.tag_data_summary` (Tag Data schema1) when analysis
-succeeds. Failed or skipped analysis leaves these summaries null. Frozen work14
+(access schema2), `analysis.tag_data_summary` (Tag Data schema1) and
+`analysis.pid_summary` (PID schema1) when analysis succeeds. Failed or skipped
+analysis leaves these summaries null. Frozen work15 retains Tag Data1 without PID; work14
 retains access summary2 without Tag Data; frozen work13 requires access summary1. Historical
 work12 retains SFC2 without access, and work11 requires frozen SFC1.
-Historical schema-1/2/3/4/5/6/7/8/9/10/11/12/13/14 reports remain readable;
+Historical schema-1/2/3/4/5/6/7/8/9/10/11/12/13/14/15 reports remain readable;
 schemas 3/4/5/6/7/8/9 require references 5/6/7/8/9/10/11 respectively. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
@@ -459,8 +462,8 @@ Returned `90923ab` confirms SFC2 structural capture is complete for this export:
 resolved. SFC issues fall from 280 to zero; all earlier reference, flow-link,
 ID and ST counts remain unchanged. The report passes 416 application cases
 (one skip) and 139 helpers. That checkpoint saved private sfc-structure.json/txt
-under combined manifest3 (seven artifacts); current review3 runs use manifest6
-with ten artifacts, adding access JSON, Tag Data JSON and HTML. Overall partial remains expected: runtime SFC logic,
+under combined manifest3 (seven artifacts); current review4 runs use manifest7
+with eleven artifacts, adding access JSON, Tag Data JSON, PID JSON and HTML. Overall partial remains expected: runtime SFC logic,
 ST semantics and engineering classifications remain unimplemented. No repeat
 annotation-only work run is needed. See the [project-state assessment](../public/docs/reviews/PROJECT_STATE_REVIEW.md).
 

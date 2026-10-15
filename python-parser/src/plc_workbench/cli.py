@@ -231,6 +231,7 @@ def _sfc(args: argparse.Namespace) -> int:
 
 def _review(args: argparse.Namespace) -> int:
     from .access import AccessError, analyze_access
+    from .pid import PidError, analyze_pid
     from .references import ReferenceError, analyze_references
     from .sfc_structure import SfcStructureError, analyze_sfc_structure
     from .source import SourceError, analyze_snapshot, capture_snapshot
@@ -244,10 +245,11 @@ def _review(args: argparse.Namespace) -> int:
         sfc = analyze_sfc_structure(snapshot, inventory)
         access = analyze_access(inventory, references)
         tag_data = analyze_tag_data(snapshot, inventory)
+        pid = analyze_pid(snapshot, inventory, references, tag_data)
         saved = save_run(args.workspace, snapshot, inventory, references=references,
-                         sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data)
+                         sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data, pid=pid)
         print(f"Private review report: {saved / 'review.html'}")
-        return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status, tag_data.status) else 0
+        return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status, tag_data.status, pid.status) else 0
     except SourceError:
         print("plc: Cannot read or analyze source; no review report was produced.", file=sys.stderr)
         return 1
@@ -256,6 +258,9 @@ def _review(args: argparse.Namespace) -> int:
         return 1
     except TagDataError:
         print("plc: Cannot analyze Tag Data; no review report was produced.", file=sys.stderr)
+        return 1
+    except PidError:
+        print("plc: Cannot analyze PID evidence; no review report was produced.", file=sys.stderr)
         return 1
     except (ReferenceError, SfcStructureError, StorageError) as exc:
         print(f"plc: {exc}", file=sys.stderr)

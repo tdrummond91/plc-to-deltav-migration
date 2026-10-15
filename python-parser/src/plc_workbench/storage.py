@@ -21,6 +21,7 @@ from .reporting import InventoryView, render_json, render_text
 if TYPE_CHECKING:
     from .access import AccessResult
     from .models import SourceSnapshot
+    from .pid import PidResult
     from .references import ReferenceResult
     from .sfc_structure import SfcStructureResult
     from .tag_data import TagDataResult
@@ -77,6 +78,7 @@ def save_run(
     include_review: bool = False,
     access: AccessResult | None = None,
     tag_data: TagDataResult | None = None,
+    pid: PidResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -90,6 +92,8 @@ def save_run(
             raise StorageError("Access records require a complete engineering review run.")
         if tag_data is not None and (access is None or not include_review):
             raise StorageError("Tag Data records require an engineering review with operand access.")
+        if pid is not None and (tag_data is None or access is None or not include_review):
+            raise StorageError("PID records require an engineering review with operand access and Tag Data.")
         payload = result.to_dict()
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
@@ -127,7 +131,7 @@ def save_run(
             from .review_html import ReviewHtmlError, render_review_html
             try:
                 review_data = build_review_data(snapshot, result, references, sfc_structure,
-                                                access=access, tag_data=tag_data)
+                                                access=access, tag_data=tag_data, pid=pid)
                 review_html = render_review_html(review_data).encode("utf-8")
             except (ReviewError, ReviewHtmlError) as exc:
                 raise StorageError("Could not build the private engineering review report.") from exc
@@ -165,6 +169,13 @@ def save_run(
                 contents["tag-data.json"] = render_tag_data_json(tag_data).encode("utf-8")
             except TagDataError as exc:
                 raise StorageError("Could not render captured Tag Data records.") from exc
+        if pid is not None:
+            from .pid import PidError, render_pid_json
+            try:
+                pid_payload = pid.to_dict()
+                contents["pid.json"] = render_pid_json(pid).encode("utf-8")
+            except PidError as exc:
+                raise StorageError("Could not render captured PID records.") from exc
         destination = _workspace_path(workspace)
         destination.mkdir(parents=True, exist_ok=True)
         if destination.resolve() != destination:
@@ -241,6 +252,14 @@ def save_run(
                 "status": "partial" if "partial" in (manifest["status"], tag_data_payload["status"]) else "complete",
                 "tag_data_schema_version": tag_data_payload["schema_version"],
                 "tag_data_analyzer_version": tag_data_payload["analyzer_version"],
+            })
+        if pid is not None:
+            manifest.update({
+                "schema_version": 7,
+                "artifact_kind": "source_reference_sfc_access_tag_data_pid_review_run",
+                "status": "partial" if "partial" in (manifest["status"], pid_payload["status"]) else "complete",
+                "pid_schema_version": pid_payload["schema_version"],
+                "pid_analyzer_version": pid_payload["analyzer_version"],
             })
         _write_artifact(
             destination, run_dir, ".manifest.pending",

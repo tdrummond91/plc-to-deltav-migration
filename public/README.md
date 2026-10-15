@@ -13,7 +13,8 @@ Start here:
    [invented HTML demonstration](examples/engineering-review-demo.html).
 7. [Explicit operand reads/writes](docs/reviews/ACCESS_ROLE_REVIEW.md) and
    [confirmed timer/reset/copy checkpoint](docs/reviews/TIMER_COPY_ACCESS_REVIEW.md).
-8. [Current stored tag data checkpoint](docs/reviews/TAG_DATA_REVIEW.md).
+8. [Confirmed stored tag data checkpoint](docs/reviews/TAG_DATA_REVIEW.md).
+9. [Current PID evidence checkpoint](docs/reviews/PID_EVIDENCE_REVIEW.md).
 
 The fixtures are small parser inputs, not deployable controller projects. The
 read-only inventory, reference, SFC and offline engineering-review CLI commands

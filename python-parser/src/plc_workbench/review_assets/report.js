@@ -6,6 +6,10 @@
   const inv = data.inventory, refs = data.references, sfc = data.sfc;
   const access = data.access || null;
   const tagData = data.tag_data || null;
+  const pid = data.pid || null, pidOccurrences = pid?.occurrences || [];
+  const byPid = new Map(pidOccurrences.map(x => [x.id,x]));
+  const byPidOperand = new Map((pid?.operands || []).map(x => [x.id,x]));
+  const rungPids = new Map(), ownerPids = new Map();
   const tagContents = tagData?.contents || [], tagElements = tagData?.elements || [];
   const byTagOwner = new Map((tagData?.owners || []).map(x => [x.source_id,x]));
   const byTagContent = new Map(tagContents.map(x => [x.id,x]));
@@ -45,6 +49,11 @@
     add(rungOperands, o.rung_id, o);
     new Set([o.symbol_id, o.target_id, ...(o.alias_chain || [])]).forEach(id => add(entityOperands,id,o));
   });
+  pidOccurrences.forEach(p => {
+    add(rungPids,p.rung_id,p);
+    const first=byOperand.get(p.operand_ids[0]);
+    new Set([first?.symbol_id,first?.target_id,p.backing_owner_id]).forEach(id=>add(ownerPids,id,p));
+  });
   (refs.aliases || []).forEach(a => new Set([a.source_id,a.target_id]).forEach(id => add(entityAliases,id,a)));
   elements.forEach(x => { add(contentElements,x.content_id,x); add(elementChildren,x.parent_id,x); });
   (sfc.links || []).forEach(x => { add(contentLinks,x.content_id,x); new Set([x.from_element_id,x.to_element_id,x.element_id]).forEach(id => add(elementLinks,id,x)); });
@@ -60,10 +69,12 @@
   };
   headings.access=['Tag access','Find explicit operand reads and writes from supported ladder signatures. These are possible uses, not proof that an instruction executes.'];
   headings.tagdata=['Stored tag data','Search values and member names retained in this export, then follow their declaration and ladder occurrences.'];
+  headings.pid=['PID instruction evidence','Inspect captured PID operand functions, source declarations and stored data. Each row is an instruction occurrence.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(access){labels.access='Tag access';navCounts.access=accessRoots.length;}
   if(tagData){labels.tagdata='Stored tag data';navCounts.tagdata=tagContents.length;}
+  if(pid){labels.pid='PID evidence';navCounts.pid=pidOccurrences.length;}
   let state = {view:'overview',query:'',filter:'all',detail:null,contentId:null,listPages:{}};
   const backStack = [];
   const heading = document.getElementById('page-heading');
@@ -163,6 +174,7 @@
   // Index each data record once, never concatenating a whole descendant tree.
   tagContents.forEach(c=>searchable(c,[short(entityName(c.owner_id)),c.xml_name,c.format_kind,c.direct_text,...Object.values(c.attributes||{})]));
   tagElements.forEach(e=>searchable(e,[short(entityName(e.owner_id)),e.xml_name,e.kind,e.direct_text,...Object.values(e.attributes||{})]));
+  pidOccurrences.forEach(p=>searchable(p,[p.signature_status,p.storage_status,sourceName(p.rung_id),entityPath(byRung.get(p.rung_id)?.parent_id),...p.operand_ids.map(id=>byOperand.get(id)?.raw_text)]));
   const sfcSearch = new Map();elements.forEach(e=>add(sfcSearch,e.routine_id,[e.kind,e.direct_text,...Object.values(e.attributes||{})].join(' ')));
   (sfc.routines || []).forEach(r=>searchable(r,[entityPath(r.routine_id),...(sfcSearch.get(r.routine_id)||[])]));
   function matches(row) { return !state.query || (searchIndex.get(row)||'').includes(state.query.toLocaleLowerCase()); }
@@ -185,12 +197,14 @@
     [['Source inventory',inv.status],['Reference bindings',refs.status],['SFC structure & annotations',sfc.status]].forEach(([title,status])=>{const row=node('div','status-row');row.append(node('span','',title),badge(status));capture.append(row);});
     if(access){const row=node('div','status-row');row.append(node('span','','Explicit ladder operand roles'),badge(access.status));capture.append(row);}
     if(tagData){const row=node('div','status-row');row.append(node('span','','Stored tag data capture'),badge(tagData.status));capture.append(row);}
+    if(pid){const row=node('div','status-row');row.append(node('span','','PID operand and storage association'),badge(pid.status));capture.append(row);}
     capture.append(node('p','row-note',fmt(bySfcRoutine.size)+' SFC routines · '+fmt((sfc.links||[]).length)+' structural links · '+fmt((sfc.annotations||[]).length)+' note attachments'));
     const start=panel('Start your review','Each view links back to the exact evidence in this captured source snapshot.');
     [['objects','Find an object','Inspect declarations, source descriptions and where operands refer to them.'],['patterns','Compare repeated ladder','Group repeated syntax and open each occurrence in its own context.'],['findings','Work through capture gaps','Inspect unresolved and unsupported evidence before choosing a correction.']].forEach(([view,title,detail])=>{const b=button('',()=>go(view),'jump-card');const copy=node('span');copy.append(node('strong','',title),node('small','',detail));b.append(copy,node('span','jump-arrow','→'));start.append(b);});
     grid.append(capture,start);content.append(grid);
     if(access)content.append(button('Explore tag reads and writes',()=>go('access')));
     if(tagData)content.append(button('Explore stored tag data',()=>go('tagdata')));
+    if(pid)content.append(button('Explore PID instruction evidence',()=>go('pid')));
     const meta=panel('Snapshot details','This report is read-only. IDs belong to this byte snapshot and are not persistent equipment or correction identities.');
     meta.append(values({'Source size':fmt(data.snapshot.size_bytes)+' bytes','SHA-256':data.snapshot.sha256,'Report format':data.report_version,'Inventory parser':inv.parser_version,'Reference analyzer':refs.analyzer_version,'SFC analyzer':sfc.analyzer_version}));content.append(meta);
   }
@@ -258,6 +272,7 @@
     const child=entityChildren.get(e.id)||[];if(child.length){const p=section('Child declarations');p.append(table(['Object','Type','Description'],child,x=>[link(x.name || '(unnamed)',x.id),human(x.kind),short(x.description || '')],'Child declarations'));content.append(p);}
     const aliases=entityAliases.get(e.id)||[];if(aliases.length){const p=section('Alias bindings','Declared alias targets and root-resolution results; suffixes have not been validated.');p.append(table(['Alias','Declared target','Binding','Resolved root'],aliases,a=>[sourceCell(a.source_id),node('span','mono',a.raw_target),badge(a.status),sourceCell(a.target_id)],'Alias bindings'));content.append(p);}
     if(byRootAccess.has(e.id))content.append(button('Inspect root access occurrences',()=>openDetail('access',e.id,{accessRole:'all'})));
+    if(ownerPids.has(e.id)){const p=section('PID instruction occurrences','These occurrences name this declaration or resolve to it. Storage association may remain unresolved.');p.append(pidTable(ownerPids.get(e.id),'Object PID occurrences'));content.append(p);}
     const p=section('Operand occurrences',access
       ? 'Occurrences include the declared root, resolved target and traversed alias chain. Roles describe possible explicit operand use; they do not prove execution or member validity.'
       : 'Occurrences include the declared root, resolved target and traversed alias chain. They do not describe reads or writes.');
@@ -272,6 +287,7 @@
     const text=panel('Rung text','Exact captured ladder source. No execution behavior is inferred.');text.append(sourceText(r.text));content.append(text);
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
+    if(rungPids.has(r.id)){const p=section('PID evidence on this rung');p.append(pidTable(rungPids.get(r.id),'Rung PID occurrences'));content.append(p);}
     const ops=section('Operand bindings','Root resolution is source evidence only. A binding does not validate a member, array bound, data type or instruction effect.');
     if((rungOperands.get(r.id)||[]).some(o=>byOperandAccess.get(o.id)?.reason==='timer_pseudo_operand'))ops.append(node('p','row-note','Timer preset and accumulator fields describe initialization, not separate runtime reads. A question mark supplies no value here. Timer values, units and configuration are not validated.'));
     ops.append(table(['Operand','Instruction / argument','Binding','Declared / resolved root',...(access?['Operand role']:[])],rungOperands.get(r.id)||[],o=>{const root=node('div','inline-links');if(o.symbol_id)root.append(sourceCell(o.symbol_id));if(o.target_id && o.target_id!==o.symbol_id)root.append(node('span','','→'),sourceCell(o.target_id));if(!root.childNodes.length)root.append(node('span','muted',human(o.reason || 'No root binding')));return[node('span','mono',o.raw_text),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),primary(badge(o.status),o.reason?human(o.reason):''),root,...(access?[accessCell(o)]:[])];},'Rung operand bindings'));content.append(ops);
@@ -350,6 +366,56 @@
   function setDetailHeading(eyebrow,title,subtitle){
     heading.replaceChildren(button('← Back to previous view',goBack,'back'),node('p','eyebrow',eyebrow),node('h1','',title),node('p','subtitle',subtitle));
   }
+  function pidName(p){return 'PID · '+short(byOperand.get(p.operand_ids[0])?.raw_text || '(no storage operand)',100);}
+  function pidSlotLabel(slot){return ({pid_structure:'PID structure',process_variable:'Process variable (PV)',tieback:'Tieback',control_variable:'Control variable (CV)',master_loop:'Master PID operand',inhold_bit:'Inhold bit',inhold_value:'Inhold value',unknown:'Unclassified slot'})[slot] || human(slot);}
+  function pidNotice(){return notice('Instruction evidence for loop review','Operand functions identify the positions in a supported PID signature. Read/write effects, active cascade behavior, execution timing and approved loop settings remain unmodeled. Multiple occurrences may share a declaration; this count is not a count of independent loops.');}
+  function pidTable(rows,caption='PID instruction occurrences'){
+    return table(['Occurrence','Rung','Signature','Storage association'],rows,p=>[
+      button(pidName(p),()=>openDetail('pid',p.id),'text-link'),sourceCell(p.rung_id),badge(p.signature_status),badge(p.storage_status)
+    ],caption,{emptyTitle:'No PID occurrences match',emptyDetail:'This view covers captured ladder PID instructions. Other control instructions and languages are outside this slice.'});
+  }
+  function pidList(){
+    content.append(pidNotice());
+    const c=pid.coverage,totals=panel('PID coverage','Storage links connect exact source records; they do not select effective values.');
+    totals.append(values({'Instruction occurrences':pidOccurrences.length,'Distinct backing declarations':c.distinct_backing_owners,
+      'Occurrences with stored data':c.occurrences_with_data,'Occurrences with opaque-only data':c.occurrences_with_opaque_only,
+      'Occurrences with multiple representations':c.occurrences_with_multiple_representations}));content.append(totals);
+    content.append(pidTable(pidOccurrences.filter(p=>matches(p)&&(state.filter==='all'||p.storage_status===state.filter))));
+  }
+  function pidDetail(p){
+    setDetailHeading('PID SOURCE EVIDENCE',pidName(p),sourceName(p.rung_id));
+    content.append(pidNotice());
+    const meta=node('div','detail-meta');meta.append(badge(p.signature_status),badge(p.storage_status),sourceCell(p.rung_id));content.append(meta);
+    const slots=p.operand_ids.map(id=>({evidence:byPidOperand.get(id),operand:byOperand.get(id)}));
+    const pv=slots.find(x=>x.evidence?.slot==='process_variable'),storage=slots.find(x=>x.evidence?.slot==='pid_structure'),cv=slots.find(x=>x.evidence?.slot==='control_variable');
+    if(pv&&storage&&cv){
+      const diagram=panel('Operand arrangement','The arrows show the PV and CV instruction positions. They do not establish process connectivity or execution.');
+      const flow=node('div','pid-flow');
+      [pv,storage,cv].forEach((x,index)=>{if(index){const arrow=node('span','pid-arrow','→');arrow.setAttribute('aria-hidden','true');flow.append(arrow);}const box=node('div','pid-node');box.append(node('h3','',pidSlotLabel(x.evidence.slot)),link(x.operand.raw_text,x.operand.id));flow.append(box);});
+      diagram.append(flow);content.append(diagram);
+    }
+    const args=section('Operand functions','Setpoint is retained as an SP member in stored PID data when exported. The third instruction operand is Tieback. An explicit master operand alone does not establish an active cascade.');
+    args.append(table(['Position / function','Source operand','Binding','Resolved declaration / suffix'],slots,x=>{
+      const o=x.operand,e=x.evidence,root=node('div');
+      if(o.target_id)root.append(sourceCell(o.target_id));else root.append(node('span','muted','No resolved declaration'));
+      if(o.suffix)root.append(node('div','cell-sub',o.suffix));
+      return[primary(String(e.argument_index+1),pidSlotLabel(e.slot)),link(o.raw_text,o.id),badge(o.status),root];
+    },'PID operand functions'));content.append(args);
+    const stored=section('Backing declaration and representations','All associated representations stay separate. Suffix, declaration and shape gaps remain visible; open the source declaration for their context.');
+    if(p.backing_owner_id)stored.append(sourceCell(p.backing_owner_id));
+    const representations=p.content_ids.map(id=>byTagContent.get(id)).filter(Boolean);
+    if(representations.length)stored.append(tagContentTable(representations,'PID stored data representations'));
+    else stored.append(empty(p.storage_status==='no_data'?'No Data or DefaultData on this backing declaration':'No backing representations associated',human(p.storage_status)+'. Inspect the operand and declaration evidence above.'));
+    content.append(stored);
+    const roots=section('PID structure candidates','Each row is a direct Decorated PID structure. Duplicate roots and representations are kept; no candidate is chosen as effective.');
+    roots.append(table(['Representation','Structure evidence','Direct member records'],p.structure_candidates,c=>[sourceCell(c.content_id),sourceCell(c.structure_id),fmt(c.member_ids.length)],'PID structure candidates'));content.append(roots);
+    const memberRows=p.structure_candidates.flatMap(c=>c.member_ids.map(id=>({candidate:c,element:byTagElement.get(id)}))).filter(x=>x.element);
+    const members=section('Saved PID members','Values retain their exported spelling. Missing members supply no default. SP, tuning, mode and limit fields remain source evidence until engineering review; duplicate values are shown independently.');
+    members.append(table(['Member','Saved value / text','Representation','Capture kind'],memberRows,x=>{
+      const e=x.element;return[sourceCell(e.id),node('div','snippet',Object.hasOwn(e.attributes||{},'Value')?(e.attributes.Value===''?'Empty value':short(e.attributes.Value,180)):e.direct_text?.trim()?short(e.direct_text,180):'No scalar value on this element'),sourceCell(x.candidate.content_id),human(e.kind)];
+    },'PID saved members'));content.append(members);
+    content.append(technical({'Instruction ID':p.id,'Rung ID':p.rung_id,'Storage association':p.storage_status}));
+  }
   function tagDataNotice(){return notice('Exported values, with source context','These are saved source values, not live readings or approved DeltaV settings. Data and DefaultData representations stay separate; no precedence, numeric conversion, member validity or effective value is inferred. Opaque and duplicate data remain visible.');}
   function tagContentName(c){const ordinal=c.locator.match(/\[([0-9]+)\]$/)?.[1];return c.xml_name+(ordinal?' '+ordinal:'')+' / '+human(c.format_kind);}
   function tagElementName(e){return short(e.attributes?.Name || e.attributes?.Index || e.xml_name,100);}
@@ -417,6 +483,7 @@
     else if(state.view==='findings')findingsList();
     else if(state.view==='access')accessList();
     else if(state.view==='tagdata')tagDataList();
+    else if(state.view==='pid')pidList();
   }
   function render(focus=false){
     heading.replaceChildren();toolbar.replaceChildren();content.replaceChildren();
@@ -432,6 +499,7 @@
       else if(d.type==='access')accessDetail(byRootAccess.get(d.id));
       else if(d.type==='tagcontent')tagContentDetail(byTagContent.get(d.id));
       else if(d.type==='tagelement')tagElementDetail(byTagElement.get(d.id));
+      else if(d.type==='pid')pidDetail(byPid.get(d.id));
     }else{
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));
       if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
@@ -441,6 +509,7 @@
       else if(state.view==='findings')toolbarFor('Search finding codes, source context or detail',countsFilter(findings,'origin'));
       else if(state.view==='access')toolbarFor('Search root names, scopes, opcodes or rung context');
       else if(state.view==='tagdata')toolbarFor('Search declarations, members, saved values or data text',countsFilter(tagContents,'format_kind'));
+      else if(state.view==='pid')toolbarFor('Search PID operands, rung context or association status',countsFilter(pidOccurrences,'storage_status'));
       renderList();
     }
     if(focus){document.getElementById('main').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}

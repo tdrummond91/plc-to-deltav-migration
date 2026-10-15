@@ -80,7 +80,13 @@ with illustrative PID/timer members, an array, string text, duplicate Data
 representations and an unsupported vendor format. Its values and connections
 are independently invented, and neither file is controller-ready logic.
 
+The new [pid_review_demo.L5X](pid_review_demo.L5X) adds seven PID occurrences,
+including one deliberately invalid signature. It distinguishes the Tieback
+operand from the saved SP member. Cases include alias reuse, an explicit master
+operand, duplicate representations/members, missing and opaque-only data, and
+a nested-member association gap. All values and relationships are invented.
+
 The [HTML demonstration](../../examples/engineering-review-demo.html) now uses
-tag_data_review_demo.L5X. The original fixtures and their existing origin/hash
-contracts remain unchanged. See [the stored-data checkpoint](../../docs/reviews/TAG_DATA_REVIEW.md)
-for scope and validation.
+pid_review_demo.L5X. The original fixtures and their existing origin/hash
+contracts remain unchanged. See the [PID checkpoint](../../docs/reviews/PID_EVIDENCE_REVIEW.md)
+and [stored-data checkpoint](../../docs/reviews/TAG_DATA_REVIEW.md) for scope and validation.

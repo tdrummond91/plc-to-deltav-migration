@@ -2,9 +2,18 @@
 
 ## Current follow-up (2026-10-15)
 
+The [PID evidence extension](PID_EVIDENCE_REVIEW.md) adds operand-function labels,
+PV/PID/CV positions and links to stored representations and member evidence.
+Current review4/manifest7 runs have eleven artifacts and work16 count-only
+feedback. Returned `a096cae` confirms the preceding stored-data capture; manual
+source and appearance review remains optional. No active loop/cascade behavior
+or effective configuration is inferred.
+
+## Stored tag data follow-up (2026-10-15)
+
 The [stored tag data extension](TAG_DATA_REVIEW.md) adds searchable saved member
 values, representation and element details, and declaration-to-ladder links.
-Current runs use review3/manifest6 with ten artifacts and work15 count-only
+At that checkpoint, runs used review3/manifest6 with ten artifacts and work15 count-only
 feedback. Stored data stays private; no effective configuration is inferred.
 Returned `122f230` confirms the preceding timer/reset/copy run. Manual source
 and appearance review remains optional.

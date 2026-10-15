@@ -1,6 +1,25 @@
 # Codex handoff: PLC analysis workbench
 
-Current checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
+Current checkpoint (2026-10-15): **PID occurrence evidence** links parsed PID
+instructions and their seven named operand functions to retained references and
+conservatively eligible stored PID structures. Repeated occurrences, aliases,
+representations and duplicate members remain separate evidence. No active
+cascade, runtime mode, effective value or distinct control-loop count is inferred.
+The previously observed 46 PID instructions are source occurrences.
+
+Current review4/manifest7 saves eleven hashed private artifacts, adding `pid.json`
+beside unchanged Tag Data1/access2/reference6/SFC2/inventory3 evidence. Work16 adds
+closed count-only `analysis.pid_summary` schema1 and keeps Tag Data1/access2/SFC2/
+reference12/source4 summaries. Review1-3, manifest1-6 and work1-15 keep their exact
+contracts; review4 retains review3's 128 MiB JSON and 160 MiB HTML limits.
+See [PID evidence review](docs/reviews/PID_EVIDENCE_REVIEW.md) for scope, validation and
+remaining limits. The next ordinary work-machine run measures PID evidence;
+only generated aggregate feedback is needed. Engineering/UI review remains
+optional later. Manual pull/run/push and private artifact storage still apply.
+
+## Historical Tag Data checkpoint
+
+Historical checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
 capture layer beside the unchanged source/reference/SFC/access contracts.
 Review3/manifest6 adds `tag-data.json` as the tenth hashed private artifact;
 work15 adds a count-only tag-data summary1. Missing Data remains absent evidence.
@@ -191,9 +210,10 @@ schema 6 carries reference 8 with MVM/SWPB roles and schema 7 carries
 reference 9 with observation-only routine-instruction shapes. Schema 8
 carries reference 10 with declared JSR first-field candidates; schema 9
 carries reference 11 with unique-candidate metadata observations. Schema
-10 carries reference 12 with static candidate graph counts. Current schema15
-keeps reference12, SFC-structure summary2 and access summary2, and adds
-`analysis.tag_data_summary` schema1. Frozen work14 retains the prior fields;
+10 carries reference 12 with static candidate graph counts. Current schema16
+keeps reference12, SFC-structure summary2, access summary2 and Tag Data summary1,
+and adds `analysis.pid_summary` schema1. Frozen work15 retains the prior fields;
+frozen work14 omits Tag Data and PID;
 frozen work13 retains access summary1,
 frozen work12 retains the prior fields, and frozen work11 retains SFC1.
 Consult the tested revision for historical suite scope
@@ -233,21 +253,23 @@ now describe unknown backing instead of omitted declarations. The sample is null
 
 Current contracts: private inventory/reference schemas 3/6 with
 `source-inventory-3` / `source-references-9`; public source/reference schemas 4/12;
-work-check schema15 with separate access summary2 and Tag Data summary1, private access2 /
+work-check schema16 with separate access summary2, Tag Data summary1 and PID summary1; private PID1 /
+pid-evidence-1, private access2 /
 instruction-access-2, private Tag Data schema1 / tag-data-1, and private SFC
 schema2 / sfc-structure-2 with public SFC summary2. Plain
 reference runs retain manifest2; standalone SFC runs retain manifest3. Combined
-review work runs use review3/manifest6 with SFC JSON/text, `access.json`,
-`tag-data.json` and `review.html`, ten hashed artifacts in total. Inventory/reference JSON retain their exact structures:
+review work runs use review4/manifest7 with SFC JSON/text, `access.json`,
+`tag-data.json`, `pid.json` and `review.html`, eleven hashed artifacts in total. Inventory/reference JSON retain their exact structures:
 private reference JSON includes
 canonical routine_targets occurrences and routine_graph; public output contains closed counts only. Historical public
 reports still validate with exact original status vocabularies. Work schema 3
 still requires reference 5, work schema 4 requires reference 6, and work schema
 5 requires reference 7, work schema 6 requires reference 8 and work schema 7
 requires reference 9; work schema 8 requires reference 10 and work schema 9
-requires reference 11. Work10/11/12/13/14/15 require reference12; work11/12 have SFC
+requires reference 11. Work10/11/12/13/14/15/16 require reference12; work11/12 have SFC
 summary siblings1/2 respectively, work13 requires access summary1 beside SFC2,
-work14 requires access summary2 beside SFC2, and work15 adds Tag Data summary1.
+work14 requires access summary2 beside SFC2, work15 adds Tag Data summary1,
+and work16 adds PID summary1.
 Historical contracts remain frozen.
 Read [SFC review](docs/reviews/SFC_STRUCTURE_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.

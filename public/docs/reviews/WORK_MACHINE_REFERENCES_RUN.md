@@ -1,6 +1,25 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
+Current checkpoint (2026-10-15): **PID occurrence evidence** links parsed PID
+instructions and their seven named operand functions to retained references and
+conservatively eligible stored PID structures. Repeated occurrences, aliases,
+representations and duplicate members remain separate evidence. No active
+cascade, runtime mode, effective value or distinct control-loop count is inferred.
+The previously observed 46 PID instructions are source occurrences.
+
+Current review4/manifest7 saves eleven hashed private artifacts, adding `pid.json`
+beside unchanged Tag Data1/access2/reference6/SFC2/inventory3 evidence. Work16 adds
+closed count-only `analysis.pid_summary` schema1 and keeps Tag Data1/access2/SFC2/
+reference12/source4 summaries. Review1-3, manifest1-6 and work1-15 keep their exact
+contracts; review4 retains review3's 128 MiB JSON and 160 MiB HTML limits.
+See [PID evidence review](PID_EVIDENCE_REVIEW.md) for scope, validation and
+remaining limits. The next ordinary work-machine run measures PID evidence;
+only generated aggregate feedback is needed. Engineering/UI review remains
+optional later. Manual pull/run/push and private artifact storage still apply.
+
+## Historical Tag Data checkpoint
+
+Historical checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
 capture layer beside the unchanged source/reference/SFC/access contracts.
 Review3/manifest6 adds `tag-data.json` as the tenth hashed private artifact;
 work15 adds a count-only tag-data summary1. Missing Data remains absent evidence.
@@ -213,10 +232,12 @@ records and source links for later analysis. Open sfc-structure.txt for SFC edit
 blocks, descriptors, opaque ST and scoped links; its JSON preserves canonical
 records. `access.json` schema2 records possible explicit operand roles and resolved-root
 groups; it does not assert runtime effects, dependencies or member overlap.
-Combined review work runs use review3/manifest6 with ten hashed artifacts.
+Combined review work runs use review4/manifest7 with eleven hashed artifacts.
 `tag-data.json` schema1 preserves stored Data/DefaultData evidence without choosing
-effective values or validating settings. Work15 adds `analysis.tag_data_summary`
-schema1 with fixed capture counts and no stored names, values or Format spellings.
+effective values or validating settings. `pid.json` schema1 links PID occurrences
+to existing operand and stored-structure evidence with explicit gaps. Work16
+retains `analysis.tag_data_summary` schema1 and adds `analysis.pid_summary` schema1
+with fixed counts and no stored names, values, IDs, relationships or Format spellings.
 Access summary2 retains accepted timer counts and fixed placeholder/integer pseudo-operand
 counts; these contain no raw timer values or operand text. The timer capacity
 bound includes published TON/TOF/RTO counts plus pooled `withheld` spellings so

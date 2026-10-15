@@ -1,5 +1,14 @@
 # Stored tag data evidence
 
+Confirmed return: `a096cae` validates work15 from clean `7d0cbb1`, with 546
+application cases (one skip), 139 helpers and a saved private run. All 22
+historical work reports validate. Data capture retained 44,527 elements with
+zero shape/namespace/duplicate issues; 5,493 L5K and 27 other envelopes remain
+uninterpreted. Prior summaries are unchanged after revision normalization.
+The next slice is [PID occurrence evidence](PID_EVIDENCE_REVIEW.md); its guide
+records the coverage limits and current run instructions. The original
+stored-data implementation checkpoint below is preserved.
+
 ## Confirmed timer/reset/copy return
 
 Returned commit `122f230` contains only

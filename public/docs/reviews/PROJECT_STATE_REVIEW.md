@@ -1,6 +1,25 @@
-# Project state: explicit operand access and prior SFC assessment
+# Project state: PID evidence and prior Phase 1 assessments
 
-Current checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
+Current checkpoint (2026-10-15): **PID occurrence evidence** links parsed PID
+instructions and their seven named operand functions to retained references and
+conservatively eligible stored PID structures. Repeated occurrences, aliases,
+representations and duplicate members remain separate evidence. No active
+cascade, runtime mode, effective value or distinct control-loop count is inferred.
+The previously observed 46 PID instructions are source occurrences.
+
+Current review4/manifest7 saves eleven hashed private artifacts, adding `pid.json`
+beside unchanged Tag Data1/access2/reference6/SFC2/inventory3 evidence. Work16 adds
+closed count-only `analysis.pid_summary` schema1 and keeps Tag Data1/access2/SFC2/
+reference12/source4 summaries. Review1-3, manifest1-6 and work1-15 keep their exact
+contracts; review4 retains review3's 128 MiB JSON and 160 MiB HTML limits.
+See [PID evidence review](PID_EVIDENCE_REVIEW.md) for scope, validation and
+remaining limits. The next ordinary work-machine run measures PID evidence;
+only generated aggregate feedback is needed. Engineering/UI review remains
+optional later. Manual pull/run/push and private artifact storage still apply.
+
+## Historical Tag Data checkpoint
+
+Historical checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
 capture layer beside the unchanged source/reference/SFC/access contracts.
 Review3/manifest6 adds `tag-data.json` as the tenth hashed private artifact;
 work15 adds a count-only tag-data summary1. Missing Data remains absent evidence.

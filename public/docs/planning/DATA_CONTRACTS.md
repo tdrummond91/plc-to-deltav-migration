@@ -2,7 +2,26 @@
 
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current stored tag data contract (2026-10-15)
+## Current PID occurrence contract (2026-10-15)
+
+Private PidResult1 / pid-evidence-1 joins canonical ladder PID occurrences,
+reference operand IDs and stored-data IDs. Exact seven-slot nonempty signatures
+get operand-function labels. Source namespaces, direct scalar declaration
+evidence and expanded suffixes gate backing association; alternatives,
+duplicates, opaque-only data and association gaps remain explicit. It neither
+assigns read/write roles nor selects effective values or approved loops.
+
+Closed pid-summary1 adds fixed count-only coverage under work16. Source4,
+reference12, SFC2, access2 and tag-data-summary1 stay unchanged. Review4 adds
+the private PID companion; manifest7 contains eleven hashed artifacts including
+pid.json. This path requires tag data, access and a full review. Older optional
+paths retain their contracts, including work1-15/review1-3/manifest1-6. Review4
+uses the same 128 MiB payload / 160 MiB HTML limits as review3; old review1/2
+keep 64/80 MiB. Canonical validation and rendering precede run allocation.
+See [PID_EVIDENCE_REVIEW.md](../reviews/PID_EVIDENCE_REVIEW.md) for limits and
+validation evidence.
+
+## Stored tag data contract (2026-10-15)
 
 Private TagDataResult1 / tag-data-1 captures direct Data/DefaultData envelopes
 on canonical tag, AOI parameter/local-tag and module config/input/output

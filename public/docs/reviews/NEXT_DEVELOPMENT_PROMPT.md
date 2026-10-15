@@ -1,4 +1,23 @@
-Current checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
+Current checkpoint (2026-10-15): **PID occurrence evidence** links parsed PID
+instructions and their seven named operand functions to retained references and
+conservatively eligible stored PID structures. Repeated occurrences, aliases,
+representations and duplicate members remain separate evidence. No active
+cascade, runtime mode, effective value or distinct control-loop count is inferred.
+The previously observed 46 PID instructions are source occurrences.
+
+Current review4/manifest7 saves eleven hashed private artifacts, adding `pid.json`
+beside unchanged Tag Data1/access2/reference6/SFC2/inventory3 evidence. Work16 adds
+closed count-only `analysis.pid_summary` schema1 and keeps Tag Data1/access2/SFC2/
+reference12/source4 summaries. Review1-3, manifest1-6 and work1-15 keep their exact
+contracts; review4 retains review3's 128 MiB JSON and 160 MiB HTML limits.
+See [PID evidence review](PID_EVIDENCE_REVIEW.md) for scope, validation and
+remaining limits. The next ordinary work-machine run measures PID evidence;
+only generated aggregate feedback is needed. Engineering/UI review remains
+optional later. Manual pull/run/push and private artifact storage still apply.
+
+## Historical Tag Data checkpoint
+
+Historical checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
 capture layer beside the unchanged source/reference/SFC/access contracts.
 Review3/manifest6 adds `tag-data.json` as the tenth hashed private artifact;
 work15 adds a count-only tag-data summary1. Missing Data remains absent evidence.
@@ -140,11 +159,11 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available, excluding the ignored listener
-loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9/10/11/12/13/14 remain readable. Current
-schema15 requires reference12, SFC summary2, access summary2 and
-`analysis.tag_data_summary` schema1, and retains at most one authorized operand
-example. Private review3/manifest6 runs contain ten hashed artifacts, including
-`tag-data.json`.
+loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9/10/11/12/13/14/15 remain readable. Current
+schema16 requires reference12, SFC summary2, access summary2,
+`analysis.tag_data_summary` schema1 and `analysis.pid_summary` schema1, and retains
+at most one authorized operand example. Private review4/manifest7 runs contain
+eleven hashed artifacts, including `tag-data.json` and `pid.json`.
 The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
@@ -320,8 +339,9 @@ for confirmation and PROJECT_STATE_REVIEW.md for the independent state audit,
 next user-facing milestone and provisional iteration estimates. That review's
 recommendation to bundle a private engineering review package is implemented
 and its generated output is confirmed by `1332543`. Initial access roles are
-confirmed by `7cd9201`; the current extension adds timer/reset/copy roles.
-The next work-machine run measures this additional coverage through generated aggregates; Tyler's deferred engineering/UI
+confirmed by `7cd9201`; timer/reset/copy roles and Tag Data capture have also
+returned aggregate evidence. The current extension adds PID occurrence evidence.
+The next work-machine run measures this evidence through generated aggregates; Tyler's deferred engineering/UI
 review is not a development gate.
 Preserve existing identity/provenance contracts and keep edits/correction survival
 as explicit future design work, not a capability implied by immutable snapshots.
