@@ -52,9 +52,12 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work24 adds condition summary1 beside relationship1, rung-analysis1,
+manual. Current work25 retains condition summary1 beside relationship1, rung-analysis1,
 access4, calculation2, PID member1, PID1, Tag Data1, reference12/source4 and SFC2.
-Work22-24 permit 48 KiB for the complete public report; work1-21 retain 32 KiB.
+Work22-25 permit 48 KiB for the complete public report; work1-21 retain 32 KiB.
+Work25 adds fixed save-failure categories; review9 allows 160 MiB JSON / 192 MiB
+HTML while earlier report versions keep their original budgets. See the
+[save failure checkpoint](../public/docs/reviews/SAVE_FAILURE_REVIEW.md).
 Earlier work17 added count-only
 PID member summary1 while preserving
 PID1, Tag Data1/reference12/source4/SFC2/access2 summaries. Documented member

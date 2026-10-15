@@ -1,4 +1,21 @@
-Current checkpoint (2026-10-15): **Boolean conditions and output actions**
+# Next development checkpoint
+
+Current checkpoint (2026-10-15): **condition report save repair**.
+Returned `e0b6b0c` tested clean `effa48f`: 870 application cases passed (one
+expected skip), plus 139 helpers, but returned `save_error` and no analysis
+summaries. The private failure cause remains unconfirmed. Review9 now reserves
+its additional bounded condition payload (160 MiB JSON / 192 MiB HTML);
+review1-8 budgets remain unchanged. Work25 adds five fixed save-failure categories
+without sharing exception text. A console failure after a completed save now
+retains the correct saved-run flag. See [evidence and validation](SAVE_FAILURE_REVIEW.md).
+
+The next normal work-machine run should supply condition counts or a precise
+failure category. Continue Phase 1 analysis after that return; no team review
+is requested. Git transport stays manual and the listener remains disabled.
+
+## Historical condition implementation checkpoint
+
+Historical checkpoint (2026-10-15): **Boolean conditions and output actions**
 adds compact local condition graphs for series and parallel rungs, individual
 predicate occurrences, and incoming-condition records for OTE/OTL/OTU. Unknown
 block behavior remains explicit. Ordinary output, latch and unlatch actions stay

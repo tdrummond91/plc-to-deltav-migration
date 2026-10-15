@@ -62,6 +62,7 @@ WORK_MACHINE_MODULES = {
         "test_rung_analysis", "test_rung_analysis_summary", "test_rung_analysis_workflow",
         "test_relationships", "test_relationship_summary", "test_relationship_workflow",
         "test_conditions", "test_condition_summary", "test_condition_workflow",
+        "test_save_diagnostics", "test_review_save_failures",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

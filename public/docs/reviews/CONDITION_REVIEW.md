@@ -1,5 +1,10 @@
 # Boolean conditions and output actions
 
+Follow-up: returned `e0b6b0c` passed the tests but returned `save_error`, so the
+condition counts are not yet available. The [save repair and diagnostics](SAVE_FAILURE_REVIEW.md)
+document the next checkpoint. Validation and budgets below record the original
+condition implementation; review9 now has a 160 MiB JSON / 192 MiB HTML allowance.
+
 ## Confirmed relationship return
 
 Returned `f7d91f0` tests clean `ddd087c`: 821 application cases passed with one

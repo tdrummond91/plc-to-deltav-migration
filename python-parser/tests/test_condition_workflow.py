@@ -147,8 +147,8 @@ class ConditionWorkflowTests(unittest.TestCase):
                 save_run(workspace, *parts[:2], **arguments(parts))
             self.assertNotIn('PRIVATE_FAILURE', str(raised.exception))
             self.assertFalse(workspace.exists())
-            for index, name in enumerate(('review.MAX_REVIEW_V3_BYTES', 'review_html.MAX_REVIEW_V3_PAYLOAD_BYTES',
-                                          'review_html.MAX_REVIEW_V3_HTML_BYTES')):
+            for index, name in enumerate(('review.MAX_REVIEW_V9_BYTES', 'review_html.MAX_REVIEW_V9_PAYLOAD_BYTES',
+                                          'review_html.MAX_REVIEW_V9_HTML_BYTES')):
                 workspace = root / str(index)
                 with patch(f'plc_workbench.{name}', 1), self.assertRaises(StorageError):
                     save_run(workspace, *parts[:2], **arguments(parts))

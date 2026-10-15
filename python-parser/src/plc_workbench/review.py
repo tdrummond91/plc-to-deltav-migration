@@ -31,6 +31,9 @@ MAX_REVIEW_BYTES = 64 * 1024 * 1024
 # Review3/4/5 combine the established evidence with bounded companion payloads.
 # Historical review1/2 retain their original ceiling.
 MAX_REVIEW_V3_BYTES = 128 * 1024 * 1024
+# Review9 adds a separately bounded 32 MiB condition companion. Reserve that
+# allowance alongside the established report; review1-8 keep their old limits.
+MAX_REVIEW_V9_BYTES = 160 * 1024 * 1024
 MAX_REVIEW_FINDINGS = 500_000
 MAX_REVIEW_PATTERNS = 100_000
 _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
@@ -38,6 +41,10 @@ _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
 
 class ReviewError(ValueError):
     """A fixed-message error that never exposes private evidence or OS details."""
+
+
+class ReviewSizeLimitError(ReviewError):
+    """A report exceeded its versioned combined UTF-8 payload budget."""
 
 
 def _fail() -> None:
@@ -82,17 +89,18 @@ def _json_native(value: Any) -> Any:
 def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     """Count UTF-8 bytes without retaining millions of small encoder chunks."""
     rendered = io.StringIO() if retain else None
-    limit = (MAX_REVIEW_V3_BYTES if (data.get('schema_version'), data.get('report_version'))
+    version = (data.get('schema_version'), data.get('report_version'))
+    limit = (MAX_REVIEW_V9_BYTES if version == (9, 'engineering-review-9') else
+             MAX_REVIEW_V3_BYTES if version
              in ((3, 'engineering-review-3'), (4, 'engineering-review-4'),
                  (5, 'engineering-review-5'), (6, 'engineering-review-6'),
-                 (7, 'engineering-review-7'), (8, 'engineering-review-8'),
-                 (9, 'engineering-review-9')) else MAX_REVIEW_BYTES)
+                 (7, 'engineering-review-7'), (8, 'engineering-review-8')) else MAX_REVIEW_BYTES)
     total = 0
     for chunk in json.JSONEncoder(ensure_ascii=False, separators=(',', ':'),
                                   allow_nan=False).iterencode(data):
         total += len(chunk.encode('utf-8'))
         if total > limit:
-            _fail()
+            raise ReviewSizeLimitError('Engineering review exceeds the report size limit.')
         if rendered is not None:
             rendered.write(chunk)
     return rendered.getvalue() if rendered is not None else ''
@@ -390,6 +398,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                 data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
+    except ReviewSizeLimitError:
+        raise
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
         _fail()
 
@@ -412,6 +422,8 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                                           rung_analysis=rung_analysis, relationships=relationships,
                                           conditions=conditions), data):
             return
+    except ReviewSizeLimitError:
+        raise
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
         pass
     _fail()
@@ -421,5 +433,7 @@ def render_review_json(data: dict[str, Any]) -> str:
     """Serialize PRIVATE data; persistence callers must validate it first."""
     try:
         return _bounded_json(data)
+    except ReviewSizeLimitError:
+        raise
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
         _fail()

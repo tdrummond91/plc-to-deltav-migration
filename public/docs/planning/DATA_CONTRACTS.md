@@ -1,5 +1,20 @@
 # Data contracts, traceability, and checkpoints
 
+## Save diagnostics and condition report budget (2026-10-15)
+
+Work25 adds only five closed save failure codes: review_size_limit,
+review_validation_error, review_render_error, save_io_error and
+save_workspace_error. Nested contracts and the 48 KiB outer cap are unchanged;
+versions1-24 keep their failure vocabularies. New save failures require passed
+tests, null summaries and private_run_saved=false. A finalized save followed by
+a console failure retains private_run_saved=true with unexpected_error.
+
+Review9 now allows 160 MiB JSON / 192 MiB HTML to reserve the existing bounded
+32 MiB condition companion alongside earlier evidence. Review1-8 retain their
+prior budgets. Review/manifest/condition schemas remain 9/12/1. See
+[save failure evidence](../reviews/SAVE_FAILURE_REVIEW.md).
+
+
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
 ## Current condition contract (2026-10-15)
@@ -15,12 +30,12 @@ claimed. Binding gaps and unmodeled transfer behavior remain distinct.
 Optional review9/manifest12 adds `boolean-conditions.json` as artifact16 while
 retaining the fourteen earlier non-HTML artifact bytes. All prior optional paths
 remain available. Private evidence is capped at 32 MiB with incremental record/ID
-budgets and native-only serialization; review9 retains 128 MiB JSON / 160 MiB HTML
+budgets and native-only serialization; review9 allows 160 MiB JSON / 192 MiB HTML
 caps. Public condition summary1 contains closed counts only, capped at 4 KiB.
 
-Work24 reconciles those counts against source, opcode, rung and relationship
+Work24/25 reconcile those counts against source, opcode, rung and relationship
 populations. No names, graph IDs, operands, guard text or addresses enter that
-summary. Work22-24 permit 48 KiB outer reports; work1-21 retain 32 KiB. The normal
+summary. Work22-25 permit 48 KiB outer reports; work1-21 retain 32 KiB. The normal
 runner commits only its new validated feedback file locally; Git network
 synchronization stays manual. See [condition review](../reviews/CONDITION_REVIEW.md).
 

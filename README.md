@@ -1,5 +1,14 @@
 # PLC analysis workbench
 
+Latest checkpoint: returned `e0b6b0c` passed 870 application cases (one expected
+skip) and 139 helpers, but reported a save-stage failure and no analysis counts.
+The [save repair](public/docs/reviews/SAVE_FAILURE_REVIEW.md) gives review9 its
+additional bounded condition allowance and adds precise, source-free work25
+failure codes. The private cause remains unconfirmed until the next normal run.
+Phase 1 analysis continues before team review.
+
+Previous successful analysis baseline:
+
 Status: updated 2026-10-15. Phase 1 includes source inventory, I/O declarations,
 reference bindings, routine-call candidates, SFC structure/notes, PID stored
 member evidence, calculations, rung structure and a private offline source

@@ -2,7 +2,14 @@
 
 Prepared: 2026-10-08, planning revision 0.2.
 
-## Current condition checkpoint (2026-10-15)
+## Current save repair checkpoint (2026-10-15)
+
+See [save-failure validation](docs/reviews/SAVE_FAILURE_REVIEW.md). The new work
+return passed its tests but did not supply condition coverage. The repair adds
+versioned report headroom and fixed failure categories; another normal run is
+needed before claiming private-source success.
+
+## Historical condition checkpoint (2026-10-15)
 
 See the [condition validation record](docs/reviews/CONDITION_REVIEW.md) for
 canonical evidence, private/public bounds, historical compatibility, independent

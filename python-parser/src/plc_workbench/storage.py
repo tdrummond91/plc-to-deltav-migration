@@ -35,6 +35,12 @@ if TYPE_CHECKING:
 class StorageError(ValueError):
     """Safe write error that never embeds source data or OS exception text."""
 
+    def __init__(self, message: str, *, code: str = 'save_error') -> None:
+        super().__init__(message)
+        # Callers publishing feedback must admit only their versioned, closed
+        # code vocabulary. Messages and causes remain private diagnostic detail.
+        self.code = code
+
 
 def _checkout_root() -> Path | None:
     # Anchor to installed source, not cwd: invoking from another directory must
@@ -52,22 +58,22 @@ def _workspace_path(workspace: Path) -> Path:
     if checkout is not None and resolved.is_relative_to(checkout):
         private = checkout / "confidential"
         if not resolved.is_relative_to(private):
-            raise StorageError("Workspaces inside this checkout must be beneath confidential/.")
+            raise StorageError("Workspaces inside this checkout must be beneath confidential/.", code='save_workspace_error')
     return resolved
 
 
 def _assert_run_path(workspace: Path, run_dir: Path) -> None:
     if workspace.resolve() != workspace or run_dir.is_symlink():
-        raise StorageError("Workspace or run path changed during publication.")
+        raise StorageError("Workspace or run path changed during publication.", code='save_workspace_error')
     if run_dir.resolve() != run_dir or run_dir.parent != workspace:
-        raise StorageError("Run path must remain directly inside the resolved workspace.")
+        raise StorageError("Run path must remain directly inside the resolved workspace.", code='save_workspace_error')
 
 
 def _write_artifact(workspace: Path, run_dir: Path, name: str, data: bytes) -> dict[str, object]:
     _assert_run_path(workspace, run_dir)
     destination = run_dir / name
     if destination.parent != run_dir or destination.resolve() != destination:
-        raise StorageError("Artifact path escaped the run directory.")
+        raise StorageError("Artifact path escaped the run directory.", code='save_workspace_error')
     # Exclusive creation protects the input and any existing run artifacts.
     with destination.open("xb") as stream:
         stream.write(data)
@@ -148,8 +154,8 @@ def save_run(
         ):
             raise StorageError("Captured source bytes do not match their identity.")
         if include_review:
-            from .review import ReviewError, build_review_data
-            from .review_html import ReviewHtmlError, render_review_html
+            from .review import ReviewError, ReviewSizeLimitError, build_review_data
+            from .review_html import ReviewHtmlError, ReviewHtmlSizeLimitError, render_review_html
             try:
                 review_data = build_review_data(snapshot, result, references, sfc_structure,
                                                 access=access, tag_data=tag_data, pid=pid,
@@ -157,8 +163,12 @@ def save_run(
                                                 rung_analysis=rung_analysis, relationships=relationships,
                                                 conditions=conditions)
                 review_html = render_review_html(review_data).encode("utf-8")
-            except (ReviewError, ReviewHtmlError) as exc:
-                raise StorageError("Could not build the private engineering review report.") from exc
+            except (ReviewSizeLimitError, ReviewHtmlSizeLimitError) as exc:
+                raise StorageError("Private engineering review exceeds its report size limit.", code='review_size_limit') from exc
+            except ReviewError as exc:
+                raise StorageError("Could not validate the private engineering review report.", code='review_validation_error') from exc
+            except ReviewHtmlError as exc:
+                raise StorageError("Could not render the private engineering review report.", code='review_render_error') from exc
         # Finish every validation and rendering step before allocating a run.
         contents = {
             "snapshot.L5X": snapshot.data,
@@ -238,7 +248,7 @@ def save_run(
         destination = _workspace_path(workspace)
         destination.mkdir(parents=True, exist_ok=True)
         if destination.resolve() != destination:
-            raise StorageError("Workspace changed during creation.")
+            raise StorageError("Workspace changed during creation.", code='save_workspace_error')
         created = datetime.now(timezone.utc)
         for _ in range(10):
             run_id = f"run-{created.strftime('%Y%m%dT%H%M%S%fZ')}-{uuid4().hex}"
@@ -372,8 +382,10 @@ def save_run(
         _assert_run_path(destination, run_dir)
         final_manifest = run_dir / "manifest.json"
         if final_manifest.exists() or final_manifest.is_symlink():
-            raise StorageError("A run manifest already exists; refusing to overwrite it.")
+            raise StorageError("A run manifest already exists; refusing to overwrite it.", code='save_workspace_error')
         os.replace(run_dir / ".manifest.pending", final_manifest)
         return run_dir
-    except (OSError, RuntimeError) as exc:
+    except OSError as exc:
+        raise StorageError("Could not save the private run. Check destination access and free space; any unfinished run has no final manifest.", code='save_io_error') from exc
+    except RuntimeError as exc:
         raise StorageError("Could not save the private run. Check destination access and free space; any unfinished run has no final manifest.") from exc
