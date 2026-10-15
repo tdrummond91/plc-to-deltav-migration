@@ -16,7 +16,9 @@ Start here:
 8. [Confirmed stored tag data checkpoint](docs/reviews/TAG_DATA_REVIEW.md).
 9. [Confirmed PID member checkpoint](docs/reviews/PID_MEMBER_REVIEW.md), with the [PID association checkpoint](docs/reviews/PID_EVIDENCE_REVIEW.md).
 
-10. [Current CPT calculation checkpoint](docs/reviews/CALCULATION_REVIEW.md).
+10. [Confirmed CPT calculation checkpoint](docs/reviews/CALCULATION_REVIEW.md).
+
+11. [Current CPT function follow-up](docs/reviews/CALCULATION_FUNCTION_REVIEW.md).
 
 The fixtures are small parser inputs, not deployable controller projects. The
 read-only inventory, reference, SFC and offline engineering-review CLI commands

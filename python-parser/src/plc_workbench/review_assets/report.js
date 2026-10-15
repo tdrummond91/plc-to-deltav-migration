@@ -779,6 +779,18 @@
       'Expression reference occurrences':c.reference_occurrences,
       'Expressions with reference binding gaps':c.expressions_with_binding_gaps}));
     content.append(totals,calculationTable(calculationOccurrences.filter(c=>matches(c)&&(state.filter==='all'||c.syntax_status===state.filter))));
+    if(c.functions_by_spelling){
+      const functions=panel('Function coverage','Snapshot totals for fully parsed expressions. Counts ignore letter case; older spellings are not rewritten into newer names.');
+      const rows=Object.entries(c.functions_by_spelling).filter(([,count])=>count>0);
+      functions.append(table(['Function spelling','Parsed function calls'],rows,([name,count])=>[node('span','mono',name),fmt(count)],'Parsed function spellings',
+        {emptyTitle:'No function calls in parsed expressions',emptyDetail:'Unsupported expressions contribute no partial function counts.'}));
+      const gaps=c.unsupported_functions;
+      if(gaps && (gaps.atan2 || gaps.other)){
+        functions.append(node('p','panel-intro','Only the first unsupported function reached in each rejected expression is counted below. Other parsing failures do not contribute function-gap counts.'),
+          values({'ATAN2 outside this grammar':gaps.atan2,'Other unsupported function names':gaps.other}));
+      }
+      content.append(functions);
+    }
   }
   function calculationBinding(binding){
     const box=node('div');

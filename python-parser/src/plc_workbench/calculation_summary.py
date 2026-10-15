@@ -7,7 +7,8 @@ import re
 from typing import Any
 
 from .calculations import (
-    CALCULATION_CONSTANTS, COVERAGE_KEYS, ERROR_CODES, MAX_CALCULATION_BYTES,
+    CALCULATION_CONSTANTS, CALCULATION_V1_CONSTANTS, COVERAGE_KEYS, COVERAGE_V1_KEYS,
+    ERROR_CODES, FUNCTIONS, UNSUPPORTED_FUNCTION_BUCKETS, MAX_CALCULATION_BYTES,
     MAX_CALCULATION_INSTRUCTIONS, MAX_CALCULATION_NODES, MAX_EXPRESSION_DEPTH, MAX_EXPRESSION_TOKENS,
     NODE_KINDS, SIGNATURE_STATUSES, SYNTAX_STATUSES, CalculationResult, validate_calculations,
 )
@@ -16,9 +17,10 @@ from .references import ALIAS_STATUSES, MAX_OPERANDS, ReferenceResult
 from .source import MAX_ELEMENTS
 
 MAX_REPORT_BYTES = 3 * 1024
-CONSTANTS = {**CALCULATION_CONSTANTS, 'policy_version': 2,
-             'report_kind': 'l5x_calculation_review_summary',
-             'exporter_version': 'calculation-summary-1', 'sharing_status': 'aggregate_sync_allowed'}
+LEGACY_CONSTANTS = {**CALCULATION_V1_CONSTANTS, 'policy_version': 2,
+                   'report_kind': 'l5x_calculation_review_summary',
+                   'exporter_version': 'calculation-summary-1', 'sharing_status': 'aggregate_sync_allowed'}
+CONSTANTS = {**LEGACY_CONSTANTS, **CALCULATION_CONSTANTS, 'exporter_version': 'calculation-summary-2'}
 
 
 class CalculationSummaryError(ValueError):
@@ -42,8 +44,14 @@ def _count(value: Any) -> None:
 
 def validate_calculation_summary(summary: dict[str, Any]) -> None:
     """Enforce fixed partitions, source capacities and independent AST identities."""
-    _keys(summary, set(CONSTANTS) | {'status', 'tool_revision', 'coverage'})
-    for key, fixed in CONSTANTS.items():
+    if type(summary) is not dict or type(summary.get('schema_version')) is not int:
+        _invalid()
+    version = summary['schema_version']
+    if version not in {1, 2}:
+        _invalid()
+    constants = LEGACY_CONSTANTS if version == 1 else CONSTANTS
+    _keys(summary, set(constants) | {'status', 'tool_revision', 'coverage'})
+    for key, fixed in constants.items():
         if type(summary[key]) is not type(fixed) or summary[key] != fixed:
             _invalid()
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
@@ -61,10 +69,13 @@ def validate_calculation_summary(summary: dict[str, Any]) -> None:
     else:
         _invalid()
     coverage = summary['coverage']
-    _keys(coverage, COVERAGE_KEYS)
+    _keys(coverage, COVERAGE_V1_KEYS if version == 1 else COVERAGE_KEYS)
     partitions = {'occurrences_by_signature': SIGNATURE_STATUSES,
                   'expressions_by_status': SYNTAX_STATUSES, 'expression_errors': ERROR_CODES,
                   'nodes_by_kind': NODE_KINDS, 'reference_by_binding': ALIAS_STATUSES}
+    if version == 2:
+        partitions.update(functions_by_spelling=FUNCTIONS,
+                          unsupported_functions=UNSUPPORTED_FUNCTION_BUCKETS)
     for key, value in coverage.items():
         if key in partitions:
             _keys(value, partitions[key])
@@ -76,6 +87,9 @@ def validate_calculation_summary(summary: dict[str, Any]) -> None:
     signatures, expressions = c['occurrences_by_signature'], c['expressions_by_status']
     total, parsed, nodes, refs = c['occurrences_total'], expressions['parsed'], c['nodes_total'], c['reference_occurrences']
     kinds = c['nodes_by_kind']
+    if version == 2 and (sum(c['functions_by_spelling'].values()) != kinds['function']
+                         or sum(c['unsupported_functions'].values()) != c['expression_errors']['unsupported_function']):
+        _invalid()
     gaps = refs - c['reference_by_binding']['root_bound']
     recognized = signatures['recognized']
     # Each parsed expression is one tree: leaves = binary nodes + roots.
@@ -114,7 +128,8 @@ def build_calculation_summary(snapshot: SourceSnapshot, inventory: InventoryResu
                               revision: dict[str, Any] | None = None) -> dict[str, Any]:
     try:
         validate_calculations(snapshot, inventory, references, result)
-        summary = {**CONSTANTS, 'status': result.status, 'coverage': deepcopy(result.coverage),
+        constants = LEGACY_CONSTANTS if result.schema_version == 1 else CONSTANTS
+        summary = {**constants, 'status': result.status, 'coverage': deepcopy(result.coverage),
                    'tool_revision': dict(revision) if revision is not None else
                    {'commit': None, 'worktree': 'unavailable'}}
         render_calculation_summary(summary)

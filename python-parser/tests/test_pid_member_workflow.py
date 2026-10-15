@@ -227,7 +227,7 @@ class PidMemberWorkReportTests(unittest.TestCase):
 
     def test_work17_is_count_only_and_historical_work16_is_frozen(self) -> None:
         payload = report(DATA)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (18, 'work-check-18'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (19, 'work-check-19'))
         self.assertEqual(payload['analysis']['pid_member_summary']['schema_version'], 1)
         rendered = work_check.render_work_check_report(payload)
         self.assertEqual(json.loads(rendered), payload)

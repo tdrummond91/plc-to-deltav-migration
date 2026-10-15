@@ -27,7 +27,7 @@ PREVIOUS_SFC = Path(__file__).resolve().parents[2] / 'public/inspection/work-che
 class SfcWorkReportTests(unittest.TestCase):
     def test_current_work16_keeps_separate_summary_without_changing_reference_contract(self) -> None:
         payload = report(SFC_SOURCE)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (18, 'work-check-18'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (19, 'work-check-19'))
         analysis = payload['analysis']
         self.assertEqual(analysis['reference_summary']['schema_version'], 12)
         self.assertEqual(analysis['sfc_structure_summary']['source_sfc_routines'], 1)

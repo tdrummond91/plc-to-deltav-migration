@@ -240,7 +240,13 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                 _fail()
         canonical_calculations = None
         if calculations is not None:
-            canonical_calculations = analyze_calculations(snapshot, canonical_inventory, canonical_references)
+            # A captured calculation companion chooses its frozen grammar. Review6
+            # can carry either version without silently reinterpreting old evidence.
+            if type(calculations) is not CalculationResult:
+                _fail()
+            canonical_calculations = analyze_calculations(
+                snapshot, canonical_inventory, canonical_references,
+                schema_version=calculations.schema_version)
             if not _strict_equal(canonical_calculations, calculations):
                 _fail()
         patterns = _patterns(canonical_inventory)

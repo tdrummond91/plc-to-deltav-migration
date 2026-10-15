@@ -11,8 +11,9 @@ import unittest
 from unittest.mock import patch
 
 from plc_workbench import work_check
-from plc_workbench.calculations import CalculationError, analyze_calculations
-from plc_workbench.calculation_summary import CalculationSummaryError, validate_calculation_summary
+from plc_workbench.calculations import CalculationError, analyze_calculations, render_calculation_json
+from plc_workbench.calculation_summary import (CalculationSummaryError, build_calculation_summary,
+                                                validate_calculation_summary)
 from plc_workbench.review import ReviewError, build_review_data, render_review_json, validate_review_data
 from plc_workbench.review_html import ReviewHtmlError, render_review_html
 from plc_workbench.storage import StorageError, _write_artifact, save_run
@@ -26,9 +27,9 @@ from test_unmatched_sample_report import REVISION, report
 DATA = PID_DATA.replace(b'PID(A,1,0,A,0,0,0);', b'CPT(A.SP,A.SP+937291);')
 
 
-def captured(data: bytes = DATA):
+def captured(data: bytes = DATA, *, schema_version: int = 2):
     parts = member_captured(data)
-    return (*parts, analyze_calculations(*parts[:3]))
+    return (*parts, analyze_calculations(*parts[:3], schema_version=schema_version))
 
 
 def arguments(parts: tuple) -> dict:
@@ -40,6 +41,31 @@ def options(parts: tuple) -> dict:
 
 
 class CalculationReviewStorageTests(unittest.TestCase):
+    def test_legacy_calculation_replay_keeps_its_grammar_through_review_and_save(self) -> None:
+        data = DATA.replace(b'A.SP+937291', b'SQR(A.SP)+ABS(A.SP)')
+        legacy = captured(data, schema_version=1)
+        current = captured(data)
+        self.assertEqual(legacy[-1].coverage['expressions_by_status']['unsupported'], 1)
+        self.assertEqual(current[-1].coverage['expressions_by_status']['parsed'], 1)
+        self.assertNotIn('functions_by_spelling', legacy[-1].coverage)
+        with tempfile.TemporaryDirectory() as directory:
+            for parts in (legacy, current):
+                with self.subTest(version=parts[-1].schema_version):
+                    payload = build_review_data(*parts[:4], **options(parts))
+                    validate_review_data(*parts[:4], payload, **options(parts))
+                    self.assertEqual(payload['schema_version'], 6)
+                    self.assertEqual(payload['calculations'], parts[-1].to_dict())
+                    saved = save_run(Path(directory), *parts[:2], **arguments(parts))
+                    self.assertEqual((saved / 'calculations.json').read_bytes(),
+                                     render_calculation_json(parts[-1]).encode('utf-8'))
+                    manifest = json.loads((saved / 'manifest.json').read_bytes())
+                    self.assertEqual((manifest['schema_version'], len(manifest['artifacts'])), (9, 13))
+                    self.assertEqual(manifest['calculation_schema_version'], parts[-1].schema_version)
+                    self.assertEqual(manifest['calculation_analyzer_version'], parts[-1].analyzer_version)
+                    wrong = current if parts is legacy else legacy
+                    with self.assertRaises(ReviewError):
+                        validate_review_data(*parts[:4], payload, **options(wrong))
+
     def test_review6_manifest9_hash_thirteen_artifacts_and_preserve_all_old_companions(self) -> None:
         parts = captured()
         with tempfile.TemporaryDirectory() as directory:
@@ -58,7 +84,7 @@ class CalculationReviewStorageTests(unittest.TestCase):
                              (9, 'source_reference_sfc_access_tag_data_pid_member_calculation_review_run'))
             self.assertEqual((manifest['review_schema_version'], manifest['review_version']), (6, 'engineering-review-6'))
             self.assertEqual((manifest['calculation_schema_version'], manifest['calculation_analyzer_version']),
-                             (1, 'calculation-evidence-1'))
+                             (2, 'calculation-evidence-2'))
             self.assertEqual(len(manifest['artifacts']), 13)
             private = json.loads((saved / 'calculations.json').read_bytes())
             self.assertEqual(private, parts[8].to_dict())
@@ -86,7 +112,8 @@ class CalculationReviewStorageTests(unittest.TestCase):
                     dict(full, pid=None), dict(full, tag_data=None), dict(full, access=None),
                     dict(full, references=None), dict(full, sfc_structure=None), dict(full, calculations=foreign),
                     dict(full, calculations=forged), dict(full, calculations=cycle),
-                    dict(full, calculations=replace(parts[-1], schema_version=True))]
+                    *[dict(full, calculations=replace(parts[-1], schema_version=value))
+                      for value in (True, 1.0, '1', 0, 3)]]
         with tempfile.TemporaryDirectory() as directory:
             for index, kwargs in enumerate(variants):
                 workspace = Path(directory) / str(index)
@@ -190,11 +217,48 @@ class CalculationReviewStorageTests(unittest.TestCase):
 
 
 class CalculationWorkReportTests(unittest.TestCase):
-    def test_latest_return_has_room_for_a_count_only_calculation_summary(self) -> None:
-        # Sizing uses invented expression nodes scaled to the returned CPT
-        # population. This does not assert the unseen source syntax is parsed.
-        returned = json.loads((ROOT / 'public/inspection/work-check-20261015T140634Z-ec36ce0b.json').read_bytes())
-        summary = report(DATA)['analysis']['calculation_summary']
+    def test_work18_and_work19_require_their_exact_calculation_summary_versions(self) -> None:
+        data = DATA.replace(b'A.SP+937291', b'SQR(A.SP)')
+        current = report(data)
+        legacy_parts = captured(data, schema_version=1)
+        legacy_summary = build_calculation_summary(*legacy_parts[:3], legacy_parts[-1], revision=REVISION)
+        historical = deepcopy(current)
+        historical.update(schema_version=18, workflow_version='work-check-18')
+        historical['analysis']['calculation_summary'] = legacy_summary
+        work_check.validate_work_check_report(current)
+        work_check.validate_work_check_report(historical)
+        for target, wrong in ((current, legacy_summary), (historical, current['analysis']['calculation_summary'])):
+            candidate = deepcopy(target)
+            candidate['analysis']['calculation_summary'] = deepcopy(wrong)
+            validate_calculation_summary(candidate['analysis']['calculation_summary'])
+            with self.subTest(version=candidate['schema_version']), self.assertRaises(ValueError):
+                work_check.validate_work_check_report(candidate)
+
+    def test_new_function_coverage_pools_unknown_names_without_source_disclosure(self) -> None:
+        data = DATA.replace(b'CPT(A.SP,A.SP+937291);',
+            b'CPT(A.SP,PRIVATE_FUNCTION(A.SP))CPT(A.SP,ATAN2(A.SP,937291))'
+            b'CPT(A.SP,aCs(A.SP))CPT(A.SP,ABS(PRIVATE_INNER(A.SP)))'
+            b'CPT(A.SP,ABS(A.SP)+SQR(A.SP));')
+        payload = report(data)
+        summary = payload['analysis']['calculation_summary']
+        coverage = summary['coverage']
+        self.assertEqual(coverage['unsupported_functions'], {'atan2': 1, 'other': 2})
+        self.assertEqual(coverage['expression_errors']['unsupported_function'], 3)
+        self.assertEqual(coverage['functions_by_spelling']['ABS'], 1)
+        self.assertEqual(coverage['functions_by_spelling']['ACS'], 1)
+        self.assertEqual(coverage['functions_by_spelling']['SQR'], 1)
+        self.assertEqual(sum(coverage['functions_by_spelling'].values()), 3)
+        rendered = work_check.render_work_check_report(payload)
+        for private in ('PRIVATE_', '937291', 'aCs', 'A.SP', 'raw_text', 'instruction_id'):
+            self.assertNotIn(private, rendered)
+
+    def test_latest_return_has_room_for_fixed_function_histograms(self) -> None:
+        # Use the largest returned report as the envelope. The function
+        # distribution below is invented, not an assertion about private text.
+        returned_path = ROOT / 'public/inspection/work-check-20261015T143816Z-90f88d18.json'
+        self.assertEqual(returned_path.stat().st_size, 30793)
+        returned = json.loads(returned_path.read_bytes())
+        summary = report(DATA.replace(b'A.SP+937291', b'ABS(A.SP)+937291'))['analysis']['calculation_summary']
         reference = returned['analysis']['reference_summary']
         population = reference['source_summary']['instructions']['counts']['CPT']
         for key, value in summary['coverage'].items():
@@ -202,6 +266,9 @@ class CalculationWorkReportTests(unittest.TestCase):
                 summary['coverage'][key] = {name: count * population for name, count in value.items()}
             else:
                 summary['coverage'][key] *= population
+        functions = summary['coverage']['functions_by_spelling']
+        for index, key in enumerate(functions):
+            functions[key] = population // len(functions) + int(index < population % len(functions))
         summary['coverage'].update(
             source_rungs=reference['coverage']['rungs_total'],
             unparsed_rungs=reference['coverage']['rungs_total'] - reference['coverage']['rungs_analyzed'],
@@ -209,29 +276,29 @@ class CalculationWorkReportTests(unittest.TestCase):
             source_operands=reference['operands']['total'])
         summary['tool_revision'] = deepcopy(returned['tool_revision'])
         validate_calculation_summary(summary)
-        returned.update(schema_version=18, workflow_version='work-check-18')
+        returned.update(schema_version=19, workflow_version='work-check-19')
         returned['analysis']['calculation_summary'] = summary
         rendered = work_check.render_work_check_report(returned)
         self.assertLess(len(rendered.encode('utf-8')), work_check.MAX_REPORT_BYTES)
 
-    def test_work18_is_count_only_and_all_historical_reports_remain_frozen(self) -> None:
+    def test_work19_is_count_only_and_all_historical_reports_remain_frozen(self) -> None:
         payload = report(DATA)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (18, 'work-check-18'))
-        self.assertEqual(payload['analysis']['calculation_summary']['schema_version'], 1)
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (19, 'work-check-19'))
+        self.assertEqual(payload['analysis']['calculation_summary']['schema_version'], 2)
         rendered = work_check.render_work_check_report(payload)
         self.assertEqual(json.loads(rendered), payload)
         self.assertLess(len(rendered.encode()), 32 * 1024)
         for private in ('PRIVATE_', '937291', 'snapshot', 'instruction_id', 'owner_id', 'raw_text'):
             self.assertNotIn(private, rendered)
         paths = [path for path in (ROOT / 'public/inspection').glob('work-check-*.json')
-                 if json.loads(path.read_bytes())['schema_version'] <= 17]
+                 if json.loads(path.read_bytes())['schema_version'] <= 18]
         self.assertTrue(paths)
         for path in paths:
             before = path.read_bytes()
             historical = json.loads(before)
-            self.assertLessEqual(historical['schema_version'], 17)
+            self.assertLessEqual(historical['schema_version'], 18)
             self.assertEqual(json.loads(work_check.render_work_check_report(historical)), historical)
-            for mutate in (lambda p: p.update(schema_version=18, workflow_version='work-check-18'),
+            for mutate in (lambda p: p.update(schema_version=19, workflow_version='work-check-19'),
                            lambda p: p['analysis'].update(calculation_summary=payload['analysis']['calculation_summary']),
                            lambda p: p['analysis'].update(calculation_summary=None)):
                 changed = deepcopy(historical)
@@ -245,7 +312,8 @@ class CalculationWorkReportTests(unittest.TestCase):
                        lambda p: p['analysis'].update(calculation_summary=None),
                        lambda p: p['analysis']['calculation_summary']['tool_revision'].update(commit='b' * 40),
                        lambda p: p['analysis']['calculation_summary'].update(schema_version=True),
-                       lambda p: p['analysis']['calculation_summary'].update(schema_version=2),
+                       lambda p: p['analysis']['calculation_summary'].update(schema_version=1),
+                       lambda p: p['analysis']['calculation_summary'].update(schema_version=3),
                        lambda p: p['analysis']['calculation_summary'].update(private='PRIVATE'),
                        lambda p: p['analysis'].update(private='PRIVATE')):
             candidate = report(DATA)

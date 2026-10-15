@@ -137,7 +137,7 @@ class AccessStorageTests(unittest.TestCase):
 class AccessWorkReportTests(unittest.TestCase):
     def test_current_work_closed_summary_and_historical_work12_remain_separate(self) -> None:
         payload = report(COMPLETE)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (18, 'work-check-18'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (19, 'work-check-19'))
         self.assertEqual(payload['analysis']['access_summary']['schema_version'], 2)
         rendered = work_check.render_work_check_report(payload)
         for private in ('PRIVATE_', 'snapshot', 'terminal_root', 'instruction_id', 'raw_text'):
@@ -192,7 +192,7 @@ class AccessWorkReportTests(unittest.TestCase):
         payload = report(ladder('TON(A,?,?)TOF(A,100,0)RTO(A,?,5)RES(A)COP(A,A,3)CPS(A,A,4);'))
         analysis = payload['analysis']
         access = analysis['access_summary']
-        self.assertEqual((payload['schema_version'], access['schema_version']), (18, 2))
+        self.assertEqual((payload['schema_version'], access['schema_version']), (19, 2))
         self.assertEqual(access['exporter_version'], 'access-summary-2')
         self.assertEqual(access['coverage']['timer_instructions'], 3)
         self.assertEqual(access['coverage']['timer_pseudo_operands_by_kind'],

@@ -1,6 +1,16 @@
 # Private engineering review report
 
-## Current calculation follow-up (2026-10-15)
+## Current calculation function follow-up (2026-10-15)
+
+The [function extension](CALCULATION_FUNCTION_REVIEW.md) adds documented older
+CPT spellings and a Function coverage panel. Counts include fully parsed
+expressions only; unsupported-function counts describe the first rejection.
+Returned `6d19d5e` confirms 43/45 expressions parsed with 122 bound reference
+occurrences; two unidentified unsupported functions remain. Review6/manifest9
+still saves thirteen artifacts, now with calculation2; work19 adds summary2.
+Manual engineering and appearance review remains optional.
+
+## Initial calculation follow-up (2026-10-15)
 
 The [CPT calculation extension](CALCULATION_REVIEW.md) adds expression search,
 syntax grouping, source spans and repeated reference occurrences with links to

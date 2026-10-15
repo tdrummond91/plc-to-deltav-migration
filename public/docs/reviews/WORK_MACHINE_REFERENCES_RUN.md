@@ -1,22 +1,23 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-15): **CPT calculation expression evidence** adds
-source-linked syntax trees and scoped reference leaves for parsed expressions.
-It preserves repeated uses and explicit unsupported-expression gaps, without
-calculating results or claiming execution effects. Returned `564fa66` confirms
-all 46 linked PID structures contain the 51 catalog fields exactly once:
-2,300 scalar headers and 46 DATA array headers match, with no missing,
-duplicate, type or shape gaps. Numeric values and array contents remain
-unvalidated. The run passed 619 application cases (one expected skip) and 139
-helpers; six previous summaries match after revision normalization.
+Current checkpoint (2026-10-15): **legacy CPT function support** adds the seven
+documented older spellings and fixed function counts. Original expression text
+and function spelling remain source evidence; no expression is evaluated.
+Returned `6d19d5e` confirms 43 of 45 CPT expressions parsed, 456 syntax nodes,
+122 reference occurrences all root-bound and all 45 destinations root-bound.
+The other two expressions stop at unsupported functions; their names are not
+in the feedback. Older spellings are a possible explanation, not a confirmed
+cause. The run passed 656 application cases (one expected Windows skip) and
+139 helpers. Six earlier summaries remain equal after revision normalization.
 
-Current review6/manifest9 adds `calculations.json` as the thirteenth hashed
-artifact. Work18 adds closed count-only `calculation_summary` schema1; old
-optional paths and work1-17 retain their contracts. The next work-machine run
-measures the 45 previously counted CPT occurrences, including fixed syntax
-error categories and unresolved leaf counts. Only generated feedback is needed.
-Engineering/UI review remains optional. Git synchronization stays manual and
-the listener stays disabled. See [Calculation review](CALCULATION_REVIEW.md).
+Review6/manifest9 still saves thirteen hashed artifacts. Calculation2 and
+summary2 add fixed function-spelling counts and first-unsupported-function
+buckets; work19 requires summary2 while work18 remains strict summary1.
+Explicit calculation1 replay preserves its original grammar and evidence.
+The next work-machine run checks whether this extension resolves the two gaps.
+Only generated feedback is needed. Engineering/UI review remains optional,
+Git synchronization remains manual and the listener stays disabled. See
+[Calculation function follow-up](CALCULATION_FUNCTION_REVIEW.md).
 
 ## Historical PID member implementation checkpoint
 

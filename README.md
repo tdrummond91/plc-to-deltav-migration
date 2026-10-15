@@ -1,17 +1,18 @@
 # PLC analysis workbench
 
 Status: updated 2026-10-15. Phase 1 includes source inventory, I/O declarations,
-reference bindings, routine-call candidates, SFC structure/notes and a private
-offline source explorer. Returned `564fa66` confirms all 46 PID structures have
-all 51 documented field headers exactly once, with no missing, duplicate, type
-or shape gaps. It passed 619 application cases (one skip) and 139 helpers.
-The current [calculation extension](public/docs/reviews/CALCULATION_REVIEW.md)
-adds CPT expression structure and scoped reference evidence, including repeated
-uses and explicit unsupported syntax. It does not evaluate expressions or
-validate numeric values. Actual execution, dependencies and broader engineering
-interpretation remain incomplete. Editable corrections, PCSD and FHX are later
-phases. Manual engineering/UI review can wait; the next generated work-machine
-feedback measures the previously counted 45 CPT occurrences.
+reference bindings, routine-call candidates, SFC structure/notes, PID stored
+member evidence and a private offline source explorer. Returned `6d19d5e`
+confirms 43 of 45 CPT expressions parsed, all 122 captured reference uses bound,
+and all 45 destinations bound. Two unsupported function names remain unidentified.
+It passed 656 application cases (one expected skip) and 139 helpers.
+The [function extension](public/docs/reviews/CALCULATION_FUNCTION_REVIEW.md)
+adds seven documented older spellings and fixed function counts. The next
+work-machine run checks whether it resolves those two gaps; the current report
+does not establish their cause. Expressions are not evaluated. Execution,
+dependencies and broader engineering interpretation remain incomplete.
+Editable corrections, PCSD and FHX are later phases. Manual engineering/UI
+review remains optional.
 
 The development listener remains disabled and paused. Manual work-machine checks
 automatically commit the validated feedback report locally; fetching, pulling

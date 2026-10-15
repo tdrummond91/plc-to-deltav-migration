@@ -63,7 +63,7 @@ def report(data: bytes = SOURCE) -> dict:
         'failed_test_ids': [], 'failure_ids_omitted': 0,
     }
     return {
-        'schema_version': 18, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-18',
+        'schema_version': 19, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-19',
         'run_id': '20261014T180000Z-1234abcd', 'tool_revision': deepcopy(REVISION),
         'tests': {'application': deepcopy(result), 'helpers': deepcopy(result)},
         'analysis': {'status': status, 'failure_code': None, 'private_run_saved': True,

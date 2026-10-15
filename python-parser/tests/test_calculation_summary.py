@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
 import json
 import unittest
 from unittest.mock import patch
@@ -117,6 +118,74 @@ class CalculationSummaryTests(unittest.TestCase):
         with patch('plc_workbench.calculation_summary.MAX_REPORT_BYTES', 10):
             with self.assertRaises(CalculationSummaryError):
                 render_calculation_summary(summary)
+
+    def test_fixed_function_counts_publish_no_unknown_function_identity(self) -> None:
+        inputs = capture(text=('CPT(D,SQR(ABS(A))+SQRT(B))'
+                               'CPT(D,ABS(A)+ATAN2(A,B)+PRIVATE_LATER(C))'
+                               'CPT(D,PRIVATE_FIRST(A)+ATAN2(A,B));'))
+        summary = build_calculation_summary(*inputs)
+        self.assertEqual((summary['schema_version'], summary['analyzer_version'], summary['exporter_version']),
+                         (2, 'calculation-evidence-2', 'calculation-summary-2'))
+        self.assertEqual(summary['coverage']['functions_by_spelling']['SQR'], 1)
+        self.assertEqual(summary['coverage']['functions_by_spelling']['SQRT'], 1)
+        self.assertEqual(summary['coverage']['functions_by_spelling']['ABS'], 1)
+        self.assertEqual(sum(summary['coverage']['functions_by_spelling'].values()), 3)
+        self.assertEqual(summary['coverage']['unsupported_functions'], {'atan2': 1, 'other': 1})
+        encoded = render_calculation_summary(summary)
+        for private in ('PRIVATE_FIRST', 'PRIVATE_LATER', 'raw_text', 'error_offset', 'SQR(ABS'):
+            self.assertNotIn(private, encoded)
+        self.assertLess(len(encoded.encode()), 3 * 1024)
+
+    def test_function_histogram_partitions_and_closed_vocabularies_are_enforced(self) -> None:
+        base = build_calculation_summary(*capture(text='CPT(D,SQR(A))CPT(D,ATAN2(A,B));'))
+        for mutate in (
+            lambda c: c['functions_by_spelling'].update(SQR=0),
+            lambda c: c['functions_by_spelling'].update(SQRT=1),
+            lambda c: c['functions_by_spelling'].pop('SQR'),
+            lambda c: c['functions_by_spelling'].update(sqr=0),
+            lambda c: c['functions_by_spelling'].update(PRIVATE_NAME=0),
+            lambda c: c['functions_by_spelling'].update(SQR=True),
+            lambda c: c['functions_by_spelling'].update(SQR=-1),
+            lambda c: c['unsupported_functions'].update(atan2=0),
+            lambda c: c['unsupported_functions'].update(other=1),
+            lambda c: c['unsupported_functions'].update(ATAN2=0),
+            lambda c: c['unsupported_functions'].update(private_name=0),
+            lambda c: c['unsupported_functions'].update(atan2=True),
+            lambda c: c['unsupported_functions'].pop('other'),
+        ):
+            changed = deepcopy(base)
+            mutate(changed['coverage'])
+            with self.assertRaises(CalculationSummaryError):
+                validate_calculation_summary(changed)
+
+    def test_frozen_schema_one_summary_replays_exact_bytes_and_rejects_new_fields(self) -> None:
+        text = 'CPT(D,SQRT(A)+ABS(-B))CPT(D,SQR(A))CPT(D,ATAN2(A,B));'
+        summary = build_calculation_summary(*capture(text=text, schema_version=1))
+        encoded = render_calculation_summary(summary)
+        self.assertEqual(hashlib.sha256(encoded.encode()).hexdigest(),
+                         '6beba81055151c5bb097a9ba713c4380b3049ca09be028434e71ce57e5002697')
+        self.assertEqual((summary['schema_version'], summary['analyzer_version'], summary['exporter_version']),
+                         (1, 'calculation-evidence-1', 'calculation-summary-1'))
+        current = build_calculation_summary(*capture(text=text))
+        for key in ('functions_by_spelling', 'unsupported_functions'):
+            changed = deepcopy(summary)
+            changed['coverage'][key] = current['coverage'][key]
+            with self.assertRaises(CalculationSummaryError):
+                validate_calculation_summary(changed)
+        for base, replacement in ((summary, current), (current, summary)):
+            for field in ('schema_version', 'analyzer_version', 'exporter_version'):
+                changed = deepcopy(base)
+                changed[field] = replacement[field]
+                with self.assertRaises(CalculationSummaryError):
+                    validate_calculation_summary(changed)
+
+    def test_summary_version_rejects_noninteger_and_unknown_versions(self) -> None:
+        summary = build_calculation_summary(*capture('A'))
+        for version in (True, False, 0, 3, 1.0, '1', None):
+            changed = deepcopy(summary)
+            changed['schema_version'] = version
+            with self.subTest(version=version), self.assertRaises(CalculationSummaryError):
+                validate_calculation_summary(changed)
 
 
 if __name__ == '__main__':

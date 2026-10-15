@@ -32,9 +32,12 @@ SYNTAX_STATUSES = frozenset({'parsed', 'unsupported', 'signature_unresolved'})
 NODE_KINDS = frozenset({'literal', 'reference', 'unary', 'binary', 'function', 'group'})
 ERROR_CODES = frozenset({'lexical_error', 'syntax_error', 'unsupported_function',
                          'length_limit', 'token_limit', 'depth_limit'})
-# Studio 5000 v38 CPT's documented spellings. No alias normalization and no
-# inference that a particular controller/version accepts these functions.
-FUNCTIONS = frozenset('ABS ACOS ASIN ATAN COS DEG BCD_TO LN LOG RAD SIN SQRT TAN TO_BCD TRUNC'.split())
+# Schema 1's original Studio 5000 v38 spellings stay frozen for replay.
+# Schema 2 also recognizes the documented pre-v36 spellings. The AST retains
+# each source spelling; neither catalog proves controller/version acceptance.
+FUNCTIONS_V1 = frozenset('ABS ACOS ASIN ATAN COS DEG BCD_TO LN LOG RAD SIN SQRT TAN TO_BCD TRUNC'.split())
+FUNCTIONS = FUNCTIONS_V1 | frozenset('ACS ASN ATN FRD SQR TOD TRN'.split())
+UNSUPPORTED_FUNCTION_BUCKETS = frozenset({'atan2', 'other'})
 _PRECEDENCE = {'OR': 10, 'XOR': 20, 'AND': 30, '+': 40, '-': 40,
                '*': 50, '/': 50, 'MOD': 50, '**': 70}
 _UNARY_PRECEDENCE = 60
@@ -43,18 +46,21 @@ _MEMBER = re.compile(r'\.(?:[A-Za-z_][A-Za-z0-9_]*|[0-9]+)', re.ASCII)
 _NUMBER = re.compile(
     r'(?:2#[01](?:_?[01])*|8#[0-7](?:_?[0-7])*|16#[0-9A-Fa-f](?:_?[0-9A-Fa-f])*'
     r'|(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)', re.ASCII)
-CALCULATION_CONSTANTS = {
+CALCULATION_V1_CONSTANTS = {
     'schema_version': 1, 'analyzer_version': 'calculation-evidence-1',
     'analysis_scope': 'cpt_expression_evidence', 'semantic_analysis': 'not_implemented',
     'execution_analysis': 'not_implemented', 'effect_analysis': 'not_implemented',
     'member_validation': 'not_implemented', 'numeric_analysis': 'not_implemented',
 }
-COVERAGE_KEYS = frozenset({
+CALCULATION_CONSTANTS = {**CALCULATION_V1_CONSTANTS,
+                         'schema_version': 2, 'analyzer_version': 'calculation-evidence-2'}
+COVERAGE_V1_KEYS = frozenset({
     'source_rungs', 'unparsed_rungs', 'source_instructions', 'source_operands',
     'occurrences_total', 'occurrences_by_signature', 'expressions_by_status',
     'expression_errors', 'nodes_total', 'nodes_by_kind', 'reference_occurrences',
     'reference_by_binding', 'destination_root_bound', 'expressions_with_binding_gaps',
 })
+COVERAGE_KEYS = COVERAGE_V1_KEYS | {'functions_by_spelling', 'unsupported_functions'}
 
 
 class CalculationError(ValueError):
@@ -68,8 +74,8 @@ class CalculationResult:
     occurrences: list[dict[str, Any]]
     nodes: list[dict[str, Any]]
     coverage: dict[str, Any]
-    schema_version: int = 1
-    analyzer_version: str = 'calculation-evidence-1'
+    schema_version: int = 2
+    analyzer_version: str = 'calculation-evidence-2'
     analysis_scope: str = 'cpt_expression_evidence'
     semantic_analysis: str = 'not_implemented'
     execution_analysis: str = 'not_implemented'
@@ -87,8 +93,9 @@ def _invalid() -> None:
 
 
 class _Unsupported(Exception):
-    def __init__(self, code: str, offset: int):
+    def __init__(self, code: str, offset: int, function_bucket: str = 'other'):
         self.code, self.offset = code, offset
+        self.function_bucket = function_bucket
         super().__init__(code)
 
 
@@ -160,8 +167,10 @@ def _tokens(text: str) -> list[_Token]:
 
 
 class _Parser:
-    def __init__(self, text: str, instruction_id: str, snapshot_id: str):
+    def __init__(self, text: str, instruction_id: str, snapshot_id: str,
+                 functions: frozenset[str]):
         self.text, self.instruction_id, self.snapshot_id = text, instruction_id, snapshot_id
+        self.functions = functions
         self.tokens = _tokens(text)
         self.cursor = 0
         self.nodes: list[dict[str, Any]] = []
@@ -205,8 +214,11 @@ class _Parser:
         elif token.kind in {'literal', 'reference'}:
             if (token.kind == 'reference' and self.cursor < len(self.tokens)
                     and self.tokens[self.cursor].kind == '('):
-                if token.text.upper() not in FUNCTIONS:
-                    raise _Unsupported('unsupported_function', token.start)
+                if token.text.upper() not in self.functions:
+                    # Only this exact public token receives its own bucket.
+                    # Unknown/private names never become aggregate keys.
+                    bucket = 'atan2' if token.text.upper() == 'ATAN2' else 'other'
+                    raise _Unsupported('unsupported_function', token.start, bucket)
                 self.cursor += 1
                 child = self.expression(0, depth + 1)
                 end = self.closing()
@@ -255,18 +267,23 @@ class _Parser:
 
 
 def _derive(snapshot: SourceSnapshot, inventory: InventoryResult,
-            references: ReferenceResult) -> CalculationResult:
+            references: ReferenceResult, schema_version: int) -> CalculationResult:
+    constants = CALCULATION_V1_CONSTANTS if schema_version == 1 else CALCULATION_CONSTANTS
+    functions = FUNCTIONS_V1 if schema_version == 1 else FUNCTIONS
     resolver = _Resolver(inventory)
     operands = {(row['instruction_id'], row['argument_index']): row for row in references.operands}
     occurrences: list[dict[str, Any]] = []
     nodes: list[dict[str, Any]] = []
     coverage: dict[str, Any] = {
-        key: 0 for key in sorted(COVERAGE_KEYS - {'occurrences_by_signature', 'expressions_by_status',
+        key: 0 for key in sorted(COVERAGE_V1_KEYS - {'occurrences_by_signature', 'expressions_by_status',
                                                 'expression_errors', 'nodes_by_kind', 'reference_by_binding'})}
     for key, vocabulary in (('occurrences_by_signature', SIGNATURE_STATUSES),
                             ('expressions_by_status', SYNTAX_STATUSES), ('expression_errors', ERROR_CODES),
                             ('nodes_by_kind', NODE_KINDS), ('reference_by_binding', ALIAS_STATUSES)):
         coverage[key] = dict.fromkeys(sorted(vocabulary), 0)
+    if schema_version == 2:
+        coverage['functions_by_spelling'] = dict.fromkeys(sorted(FUNCTIONS), 0)
+        coverage['unsupported_functions'] = dict.fromkeys(sorted(UNSUPPORTED_FUNCTION_BUCKETS), 0)
     retained = 0
     for rung in inventory.rungs:
         if rung.parse_status != 'parsed':
@@ -288,17 +305,21 @@ def _derive(snapshot: SourceSnapshot, inventory: InventoryResult,
             if signature == 'recognized':
                 coverage['destination_root_bound'] += int(destination['status'] == 'root_bound')
                 try:
-                    parser = _Parser(expression['raw_text'], instruction.id, str(snapshot.id))
+                    parser = _Parser(expression['raw_text'], instruction.id, str(snapshot.id), functions)
                     root = parser.parse()
                 except _Unsupported as error:
                     row.update(syntax_status='unsupported', error_code=error.code, error_offset=error.offset)
                     coverage['expression_errors'][error.code] += 1
+                    if schema_version == 2 and error.code == 'unsupported_function':
+                        coverage['unsupported_functions'][error.function_bucket] += 1
                 else:
                     if len(nodes) + len(parser.nodes) > MAX_CALCULATION_NODES:
                         _invalid()
                     gaps = False
                     for node in parser.nodes:
                         coverage['nodes_by_kind'][node['kind']] += 1
+                        if schema_version == 2 and node['kind'] == 'function':
+                            coverage['functions_by_spelling'][node['operator']] += 1
                         if node['kind'] == 'reference':
                             node['binding'] = resolver.resolve(node['raw_text'], rung.scope_id)
                             disposition = node['binding']['status']
@@ -325,14 +346,15 @@ def _derive(snapshot: SourceSnapshot, inventory: InventoryResult,
                    or coverage['destination_root_bound'] != len(occurrences)
                    or coverage['expressions_with_binding_gaps'])
     return CalculationResult(dict(inventory.snapshot), 'partial' if partial else 'complete',
-                             occurrences, nodes, coverage)
+                             occurrences, nodes, coverage, **constants)
 
 
 def analyze_calculations(snapshot: SourceSnapshot, inventory: InventoryResult,
-                         references: ReferenceResult) -> CalculationResult:
-    """Authenticate captured source and canonical references before lexical analysis."""
+                         references: ReferenceResult, *, schema_version: int = 2) -> CalculationResult:
+    """Authenticate source before analysis; schema 1 replays its frozen catalog."""
     try:
-        if (type(snapshot) is not SourceSnapshot or type(inventory) is not InventoryResult
+        if (type(schema_version) is not int or schema_version not in {1, 2}
+                or type(snapshot) is not SourceSnapshot or type(inventory) is not InventoryResult
                 or type(references) is not ReferenceResult
                 or vars(snapshot).keys() != set(SourceSnapshot.__dataclass_fields__)
                 or type(snapshot.data) is not bytes or len(snapshot.data) > MAX_SOURCE_BYTES
@@ -353,7 +375,7 @@ def analyze_calculations(snapshot: SourceSnapshot, inventory: InventoryResult,
         if not _strict_match(analyze_snapshot(snapshot), inventory):
             _invalid()
         validate_references(inventory, references)
-        result = _derive(snapshot, inventory, references)
+        result = _derive(snapshot, inventory, references, schema_version)
         render_calculation_json(result)
         return result
     except CalculationError:
@@ -367,7 +389,7 @@ def validate_calculations(snapshot: SourceSnapshot, inventory: InventoryResult,
     """Replay bounded canonical evidence before trusting caller-supplied records."""
     try:
         valid = type(result) is CalculationResult and _strict_match(
-            analyze_calculations(snapshot, inventory, references), result)
+            analyze_calculations(snapshot, inventory, references, schema_version=result.schema_version), result)
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
         valid = False
     if not valid:

@@ -15,7 +15,7 @@ between member/index suffixes. Engineering classifications remain later work.
 Tyler has not inspected the source/report and explicitly deferred engineering
 and UI review. Such inspection is optional later; it is not a gate to continued
 parser work. The next work-machine run should return only generated aggregate
-feedback for the CPT calculation slice.
+feedback for the legacy CPT function extension.
 
 ```bash
 uv run --project python-parser --locked plc review \
@@ -29,7 +29,8 @@ review6/manifest9 with thirteen hashed artifacts: snapshot.L5X, inventory.json, 
 references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
-`confidential/`. Read [the calculation review](../public/docs/reviews/CALCULATION_REVIEW.md),
+`confidential/`. Read [the function follow-up](../public/docs/reviews/CALCULATION_FUNCTION_REVIEW.md),
+[the calculation review](../public/docs/reviews/CALCULATION_REVIEW.md),
 [the PID member review](../public/docs/reviews/PID_MEMBER_REVIEW.md),
 [the PID occurrence review](../public/docs/reviews/PID_EVIDENCE_REVIEW.md),
 [the Tag Data review](../public/docs/reviews/TAG_DATA_REVIEW.md),

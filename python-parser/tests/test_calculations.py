@@ -3,13 +3,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import replace
+import hashlib
 import json
 import tracemalloc
 import unittest
 from unittest.mock import patch
 
 from plc_workbench.calculations import (
-    FUNCTIONS, CalculationError, analyze_calculations, render_calculation_json, validate_calculations,
+    FUNCTIONS, FUNCTIONS_V1, CalculationError, analyze_calculations, render_calculation_json, validate_calculations,
 )
 from plc_workbench.references import analyze_references
 from plc_workbench.source import analyze_snapshot, snapshot_from_bytes
@@ -26,21 +27,21 @@ def program(text: str, tags: str = '', name: str = 'P') -> str:
             '</RLLContent></Routine></Routines></Program>')
 
 
-def capture_xml(xml: str):
+def capture_xml(xml: str, *, schema_version: int = 2):
     snapshot = snapshot_from_bytes(xml.encode())
     inventory = analyze_snapshot(snapshot)
     references = analyze_references(inventory)
-    result = analyze_calculations(snapshot, inventory, references)
+    result = analyze_calculations(snapshot, inventory, references, schema_version=schema_version)
     return snapshot, inventory, references, result
 
 
 def capture(expression: str = 'A + 1', destination: str = 'D', *, text: str | None = None,
-            tags: str | None = None, local: str = ''):
+            tags: str | None = None, local: str = '', schema_version: int = 2):
     declarations = ''.join(tag(name) for name in ('A', 'B', 'C', 'D', 'Index', 'Arr')) if tags is None else tags
     xml = ('<RSLogix5000Content><Controller Name="Invented"><Tags>' + declarations + '</Tags><Programs>'
            + program(text if text is not None else f'CPT({destination},{expression});', local)
            + '</Programs></Controller></RSLogix5000Content>')
-    return capture_xml(xml)
+    return capture_xml(xml, schema_version=schema_version)
 
 
 def tree(result, occurrence: int = 0):
@@ -111,7 +112,7 @@ class CalculationTests(unittest.TestCase):
     def test_unknown_functions_and_unsupported_lexemes_have_no_partial_bindings(self) -> None:
         for expression, code in (
             ('A + PRIVATE_FUNCTION(B)', 'unsupported_function'),
-            ('SQR(A)', 'unsupported_function'),
+            ('ATAN2(A,B)', 'unsupported_function'),
             ('A + "invented_secret"', 'lexical_error'),
             ('A % 2', 'lexical_error'), ('A ^ 2', 'lexical_error'),
             ('A + π', 'lexical_error'), ('A\u00a0+B', 'lexical_error'),
@@ -131,6 +132,96 @@ class CalculationTests(unittest.TestCase):
                 self.assertEqual(result.occurrences[0]['error_code'], code)
                 self.assertIsNone(result.occurrences[0]['root_node_id'])
                 self.assertEqual(result.occurrences[0]['node_ids'], [])
+
+    def test_legacy_and_modern_function_spellings_keep_distinct_nodes_and_counts(self) -> None:
+        pairs = {'ACS': 'ACOS', 'ASN': 'ASIN', 'ATN': 'ATAN', 'FRD': 'BCD_TO',
+                 'SQR': 'SQRT', 'TOD': 'TO_BCD', 'TRN': 'TRUNC'}
+        self.assertEqual(FUNCTIONS - FUNCTIONS_V1, pairs.keys())
+        self.assertEqual(len(FUNCTIONS), 22)
+        for legacy, modern in pairs.items():
+            expression = f'{legacy.title()}({modern.lower()}(A)) + {legacy.lower()}(B)'
+            with self.subTest(legacy=legacy, modern=modern):
+                inputs = capture(expression)
+                result = inputs[-1]
+                self.assertEqual(tree(result), ('+', (legacy, (modern, 'A')), (legacy, 'B')))
+                self.assertEqual(result.coverage['functions_by_spelling'][legacy], 2)
+                self.assertEqual(result.coverage['functions_by_spelling'][modern], 1)
+                self.assertEqual(sum(result.coverage['functions_by_spelling'].values()), 3)
+                self.assertEqual(result.coverage['nodes_by_kind']['function'], 3)
+                self.assertEqual(result.coverage['unsupported_functions'], {'atan2': 0, 'other': 0})
+                validate_calculations(*inputs)
+        # Function names without parentheses remain ordinary reference leaves.
+        result = capture('SQR + SQRT', tags=tag('SQR') + tag('SQRT') + tag('D'))[-1]
+        self.assertEqual(result.coverage['reference_occurrences'], 2)
+        self.assertEqual(sum(result.coverage['functions_by_spelling'].values()), 0)
+
+    def test_every_function_rejects_wrong_arity_without_partial_function_counts(self) -> None:
+        for function in FUNCTIONS:
+            for argument in ('', 'A,B'):
+                with self.subTest(function=function, argument=argument):
+                    result = capture(f'ABS(A) + {function}({argument})')[-1]
+                    self.assertEqual(result.occurrences[0]['error_code'], 'syntax_error')
+                    self.assertEqual(result.nodes, [])
+                    self.assertEqual(sum(result.coverage['functions_by_spelling'].values()), 0)
+                    self.assertEqual(sum(result.coverage['unsupported_functions'].values()), 0)
+
+    def test_only_first_rejected_function_is_counted_and_unknown_names_are_pooled(self) -> None:
+        cases = (
+            ('ABS(A) + aTaN2(A,B) + PRIVATE_FUNCTION(C)', 'unsupported_function', 'atan2'),
+            ('ABS(A) + PRIVATE_FUNCTION(B) + ATAN2(A,C)', 'unsupported_function', 'other'),
+            ('A.ATAN2(B)', 'unsupported_function', 'other'),
+            ('ATAN2[0](A)', 'unsupported_function', 'other'),
+            ('ATAN2_PRIVATE(A)', 'unsupported_function', 'other'),
+            ('ATAN2(A,B) + π', 'lexical_error', None),
+            ('ATAN2(ABS(A), B)', 'unsupported_function', 'atan2'),
+        )
+        for expression, error, bucket in cases:
+            with self.subTest(expression=expression):
+                result = capture(expression)[-1]
+                self.assertEqual(result.occurrences[0]['error_code'], error)
+                self.assertEqual(result.nodes, [])
+                self.assertEqual(sum(result.coverage['functions_by_spelling'].values()), 0)
+                self.assertEqual(result.coverage['unsupported_functions'],
+                                 {name: int(name == bucket) for name in ('atan2', 'other')})
+
+    def test_schema_one_replay_is_byte_stable_and_catalogs_cannot_cross_contaminate(self) -> None:
+        text = 'CPT(D,SQRT(A)+ABS(-B))CPT(D,SQR(A))CPT(D,ATAN2(A,B));'
+        inputs = capture(text=text, schema_version=1)
+        old = inputs[-1]
+        # Captured from the schema 1 implementation before its catalog changed.
+        self.assertEqual(hashlib.sha256(render_calculation_json(old).encode()).hexdigest(),
+                         'f50fcd86c774c0d48827900dee7f68bd8c90ec10c2aba682efd779c94d5461ed')
+        self.assertEqual((old.schema_version, old.analyzer_version), (1, 'calculation-evidence-1'))
+        self.assertEqual(old.coverage['expressions_by_status']['parsed'], 1)
+        for version in (2, 1, 2, 1):
+            current = analyze_calculations(*inputs[:3], schema_version=version)
+            self.assertEqual(current.coverage['expressions_by_status']['parsed'], 1 if version == 1 else 2)
+            validate_calculations(*inputs[:3], current)
+            if version == 1:
+                self.assertEqual(render_calculation_json(current), render_calculation_json(old))
+        self.assertNotIn('functions_by_spelling', old.coverage)
+        self.assertNotIn('unsupported_functions', old.coverage)
+        current = analyze_calculations(*inputs[:3])
+        for name in ('functions_by_spelling', 'unsupported_functions'):
+            changed = deepcopy(old)
+            changed.coverage[name] = current.coverage[name]
+            with self.assertRaises(CalculationError):
+                validate_calculations(*inputs[:3], changed)
+
+    def test_schema_selection_and_function_counters_are_authenticated(self) -> None:
+        snapshot, inventory, references, result = capture('SQR(A)')
+        for version in (True, False, 0, 3, 1.0, '1', None):
+            with self.subTest(version=version), self.assertRaises(CalculationError):
+                analyze_calculations(snapshot, inventory, references, schema_version=version)
+            with self.subTest(result_version=version), self.assertRaises(CalculationError):
+                validate_calculations(snapshot, inventory, references, replace(result, schema_version=version))
+        changed = deepcopy(result)
+        changed.coverage['functions_by_spelling'].update(SQR=0, SQRT=1)
+        with self.assertRaises(CalculationError):
+            validate_calculations(snapshot, inventory, references, changed)
+        with self.assertRaises(CalculationError):
+            validate_calculations(snapshot, inventory, references,
+                                  replace(result, schema_version=1, analyzer_version='calculation-evidence-1'))
 
     def test_dynamic_index_is_one_unsupported_address_leaf_without_index_dependency(self) -> None:
         *_, result = capture('Arr[Index+1] + Arr[2].Value + A')

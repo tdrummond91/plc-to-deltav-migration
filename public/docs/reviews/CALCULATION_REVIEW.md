@@ -1,5 +1,23 @@
 # CPT calculation expression evidence
 
+## Confirmed work-machine result (2026-10-15)
+
+Returned `6d19d5e` tests clean `40df4d8`: 656 application cases (one expected
+Windows symlink skip), 139 helpers and a saved private run. All 45 CPT signatures
+and destinations are recognized/root-bound. Forty-three expressions parse into
+456 nodes, including 122 reference leaves, all root-bound. Two expressions are
+unsupported because of function names; all other syntax-error counters are zero.
+Those two contribute no partial nodes or reference counts. This is syntax/root
+evidence, not numeric, type, execution or engineering validation.
+
+Six previous summaries match `564fa66` after removing only tool_revision.
+All 25 historical feedback reports validate; the new report is 30,793 bytes.
+Aggregate equality does not establish source byte identity. The next
+[function follow-up](CALCULATION_FUNCTION_REVIEW.md) accepts documented older
+spellings, which may explain the gaps; their actual names are not in this report.
+The original implementation/validation record below remains historical.
+
+
 ## Purpose and current boundary
 
 This Phase 1 companion exposes the structure inside CPT expressions that the
@@ -68,7 +86,7 @@ Work1-17 and earlier optional paths remain strict. The work runner makes a
 report-only local commit; all Git network operations remain manual and the
 development listener remains disabled.
 
-## Next work-machine run
+## Historical initial calculation measurement
 
 On `feat/bounded-operand-example-pc`, from the repository root:
 

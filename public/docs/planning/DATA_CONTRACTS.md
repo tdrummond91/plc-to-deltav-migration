@@ -2,7 +2,22 @@
 
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current calculation contract (2026-10-15)
+## Current calculation function contract (2026-10-15)
+
+Calculation2 / calculation-evidence-2 preserves the occurrence/node layout and
+adds fixed `functions_by_spelling` and `unsupported_functions` coverage maps.
+The former counts retained function nodes from wholly parsed expressions using
+22 fixed uppercase catalog keys; the latter counts only the first rejected
+function in each unsupported-function expression, under atan2 or other.
+No caller/source-defined keys or arbitrary function names are published.
+
+Explicit schema_version=1 replay retains the original 15-function grammar,
+coverage and calculation-summary1 contract. Calculation-summary2 is required by
+work19; frozen work18 requires summary1. Review6/manifest9 stays unchanged and
+records the actual nested calculation schema/analyzer. All size limits remain
+unchanged. See [CALCULATION_FUNCTION_REVIEW.md](../reviews/CALCULATION_FUNCTION_REVIEW.md).
+
+## Initial calculation contract (2026-10-15)
 
 Private calculation schema1 / calculation-evidence-1 records canonical CPT
 occurrences, operand links and a flat syntax tree with source spans. Each

@@ -180,7 +180,7 @@ class TagEvidenceStorageTests(unittest.TestCase):
 class TagEvidenceWorkTests(unittest.TestCase):
     def test_current_work_summary_is_count_only_and_version14_is_frozen(self) -> None:
         payload = report(DATA)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (18, 'work-check-18'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (19, 'work-check-19'))
         summary = payload['analysis']['tag_data_summary']
         self.assertEqual(summary['schema_version'], 1)
         rendered = work_check.render_work_check_report(payload)

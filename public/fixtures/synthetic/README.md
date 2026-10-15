@@ -1,5 +1,14 @@
 # Independently synthetic L5X fixture
 
+## Legacy calculation function demonstration
+
+[calculation_function_review_demo.L5X](calculation_function_review_demo.L5X)
+extends the invented calculation demo with all seven older function spellings,
+mixed-case and nested calls, unsupported functions, wrong arity and first-error
+cases. All names, values and connections are independently invented. It is not
+an executable controller project. The current HTML demo uses this fixture;
+all earlier fixture bytes and their historical validation remain intact.
+
 ## Calculation report demonstration
 
 [calculation_review_demo.L5X](calculation_review_demo.L5X) extends the independently
