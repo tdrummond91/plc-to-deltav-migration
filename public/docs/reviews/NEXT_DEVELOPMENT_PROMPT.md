@@ -1,5 +1,6 @@
-Current checkpoint (2026-10-14): Phase 1 explicit instruction operand access
-roles for 28 supported mnemonic spellings are ready for the next work-PC run. Read
+Current checkpoint (2026-10-15): Phase 1 explicit instruction operand access
+roles cover 34 supported mnemonic spellings with the timer/reset/copy extension.
+Read [TIMER_COPY_ACCESS_REVIEW.md](TIMER_COPY_ACCESS_REVIEW.md),
 [ACCESS_ROLE_REVIEW.md](ACCESS_ROLE_REVIEW.md) and
 [WORK_MACHINE_REFERENCES_RUN.md](WORK_MACHINE_REFERENCES_RUN.md) first. Manually
 pull the current `feat/bounded-operand-example-pc` branch, run the normal
@@ -7,9 +8,11 @@ pull the current `feat/bounded-operand-example-pc` branch, run the normal
 manually push the automatically committed feedback report. Supply the local
 L5X filename on a checkout without a remembered source. No listener is required.
 
-Returned `1332543` confirms the preceding offline-review run tested clean
-`c36d10b`: 439 application cases (one skip), 139 helpers and a saved private
-HTML report. Tyler has not inspected the source/report and explicitly deferred
+Returned `7cd9201` confirms initial access1 on clean `6642c5c`: 478 application
+cases (one skip), 139 helpers and a saved private run. Access classified 16,952
+of 17,874 instructions, retained 922 unsupported instructions and counted 321
+binding gaps. Reference/source and SFC summaries remain equal to the preceding
+`1332543` report after revision normalization. Tyler has not inspected the source/report and explicitly deferred
 engineering and UI review. Do not require familiar-tag, SFC or navigation checks
 before continuing parser work. The next work-PC run should return only its
 generated aggregate feedback; optional engineering/UI review can happen later.
@@ -18,12 +21,24 @@ The new access layer labels possible explicit reads, writes, read-writes,
 non-data and unknown operand uses. It is not an execution/effect model or a
 dependency graph. Root groups do not establish overlap among member/index
 suffixes. Unsupported instructions and invalid signatures remain unknown;
-literal destinations cannot become bound write evidence. Engineering
+literal destinations cannot become bound write evidence. TON/TOF/RTO storage is
+read-write only when both pseudo-operands are `?` or recognized integer literal forms;
+those two slots are non-data. RES adds a possible storage write, while COP/CPS
+add source-read/destination-write/length-read roles without range expansion.
+Timing, initialization, datatype/range validation and execution remain unmodeled. Engineering
 classifications, editable corrections, PCSD and FHX remain later milestones.
 Do not infer semantics from pattern equality, JSR candidates, SFC links or
 annotation ownership.
 
-Current evidence: 574 development cases pass with one existing symlink skip.
+Current extension evidence: 592 development cases pass with one existing symlink
+skip. Two actual isolated runs, explicit then remembered source, each pass 496
+application cases (one skip) and 139 helpers, with report-only local commits
+and no Git network calls. Nine artifact hashes, canonical access2/review2 and
+identical CLI artifacts verify. Seven legacy artifacts match `7cd9201` byte for
+byte; source/reference/SFC summaries match after revision normalization. All 20
+historical work1-13 reports validate.
+
+Initial access1 evidence (historical): 574 development cases passed with one existing symlink skip.
 Two final synthetic launcher runs each pass 478 application cases (one skip)
 and 139 helpers, verifying manifest hashes, canonical access/review evidence
 and identical CLI HTML. Seven legacy artifacts match baseline `1332543` byte
@@ -32,14 +47,16 @@ revision normalization. All 19 historical work1-12 reports validate.
 The standalone command is `uv run --project python-parser
 --locked plc review FILE --workspace PRIVATE_DIRECTORY`; the workspace is
 required, the printed HTML path is private, and exit 3 is usable partial output.
-Review2 runs use manifest5 with nine hashed artifacts, adding private access1
-as `access.json`. Work13 adds separate count-only access summary1. Public
+Current review2 runs keep manifest5 with nine hashed artifacts, carrying private access2
+as `access.json`. Work14 requires count-only access summary2; frozen work13
+retains access summary1. Public
 reference12/source4/SFC2 and private inventory3/reference6/SFC2 contracts remain
 unchanged, as do plain reference manifest2 and standalone SFC manifest3.
-Historical work1-12 and review1/manifest4 contracts remain readable. Preserve
+Historical work1-13 and review1/manifest4 contracts remain readable. Preserve
 the historical checkpoints below.
 
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md,
 public/docs/reviews/ACCESS_ROLE_REVIEW.md,
 public/docs/reviews/PROJECT_STATE_REVIEW.md,
 public/docs/reviews/SFC_ANNOTATION_REVIEW.md,
@@ -96,8 +113,8 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available, excluding the ignored listener
-loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9/10/11/12 remain readable. Current
-schema13 requires reference12, SFC summary2 and access summary1, and retains at most one authorized operand example.
+loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9/10/11/12/13 remain readable. Current
+schema14 requires reference12, SFC summary2 and access summary2, and retains at most one authorized operand example.
 The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
@@ -122,7 +139,7 @@ Current baseline: 139 passing helper tests. Also run the full development
 application command in SFC_STRUCTURE_REVIEW.md, which explicitly excludes the
 ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in ACCESS_ROLE_REVIEW.md;
+Use the final application test count and tested revision in TIMER_COPY_ACCESS_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -272,9 +289,9 @@ No repeat annotation-only work-PC run is needed. Read SFC_ANNOTATION_REVIEW.md
 for confirmation and PROJECT_STATE_REVIEW.md for the independent state audit,
 next user-facing milestone and provisional iteration estimates. That review's
 recommendation to bundle a private engineering review package is implemented
-and its generated output is confirmed by `1332543`. The current access slice
-extends it with explicit operand roles. The next work-machine run measures
-access coverage through generated aggregates; Tyler's deferred engineering/UI
+and its generated output is confirmed by `1332543`. Initial access roles are
+confirmed by `7cd9201`; the current extension adds timer/reset/copy roles.
+The next work-machine run measures this additional coverage through generated aggregates; Tyler's deferred engineering/UI
 review is not a development gate.
 Preserve existing identity/provenance contracts and keep edits/correction survival
 as explicit future design work, not a capability implied by immutable snapshots.

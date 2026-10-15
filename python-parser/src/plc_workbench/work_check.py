@@ -49,7 +49,8 @@ _V9_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 9, "workflow_version": "w
 _V10_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 10, "workflow_version": "work-check-10"}
 _V11_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 11, "workflow_version": "work-check-11"}
 _V12_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 12, "workflow_version": "work-check-12"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 13, "workflow_version": "work-check-13"}
+_V13_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 13, "workflow_version": "work-check-13"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 14, "workflow_version": "work-check-14"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _GIT_REPOSITORY_OVERRIDES = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
@@ -78,7 +79,7 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = {"diagnostic_sample"} if version >= 2 else set()
@@ -108,14 +109,14 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
@@ -125,12 +126,29 @@ def validate_work_check_report(report: Any) -> None:
             validate_access_summary(access)
             coverage = access["coverage"]
             reference_coverage = nested["coverage"]
-            if (access["schema_version"] != 1 or access["tool_revision"] != revision
+            if access["schema_version"] != (2 if version >= 14 else 1):
+                _invalid()
+            integer_pseudo_operands = 0
+            unsupported_timer_forms = 0
+            if version >= 14:
+                pseudo_operands = coverage["timer_pseudo_operands_by_kind"]
+                integer_pseudo_operands = pseudo_operands["integer_literal"]
+                unsupported_timer_forms = coverage["instructions_by_status"]["unsupported_operand_form"]
+                source_opcodes = nested["source_summary"]["instructions"]["counts"]
+                # Source4 preserves case and pools non-public spellings, while
+                # access accepts ASCII case variants. This is a capacity bound,
+                # not evidence that every withheld instruction is a timer.
+                timer_capacity = sum(source_opcodes.get(opcode, 0) for opcode in ("TON", "TOF", "RTO", "withheld"))
+                if (coverage["timer_instructions"] + unsupported_timer_forms > timer_capacity
+                        or pseudo_operands["placeholder"] > nested["operands"]["by_status"]["non_data"]
+                        or integer_pseudo_operands > nested["operands"]["by_status"]["literal"]):
+                    _invalid()
+            if (access["tool_revision"] != revision
                     or coverage["instructions_total"] != reference_coverage["instructions_total"]
                     or coverage["instructions_total"] != nested["source_summary"]["counts"]["instructions"]
-                    or coverage["instructions_by_status"]["classified"] > reference_coverage["instructions_catalogued"]
+                    or coverage["instructions_by_status"]["classified"] + unsupported_timer_forms > reference_coverage["instructions_catalogued"]
                     or coverage["operands_total"] != nested["operands"]["total"]
-                    or coverage["operands_by_role"]["non_data"] > nested["operands"]["by_status"]["non_data"]
+                    or coverage["operands_by_role"]["non_data"] - integer_pseudo_operands > nested["operands"]["by_status"]["non_data"]
                     or coverage["source_rungs"] != reference_coverage["rungs_total"]
                     or coverage["source_rungs"] != nested["source_summary"]["counts"]["rungs"]
                     or coverage["unparsed_rungs"] != reference_coverage["rungs_total"] - reference_coverage["rungs_analyzed"]
@@ -174,7 +192,7 @@ def validate_work_check_report(report: Any) -> None:
             if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
                 # This fallback needs dedicated rack evidence. Historical v2
                 # reports retain their original malformed-only sample contract.
-                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12)}
+                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12)}
                         or nested["rack_candidates"]["matches"]["direct_operands"]
                         ["by_status"]["no_candidate_match"] == 0):
                     _invalid()

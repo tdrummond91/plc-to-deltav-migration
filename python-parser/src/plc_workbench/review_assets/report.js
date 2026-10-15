@@ -65,7 +65,7 @@
   function human(v) { return String(v || 'unknown').replace(/_/g,' '); }
   function short(v, max=120) { const s=String(v ?? ''); return s.length>max ? s.slice(0,max-1)+'…' : s; }
   function badge(v) {
-    const good=['complete','parsed','resolved','root_bound','literal','non_data','system_flag','info','read','write','read_write','classified'].includes(v);
+    const good=['complete','parsed','resolved','root_bound','literal','non_data','system_flag','info','read','write','read_write','classified','initialization_field'].includes(v);
     const bad=['error','malformed','ambiguous','alias_cycle'].includes(v);
     return node('span','badge '+(good?'good':bad?'bad':'warn'),human(v));
   }
@@ -102,7 +102,8 @@
   }
   function sourceCell(id) { return id && (byEntity.has(id)||byRung.has(id)||byOperand.has(id)||byInstruction.has(id)||byElement.has(id)||byContent.has(id)) ? link(sourceName(id),id) : node('span','muted','No direct source link'); }
   function primary(main,secondary) { const d=node('div'); d.append(main instanceof Node?main:node('div','cell-main',main)); if(secondary)d.append(node('div','cell-sub',secondary)); return d; }
-  function accessCell(o) { return badge(byOperandAccess.get(o.id)?.role || 'unknown'); }
+  function accessLabel(o) { const a=byOperandAccess.get(o.id); return a?.reason==='timer_pseudo_operand'?'initialization_field':a?.role || 'unknown'; }
+  function accessCell(o) { return badge(accessLabel(o)); }
   function roleIds(root,role) { return root[role+'_operand_ids'] || []; }
   const accessRoles=['read','write','read_write','unknown'];
   function table(headers, rows, rowFn, caption, options={}) {
@@ -176,7 +177,7 @@
   }
   function objectList(){const rows=entities.filter(e=>matches(e)&&(state.filter==='all'||e.kind===state.filter));content.append(table(['Object','Type','Scope','Description'],rows,e=>[primary(link(e.name || '(unnamed)',e.id),e.attributes?.DataType),human(e.kind),entityPath(e.scope_id),short(e.description || 'No description captured.')],'Source objects',{emptyTitle:'No objects match your search',emptyDetail:'Search by name, scope, description or attribute value.'}));}
   function accessNotice() {
-    return notice('Explicit operand uses only','Reads and writes describe possible uses of supported ladder operand slots. Rung conditions, scan order, implicit status flags, SFC/ST code and unsupported instructions are not modeled. A shared root does not prove that members or array elements overlap. Missing accesses do not establish that a tag is unused or read-only.');
+    return notice('Explicit operand uses only','Reads and writes describe possible uses of supported ladder operand slots. Rung conditions, scan order, implicit status flags, SFC/ST code and unsupported instructions are not modeled. A shared root does not prove that members or array elements overlap. Missing accesses do not establish that a tag is unused or read-only.'+(access.schema_version>=2?' Timer initialization fields are not runtime inputs; their values are not validated. Copy roles identify starting operands and length use, not the copied range or overlap.':''));
   }
   function accessList() {
     content.append(accessNotice());
@@ -185,7 +186,11 @@
     totals.append(values({'Classified instructions':c.instructions_by_status.classified,
       'Instructions with unknown roles':accessGaps.length,'Operand slots':c.operands_total,
       'Root-linked operand slots':c.linked_operands,'Known access roles without usable bindings':c.access_gap_operands,
-      'Unparsed rungs':c.unparsed_rungs}));content.append(totals);
+      'Unparsed rungs':c.unparsed_rungs}));
+    if(access.schema_version>=2)totals.append(values({'Classified timer instructions':c.timer_instructions,
+      'Timer initialization placeholders':c.timer_pseudo_operands_by_kind.placeholder,
+      'Timer integer initialization fields':c.timer_pseudo_operands_by_kind.integer_literal}));
+    content.append(totals);
     const rows=accessRoots.filter(matches);
     const roots=section('Resolved tag roots','Read/write is a separate category; it is not counted twice. Open a count to inspect its exact operands and suffixes.');
     roots.append(table(['Root','Scope','Read','Write','Read/write','Unknown'],rows,r=>[
@@ -236,12 +241,13 @@
   function rungDetail(r){
     setDetailHeading('LADDER SOURCE',rungName(r),entityPath(r.parent_id));
     const meta=node('div','detail-meta');meta.append(badge(r.parse_status),sourceCell(r.parent_id));content.append(meta);
-    if(state.focusOperand && byOperand.get(state.focusOperand)?.rung_id===r.id){const o=byOperand.get(state.focusOperand);content.append(notice('Selected operand · argument '+(o.argument_index+1),o.raw_text+' · '+human(o.status)+(access?' · role: '+human(byOperandAccess.get(o.id)?.role):'')));}
+    if(state.focusOperand && byOperand.get(state.focusOperand)?.rung_id===r.id){const o=byOperand.get(state.focusOperand);content.append(notice('Selected operand · argument '+(o.argument_index+1),o.raw_text+' · '+human(o.status)+(access?' · role: '+human(accessLabel(o)):'')));}
     if(state.focusInstruction && byInstruction.get(state.focusInstruction)?.rung.id===r.id)content.append(notice('Selected instruction',byInstruction.get(state.focusInstruction).instruction.opcode));
     const text=panel('Rung text','Exact captured ladder source. No execution behavior is inferred.');text.append(sourceText(r.text));content.append(text);
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
     const ops=section('Operand bindings','Root resolution is source evidence only. A binding does not validate a member, array bound, data type or instruction effect.');
+    if((rungOperands.get(r.id)||[]).some(o=>byOperandAccess.get(o.id)?.reason==='timer_pseudo_operand'))ops.append(node('p','row-note','Timer preset and accumulator fields describe initialization, not separate runtime reads. A question mark supplies no value here. Timer values, units and configuration are not validated.'));
     ops.append(table(['Operand','Instruction / argument','Binding','Declared / resolved root',...(access?['Operand role']:[])],rungOperands.get(r.id)||[],o=>{const root=node('div','inline-links');if(o.symbol_id)root.append(sourceCell(o.symbol_id));if(o.target_id && o.target_id!==o.symbol_id)root.append(node('span','','→'),sourceCell(o.target_id));if(!root.childNodes.length)root.append(node('span','muted',human(o.reason || 'No root binding')));return[node('span','mono',o.raw_text),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),primary(badge(o.status),o.reason?human(o.reason):''),root,...(access?[accessCell(o)]:[])];},'Rung operand bindings'));content.append(ops);
     const pattern=routinePatterns.get(r.id);if(pattern)content.append(button('Open syntax pattern · '+fmt(pattern.count)+' occurrences',()=>openDetail('pattern',pattern.id)));
     const structure=node('details','technical');structure.append(node('summary','','Parsed branch structure'),sourceText(JSON.stringify(r.structure,null,2)));content.append(structure,technical({'Source ID':r.id,'Routine ID':r.parent_id,'Scope ID':r.scope_id,'XML location':r.locator}));

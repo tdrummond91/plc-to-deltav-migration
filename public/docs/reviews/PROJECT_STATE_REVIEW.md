@@ -1,30 +1,46 @@
 # Project state: explicit operand access and prior SFC assessment
 
-Current milestone (2026-10-14): [explicit operand access](ACCESS_ROLE_REVIEW.md)
-is implemented for 28 supported mnemonic spellings alongside the
+Current milestone (2026-10-15): [timer/reset/copy access](TIMER_COPY_ACCESS_REVIEW.md)
+extends [initial explicit operand access](ACCESS_ROLE_REVIEW.md) to 34 supported mnemonic spellings alongside the
 [offline source-review package](ENGINEERING_REVIEW_REPORT.md). Roles describe
 potential explicit reads, writes, read-writes and non-data uses; unsupported or
 invalid signatures remain unknown. Existing root bindings are grouped without
 claiming member/index overlap, execution effects or dependencies. This advances
-Phase 1 interpretation while preserving its stated limits.
+Phase 1 interpretation while preserving its stated limits. Timer storage and
+pseudo-operands, reset writes and copy source/destination/length roles are
+bounded lexical observations; timing, initialization, copy extents and
+datatypes remain unmodeled.
 
-Returned [work report `1332543`](../../inspection/work-check-20261015T041710Z-a3c2dc50.json)
-confirms the preceding review package: clean tested `c36d10b`, 439 application
-cases (one skip), 139 helpers and a saved private HTML report. Tyler has not
+Returned [work report `7cd9201`](../../inspection/work-check-20261015T045543Z-7f2b0763.json)
+confirms initial access1: clean tested `6642c5c`, 478 application cases (one skip),
+139 helpers and a saved private run. It classified 16,952 of 17,874 instructions,
+retained 922 unsupported instructions and counted 321 access binding gaps.
+Reference/source and SFC summaries equal the preceding `1332543` report after
+revision normalization. This does not prove source byte identity. Tyler has not
 inspected the source/report and explicitly deferred engineering and UI review.
 That optional later review is not a gate to continued parser work. The next
-work-machine run is needed for this access slice; only its generated aggregate
+work-machine run is needed for the timer/reset/copy extension; only its generated aggregate
 feedback is required, without familiar-tag or SFC manual checks.
 
-Current development validation is 574 cases with one existing symlink skip;
+Current extension validation is 592 development cases with one existing symlink
+skip. Two actual isolated runs, explicit then remembered source, each pass 496
+application cases (one skip) and 139 helpers, creating report-only local commits
+without Git network calls. Nine artifact hashes, canonical access2/review2 and
+identical CLI artifacts verify. Seven legacy artifacts match `7cd9201` byte for
+byte; source/reference/SFC summaries match after revision normalization. All 20
+historical work1-13 reports validate.
+
+Initial access1
+validation is historical: 574 development cases passed with one existing symlink skip;
 two final synthetic launcher runs each pass 478 application cases (one skip)
 and 139 helpers. Both verify manifest hashes, canonical access/review evidence
 and identical CLI HTML. Seven legacy artifacts match baseline `1332543` byte
 for byte on the same invented input, source/reference/SFC summaries match after
-revision normalization, and all 19 historical work1-12 reports validate. Work13 adds
-access summary1 beside unchanged reference12/source4/SFC2. Private access1 and
+revision normalization, and all 19 then-stored work1-12 reports validated. Current work14 requires
+access summary2 beside unchanged reference12/source4/SFC2; frozen work13 retains
+access summary1. Private access2 and
 review2 use manifest5 with nine hashed artifacts. Historical contracts remain
-readable. See [ACCESS_ROLE_REVIEW.md](ACCESS_ROLE_REVIEW.md) for current evidence
+readable. See [TIMER_COPY_ACCESS_REVIEW.md](TIMER_COPY_ACCESS_REVIEW.md) for current evidence
 and remaining access limitations.
 
 The assessment and iteration ranges below are preserved as the preceding SFC

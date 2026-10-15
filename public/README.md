@@ -11,7 +11,8 @@ Start here:
 5. [Fresh Git workflow](docs/planning/GIT_FRESH_START.md).
 6. [Engineering review guide](docs/reviews/ENGINEERING_REVIEW_REPORT.md) and
    [invented HTML demonstration](examples/engineering-review-demo.html).
-7. [Explicit operand reads/writes and current checkpoint](docs/reviews/ACCESS_ROLE_REVIEW.md).
+7. [Explicit operand reads/writes](docs/reviews/ACCESS_ROLE_REVIEW.md) and
+   [current timer/reset/copy checkpoint](docs/reviews/TIMER_COPY_ACCESS_REVIEW.md).
 
 The fixtures are small parser inputs, not deployable controller projects. The
 read-only inventory, reference, SFC and offline engineering-review CLI commands

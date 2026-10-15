@@ -132,15 +132,134 @@ class AccessTests(unittest.TestCase):
         self.assertEqual(result.status, 'partial')
 
     def test_unsupported_bound_slots_remain_unknown_and_unbound_slots_are_not_guessed(self) -> None:
-        _, _, result = analyze('CPT(A,B+1)TON(T,?,?)RES(T)COP(A,B,1)CPS(A,B,1)'
-                               'PID(A,B,C,D,E,F,G)Custom(A)JSR(R)EQ(A,B);',
+        _, _, result = analyze('CPT(A,B+1)PID(A,B,C,D,E,F,G)Custom(A)JSR(R)EQ(A,B);',
                                ''.join(tag(name) for name in 'ABCDEFGT'))
         self.assertTrue(all(row['role'] == 'unknown' for row in result.operands))
-        self.assertEqual(result.coverage['instructions_by_status']['unsupported_instruction'], 9)
+        self.assertEqual(result.coverage['instructions_by_status']['unsupported_instruction'], 5)
         self.assertGreater(result.coverage['bound_by_role']['unknown'], 0)
         for instruction in result.instructions[-3:]:
             ids = set(instruction['operand_ids'])
             self.assertTrue(all(row['target_id'] is None for row in result.operands if row['id'] in ids))
+
+    def test_timer_reset_and_copy_roles_reuse_reference_occurrences(self) -> None:
+        inventory, references, result = analyze(
+            'ton(T,?,?)ToF(T,+100,-0)rto(T,2#1_0,-16#f_F)RES(T)'
+            'COP(A[2],B[4],Length)CPS(A,B,12);',
+            ''.join(tag(name) for name in ('T', 'A', 'B', 'Length')),
+        )
+        self.assertEqual([row['status'] for row in result.instructions], ['classified'] * 6)
+        self.assertEqual([row['role'] for row in result.operands],
+                         ['read_write', 'non_data', 'non_data'] * 3 +
+                         ['write', 'read', 'write', 'read', 'read', 'write', 'read'])
+        self.assertEqual(result.coverage['timer_instructions'], 3)
+        self.assertEqual(result.coverage['timer_pseudo_operands_by_kind'],
+                         {'placeholder': 2, 'integer_literal': 4})
+        self.assertEqual(result.coverage['bound_by_role']['non_data'], 0)
+        self.assertEqual(result.status, 'complete')
+        self.assertEqual((result.schema_version, result.analyzer_version), (2, 'instruction-access-2'))
+        self.assertEqual(result.initialization_analysis, 'not_implemented')
+        self.assertEqual(result.range_analysis, 'not_implemented')
+        for operand, reference in zip(result.operands, references.operands, strict=True):
+            for key in ('id', 'symbol_id', 'target_id', 'suffix'):
+                self.assertEqual(operand[key], reference[key])
+            self.assertEqual(operand['binding_status'], reference['status'])
+        pseudo = [row for row in result.operands if row['reason'] == 'timer_pseudo_operand']
+        self.assertEqual(len(pseudo), 6)
+        self.assertTrue(all(row['role'] == 'non_data' and row['target_id'] is None for row in pseudo))
+        self.assertEqual(result.operands[10]['suffix'], '[2]')
+        self.assertEqual(result.operands[11]['suffix'], '[4]')
+        validate_access(inventory, references, result)
+
+    def test_timer_pseudo_integer_grammar_is_lexical_and_never_a_runtime_read(self) -> None:
+        values = ['0', '+0', '-0', '0123', '-999999999999999999999999999',
+                  '2#1_0', '+2#0', '-8#7_0', '8#123', '16#f_F', '+16#0A', '-16#BEEF']
+        for value in values:
+            with self.subTest(value=value):
+                _, _, result = analyze(f'TON(T, {value} , ? );', tag('T'))
+                self.assertEqual(result.instructions[0]['status'], 'classified')
+                self.assertEqual(result.operands[1]['role'], 'non_data')
+                self.assertEqual(result.operands[1]['binding_status'], 'literal')
+                self.assertEqual(result.coverage['operands_by_role']['read'], 0)
+                self.assertEqual(result.coverage['timer_pseudo_operands_by_kind'],
+                                 {'placeholder': 1, 'integer_literal': 1})
+
+    def test_unsupported_timer_pseudo_form_makes_all_three_roles_unknown(self) -> None:
+        values = ['A', 'A.Member', 'A[0]', 'A+1', '1.0', '1e2', '"1"', "'2'",
+                  '1_000', '2#2', '8#8', '16#G', '2#_1', '2#1_', '16#F__F',
+                  '١', '−1', '+?', 'TRUE']
+        for opcode in ('TON', 'TOF', 'RTO'):
+            for value in values:
+                for index in (1, 2):
+                    fields = ['T', '?', '?']
+                    fields[index] = value
+                    with self.subTest(opcode=opcode, value=value, index=index):
+                        _, references, result = analyze(f'{opcode}({",".join(fields)});', tag('T') + tag('A'))
+                        self.assertEqual(result.instructions[0]['status'], 'unsupported_operand_form')
+                        self.assertEqual([row['role'] for row in result.operands], ['unknown'] * 3)
+                        self.assertTrue(all(row['reason'] == 'unsupported_operand_form' for row in result.operands))
+                        self.assertEqual(result.coverage['timer_instructions'], 0)
+                        self.assertEqual(sum(result.coverage['timer_pseudo_operands_by_kind'].values()), 0)
+                        self.assertEqual(result.status, 'partial')
+                        for operand, reference in zip(result.operands, references.operands, strict=True):
+                            self.assertEqual(operand['target_id'], reference['target_id'])
+                        if value == 'A':
+                            self.assertEqual(result.operands[index]['binding_status'], 'root_bound')
+                            self.assertEqual(result.coverage['bound_by_role']['unknown'], 2)
+
+    def test_timer_signature_failures_take_priority_and_root_failures_stay_known_gaps(self) -> None:
+        for text, status in [('TON(T,?)', 'argument_count_mismatch'),
+                             ('TOF(T,?,A,?)', 'argument_count_mismatch'),
+                             ('RTO(T,,A)', 'empty_argument'), ('TON(,?,?)', 'empty_argument')]:
+            with self.subTest(text=text):
+                _, _, result = analyze(text + ';', tag('T') + tag('A'))
+                self.assertEqual(result.instructions[0]['status'], status)
+                self.assertTrue(all(row['role'] == 'unknown' for row in result.operands))
+                self.assertEqual(result.coverage['timer_instructions'], 0)
+        for root in ('Missing', '0', 'T[Index]'):
+            with self.subTest(root=root):
+                _, _, result = analyze(f'TON({root},?,0);', tag('T'))
+                self.assertEqual(result.instructions[0]['status'], 'classified')
+                self.assertEqual(result.operands[0]['role'], 'read_write')
+                self.assertEqual(result.coverage['timer_instructions'], 1)
+                self.assertEqual(result.coverage['access_gap_operands'], 1)
+                self.assertEqual(result.roots, [])
+                self.assertEqual(result.status, 'partial')
+
+    def test_copy_length_is_read_and_literal_destinations_never_supply_write_evidence(self) -> None:
+        _, _, result = analyze('COP(A[0],A[1],Length)CPS(A,A,0)RES(42)COP(1,2,3);',
+                               tag('A') + tag('Length'))
+        self.assertEqual([row['role'] for row in result.operands],
+                         ['read', 'write', 'read', 'read', 'write', 'read',
+                          'write', 'read', 'write', 'read'])
+        self.assertEqual(result.operands[2]['binding_status'], 'root_bound')
+        self.assertEqual(result.coverage['access_gap_operands'], 2)
+        self.assertEqual(result.coverage['bound_by_role']['write'], 2)
+        self.assertEqual(result.coverage['timer_instructions'], 0)
+        self.assertEqual(len(result.roots), 2)
+        self.assertNotIn('edges', result.to_dict())
+        self.assertNotIn('ranges', result.to_dict())
+        for text in ('RES()', 'RES(A,A)', 'COP(A,B)', 'CPS(A,,1)'):
+            with self.subTest(text=text):
+                _, _, invalid = analyze(text + ';', tag('A') + tag('B'))
+                self.assertTrue(all(row['role'] == 'unknown' for row in invalid.operands))
+                self.assertEqual(invalid.status, 'partial')
+
+    def test_canonical_replay_rejects_forged_timer_kinds_roles_and_metadata(self) -> None:
+        inventory, references, result = analyze('TON(T,?,0);', tag('T'))
+        mutations = [
+            lambda r: r.coverage['timer_pseudo_operands_by_kind'].update(placeholder=2, integer_literal=0),
+            lambda r: r.coverage.update(timer_instructions=True),
+            lambda r: r.coverage.update(timer_pseudo_operands_by_kind=r.coverage),
+            lambda r: r.operands[1].update(reason='catalogued_slot'),
+            lambda r: r.operands[2].update(role='read'),
+            lambda r: vars(r).update(initialization_analysis='complete'),
+            lambda r: vars(r).update(schema_version=1),
+        ]
+        for mutate in mutations:
+            candidate = deepcopy(result)
+            mutate(candidate)
+            with self.subTest(mutation=mutate), self.assertRaises(AccessError):
+                validate_access(inventory, references, candidate)
 
     def test_zero_argument_unknown_survives_and_empty_program_is_complete(self) -> None:
         _, _, result = analyze('AFI();')

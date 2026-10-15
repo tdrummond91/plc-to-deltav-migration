@@ -24,6 +24,11 @@ from test_unmatched_sample_report import REVISION, SOURCE, report
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPLETE = SOURCE.replace(b'MysteryRack:7:I.Data[2].3', b'A')
+WORK13_REPORT = ROOT / 'public/inspection/work-check-20261015T045543Z-7f2b0763.json'
+
+
+def ladder(text: str) -> bytes:
+    return COMPLETE.replace(b'XIC(A)OTE(A);', text.encode('ascii'))
 
 
 def evidence(data: bytes = COMPLETE):
@@ -60,7 +65,7 @@ class AccessStorageTests(unittest.TestCase):
             self.assertEqual((manifest['review_schema_version'], manifest['review_version']),
                              (2, 'engineering-review-2'))
             self.assertEqual((manifest['access_schema_version'], manifest['access_analyzer_version']),
-                             (1, 'instruction-access-1'))
+                             (2, 'instruction-access-2'))
             self.assertEqual(manifest['status'], 'complete')
             self.assertEqual(len(manifest['artifacts']), 9)
             self.assertEqual(json.loads((run / 'access.json').read_bytes()), access.to_dict())
@@ -130,10 +135,10 @@ class AccessStorageTests(unittest.TestCase):
 
 
 class AccessWorkReportTests(unittest.TestCase):
-    def test_work13_closed_summary_and_historical_work12_remain_separate(self) -> None:
+    def test_work14_closed_summary_and_historical_work12_remain_separate(self) -> None:
         payload = report(COMPLETE)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (13, 'work-check-13'))
-        self.assertEqual(payload['analysis']['access_summary']['schema_version'], 1)
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (14, 'work-check-14'))
+        self.assertEqual(payload['analysis']['access_summary']['schema_version'], 2)
         rendered = work_check.render_work_check_report(payload)
         for private in ('PRIVATE_', 'snapshot', 'terminal_root', 'instruction_id', 'raw_text'):
             self.assertNotIn(private, rendered)
@@ -147,6 +152,115 @@ class AccessWorkReportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             work_check.validate_work_check_report(historical)
         self.assertEqual(older.read_bytes(), before)
+
+    def test_actual_work13_access1_report_remains_frozen_and_rejects_new_fields(self) -> None:
+        # This is the returned work13 report committed at 7cd9201, not a
+        # current analyzer output relabeled as historical evidence.
+        before = WORK13_REPORT.read_bytes()
+        old = json.loads(before)
+        self.assertEqual((old['schema_version'], old['workflow_version']), (13, 'work-check-13'))
+        old_access = old['analysis']['access_summary']
+        self.assertEqual((old_access['schema_version'], old_access['analyzer_version'],
+                          old_access['exporter_version']), (1, 'instruction-access-1', 'access-summary-1'))
+        self.assertEqual(json.loads(work_check.render_work_check_report(old)), old)
+        for mutation in (
+            lambda p: p.update(schema_version=14, workflow_version='work-check-14'),
+            lambda p: p['analysis']['access_summary'].update(schema_version=2),
+            lambda p: p['analysis']['access_summary'].update(initialization_analysis='not_implemented'),
+            lambda p: p['analysis']['access_summary']['coverage'].update(timer_instructions=0),
+            lambda p: p['analysis']['access_summary']['coverage'].update(
+                timer_pseudo_operands_by_kind={'placeholder': 0, 'integer_literal': 0}),
+            lambda p: p['analysis']['access_summary']['coverage']['instructions_by_status'].update(
+                unsupported_operand_form=0),
+        ):
+            changed = deepcopy(old)
+            mutation(changed)
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                work_check.validate_work_check_report(changed)
+        current = report(COMPLETE)
+        validate_access_summary(current['analysis']['access_summary'])
+        current.update(schema_version=13, workflow_version='work-check-13')
+        with self.assertRaises(ValueError):
+            work_check.validate_work_check_report(current)
+        self.assertEqual(WORK13_REPORT.read_bytes(), before)
+
+    def test_work14_timer_pseudo_counts_reconcile_without_changing_reference_schema(self) -> None:
+        payload = report(ladder('TON(A,?,?)TOF(A,100,0)RTO(A,?,5)RES(A)COP(A,A,3)CPS(A,A,4);'))
+        analysis = payload['analysis']
+        access = analysis['access_summary']
+        self.assertEqual((payload['schema_version'], access['schema_version']), (14, 2))
+        self.assertEqual(access['exporter_version'], 'access-summary-2')
+        self.assertEqual(access['coverage']['timer_instructions'], 3)
+        self.assertEqual(access['coverage']['timer_pseudo_operands_by_kind'],
+                         {'placeholder': 3, 'integer_literal': 3})
+        self.assertEqual(access['coverage']['operands_by_role'],
+                         {'read': 4, 'write': 3, 'read_write': 3, 'non_data': 6, 'unknown': 0})
+        self.assertEqual((analysis['reference_summary']['schema_version'],
+                          analysis['reference_summary']['source_summary']['schema_version'],
+                          analysis['sfc_structure_summary']['schema_version']), (12, 4, 2))
+        self.assertEqual((analysis['status'], payload['status']), ('complete', 'passed'))
+        work_check.validate_work_check_report(payload)
+        self.assertNotIn('raw_text', work_check.render_work_check_report(payload))
+
+    def test_timer_operand_form_gap_makes_complete_reference_report_partial(self) -> None:
+        for pseudo in ('A', '1.5'):
+            payload = report(ladder(f'TON(A,{pseudo},0);'))
+            analysis = payload['analysis']
+            self.assertEqual(analysis['reference_summary']['status'], 'complete')
+            self.assertEqual(analysis['sfc_structure_summary']['status'], 'complete')
+            coverage = analysis['access_summary']['coverage']
+            self.assertEqual(coverage['instructions_by_status']['unsupported_operand_form'], 1)
+            self.assertEqual(coverage['operands_by_role']['unknown'], 3)
+            self.assertEqual(coverage['timer_instructions'], 0)
+            self.assertEqual(coverage['timer_pseudo_operands_by_kind'], {'placeholder': 0, 'integer_literal': 0})
+            self.assertEqual((analysis['status'], payload['status']), ('partial', 'partial'))
+            work_check.validate_work_check_report(payload)
+
+    def test_timer_case_variants_use_pooled_source_capacity_without_changing_source4(self) -> None:
+        payload = report(ladder('ton(A,?,?)ToF(A,100,0)rTo(A,A,0);'))
+        nested = payload['analysis']['reference_summary']
+        coverage = payload['analysis']['access_summary']['coverage']
+        self.assertEqual(nested['source_summary']['instructions']['counts'], {'withheld': 3})
+        self.assertEqual(coverage['timer_instructions'], 2)
+        self.assertEqual(coverage['instructions_by_status']['unsupported_operand_form'], 1)
+        work_check.validate_work_check_report(payload)
+        changed = report(ladder('PID(A,A,A);'))
+        summary = changed['analysis']['access_summary']
+        summary['coverage']['instructions_by_status'].update(
+            unsupported_instruction=0, unsupported_operand_form=1)
+        validate_access_summary(summary)
+        with self.assertRaises(ValueError):
+            work_check.validate_work_check_report(changed)
+
+    def test_rejected_timer_forms_still_require_reference_catalogued_signatures(self) -> None:
+        payload = report(ladder('TON(A,A,A,A)Custom();'))
+        coverage = payload['analysis']['access_summary']['coverage']
+        coverage['instructions_by_status'].update(argument_count_mismatch=0, unsupported_operand_form=1)
+        validate_access_summary(payload['analysis']['access_summary'])
+        self.assertEqual(payload['analysis']['reference_summary']['coverage']['instructions_catalogued'], 0)
+        with self.assertRaises(ValueError):
+            work_check.validate_work_check_report(payload)
+
+    def test_timer_population_and_pseudo_counts_must_match_reference_evidence(self) -> None:
+        # Each altered access summary remains internally feasible; only the
+        # enclosing source/reference evidence disproves the extra claims.
+        cases = (
+            (ladder('MVM(A,1,A)LBL(label)LBL(label);'),
+             lambda c: c.update(timer_instructions=1,
+                 timer_pseudo_operands_by_kind={'placeholder': 2, 'integer_literal': 0})),
+            (ladder('TON(A,1,2);'),
+             lambda c: c.update(timer_pseudo_operands_by_kind={'placeholder': 1, 'integer_literal': 1})),
+            (ladder('TON(A,?,?);'),
+             lambda c: c.update(timer_pseudo_operands_by_kind={'placeholder': 0, 'integer_literal': 2})),
+            (ladder('TON(A,1,2)XIC(3);'),
+             lambda c: c['operands_by_role'].update(read=0, non_data=3)),
+        )
+        for data, mutation in cases:
+            payload = report(data)
+            mutation(payload['analysis']['access_summary']['coverage'])
+            validate_access_summary(payload['analysis']['access_summary'])
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                work_check.validate_work_check_report(payload)
 
     def test_summary_presence_and_revision_must_match(self) -> None:
         original = report(COMPLETE)

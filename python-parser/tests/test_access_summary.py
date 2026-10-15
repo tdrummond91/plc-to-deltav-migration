@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from plc_workbench.access import analyze_access
 from plc_workbench.access_summary import (
-    CONSTANTS, AccessSummaryError, build_access_summary, render_access_summary,
+    CONSTANTS, LEGACY_CONSTANTS, AccessSummaryError, build_access_summary, render_access_summary,
     validate_access_summary, _catalogue_capacity,
 )
 from plc_workbench.references import analyze_references
@@ -21,6 +21,28 @@ def report(text: str = 'XIC(A)MOV(A,B);', tags: str | None = None):
     references = analyze_references(inventory)
     result = analyze_access(inventory, references)
     return build_access_summary(inventory, references, result)
+
+
+def legacy_report():
+    """Independent frozen summary1 fixture for XIC(A)MOV(A,B), without v2 projection."""
+    return {
+        'schema_version': 1, 'policy_version': 2,
+        'report_kind': 'l5x_access_review_summary', 'exporter_version': 'access-summary-1',
+        'analyzer_version': 'instruction-access-1', 'analysis_scope': 'explicit_rll_operand_roles',
+        'execution_analysis': 'not_implemented', 'member_validation': 'not_implemented',
+        'implicit_effects': 'not_analyzed', 'sharing_status': 'aggregate_sync_allowed',
+        'tool_revision': {'commit': None, 'worktree': 'unavailable'}, 'status': 'complete',
+        'coverage': {
+            'instructions_total': 2,
+            'instructions_by_status': {'classified': 2, 'unsupported_instruction': 0,
+                                       'argument_count_mismatch': 0, 'empty_argument': 0},
+            'operands_total': 3,
+            'operands_by_role': {'read': 2, 'write': 1, 'read_write': 0, 'non_data': 0, 'unknown': 0},
+            'bound_by_role': {'read': 2, 'write': 1, 'read_write': 0, 'non_data': 0, 'unknown': 0},
+            'linked_operands': 3, 'unlinked_operands': 0, 'indexed_roots': 2,
+            'source_rungs': 1, 'unparsed_rungs': 0, 'access_gap_operands': 0,
+        },
+    }
 
 
 class AccessSummaryTests(unittest.TestCase):
@@ -45,6 +67,122 @@ class AccessSummaryTests(unittest.TestCase):
         first = report('XIC(A.Member)MOV(1,B);')
         second = report('MOV(2,Y.Other)XIC(X[999]);', tag('X') + tag('Y'))
         self.assertEqual(first, second)
+
+    def test_timer_summary_has_only_fixed_kind_counts_and_unimplemented_metadata(self) -> None:
+        secret = 'PRIVATE_SENTINEL'
+        summary = report(f'TON({secret},?,16#DEAD)TOF({secret},-12345,+98765)'
+                         f'RTO({secret},?,?)RES({secret})COP({secret},{secret},7);', tag(secret))
+        self.assertEqual(summary['schema_version'], 2)
+        self.assertEqual(summary['analyzer_version'], 'instruction-access-2')
+        self.assertEqual(summary['exporter_version'], 'access-summary-2')
+        self.assertEqual(summary['initialization_analysis'], 'not_implemented')
+        self.assertEqual(summary['range_analysis'], 'not_implemented')
+        self.assertEqual(summary['coverage']['timer_instructions'], 3)
+        self.assertEqual(summary['coverage']['timer_pseudo_operands_by_kind'],
+                         {'placeholder': 3, 'integer_literal': 3})
+        self.assertEqual(summary['coverage']['operands_by_role'],
+                         {'read': 2, 'write': 2, 'read_write': 3, 'non_data': 6, 'unknown': 0})
+        rendered = render_access_summary(summary)
+        for withheld in (secret, 'DEAD', '12345', '98765', 'TON', 'TOF', 'RTO', 'COP'):
+            self.assertNotIn(withheld, rendered)
+
+    def test_historical_summary1_fixture_is_unchanged_and_rejects_current_fields(self) -> None:
+        original = legacy_report()
+        validate_access_summary(original)
+        self.assertEqual(json.loads(render_access_summary(original)), original)
+        self.assertEqual({key: original[key] for key in LEGACY_CONSTANTS}, LEGACY_CONSTANTS)
+        mutations = [
+            lambda s: s.update(initialization_analysis='not_implemented'),
+            lambda s: s.update(range_analysis='not_implemented'),
+            lambda s: s.update(analyzer_version='instruction-access-2'),
+            lambda s: s.update(exporter_version='access-summary-2'),
+            lambda s: s.update(schema_version=2),
+            lambda s: s['coverage'].update(timer_instructions=0),
+            lambda s: s['coverage'].update(timer_pseudo_operands_by_kind={'placeholder': 0, 'integer_literal': 0}),
+            lambda s: s['coverage']['instructions_by_status'].update(unsupported_operand_form=0),
+        ]
+        for mutate in mutations:
+            candidate = deepcopy(original)
+            mutate(candidate)
+            with self.subTest(mutation=mutate), self.assertRaises(AccessSummaryError):
+                validate_access_summary(candidate)
+        # Even without new keys, a timer role vector cannot slip into the old
+        # catalogue: one instruction cannot have RW plus two non-data operands.
+        candidate = deepcopy(original)
+        coverage = candidate['coverage']
+        coverage.update(instructions_total=1, linked_operands=1, unlinked_operands=2, indexed_roots=1)
+        coverage['instructions_by_status']['classified'] = 1
+        coverage['operands_by_role'].update(read=0, write=0, read_write=1, non_data=2)
+        coverage['bound_by_role'].update(read=0, write=0, read_write=1)
+        with self.assertRaises(AccessSummaryError):
+            validate_access_summary(candidate)
+
+    def test_historical_summary1_retains_unknown_timer_status_without_new_interpretation(self) -> None:
+        summary = legacy_report()
+        summary['status'] = 'partial'
+        coverage = summary['coverage']
+        coverage.update(instructions_total=1, linked_operands=1, unlinked_operands=2, indexed_roots=1)
+        coverage['instructions_by_status'].update(classified=0, unsupported_instruction=1)
+        coverage['operands_by_role'].update(read=0, write=0, unknown=3)
+        coverage['bound_by_role'].update(read=0, write=0, unknown=1)
+        validate_access_summary(summary)
+        self.assertEqual(json.loads(render_access_summary(summary)), summary)
+        # A current report cannot silently use the old status/coverage tree.
+        current = {**summary, **CONSTANTS}
+        with self.assertRaises(AccessSummaryError):
+            validate_access_summary(current)
+
+    def test_timer_coverage_enforces_kind_partition_types_and_signature_capacity(self) -> None:
+        mutations = [
+            lambda c: c.update(timer_instructions=True),
+            lambda c: c.update(timer_instructions=2),
+            lambda c: c['timer_pseudo_operands_by_kind'].update(placeholder=True),
+            lambda c: c['timer_pseudo_operands_by_kind'].update(extra=0),
+            lambda c: c['timer_pseudo_operands_by_kind'].update(integer_literal=2),
+            lambda c: c.update(timer_pseudo_operands_by_kind=c),
+            lambda c: (c.update(timer_instructions=0),
+                       c['timer_pseudo_operands_by_kind'].update(placeholder=0, integer_literal=0)),
+            lambda c: c['bound_by_role'].update(non_data=1),
+        ]
+        for mutate in mutations:
+            summary = report('TON(A,?,0);')
+            mutate(summary['coverage'])
+            with self.subTest(mutation=mutate), self.assertRaises(AccessSummaryError):
+                validate_access_summary(summary)
+        summary = report('TON(A,?,?)SWPB(A,REVERSE,A);')
+        summary['coverage']['operands_by_role'].update(read=0, read_write=2)
+        summary['coverage']['bound_by_role'].update(read=0, read_write=2)
+        with self.assertRaises(AccessSummaryError):
+            validate_access_summary(summary)
+        # The three ordinary instructions have the same role totals as a timer;
+        # subtracting a forged timer leaves two instructions with no operands.
+        summary = report('ONS(A)JMP(Label)LBL(Label);')
+        summary['coverage']['timer_instructions'] = 1
+        summary['coverage']['timer_pseudo_operands_by_kind']['placeholder'] = 2
+        with self.assertRaises(AccessSummaryError):
+            validate_access_summary(summary)
+
+    def test_invalid_timer_forms_have_exact_unknown_capacity_and_partial_status(self) -> None:
+        summary = report('TON(A,B,?);')
+        self.assertEqual(summary['coverage']['instructions_by_status']['unsupported_operand_form'], 1)
+        self.assertEqual(summary['coverage']['operands_by_role']['unknown'], 3)
+        self.assertEqual(summary['status'], 'partial')
+        for total in (2, 4):
+            candidate = deepcopy(summary)
+            coverage = candidate['coverage']
+            coverage['operands_total'] = total
+            coverage['operands_by_role']['unknown'] = total
+            coverage['unlinked_operands'] = total - coverage['linked_operands']
+            with self.subTest(total=total), self.assertRaises(AccessSummaryError):
+                validate_access_summary(candidate)
+        for text in ('TON(A,B,?)MOV(A,);', 'TOF(A,B,?)AFI();', 'RTO(A,B,?)COP(A);'):
+            with self.subTest(text=text):
+                validate_access_summary(report(text))
+        for text in ('TON(Missing,?,0);', 'TOF(0,?,?);'):
+            with self.subTest(text=text):
+                candidate = report(text)
+                self.assertEqual(candidate['coverage']['access_gap_operands'], 1)
+                self.assertEqual(candidate['status'], 'partial')
 
     def test_binding_gaps_exactly_determine_status_with_other_coverage_gaps(self) -> None:
         for text, expected, gaps in (

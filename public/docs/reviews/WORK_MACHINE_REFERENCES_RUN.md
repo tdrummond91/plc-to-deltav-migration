@@ -1,14 +1,20 @@
 # Work-machine check: local results and manual publication
 
-The next run measures **Phase 1 explicit operand access roles for 28 supported
-mnemonic spellings**. It saves private access evidence and adds count-only access
+The next run measures **Phase 1 timer/reset/copy operand access, extending the
+catalogue to 34 supported mnemonic spellings**. It saves private access evidence and adds count-only access
 coverage to the generated feedback. Roles describe potential explicit uses,
 not execution effects or dependencies. Root groups do not prove overlap between
-member/index suffixes. Read [ACCESS_ROLE_REVIEW.md](ACCESS_ROLE_REVIEW.md) for
+member/index suffixes. Timer pseudo-operands retain only placeholder/integer
+classification; timing, initialization and copy ranges remain unmodeled.
+Read [TIMER_COPY_ACCESS_REVIEW.md](TIMER_COPY_ACCESS_REVIEW.md) and the initial
+[ACCESS_ROLE_REVIEW.md](ACCESS_ROLE_REVIEW.md) for
 capabilities and limits; the evidence checkpoints below remain historical.
 
-Returned `1332543` confirms the preceding run: 439 application cases (one skip),
-139 helpers, clean tested `c36d10b` and a saved private HTML report. Tyler has not
+Returned `7cd9201` confirms initial access1: 478 application cases (one skip),
+139 helpers, clean tested `6642c5c` and a saved private run. It classified 16,952
+of 17,874 instructions, retained 922 unsupported instructions and counted 321
+access binding gaps. Reference/source and SFC summaries match the preceding
+`1332543` report after revision normalization. Tyler has not
 inspected the source/report and explicitly deferred engineering and UI review.
 Only the next generated aggregate feedback is needed for this access slice;
 familiar-tag, SFC and appearance checks are optional later and do not gate parser work.
@@ -27,15 +33,24 @@ After checking the new generated feedback JSON, run `git push` manually. The
 script commits that report locally; no manual staging or commit is needed.
 Keep the HTML and engineering artifacts private.
 
-Current development validation: 574 cases pass (one existing symlink skip).
+Current extension validation: 592 development cases pass (one existing symlink
+skip). Two actual isolated runs, explicit then remembered source, each pass 496
+application cases (one skip) and 139 helpers. Both make report-only local commits
+without Git network calls, preserve earlier runs, verify nine artifact hashes
+and canonical access2/review2, and match fresh CLI artifacts byte for byte.
+Seven legacy artifacts match `7cd9201`; source/reference/SFC summaries match
+after revision normalization. All 20 historical work1-13 reports validate.
+
+Initial access1 validation is historical: 574 development cases passed (one existing symlink skip).
 Two final synthetic launcher runs each pass 478 application cases (one skip)
 and 139 helpers. Manifest hashes, canonical review/access evidence and identical
 CLI HTML verify; seven legacy artifacts remain byte-identical to baseline
 `1332543` on the same invented input, and source/reference/SFC summaries match
 after revision normalization. All 19 historical work1-12 reports validate.
-Overall `partial` remains expected. Work13 carries access summary1 beside unchanged reference12/
+Overall `partial` remains expected. Current work14 carries access summary2 beside unchanged reference12/
 source4/SFC2. Review2 runs use manifest5 with nine hashed artifacts, including
-private access1 in `access.json` and `review.html`; legacy reference/SFC runs
+private access2 in `access.json` and `review.html`; frozen work13 retains access
+summary1. Legacy reference/SFC runs
 retain manifest2/3, and historical review1/manifest4 runs remain readable.
 
 Use **main** for the consolidated baseline. The current Phase 1 work is on
@@ -147,7 +162,7 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 13 and their tested SHA identifies which suite
+check. New reports use schema 14 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
@@ -169,9 +184,14 @@ Open `overview.txt` for the source overview and `references.txt` for declaration
 alias chains, operand occurrences and rack candidate lookups. Their JSON counterparts preserve structured
 records and source links for later analysis. Open sfc-structure.txt for SFC edit
 blocks, descriptors, opaque ST and scoped links; its JSON preserves canonical
-records. `access.json` records possible explicit operand roles and resolved-root
+records. `access.json` schema2 records possible explicit operand roles and resolved-root
 groups; it does not assert runtime effects, dependencies or member overlap.
 Combined review work runs use review2/manifest5 with nine hashed artifacts.
+Work14 adds accepted timer counts and fixed placeholder/integer pseudo-operand
+counts; these contain no raw timer values or operand text. The timer capacity
+bound includes published TON/TOF/RTO counts plus pooled `withheld` spellings so
+lowercase source instructions remain supported. That bound does not prove that
+every pooled instruction is a timer.
 Plain reference runs retain manifest2 and standalone SFC runs retain manifest3.
 Every run gets new output locations;
 the original source and previous runs are preserved.

@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from io import StringIO
 import json
+import re
 from typing import Any
 
 from .models import InventoryResult
@@ -20,26 +21,32 @@ MAX_INSTRUCTIONS = 250_000
 MAX_ACCESS_BYTES = 32 * 1024 * 1024
 INSTRUCTION_STATUSES = frozenset({
     'classified', 'unsupported_instruction', 'argument_count_mismatch', 'empty_argument',
+    'unsupported_operand_form',
 })
 OPERAND_ROLES = frozenset({'read', 'write', 'read_write', 'non_data', 'unknown'})
 INDEXED_ROLES = frozenset({'read', 'write', 'read_write', 'unknown'})
 ACCESS_CONSTANTS = {
-    'schema_version': 1,
-    'analyzer_version': 'instruction-access-1',
+    'schema_version': 2,
+    'analyzer_version': 'instruction-access-2',
     'analysis_scope': 'explicit_rll_operand_roles',
     'execution_analysis': 'not_implemented',
     'member_validation': 'not_implemented',
     'implicit_effects': 'not_analyzed',
+    'initialization_analysis': 'not_implemented',
+    'range_analysis': 'not_implemented',
 }
 COVERAGE_KEYS = frozenset({
     'instructions_total', 'instructions_by_status', 'operands_total', 'operands_by_role',
     'bound_by_role', 'linked_operands', 'unlinked_operands', 'indexed_roots',
     'source_rungs', 'unparsed_rungs', 'access_gap_operands',
+    'timer_instructions', 'timer_pseudo_operands_by_kind',
 })
 
 # These spellings already have reference contracts. Retention is not an explicit
 # read for OTL/OTU. MVM conservatively reads the whole destination because its
 # unmasked bits are retained; masks and individual bits are never evaluated.
+# RES records a possible write to selected fields, not a whole-object clear.
+# COP/CPS slots do not expand copied ranges or claim overlap/synchronization.
 _ROLES = {
     **dict.fromkeys(('XIC', 'XIO'), ('read',)),
     **dict.fromkeys(('OTE', 'OTL', 'OTU', 'CLR'), ('write',)),
@@ -53,12 +60,25 @@ _ROLES = {
     **dict.fromkeys(('EQU', 'NEQ', 'LES', 'LEQ', 'GRT', 'GEQ'), ('read', 'read')),
     'LIM': ('read', 'read', 'read'),
     **dict.fromkeys(('JMP', 'LBL'), ('non_data',)),
+    **dict.fromkeys(('TON', 'TOF', 'RTO'), ('read_write', 'non_data', 'non_data')),
+    'RES': ('write',),
+    **dict.fromkeys(('COP', 'CPS'), ('read', 'write', 'read')),
 }
+_TIMER_OPCODES = frozenset({'TON', 'TOF', 'RTO'})
+TIMER_PSEUDO_KINDS = frozenset({'placeholder', 'integer_literal'})
+# Lexical exported pseudo-fields only: no value conversion, width/range check,
+# initialization model, or runtime reads. Decimal underscores are not admitted;
+# radix underscores have the same digit-separated grammar as references._NUMBER.
+_INTEGER_IMMEDIATE = re.compile(
+    r'[+-]?(?:[0-9]+|2#[01](?:_?[01])*|8#[0-7](?:_?[0-7])*'
+    r'|16#[0-9A-Fa-f](?:_?[0-9A-Fa-f])*)', re.ASCII,
+)
 _REASONS = {
     'classified': 'catalogued_slot',
     'unsupported_instruction': 'instruction_not_supported',
     'argument_count_mismatch': 'argument_count_mismatch',
     'empty_argument': 'empty_argument',
+    'unsupported_operand_form': 'unsupported_operand_form',
 }
 
 
@@ -74,12 +94,14 @@ class AccessResult:
     operands: list[dict[str, Any]]
     roots: list[dict[str, Any]]
     coverage: dict[str, Any]
-    schema_version: int = 1
-    analyzer_version: str = 'instruction-access-1'
+    schema_version: int = 2
+    analyzer_version: str = 'instruction-access-2'
     analysis_scope: str = 'explicit_rll_operand_roles'
     execution_analysis: str = 'not_implemented'
     member_validation: str = 'not_implemented'
     implicit_effects: str = 'not_analyzed'
+    initialization_analysis: str = 'not_implemented'
+    range_analysis: str = 'not_implemented'
 
     def to_dict(self) -> dict[str, Any]:
         """Return private source-linked evidence; this is not a public report."""
@@ -113,6 +135,13 @@ def _check_limits(inventory: InventoryResult, references: ReferenceResult) -> No
                     _limit()
 
 
+def _timer_pseudo_kind(raw: str) -> str | None:
+    value = raw.strip()
+    if value == '?':
+        return 'placeholder'
+    return 'integer_literal' if _INTEGER_IMMEDIATE.fullmatch(value) else None
+
+
 def _derive_access(inventory: InventoryResult, references: ReferenceResult) -> AccessResult:
     """Consume authenticated references in their canonical occurrence order."""
     instructions: list[dict[str, Any]] = []
@@ -121,28 +150,41 @@ def _derive_access(inventory: InventoryResult, references: ReferenceResult) -> A
     instruction_counts = dict.fromkeys(sorted(INSTRUCTION_STATUSES), 0)
     role_counts = dict.fromkeys(sorted(OPERAND_ROLES), 0)
     bound_counts = dict.fromkeys(sorted(OPERAND_ROLES), 0)
+    timer_pseudo_counts = dict.fromkeys(sorted(TIMER_PSEUDO_KINDS), 0)
     source_operands = iter(references.operands)
-    unparsed_rungs = access_gaps = 0
+    unparsed_rungs = access_gaps = timer_instructions = 0
     for rung in inventory.rungs:
         if rung.parse_status != 'parsed':
             unparsed_rungs += 1
             continue
         for instruction in rung.instructions:
             opcode = instruction.opcode
-            slots = _ROLES.get(opcode.upper()) if opcode.isascii() else None
+            normalized_opcode = opcode.upper() if opcode.isascii() else None
+            slots = _ROLES.get(normalized_opcode)
             status = ('unsupported_instruction' if slots is None else
                       'argument_count_mismatch' if len(instruction.arguments) != len(slots) else
                       'empty_argument' if any(not arg.strip() for arg in instruction.arguments) else
                       'classified')
+            if status == 'classified' and normalized_opcode in _TIMER_OPCODES:
+                kinds = [_timer_pseudo_kind(raw) for raw in instruction.arguments[1:]]
+                if any(kind is None for kind in kinds):
+                    status = 'unsupported_operand_form'
+                else:
+                    timer_instructions += 1
+                    for kind in kinds:
+                        timer_pseudo_counts[kind] += 1
             instruction_counts[status] += 1
             operand_ids: list[str] = []
             for index, _ in enumerate(instruction.arguments):
                 reference = next(source_operands)
                 role = slots[index] if status == 'classified' else 'unknown'
+                reason = ('timer_pseudo_operand' if status == 'classified'
+                          and normalized_opcode in _TIMER_OPCODES and index in {1, 2}
+                          else _REASONS[status])
                 operand = {
                     'id': reference['id'], 'instruction_id': instruction.id,
                     'rung_id': rung.id, 'argument_index': index,
-                    'role': role, 'reason': _REASONS[status],
+                    'role': role, 'reason': reason,
                     'binding_status': reference['status'],
                     'symbol_id': reference['symbol_id'], 'target_id': reference['target_id'],
                     'suffix': reference['suffix'],
@@ -175,6 +217,8 @@ def _derive_access(inventory: InventoryResult, references: ReferenceResult) -> A
         'unlinked_operands': len(operands) - linked, 'indexed_roots': len(roots),
         'source_rungs': len(inventory.rungs), 'unparsed_rungs': unparsed_rungs,
         'access_gap_operands': access_gaps,
+        'timer_instructions': timer_instructions,
+        'timer_pseudo_operands_by_kind': timer_pseudo_counts,
     }
     partial = bool(unparsed_rungs or access_gaps or any(
         count for key, count in instruction_counts.items() if key != 'classified'))

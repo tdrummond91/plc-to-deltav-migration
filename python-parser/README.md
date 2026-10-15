@@ -7,7 +7,8 @@ source inventory, references, explicit operand access and SFC evidence. Open its
 `review.html` path to search objects, follow source context, inspect findings,
 compare repeated rung syntax and navigate routine/SFC evidence. The report is
 self-contained and opens without a server. Phase 1 now classifies potential
-explicit operand uses for 28 supported mnemonic spellings. These roles are not
+explicit operand uses for 34 supported mnemonic spellings, including bounded
+timer/reset/copy roles. These roles are not
 execution effects or dependencies, and root groups do not establish overlap
 between member/index suffixes. Engineering classifications remain later work.
 
@@ -28,21 +29,33 @@ review2/manifest5 with nine hashed artifacts: snapshot.L5X, inventory.json, over
 references.json/txt, sfc-structure.json/txt, access.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
-`confidential/`. Read [the access-role checkpoint](../public/docs/reviews/ACCESS_ROLE_REVIEW.md).
+`confidential/`. Read [the timer/copy checkpoint](../public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md)
+and [the initial access-role checkpoint](../public/docs/reviews/ACCESS_ROLE_REVIEW.md).
 
 The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current development validation is 574 cases with one existing symlink
-skip. Two final synthetic launcher runs each pass 478 application cases (one
+manual. Current access2/work14 validation is 592 development cases with one
+existing symlink skip. Two actual isolated runs, explicit then remembered source,
+each pass 496 application cases (one skip) and 139 helpers and create report-only
+local commits without Git network calls. Nine artifact hashes and canonical
+access2/review2 verify; fresh CLI artifacts match byte for byte. Seven legacy
+artifacts match `7cd9201`, source/reference/SFC summaries match after revision
+normalization, and all 20 historical work1-13 reports validate.
+
+Initial access1 validation is historical: 574 development cases passed with one
+existing symlink skip. Two final synthetic launcher runs each passed 478 application cases (one
 skip) and 139 helpers, with nine artifact hashes and canonical access/review
 evidence verified and CLI HTML identical. Seven legacy artifacts are byte-identical
 to baseline `1332543` on the same invented input; source/reference/SFC summaries
-match after revision normalization. All 19 historical work1-12 reports validate. Returned
-`1332543` confirms the preceding review run tested clean `c36d10b`, passed 439
-application cases (one skip) and 139 helpers, and saved the private HTML report.
-Work13 adds access summary1 and private access1; reference12/source4/SFC2 and
+match after revision normalization. All 19 then-stored work1-12 reports validated.
+Returned `7cd9201` confirms initial access1 on clean `6642c5c`, passing 478
+application cases (one skip) and 139 helpers. It classified 16,952 of 17,874
+instructions, retained 922 unsupported instructions and counted 321 access
+binding gaps; reference/source and SFC summaries match the preceding `1332543`
+report after revision normalization. Current work14 requires access summary2
+and private access2; frozen work13 retains access summary1. Reference12/source4/SFC2 and
 private inventory3/reference6/SFC2 retain their contracts. See
 [the work-machine procedure](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
@@ -51,9 +64,15 @@ private inventory3/reference6/SFC2 retain their contracts. See
 The independent access analyzer consumes validated inventory/reference evidence
 and preserves existing instruction and operand identities. Its supported
 catalogue labels `read`, `write`, `read_write` and `non_data`; unsupported
-instructions and wrong/empty signatures retain `unknown` roles. It does not
-rebind unknown operands or infer effects for CPT, PID, timers, RES, COP/CPS,
-AOIs, JSR or ST. Every argument must be present and nonempty before any slot
+instructions and wrong/empty signatures retain `unknown` roles. TON/TOF/RTO
+require three nonempty fields and accept only `?` or recognized integer literal forms
+in their two preset/accumulator pseudo-operands. Accepted timer storage is
+read-write and both pseudo-operands are non-data; an unsupported pseudo form
+leaves the whole instruction unknown. RES storage is a possible write.
+COP/CPS provide source-read/destination-write/length-read roles without expanding
+copy extents or validating types, bounds, overlap or execution. It does not
+rebind unknown operands or infer effects for CPT, PID, AOIs, JSR or ST.
+Every argument must be present and nonempty before any slot
 receives a known role.
 
 Only canonical `root_bound` occurrences enter the disjoint resolved-root groups.
@@ -63,13 +82,18 @@ No mask evaluation, member validation or source-to-destination dependency edges
 are added. A literal destination can retain a declared write role while remaining
 unbound; it is an access gap and never supplies bound write evidence.
 
-`access.json` is private schema1 (`instruction-access-1`). Its coverage accounts
+`access.json` is private schema2 (`instruction-access-2`). Its coverage accounts
 for all parsed instructions, operands by role/binding, linked and unlinked
-occurrences, indexed roots, unparsed rungs and known-access binding gaps.
-`analysis.access_summary` in work13 publishes only fixed metadata, status,
-revision and these counts, with no names, IDs, opcode histogram or topology.
+occurrences, indexed roots, unparsed rungs and known-access binding gaps. It adds
+accepted timer counts and fixed placeholder/integer pseudo-operand counts;
+timer settings and initialization are not interpreted.
+`analysis.access_summary` schema2 in work14 publishes only fixed metadata, status,
+revision and these counts, with no names, IDs, values, opcode histogram or topology.
+Frozen work13 retains summary1's exact fields and vocabulary. The work14 timer
+capacity includes published TON/TOF/RTO plus pooled `withheld` spellings to retain
+case-insensitive access without changing source4; it is not exact timer membership.
 The source/reference contracts and standalone `references` output are unchanged.
-See [ACCESS_ROLE_REVIEW.md](../public/docs/reviews/ACCESS_ROLE_REVIEW.md) for exact
+See [TIMER_COPY_ACCESS_REVIEW.md](../public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md) for exact
 scope, catalogue, validation and remaining work.
 
 ## Source inventory
@@ -357,11 +381,12 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema13 and carries unchanged reference12/source4 plus
+The outer report is schema14 and carries unchanged reference12/source4 plus
 `analysis.sfc_structure_summary` (SFC schema2) and separate
-`analysis.access_summary` (access schema1) when analysis succeeds. Historical
+`analysis.access_summary` (access schema2) when analysis succeeds. Frozen work13
+requires access summary1. Historical
 work12 retains SFC2 without access, and work11 requires frozen SFC1.
-Historical schema-1/2/3/4/5/6/7/8/9/10/11/12 reports remain readable;
+Historical schema-1/2/3/4/5/6/7/8/9/10/11/12/13 reports remain readable;
 schemas 3/4/5/6/7/8/9 require references 5/6/7/8/9/10/11 respectively. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in

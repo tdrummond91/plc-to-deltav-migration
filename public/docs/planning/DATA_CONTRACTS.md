@@ -1,8 +1,32 @@
 # Data contracts, traceability, and checkpoints
 
-Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
+Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current explicit operand-access contract (2026-10-14)
+## Current timer/reset/copy access contract (2026-10-15)
+
+AccessResult2 / instruction-access-2 extends the catalogue to 34 spellings with
+TON/TOF/RTO, RES and COP/CPS. Timer roots are read_write; recognized pseudo fields
+are non_data initialization fields. Closed integer/question-mark syntax is
+required, otherwise every operand remains unknown under unsupported_operand_form.
+Reset writes selected structure members; copy roles identify the starting
+source/destination and length read. Initialization/range analysis remain
+explicitly not_implemented alongside existing execution/member limits.
+
+Private and aggregate coverage adds timer_instructions plus the closed
+timer_pseudo_operands_by_kind placeholder/integer_literal partition, totaling
+two slots per classified timer. Access-summary2 validates those counts, subtracts
+the timer signature contribution before exact residual catalogue checks, and
+retains source-free errors and bounds. Work14 requires access2 and reconciles
+timer/pseudo populations with unchanged source4/reference12; work13 remains
+strictly paired with frozen access1. Earlier work versions are unchanged.
+
+Review2 and manifest5 retain their outer shape; their embedded evidence/metadata
+records access2. Nine artifacts are saved. Old saved files are never rewritten;
+historical public access1 remains readable, while current canonical private
+validation requires the current analyzer result. Source/reference/SFC evidence
+contracts remain exact. See [scope and validation](../reviews/TIMER_COPY_ACCESS_REVIEW.md).
+
+## Initial explicit operand-access contract (2026-10-14)
 
 Private AccessResult schema1 / instruction-access-1 derives possible explicit RLL
 operand roles from canonical inventory3 and reference6/analyzer9. It assigns

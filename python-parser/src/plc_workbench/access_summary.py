@@ -8,20 +8,39 @@ from typing import Any
 
 from .access import (
     ACCESS_CONSTANTS, COVERAGE_KEYS, INDEXED_ROLES, INSTRUCTION_STATUSES,
-    MAX_INSTRUCTIONS, MAX_OPERANDS, OPERAND_ROLES, AccessResult, validate_access,
+    MAX_INSTRUCTIONS, MAX_OPERANDS, OPERAND_ROLES, TIMER_PSEUDO_KINDS,
+    AccessResult, validate_access,
 )
 from .models import InventoryResult
 from .references import ReferenceResult
 
 MAX_COUNT = 10**12
 MAX_REPORT_BYTES = 32 * 1024
-CONSTANTS = {
-    **ACCESS_CONSTANTS,
+LEGACY_CONSTANTS = {
+    'schema_version': 1,
+    'analyzer_version': 'instruction-access-1',
+    'analysis_scope': 'explicit_rll_operand_roles',
+    'execution_analysis': 'not_implemented',
+    'member_validation': 'not_implemented',
+    'implicit_effects': 'not_analyzed',
     'policy_version': 2,
     'report_kind': 'l5x_access_review_summary',
     'exporter_version': 'access-summary-1',
     'sharing_status': 'aggregate_sync_allowed',
 }
+CONSTANTS = {
+    **LEGACY_CONSTANTS, **ACCESS_CONSTANTS, 'exporter_version': 'access-summary-2',
+}
+# Historical work13 embeds this exact contract. Never derive its closed keys or
+# status vocabulary from the current analyzer's growing timer/copy catalogue.
+LEGACY_INSTRUCTION_STATUSES = frozenset({
+    'classified', 'unsupported_instruction', 'argument_count_mismatch', 'empty_argument',
+})
+LEGACY_COVERAGE_KEYS = frozenset({
+    'instructions_total', 'instructions_by_status', 'operands_total', 'operands_by_role',
+    'bound_by_role', 'linked_operands', 'unlinked_operands', 'indexed_roots',
+    'source_rungs', 'unparsed_rungs', 'access_gap_operands',
+})
 
 
 class AccessSummaryError(ValueError):
@@ -84,9 +103,17 @@ def _catalogue_capacity(instructions: int, roles: dict[str, int]) -> bool:
 
 
 def validate_access_summary(summary: dict[str, Any]) -> None:
-    """Validate exact closed keys, count partitions, capacities and gap status."""
-    _keys(summary, set(CONSTANTS) | {'tool_revision', 'status', 'coverage'})
-    for key, fixed in CONSTANTS.items():
+    """Validate current v2 or frozen v1 without widening the historical contract."""
+    if type(summary) is not dict:
+        _invalid()
+    version = summary.get('schema_version')
+    if type(version) is not int or version not in {1, 2}:
+        _invalid()
+    constants = LEGACY_CONSTANTS if version == 1 else CONSTANTS
+    coverage_keys = LEGACY_COVERAGE_KEYS if version == 1 else COVERAGE_KEYS
+    instruction_statuses = LEGACY_INSTRUCTION_STATUSES if version == 1 else INSTRUCTION_STATUSES
+    _keys(summary, set(constants) | {'tool_revision', 'status', 'coverage'})
+    for key, fixed in constants.items():
         if type(summary[key]) is not type(fixed) or summary[key] != fixed:
             _invalid()
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
@@ -105,13 +132,15 @@ def validate_access_summary(summary: dict[str, Any]) -> None:
     else:
         _invalid()
     coverage = summary['coverage']
-    _keys(coverage, COVERAGE_KEYS)
+    _keys(coverage, coverage_keys)
     groups = {'instructions_by_status', 'operands_by_role', 'bound_by_role'}
-    for key in COVERAGE_KEYS - groups:
+    if version == 2:
+        groups.add('timer_pseudo_operands_by_kind')
+    for key in coverage_keys - groups:
         _count(coverage[key])
     states = coverage['instructions_by_status']
     roles, bound = coverage['operands_by_role'], coverage['bound_by_role']
-    _counts(states, INSTRUCTION_STATUSES)
+    _counts(states, instruction_statuses)
     _counts(roles, OPERAND_ROLES)
     _counts(bound, OPERAND_ROLES)
     instruction_total, operand_total = coverage['instructions_total'], coverage['operands_total']
@@ -123,14 +152,26 @@ def validate_access_summary(summary: dict[str, Any]) -> None:
     classified = states['classified']
     known = operand_total - roles['unknown']
     invalid_instructions = instruction_total - classified
+    invalid_forms = states['unsupported_operand_form'] if version == 2 else 0
+    remaining_classified, remaining_roles = classified, roles
+    if version == 2:
+        timers = coverage['timer_instructions']
+        pseudo = coverage['timer_pseudo_operands_by_kind']
+        _counts(pseudo, TIMER_PSEUDO_KINDS)
+        if (sum(pseudo.values()) != 2 * timers or timers > classified
+                or timers > roles['read_write'] or 2 * timers > roles['non_data']):
+            _invalid()
+        remaining_classified = classified - timers
+        remaining_roles = dict(roles, read_write=roles['read_write'] - timers,
+                               non_data=roles['non_data'] - 2 * timers)
     if (not classified <= known <= 3 * classified
-            or not _catalogue_capacity(classified, roles)
-            or roles['unknown'] < states['empty_argument']
+            or not _catalogue_capacity(remaining_classified, remaining_roles)
+            or roles['unknown'] < 3 * invalid_forms + states['empty_argument']
             or (roles['unknown'] and not invalid_instructions)
             or (not instruction_total and operand_total)):
         _invalid()
     if (not states['unsupported_instruction'] and not states['argument_count_mismatch']
-            and roles['unknown'] > 3 * states['empty_argument']):
+            and roles['unknown'] > 3 * (states['empty_argument'] + invalid_forms)):
         _invalid()
     linked = sum(bound[role] for role in INDEXED_ROLES)
     if (coverage['linked_operands'] != linked

@@ -36,6 +36,31 @@ def fixture(texts: tuple[str, ...] = ('XIC(A)OTE(B);',), *, tags: str = '',
 
 
 class ReviewTests(unittest.TestCase):
+    def test_timer_copy_and_reset_access_preserve_evidence_and_review_shape(self) -> None:
+        args = fixture(('TON(A,?,16#A);', 'RES(A)COP(A,B,2);', 'RTO(A,B,0);'))
+        original = build_review_data(*args)
+        access = analyze_access(args[1], args[2])
+        enriched = build_review_data(*args, access=access)
+        self.assertEqual((enriched['schema_version'], enriched['report_version']),
+                         (2, 'engineering-review-2'))
+        self.assertEqual(enriched['access']['schema_version'], 2)
+        self.assertEqual(enriched['access']['initialization_analysis'], 'not_implemented')
+        self.assertEqual(enriched['access']['range_analysis'], 'not_implemented')
+        self.assertEqual(enriched['access']['coverage']['timer_instructions'], 1)
+        self.assertEqual(enriched['access']['coverage']['timer_pseudo_operands_by_kind'],
+                         {'placeholder': 1, 'integer_literal': 1})
+        self.assertEqual(enriched['access']['instructions'][-1]['status'],
+                         'unsupported_operand_form')
+        for field in ('inventory', 'references', 'sfc', 'patterns', 'findings', 'statistics'):
+            self.assertEqual(enriched[field], original[field])
+        self.assertEqual(args[2].operands[1]['status'], 'non_data')
+        self.assertEqual(args[2].operands[2]['status'], 'literal')
+        validate_review_data(*args, enriched, access=access)
+        forged = deepcopy(access)
+        forged.operands[1]['reason'] = 'catalogued_slot'
+        with self.assertRaises(ReviewError):
+            build_review_data(*args, access=forged)
+
     def test_access_review_keeps_original_evidence_and_legacy_default_exact(self) -> None:
         args = fixture(('XIC(A)OTE(B);', 'MOV(B,A);'))
         original = build_review_data(*args)

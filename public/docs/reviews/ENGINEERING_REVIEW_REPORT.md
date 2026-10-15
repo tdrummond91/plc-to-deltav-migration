@@ -1,6 +1,14 @@
 # Private engineering review report
 
-## Current access follow-up (2026-10-14)
+## Current follow-up (2026-10-15)
+
+The [timer/reset/copy access extension](TIMER_COPY_ACCESS_REVIEW.md) adds timer
+initialization labels and coverage counters. Current runs use nested access2
+and work14 while keeping review2/manifest5 outer layouts. Returned 7cd9201
+confirmed the preceding access1 run. The report remains available for optional
+later source and appearance review; no manual inspection blocks parser work.
+
+## Initial access follow-up (2026-10-14)
 
 The returned 1332543 work report confirms the first HTML generation: 439 selected
 application cases (one skip), 139 helpers and a saved private run from clean

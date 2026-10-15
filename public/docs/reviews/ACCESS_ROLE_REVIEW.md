@@ -1,6 +1,17 @@
 # Explicit ladder operand access
 
-## Current checkpoint and next run
+## Current follow-up (2026-10-15)
+
+Returned 7cd9201 confirms this initial access layer on the actual export: 478
+application cases (one skip), 139 helpers, a saved private run, 16,952 classified
+instructions of 17,874, 922 unsupported instructions and 321 known-role binding
+gaps. Reference/SFC summaries are unchanged. The next implementation extends
+timer, reset and copy roles through access2/work14; see
+[the current checkpoint and next run](TIMER_COPY_ACCESS_REVIEW.md).
+Manual engineering/UI review remains optional. The initial contracts and
+development evidence below are retained as history.
+
+## Initial checkpoint and work run (now confirmed)
 
 The first operand-access layer is implemented. It identifies possible explicit
 reads, writes and stored state that is both read and written for 28 existing
@@ -172,7 +183,7 @@ on the work PC and real-unit visual usability remain unverified. Browser
 automation prohibits file:// navigation, so QA used loopback HTTP; no workaround
 was attempted. Those optional user checks do not block further parser work.
 
-## What follows
+## Original next-step rationale
 
 Use the next real-export aggregate to measure classified/unknown roles and
 binding gaps before choosing the next bounded semantic slice. Then extend

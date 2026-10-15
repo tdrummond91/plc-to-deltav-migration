@@ -1,6 +1,16 @@
 # PLC analysis workbench
 
-Status: updated 2026-10-14. Phase 1 remains in progress: source inventory, module/I/O declarations, scoped tag/alias bindings and syntax diagnostics. Work-machine report `1195d40` confirms the timer fix: malformed operands fall from 868 to zero, with 868 timer placeholders accounted as non-data and unchanged root bindings. Both suites passed. See [timer evidence and remaining gaps](public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md). The [rack-I/O investigation](public/docs/reviews/RACK_IO_INVESTIGATION.md) reproduces an omitted-declaration gap with invented data; its share of the real unresolved references is still unmeasured. Next is dedicated rack evidence and candidate-match diagnostics. The editor, engineering interpretation, PCSD and FHX stages remain planned.
+Status: updated 2026-10-15. Phase 1 includes source inventory, I/O declarations,
+reference bindings, routine-call candidates, SFC structure/notes and a private
+offline source explorer. Returned `7cd9201` confirms 16,952 of 17,874 instruction
+occurrences have known explicit operand roles, with 478 application cases and
+139 helper tests passing (one application skip). The current
+[timer/reset/copy extension](public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md)
+adds six instruction spellings and distinguishes timer initialization fields
+from runtime inputs. Actual execution, dependencies and broader engineering
+interpretation remain incomplete. Editable corrections, PCSD and FHX are later
+phases. Manual engineering/UI review can wait; the next generated work-machine
+feedback is the required input to continue.
 
 The development listener remains disabled and paused. Manual work-machine checks
 automatically commit the validated feedback report locally; fetching, pulling
