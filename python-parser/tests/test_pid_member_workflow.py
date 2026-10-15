@@ -227,7 +227,7 @@ class PidMemberWorkReportTests(unittest.TestCase):
 
     def test_work17_is_count_only_and_historical_work16_is_frozen(self) -> None:
         payload = report(DATA)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (17, 'work-check-17'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (18, 'work-check-18'))
         self.assertEqual(payload['analysis']['pid_member_summary']['schema_version'], 1)
         rendered = work_check.render_work_check_report(payload)
         self.assertEqual(json.loads(rendered), payload)
@@ -350,7 +350,7 @@ class PidMemberWorkReportTests(unittest.TestCase):
             candidate = deepcopy(original)
             candidate['analysis'] = {'status': state, 'failure_code': 'pid_member_error' if state == 'failed' else None,
                 'private_run_saved': False, 'reference_summary': None, 'sfc_structure_summary': None,
-                'access_summary': None, 'tag_data_summary': None, 'pid_summary': None, 'pid_member_summary': None}
+                'access_summary': None, 'tag_data_summary': None, 'pid_summary': None, 'pid_member_summary': None, 'calculation_summary': None}
             candidate.update(status='failed', diagnostic_sample=None)
             if state == 'not_run':
                 candidate['tests']['application'] = work_check.unavailable_result('not_run')
@@ -388,7 +388,7 @@ class PidMemberWorkReportTests(unittest.TestCase):
                     outcome = work_check._analyze(root, source, root, REVISION)
                 self.assertEqual((outcome['failure_code'], outcome['private_run_saved']), (expected, saved))
                 for key in ('reference_summary', 'sfc_structure_summary', 'access_summary', 'tag_data_summary',
-                            'pid_summary', 'pid_member_summary'):
+                            'pid_summary', 'pid_member_summary', 'calculation_summary'):
                     self.assertIsNone(outcome[key])
                 self.assertNotIn('PRIVATE_FAILURE', json.dumps(outcome))
                 self.assertIn('PRIVATE_FAILURE', (root / 'analysis.log').read_text(encoding='utf-8'))

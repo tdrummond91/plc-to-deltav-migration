@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Independently invented CPT calculation report demonstration. Not controller-ready logic. -->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.00" TargetName="DEMO_CONTROLLER" TargetType="Controller" ContainsContext="true">
+  <Controller Name="DEMO_CONTROLLER">
+    <Description><![CDATA[Invented training data for reviewing report navigation and appearance.]]></Description>
+    <Tags>
+      <Tag Name="DEMO_START" TagType="Base" DataType="BOOL"><Description><![CDATA[Operator start request — demonstration only]]></Description></Tag>
+      <Tag Name="DEMO_STOP" TagType="Base" DataType="BOOL"/>
+      <Tag Name="DEMO_PUMP_CMD" TagType="Base" DataType="BOOL"><Description><![CDATA[Illustrative command; engineering role is not inferred by the report.]]></Description></Tag>
+      <Tag Name="DEMO_PUMP_FB" TagType="Base" DataType="BOOL"/>
+      <Tag Name="DEMO_PERMISSIVE" TagType="Base" DataType="BOOL"/>
+      <Tag Name="DEMO_TRIP" TagType="Base" DataType="BOOL"/>
+      <Tag Name="DEMO_LEVEL_ALARM" TagType="Base" DataType="BOOL"/>
+      <Tag Name="DEMO_LEVEL" TagType="Base" DataType="REAL"/>
+      <Tag Name="DEMO_FLOW_PV" TagType="Base" DataType="REAL"/>
+      <Tag Name="DEMO_TIEBACK" TagType="Base" DataType="REAL"/>
+      <Tag Name="DEMO_FLOW_OUT" TagType="Base" DataType="REAL"/>
+      <Tag Name="DEMO_FLOW_PID" TagType="Base" DataType="PID">
+        <Data Format="Decorated"><Structure DataType="PID">
+          <DataValueMember Name="SP" DataType="REAL" Radix="Float" Value="42.5"/>
+          <DataValueMember Name="KP" DataType="REAL" Radix="Float" Value="1.25"/>
+          <DataValueMember Name="MAXO" DataType="REAL" Radix="Float" Value="90.0"/>
+        </Structure></Data>
+      </Tag>
+      <Tag Name="DEMO_TIMER" TagType="Base" DataType="TIMER">
+        <Data Format="L5K"><![CDATA[[0,2500,0]]]></Data>
+        <Data Format="Decorated"><Structure DataType="TIMER">
+          <DataValueMember Name="PRE" DataType="DINT" Radix="Decimal" Value="2500"/>
+          <DataValueMember Name="ACC" DataType="DINT" Radix="Decimal" Value="0"/>
+          <DataValueMember Name="DN" DataType="BOOL" Value="0"/>
+        </Structure></Data>
+      </Tag>
+      <Tag Name="DEMO_CALC" TagType="Base" DataType="REAL"/>
+      <Tag Name="DEMO_PUMP_ALIAS" TagType="Alias" DataType="BOOL" AliasFor="DEMO_PUMP_CMD"/>
+      <Tag Name="DEMO_UNRESOLVED_ALIAS" TagType="Alias" DataType="BOOL" AliasFor="DEMO_MISSING_SOURCE"/>
+      <Tag Name="DEMO_ARRAY" TagType="Base" DataType="DINT" Dimensions="3">
+        <Data Format="Decorated"><Array DataType="DINT" Dimensions="3" Radix="Decimal">
+          <Element Index="[0]" Value="7"/><Element Index="[1]" Value="11"/><Element Index="[2]" Value="13"/>
+        </Array></Data>
+      </Tag>
+      <Tag Name="DEMO_LABEL" TagType="Base" DataType="STRING">
+        <Data Format="String" Length="12"><![CDATA['Demo / essai']]></Data>
+      </Tag>
+      <Tag Name="DEMO_DUPLICATE" TagType="Base" DataType="DINT">
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="4"/></Data>
+        <Data Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="9"/></Data>
+      </Tag>
+      <Tag Name="DEMO_VENDOR_DATA" TagType="Base" DataType="DINT">
+        <Data Format="Vendor"><Payload Version="invented">Opaque demonstration</Payload></Data>
+      </Tag>
+      <Tag Name="DEMO_PID_ALIAS" TagType="Alias" DataType="PID" AliasFor="DEMO_FLOW_PID"/>
+      <Tag Name="DEMO_SECOND_PID" TagType="Base" DataType="PID">
+        <Data Format="L5K"><![CDATA[[0,25,1]]]></Data>
+        <Data Format="Decorated"><Structure DataType="PID">
+          <DataValueMember Name="SP" DataType="REAL" Value="25"/>
+          <DataValueMember Name="KP" DataType="REAL" Value="2"/>
+          <DataValueMember Name="CL" DataType="BOOL" Value="0"/>
+          <DataValueMember Name="CT" DataType="BOOL" Value="0"/>
+        </Structure></Data>
+        <Data Format="Decorated"><Structure DataType="PID">
+          <DataValueMember Name="SP" DataType="REAL" Value="30"/>
+          <DataValueMember Name="SP" DataType="REAL" Value="35"/>
+        </Structure></Data>
+      </Tag>
+      <Tag Name="DEMO_EMPTY_PID" TagType="Base" DataType="PID"/>
+      <Tag Name="DEMO_OPAQUE_PID" TagType="Base" DataType="PID">
+        <Data Format="Vendor"><Payload>Invented opaque PID evidence</Payload></Data>
+      </Tag>
+      <Tag Name="DEMO_NESTED" TagType="Base" DataType="DEMO_WRAPPER">
+        <Data Format="Decorated"><Structure DataType="DEMO_WRAPPER">
+          <StructureMember Name="Loop" DataType="PID"><DataValueMember Name="SP" DataType="REAL" Value="17"/></StructureMember>
+        </Structure></Data>
+      </Tag>
+<Tag Name="DEMO_CATALOG_PID" TagType="Base" DataType="PID"><Description>Invented member catalog demonstration; values are not approved settings.</Description><Data Format="Decorated"><Structure DataType="PID"><DataValueMember Name="CTL" DataType="DINT" Value="0"/><DataValueMember Name="SP" DataType="REAL" Value="1.0"/><DataValueMember Name="KP" DataType="REAL" Value="2.0"/><DataValueMember Name="KI" DataType="REAL" Value="3.0"/><DataValueMember Name="KD" DataType="REAL" Value="4.0"/><DataValueMember Name="BIAS" DataType="REAL" Value="5.0"/><DataValueMember Name="MAXS" DataType="REAL" Value="6.0"/><DataValueMember Name="MINS" DataType="REAL" Value="7.0"/><DataValueMember Name="DB" DataType="REAL" Value="8.0"/><DataValueMember Name="SO" DataType="REAL" Value="9.0"/><DataValueMember Name="MAXO" DataType="REAL" Value="10.0"/><DataValueMember Name="MINO" DataType="REAL" Value="11.0"/><DataValueMember Name="UPD" DataType="REAL" Value="12.0"/><DataValueMember Name="PV" DataType="REAL" Value="13.0"/><DataValueMember Name="ERR" DataType="REAL" Value="14.0"/><DataValueMember Name="OUT" DataType="REAL" Value="15.0"/><DataValueMember Name="PVH" DataType="REAL" Value="16.0"/><DataValueMember Name="PVL" DataType="REAL" Value="17.0"/><DataValueMember Name="DVP" DataType="REAL" Value="18.0"/><DataValueMember Name="DVN" DataType="REAL" Value="19.0"/><DataValueMember Name="PVDB" DataType="REAL" Value="20.0"/><DataValueMember Name="DVDB" DataType="REAL" Value="21.0"/><DataValueMember Name="MAXI" DataType="REAL" Value="22.0"/><DataValueMember Name="MINI" DataType="REAL" Value="23.0"/><DataValueMember Name="TIE" DataType="REAL" Value="24.0"/><DataValueMember Name="MAXCV" DataType="REAL" Value="25.0"/><DataValueMember Name="MINCV" DataType="REAL" Value="26.0"/><DataValueMember Name="MINTIE" DataType="REAL" Value="27.0"/><DataValueMember Name="MAXTIE" DataType="REAL" Value="28.0"/><DataValueMember Name="EN" DataType="BOOL" Value="0"/><DataValueMember Name="CT" DataType="BOOL" Value="0"/><DataValueMember Name="CL" DataType="BOOL" Value="0"/><DataValueMember Name="PVT" DataType="BOOL" Value="0"/><DataValueMember Name="DOE" DataType="BOOL" Value="0"/><DataValueMember Name="SWM" DataType="BOOL" Value="0"/><DataValueMember Name="CA" DataType="BOOL" Value="0"/><DataValueMember Name="MO" DataType="BOOL" Value="0"/><DataValueMember Name="PE" DataType="BOOL" Value="0"/><DataValueMember Name="NDF" DataType="BOOL" Value="0"/><DataValueMember Name="NOBC" DataType="BOOL" Value="0"/><DataValueMember Name="NOZC" DataType="BOOL" Value="0"/><DataValueMember Name="INI" DataType="BOOL" Value="0"/><DataValueMember Name="SPOR" DataType="BOOL" Value="0"/><DataValueMember Name="OLL" DataType="BOOL" Value="0"/><DataValueMember Name="OLH" DataType="BOOL" Value="0"/><DataValueMember Name="EWD" DataType="BOOL" Value="0"/><DataValueMember Name="DVNA" DataType="BOOL" Value="0"/><DataValueMember Name="DVPA" DataType="BOOL" Value="0"/><DataValueMember Name="PVLA" DataType="BOOL" Value="0"/><DataValueMember Name="PVHA" DataType="BOOL" Value="0"/><ArrayMember Name="DATA" DataType="REAL" Dimensions="17"><Element Index="[0]" Value="0.0"/><Element Index="[1]" Value="0.0"/><Element Index="[2]" Value="0.0"/><Element Index="[3]" Value="0.0"/><Element Index="[4]" Value="0.0"/><Element Index="[5]" Value="0.0"/><Element Index="[6]" Value="0.0"/><Element Index="[7]" Value="0.0"/><Element Index="[8]" Value="0.0"/><Element Index="[9]" Value="0.0"/><Element Index="[10]" Value="0.0"/><Element Index="[11]" Value="0.0"/><Element Index="[12]" Value="0.0"/><Element Index="[13]" Value="0.0"/><Element Index="[14]" Value="0.0"/><Element Index="[15]" Value="0.0"/><Element Index="[16]" Value="0.0"/></ArrayMember></Structure></Data></Tag>
+<Tag Name="DEMO_MEMBER_GAPS_PID" TagType="Base" DataType="PID"><Data Format="Decorated"><Structure DataType="PID">
+<DataValueMember Name="SP" DataType="REAL" Value="10"/>
+<DataValueMember Name="sp" DataType="DINT" Value="20"/>
+<DataValueMember Name="KP" DataType="REAL" Value=""/>
+<DataValueMember Name="KI" Value="1.5"/>
+<DataValueMember Name="CL" DataType="BOOL" Value="saved-text-is-not-decoded"/>
+<DataValueMember Name="DEMO_EXTENSION" DataType="REAL" Value="8"/>
+<ArrayMember Name="DATA" DataType="REAL" Dimensions="2"><Element Index="[0]" Value="0"/><Element Index="[1]" Value="0"/></ArrayMember>
+</Structure></Data></Tag>
+<Tag Name="DEMO_LEVEL_ALIAS" TagType="Alias" DataType="REAL" AliasFor="DEMO_LEVEL"/>
+<Tag Name="DEMO_INDEX" TagType="Base" DataType="DINT"/>
+    </Tags>
+    <Modules><Module Name="DEMO_IO" CatalogNumber="INVENTED"/></Modules>
+    <Tasks><Task Name="DEMO_TASK" Type="Periodic" Rate="100" Priority="10"><ScheduledPrograms><ScheduledProgram Name="DEMO_PROGRAM"/></ScheduledPrograms></Task></Tasks>
+    <Programs><Program Name="DEMO_PROGRAM" Type="Normal" MainRoutineName="DEMO_MAIN">
+      <Description><![CDATA[Source review sample — Québec / English descriptions retained as authored.]]></Description>
+      <Routines>
+        <Routine Name="DEMO_MAIN" Type="RLL"><RLLContent>
+          <Rung Number="0" Type="N"><Comment><![CDATA[A simple source occurrence to find from the object page.]]></Comment><Text><![CDATA[XIC(DEMO_START)OTE(DEMO_PUMP_CMD);]]></Text></Rung>
+          <Rung Number="1" Type="N"><Comment><![CDATA[Same opcode/arity shape, different operands. Shape equality does not establish equivalent behavior.]]></Comment><Text><![CDATA[XIC(DEMO_TRIP)OTE(DEMO_LEVEL_ALARM);]]></Text></Rung>
+          <Rung Number="2" Type="N"><Text><![CDATA[[XIC(DEMO_START),XIC(DEMO_PUMP_FB)]XIO(DEMO_STOP)OTE(DEMO_PUMP_ALIAS);]]></Text></Rung>
+          <Rung Number="3" Type="N"><Comment><![CDATA[Seven PID operand functions are shown; saved settings do not establish active loop behavior.]]></Comment><Text><![CDATA[PID(DEMO_FLOW_PID,DEMO_FLOW_PV,DEMO_TIEBACK,DEMO_FLOW_OUT,0,0,0);]]></Text></Rung>
+          <Rung Number="4" Type="N"><Text><![CDATA[CPT(DEMO_CALC,DEMO_LEVEL * 2 + DEMO_FLOW_PV);]]></Text></Rung>
+          <Rung Number="5" Type="N"><Text><![CDATA[XIC(DEMO_PERMISSIVE)TON(DEMO_TIMER,?,?);]]></Text></Rung>
+          <Rung Number="6" Type="N"><Comment><![CDATA[Deliberate unknown instruction for the findings queue.]]></Comment><Text><![CDATA[DEMO_CUSTOM(DEMO_START,DEMO_PUMP_CMD);]]></Text></Rung>
+          <Rung Number="7" Type="N"><Text><![CDATA[XIC(DEMO_MISSING_SOURCE)OTE(DEMO_LEVEL_ALARM);]]></Text></Rung>
+          <Rung Number="8" Type="N"><Text><![CDATA[JSR(DEMO_CHART,0);]]></Text></Rung>
+          <Rung Number="9" Type="N"><Text><![CDATA[GEQ(DEMO_LEVEL,80)OTE(DEMO_LEVEL_ALARM);]]></Text></Rung>
+          <Rung Number="10" Type="N"><Comment><![CDATA[Explicit master operand only; CL is zero in one stored representation. No active cascade is asserted.]]></Comment><Text><![CDATA[PID(DEMO_SECOND_PID,DEMO_FLOW_PV,0,DEMO_FLOW_OUT,DEMO_FLOW_PID,0,0);]]></Text></Rung>
+          <Rung Number="11" Type="N"><Comment><![CDATA[Second occurrence of the same backing declaration through an alias.]]></Comment><Text><![CDATA[pid(DEMO_PID_ALIAS,DEMO_FLOW_PV,0,DEMO_FLOW_OUT,0,0,0);]]></Text></Rung>
+          <Rung Number="12" Type="N"><Text><![CDATA[PID(DEMO_EMPTY_PID,DEMO_FLOW_PV,0,DEMO_FLOW_OUT,0,0,0);]]></Text></Rung>
+          <Rung Number="13" Type="N"><Text><![CDATA[PID(DEMO_OPAQUE_PID,DEMO_FLOW_PV,0,DEMO_FLOW_OUT,0,0,0);]]></Text></Rung>
+          <Rung Number="14" Type="N"><Comment><![CDATA[Member suffix is retained; selecting nested storage is outside this slice.]]></Comment><Text><![CDATA[PID(DEMO_NESTED.Loop,DEMO_FLOW_PV,0,DEMO_FLOW_OUT,0,0,0);]]></Text></Rung>
+          <Rung Number="15" Type="N"><Comment><![CDATA[Deliberately malformed six-slot PID stays visible without functional labels.]]></Comment><Text><![CDATA[PID(DEMO_FLOW_PID,DEMO_FLOW_PV,0,DEMO_FLOW_OUT,0,0);]]></Text></Rung>
+<Rung Number="16" Type="N"><Text>PID(DEMO_CATALOG_PID,DEMO_FLOW_PV,0,DEMO_FLOW_OUT,0,0,0);</Text></Rung><Rung Number="17" Type="N"><Text>PID(DEMO_MEMBER_GAPS_PID,DEMO_FLOW_PV,0,DEMO_FLOW_OUT,0,0,0);</Text></Rung>
+<Rung Number="18" Type="N"><Comment>Grouping, unary minus, and a repeated reference.</Comment><Text><![CDATA[CPT(DEMO_CALC,-(DEMO_LEVEL + DEMO_FLOW_PV) ** 2 + DEMO_LEVEL);]]></Text></Rung>
+<Rung Number="19" Type="N"><Comment>Equal precedence is grouped left to right; no value is calculated.</Comment><Text><![CDATA[CPT(DEMO_CALC,2 ** 3 ** 2);]]></Text></Rung>
+<Rung Number="20" Type="N"><Comment>Bitwise and arithmetic operators retained as syntax.</Comment><Text><![CDATA[CPT(DEMO_CALC,NOT DEMO_INDEX AND 16#FF OR DEMO_INDEX MOD 8);]]></Text></Rung>
+<Rung Number="21" Type="N"><Comment>Documented single-argument function forms.</Comment><Text><![CDATA[CPT(DEMO_CALC,ABS(DEMO_LEVEL) + SQRT(DEMO_FLOW_PV));]]></Text></Rung>
+<Rung Number="22" Type="N"><Comment>Alias expansion and static index suffix; no member or bounds validation.</Comment><Text><![CDATA[CPT(DEMO_CALC,DEMO_LEVEL_ALIAS + DEMO_ARRAY[1]);]]></Text></Rung>
+<Rung Number="23" Type="N"><Comment>Dynamic subscript retained as one unsupported address; no index dependency inferred.</Comment><Text><![CDATA[CPT(DEMO_CALC,DEMO_ARRAY[DEMO_INDEX] + DEMO_LEVEL);]]></Text></Rung>
+<Rung Number="24" Type="N"><Comment>Unresolved source root remains explicit.</Comment><Text><![CDATA[CPT(DEMO_CALC,DEMO_MISSING_SOURCE + DEMO_LEVEL);]]></Text></Rung>
+<Rung Number="25" Type="N"><Comment>Unknown function leaves the whole expression unsupported, with no partial tree.</Comment><Text><![CDATA[CPT(DEMO_CALC,DEMO_FN(DEMO_LEVEL) + DEMO_FLOW_PV);]]></Text></Rung>
+<Rung Number="26" Type="N"><Comment>Unsupported comparison leaves no partial tree.</Comment><Text><![CDATA[CPT(DEMO_CALC,DEMO_LEVEL > 2);]]></Text></Rung>
+<Rung Number="27" Type="N"><Comment>Incomplete expression leaves no partial tree.</Comment><Text><![CDATA[CPT(DEMO_CALC,DEMO_LEVEL +);]]></Text></Rung>
+<Rung Number="28" Type="N"><Comment>Numeric spelling retained without numeric conversion.</Comment><Text><![CDATA[CPT(DEMO_CALC,1e-3 + .5 + 2#101);]]></Text></Rung>
+<Rung Number="29" Type="N"><Comment>Literal destination does not become a bound destination.</Comment><Text><![CDATA[CPT(123,DEMO_LEVEL + 1);]]></Text></Rung>
+<Rung Number="30" Type="N"><Comment>Empty expression leaves signature unresolved.</Comment><Text><![CDATA[CPT(DEMO_CALC,);]]></Text></Rung>
+<Rung Number="31" Type="N"><Comment>Wrong argument count stays unresolved.</Comment><Text>CPT(DEMO_CALC,DEMO_LEVEL,2);</Text></Rung>
+        </RLLContent></Routine>
+        <Routine Name="DEMO_AUX" Type="RLL"><RLLContent>
+          <Rung Number="0" Type="N"><Text><![CDATA[XIC(DEMO_PUMP_FB)OTE(DEMO_PERMISSIVE);]]></Text></Rung>
+          <Rung Number="1" Type="N"><Text><![CDATA[MOV(DEMO_LEVEL,DEMO_CALC);]]></Text></Rung>
+        </RLLContent></Routine>
+        <Routine Name="DEMO_CHART" Type="SFC">
+          <SFCContent OnlineEditType="Original">
+            <Step ID="100" Operand="DEMO_WAIT"><ActionList><Action ID="110" Operand="DEMO_ACTION"><Body><STContent><Line Number="0"><![CDATA[DEMO_CALC := 0;]]></Line></STContent></Body></Action></ActionList></Step>
+            <Transition ID="200" Operand="DEMO_READY"><Condition><STContent><Line Number="0"><![CDATA[DEMO_START AND DEMO_PERMISSIVE]]></Line></STContent></Condition></Transition>
+            <Step ID="101" Operand="DEMO_RUN"/>
+            <Transition ID="201" Operand="DEMO_STOPPING"><Condition><STContent><Line Number="0"><![CDATA[DEMO_STOP]]></Line></STContent></Condition></Transition>
+            <Stop ID="102"/>
+            <DirectedLink FromID="100" ToID="200"/><DirectedLink FromID="200" ToID="101"/>
+            <DirectedLink FromID="101" ToID="201"/><DirectedLink FromID="201" ToID="102"/>
+            <TextBox ID="300"><Text><![CDATA[Attente / Wait. This authored note remains separate from an engineering description.]]></Text></TextBox>
+            <TextBox ID="301"><![CDATA[Direct-text note attached to the illustrative run step.]]></TextBox>
+            <TextBox ID="302"><Text><![CDATA[Unattached note: inspect source context before deciding what it describes.]]></Text></TextBox>
+            <Attachment FromID="300" ToID="100"/><Attachment FromID="301" ToID="101"/>
+            <Attachment FromID="302" ToID="999"/>
+          </SFCContent>
+          <SFCContent OnlineEditType="PendingEdits"><Step ID="100" Operand="DEMO_WAIT_EDIT"/><TextBox ID="300"><Text><![CDATA[Separate edit namespace; no active revision selected.]]></Text></TextBox><Attachment FromID="300" ToID="100"/></SFCContent>
+        </Routine>
+      </Routines>
+    </Program></Programs>
+  </Controller>
+</RSLogix5000Content>

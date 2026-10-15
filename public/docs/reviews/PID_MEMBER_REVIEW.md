@@ -1,5 +1,21 @@
 # PID member evidence and documented setting groups
 
+## Confirmed work-machine result (2026-10-15)
+
+Returned `564fa66` tests clean `89d07f9`: 619 application cases (one expected
+Windows symlink skip), 139 helpers, no failures, and a saved private run. All
+46 distinct linked structures contain the 51 catalog fields exactly once.
+The 2,346 direct members comprise 2,300 matching scalar headers and 46 matching
+DATA array headers. Missing, duplicate, type/shape and unknown member counts
+are zero. This validates captured headers, not numeric values, array contents,
+representation agreement, effective settings or live control behavior.
+Reference/source, SFC, access, Tag Data and PID summaries match the preceding
+return after removing only tool_revision. Aggregate equality does not establish
+source byte identity. All 24 historical feedback reports validate. No repeated
+header-only run is needed; [CPT calculations](CALCULATION_REVIEW.md) are next.
+The implementation and validation record below is historical.
+
+
 ## Confirmed PID return
 
 Returned commit `28b5d1f` adds only
@@ -79,7 +95,7 @@ separate allowance for one approved diagnostic operand remains unchanged.
 The work runner makes a report-only local commit; all Git synchronization stays
 manual and the development listener remains disabled.
 
-## Next work-machine run
+## Historical member measurement run
 
 On `feat/bounded-operand-example-pc`, from the repository root:
 

@@ -140,7 +140,7 @@ class ReviewWorkflowTests(unittest.TestCase):
             access = json.loads((saved / 'access.json').read_bytes())
             self.assertEqual(access['snapshot']['id'], snapshot.id)
             self.assertEqual(access['snapshot']['sha256'], snapshot.sha256)
-            self.assertEqual(json.loads((saved / 'manifest.json').read_bytes())['schema_version'], 8)
+            self.assertEqual(json.loads((saved / 'manifest.json').read_bytes())['schema_version'], 9)
 
 
 if __name__ == '__main__':

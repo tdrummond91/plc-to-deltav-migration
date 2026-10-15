@@ -34,6 +34,8 @@ def report(data: bytes = SOURCE) -> dict:
     from plc_workbench.pid import analyze_pid
     from plc_workbench.pid_summary import build_pid_summary
     from plc_workbench.pid_members import analyze_pid_members
+    from plc_workbench.calculations import analyze_calculations
+    from plc_workbench.calculation_summary import build_calculation_summary
     from plc_workbench.pid_member_summary import build_pid_member_summary
     from plc_workbench.sfc_structure import analyze_sfc_structure
     from plc_workbench.sfc_summary import build_sfc_summary
@@ -50,8 +52,10 @@ def report(data: bytes = SOURCE) -> dict:
     pid = build_pid_summary(snapshot, inventory, references, captured_tag_data, captured_pid, revision=REVISION)
     pid_members = build_pid_member_summary(snapshot, inventory, references, captured_tag_data, captured_pid,
         analyze_pid_members(snapshot, inventory, references, captured_tag_data, captured_pid), revision=REVISION)
+    calculations = build_calculation_summary(snapshot, inventory, references,
+        analyze_calculations(snapshot, inventory, references), revision=REVISION)
     status = 'partial' if 'partial' in (nested['status'], sfc['status'], access['status'], tag_data['status'],
-                                      pid['status'], pid_members['status']) else 'complete'
+                                      pid['status'], pid_members['status'], calculations['status']) else 'complete'
     result = {
         'schema_version': 1, 'status': 'passed',
         'counts': {'tests_run': 1, 'failures': 0, 'errors': 0, 'skipped': 0,
@@ -59,13 +63,13 @@ def report(data: bytes = SOURCE) -> dict:
         'failed_test_ids': [], 'failure_ids_omitted': 0,
     }
     return {
-        'schema_version': 17, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-17',
+        'schema_version': 18, 'report_kind': 'l5x_work_machine_check', 'workflow_version': 'work-check-18',
         'run_id': '20261014T180000Z-1234abcd', 'tool_revision': deepcopy(REVISION),
         'tests': {'application': deepcopy(result), 'helpers': deepcopy(result)},
         'analysis': {'status': status, 'failure_code': None, 'private_run_saved': True,
                      'reference_summary': nested,
                      'sfc_structure_summary': sfc, 'access_summary': access, 'tag_data_summary': tag_data,
-                     'pid_summary': pid, 'pid_member_summary': pid_members},
+                     'pid_summary': pid, 'pid_member_summary': pid_members, 'calculation_summary': calculations},
         'status': 'passed' if status == 'complete' else 'partial',
         'diagnostic_sample': build_diagnostic_sample(inventory, references),
     }
@@ -94,6 +98,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
         del payload['analysis']['tag_data_summary']
         del payload['analysis']['pid_summary']
         del payload['analysis']['pid_member_summary']
+        del payload['analysis']['calculation_summary']
         with self.assertRaises(ValueError):
             work_check.validate_work_check_report(payload)
         payload['diagnostic_sample'] = None
@@ -105,6 +110,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
         del malformed['analysis']['tag_data_summary']
         del malformed['analysis']['pid_summary']
         del malformed['analysis']['pid_member_summary']
+        del malformed['analysis']['calculation_summary']
         self.assertEqual(malformed['diagnostic_sample']['kind'], 'direct_malformed_operand')
         work_check.validate_work_check_report(malformed)
 
@@ -153,7 +159,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
             payload = report()
             payload['analysis'] = {'status': state, 'failure_code': 'read_error' if state == 'failed' else None,
                                    'private_run_saved': False, 'reference_summary': None,
-                                   'sfc_structure_summary': None, 'access_summary': None, 'tag_data_summary': None, 'pid_summary': None, 'pid_member_summary': None}
+                                   'sfc_structure_summary': None, 'access_summary': None, 'tag_data_summary': None, 'pid_summary': None, 'pid_member_summary': None, 'calculation_summary': None}
             payload['status'] = 'failed'
             if state == 'not_run':
                 result = payload['tests']['application']
@@ -194,6 +200,7 @@ class UnmatchedSampleReportTests(unittest.TestCase):
             del payload['analysis']['tag_data_summary']
             del payload['analysis']['pid_summary']
             del payload['analysis']['pid_member_summary']
+            del payload['analysis']['calculation_summary']
             rejected = root / 'rejected.json'
             with self.assertRaises(SummaryOutputError):
                 publish_summary(rejected, json.dumps(payload), input_path=root / 'invented.L5X')

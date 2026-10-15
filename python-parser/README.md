@@ -1,9 +1,9 @@
-# L5X engineering review, PID members and source structure
+# L5X engineering review, calculations and source structure
 
 ## Offline engineering review
 
 `plc review` builds an organized, read-only engineering report from the
-source inventory, references, explicit operand access, stored Tag Data, PID occurrence/member and SFC evidence. Open its printed
+source inventory, references, explicit operand access, stored Tag Data, PID occurrence/member, CPT calculation and SFC evidence. Open its printed
 `review.html` path to search objects, follow source context, inspect findings,
 compare repeated rung syntax and navigate routine/SFC evidence. The report is
 self-contained and opens without a server. Phase 1 now classifies potential
@@ -15,7 +15,7 @@ between member/index suffixes. Engineering classifications remain later work.
 Tyler has not inspected the source/report and explicitly deferred engineering
 and UI review. Such inspection is optional later; it is not a gate to continued
 parser work. The next work-machine run should return only generated aggregate
-feedback for this PID member slice.
+feedback for the CPT calculation slice.
 
 ```bash
 uv run --project python-parser --locked plc review \
@@ -25,11 +25,12 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-review5/manifest8 with twelve hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
-references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json and review.html. Existing plain
+review6/manifest9 with thirteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
-`confidential/`. Read [the current PID member review](../public/docs/reviews/PID_MEMBER_REVIEW.md),
+`confidential/`. Read [the calculation review](../public/docs/reviews/CALCULATION_REVIEW.md),
+[the PID member review](../public/docs/reviews/PID_MEMBER_REVIEW.md),
 [the PID occurrence review](../public/docs/reviews/PID_EVIDENCE_REVIEW.md),
 [the Tag Data review](../public/docs/reviews/TAG_DATA_REVIEW.md),
 [the timer/copy checkpoint](../public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md)

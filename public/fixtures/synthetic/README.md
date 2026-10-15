@@ -1,5 +1,17 @@
 # Independently synthetic L5X fixture
 
+## Calculation report demonstration
+
+[calculation_review_demo.L5X](calculation_review_demo.L5X) extends the independently
+invented PID member demonstration without changing that earlier fixture. It adds
+CPT grouping, precedence, functions, repeated references, aliases, static and
+dynamic subscripts, unresolved roots, unsupported syntax and invalid signatures.
+Its deliberately invalid cases exercise evidence gaps; this is not a controller
+project. No real export was read to invent these expressions. The generated
+[HTML demonstration](../../examples/engineering-review-demo.html) includes this
+fixture's calculation view. The original fixture hash below still applies only
+to controller_demo.L5X.
+
 This fixture was invented from generic L5X structure. It was not produced by renaming tags or preserving connections from a plant export. No confidential L5X or DeltaV export was read to construct it.
 
 ## Included cases

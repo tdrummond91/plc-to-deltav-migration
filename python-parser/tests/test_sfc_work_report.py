@@ -27,7 +27,7 @@ PREVIOUS_SFC = Path(__file__).resolve().parents[2] / 'public/inspection/work-che
 class SfcWorkReportTests(unittest.TestCase):
     def test_current_work16_keeps_separate_summary_without_changing_reference_contract(self) -> None:
         payload = report(SFC_SOURCE)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (17, 'work-check-17'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (18, 'work-check-18'))
         analysis = payload['analysis']
         self.assertEqual(analysis['reference_summary']['schema_version'], 12)
         self.assertEqual(analysis['sfc_structure_summary']['source_sfc_routines'], 1)
@@ -54,6 +54,7 @@ class SfcWorkReportTests(unittest.TestCase):
         del changed['analysis']['tag_data_summary']
         del changed['analysis']['pid_summary']
         del changed['analysis']['pid_member_summary']
+        del changed['analysis']['calculation_summary']
         with self.assertRaises(ValueError):
             work_check.validate_work_check_report(changed)
         changed = deepcopy(old)
@@ -99,10 +100,10 @@ class SfcWorkReportTests(unittest.TestCase):
             self.assertTrue(result['private_run_saved'])
             saved, = (root / 'confidential/workspaces/work-check').glob('run-*')
             manifest = json.loads((saved / 'manifest.json').read_bytes())
-            self.assertEqual(manifest['schema_version'], 8)
-            self.assertEqual(manifest['artifact_kind'], 'source_reference_sfc_access_tag_data_pid_member_review_run')
+            self.assertEqual(manifest['schema_version'], 9)
+            self.assertEqual(manifest['artifact_kind'], 'source_reference_sfc_access_tag_data_pid_member_calculation_review_run')
             self.assertEqual(set(manifest['artifacts']), {'snapshot.L5X', 'inventory.json', 'overview.txt',
-                'references.json', 'references.txt', 'sfc-structure.json', 'sfc-structure.txt', 'review.html', 'access.json', 'tag-data.json', 'pid.json', 'pid-members.json'})
+                'references.json', 'references.txt', 'sfc-structure.json', 'sfc-structure.txt', 'review.html', 'access.json', 'tag-data.json', 'pid.json', 'pid-members.json', 'calculations.json'})
             sfc = json.loads((saved / 'sfc-structure.json').read_bytes())
             self.assertEqual(sfc['status'], 'complete')
             self.assertIn('PRIVATE_VALUE', (saved / 'sfc-structure.txt').read_text(encoding='utf-8'))
@@ -128,7 +129,7 @@ class SfcWorkReportTests(unittest.TestCase):
             rendered = work_check.render_work_check_report(payload)
             self.assertNotIn('PRIVATE_FAILURE_VALUE', rendered)
             old = json.loads(PREVIOUS.read_bytes())
-            old.update(analysis={k: v for k, v in result.items() if k not in ('sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary', 'pid_member_summary')},
+            old.update(analysis={k: v for k, v in result.items() if k not in ('sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary', 'pid_member_summary', 'calculation_summary')},
                        status='failed')
             with self.assertRaises(ValueError):
                 work_check.validate_work_check_report(old)

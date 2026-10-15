@@ -2,7 +2,26 @@
 
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current PID member contract (2026-10-15)
+## Current calculation contract (2026-10-15)
+
+Private calculation schema1 / calculation-evidence-1 records canonical CPT
+occurrences, operand links and a flat syntax tree with source spans. Each
+repeated reference is a separate leaf using the existing scoped root resolver.
+Unsupported expressions retain a fixed error and no partial nodes. No numeric,
+member, type, execution or effect analysis is claimed. Unknown dynamic subscripts
+remain opaque address gaps; no index dependencies are extracted.
+
+Review6 includes calculations after the PID member companion. Manifest9 adds
+calculations.json as the thirteenth hashed artifact. Work18 requires closed
+count-only calculation_summary1 with source/count/revision consistency gates.
+Omitting the companion retains review5/manifest8. Work1-17 and older optional
+paths retain their contracts. Expression limits are 4,096 characters, 512 tokens
+and depth 64; the companion allows 250,000 nodes and 16 MiB private evidence/JSON.
+Its public summary has a 3 KiB cap; outer feedback retains 32 KiB and review6
+retains 128 MiB JSON / 160 MiB HTML. See
+[CALCULATION_REVIEW.md](../reviews/CALCULATION_REVIEW.md) for scope and evidence.
+
+## PID member contract (2026-10-15)
 
 Private PID member schema1 describes unique linked structures and their direct
 stored members using a fixed 51-name catalog. IDs point to unchanged PID1 and

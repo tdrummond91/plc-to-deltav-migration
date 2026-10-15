@@ -1,6 +1,16 @@
 # Private engineering review report
 
-## Current PID member follow-up (2026-10-15)
+## Current calculation follow-up (2026-10-15)
+
+The [CPT calculation extension](CALCULATION_REVIEW.md) adds expression search,
+syntax grouping, source spans and repeated reference occurrences with links to
+rungs and declarations. Unsupported expressions keep their exact source and a
+fixed gap reason without a partial tree. Review6/manifest9 saves thirteen hashed
+artifacts; work18 adds closed count-only calculation feedback. Returned
+`564fa66` confirms all PID catalog headers; numeric values remain unvalidated.
+Engineering and appearance review remains optional.
+
+## Historical PID member follow-up (2026-10-15)
 
 The [PID member extension](PID_MEMBER_REVIEW.md) adds documented setting groups,
 name/type/shape checks and missing/duplicate catalog entries to PID detail.

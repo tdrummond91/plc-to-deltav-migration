@@ -14,7 +14,9 @@ Start here:
 7. [Explicit operand reads/writes](docs/reviews/ACCESS_ROLE_REVIEW.md) and
    [confirmed timer/reset/copy checkpoint](docs/reviews/TIMER_COPY_ACCESS_REVIEW.md).
 8. [Confirmed stored tag data checkpoint](docs/reviews/TAG_DATA_REVIEW.md).
-9. [Current PID member checkpoint](docs/reviews/PID_MEMBER_REVIEW.md), with the [PID association checkpoint](docs/reviews/PID_EVIDENCE_REVIEW.md).
+9. [Confirmed PID member checkpoint](docs/reviews/PID_MEMBER_REVIEW.md), with the [PID association checkpoint](docs/reviews/PID_EVIDENCE_REVIEW.md).
+
+10. [Current CPT calculation checkpoint](docs/reviews/CALCULATION_REVIEW.md).
 
 The fixtures are small parser inputs, not deployable controller projects. The
 read-only inventory, reference, SFC and offline engineering-review CLI commands

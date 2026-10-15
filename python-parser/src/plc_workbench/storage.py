@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from .models import SourceSnapshot
     from .pid import PidResult
     from .pid_members import PidMemberResult
+    from .calculations import CalculationResult
     from .references import ReferenceResult
     from .sfc_structure import SfcStructureResult
     from .tag_data import TagDataResult
@@ -81,6 +82,7 @@ def save_run(
     tag_data: TagDataResult | None = None,
     pid: PidResult | None = None,
     pid_members: PidMemberResult | None = None,
+    calculations: CalculationResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -98,6 +100,8 @@ def save_run(
             raise StorageError("PID records require an engineering review with operand access and Tag Data.")
         if pid_members is not None and (pid is None or tag_data is None or access is None or not include_review):
             raise StorageError("PID member records require an engineering review with PID evidence.")
+        if calculations is not None and (pid_members is None or pid is None or tag_data is None or access is None or not include_review):
+            raise StorageError("Calculation records require an engineering review with PID member evidence.")
         payload = result.to_dict()
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
@@ -136,7 +140,7 @@ def save_run(
             try:
                 review_data = build_review_data(snapshot, result, references, sfc_structure,
                                                 access=access, tag_data=tag_data, pid=pid,
-                                                pid_members=pid_members)
+                                                pid_members=pid_members, calculations=calculations)
                 review_html = render_review_html(review_data).encode("utf-8")
             except (ReviewError, ReviewHtmlError) as exc:
                 raise StorageError("Could not build the private engineering review report.") from exc
@@ -188,6 +192,13 @@ def save_run(
                 contents["pid-members.json"] = render_pid_members_json(pid_members).encode("utf-8")
             except PidMemberError as exc:
                 raise StorageError("Could not render captured PID member records.") from exc
+        if calculations is not None:
+            from .calculations import CalculationError, render_calculation_json
+            try:
+                calculation_payload = calculations.to_dict()
+                contents["calculations.json"] = render_calculation_json(calculations).encode("utf-8")
+            except CalculationError as exc:
+                raise StorageError("Could not render captured calculation records.") from exc
         destination = _workspace_path(workspace)
         destination.mkdir(parents=True, exist_ok=True)
         if destination.resolve() != destination:
@@ -281,6 +292,14 @@ def save_run(
                 "pid_member_schema_version": pid_member_payload["schema_version"],
                 "pid_member_analyzer_version": pid_member_payload["analyzer_version"],
                 "pid_member_catalog_version": pid_member_payload["catalog_version"],
+            })
+        if calculations is not None:
+            manifest.update({
+                "schema_version": 9,
+                "artifact_kind": "source_reference_sfc_access_tag_data_pid_member_calculation_review_run",
+                "status": "partial" if "partial" in (manifest["status"], calculation_payload["status"]) else "complete",
+                "calculation_schema_version": calculation_payload["schema_version"],
+                "calculation_analyzer_version": calculation_payload["analyzer_version"],
             })
         _write_artifact(
             destination, run_dir, ".manifest.pending",

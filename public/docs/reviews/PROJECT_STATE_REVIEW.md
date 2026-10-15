@@ -1,6 +1,26 @@
-# Project state: PID evidence and prior Phase 1 assessments
+# Project state: calculation evidence and prior Phase 1 assessments
 
-Current checkpoint (2026-10-15): **documented PID member evidence** organizes
+Current checkpoint (2026-10-15): **CPT calculation expression evidence** adds
+source-linked syntax trees and scoped reference leaves for parsed expressions.
+It preserves repeated uses and explicit unsupported-expression gaps, without
+calculating results or claiming execution effects. Returned `564fa66` confirms
+all 46 linked PID structures contain the 51 catalog fields exactly once:
+2,300 scalar headers and 46 DATA array headers match, with no missing,
+duplicate, type or shape gaps. Numeric values and array contents remain
+unvalidated. The run passed 619 application cases (one expected skip) and 139
+helpers; six previous summaries match after revision normalization.
+
+Current review6/manifest9 adds `calculations.json` as the thirteenth hashed
+artifact. Work18 adds closed count-only `calculation_summary` schema1; old
+optional paths and work1-17 retain their contracts. The next work-machine run
+measures the 45 previously counted CPT occurrences, including fixed syntax
+error categories and unresolved leaf counts. Only generated feedback is needed.
+Engineering/UI review remains optional. Git synchronization stays manual and
+the listener stays disabled. See [Calculation review](CALCULATION_REVIEW.md).
+
+## Historical PID member implementation checkpoint
+
+Historical checkpoint (2026-10-15): **documented PID member evidence** organizes
 linked stored fields into readable groups, checks captured names/types/shapes,
 and exposes absent and duplicate catalog entries without selecting effective
 values. Returned `28b5d1f` confirms all 46 PID instruction occurrences linked to

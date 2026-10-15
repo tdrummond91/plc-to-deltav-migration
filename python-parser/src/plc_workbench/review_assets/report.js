@@ -73,6 +73,10 @@
   const tagData = data.tag_data || null;
   const pid = data.pid || null, pidOccurrences = pid?.occurrences || [];
   const pidMembers = data.pid_members || null;
+  const calculations = data.calculations || null, calculationOccurrences = calculations?.occurrences || [];
+  const byCalculation = new Map(calculationOccurrences.map(x => [x.id,x]));
+  const byCalculationNode = new Map((calculations?.nodes || []).map(x => [x.id,x]));
+  const rungCalculations = new Map(), ownerCalculations = new Map();
   const byPidMemberStructure = new Map((pidMembers?.structures || []).map(x => [x.structure_id,x]));
   const byPidMember = new Map((pidMembers?.members || []).map(x => [x.element_id,x]));
   const byPid = new Map(pidOccurrences.map(x => [x.id,x]));
@@ -122,6 +126,14 @@
     const first=byOperand.get(p.operand_ids[0]);
     new Set([first?.symbol_id,first?.target_id,p.backing_owner_id]).forEach(id=>add(ownerPids,id,p));
   });
+  calculationOccurrences.forEach(c => {
+    add(rungCalculations,c.rung_id,c);
+    // Keep each occurrence once per declaration, even when several leaves name it.
+    const bindings=[byOperand.get(c.destination_operand_id),...c.node_ids.map(id=>byCalculationNode.get(id)?.binding)];
+    const owners=new Set();
+    bindings.filter(Boolean).forEach(b=>[b.symbol_id,b.target_id,...(b.alias_chain || [])].forEach(id=>{if(id)owners.add(id);}));
+    owners.forEach(id=>add(ownerCalculations,id,c));
+  });
   (refs.aliases || []).forEach(a => new Set([a.source_id,a.target_id]).forEach(id => add(entityAliases,id,a)));
   elements.forEach(x => { add(contentElements,x.content_id,x); add(elementChildren,x.parent_id,x); });
   (sfc.links || []).forEach(x => { add(contentLinks,x.content_id,x); new Set([x.from_element_id,x.to_element_id,x.element_id]).forEach(id => add(elementLinks,id,x)); });
@@ -138,11 +150,13 @@
   headings.access=['Tag access','Find explicit operand reads and writes from supported ladder signatures. These are possible uses, not proof that an instruction executes.'];
   headings.tagdata=['Stored tag data','Search values and member names retained in this export, then follow their declaration and ladder occurrences.'];
   headings.pid=['PID instruction evidence','Inspect captured PID operand functions, source declarations and stored data. Each row is an instruction occurrence.'];
+  headings.calculations=['Calculations','Read captured CPT expressions, their syntax grouping and source references. Expressions are not evaluated.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(access){labels.access='Tag access';navCounts.access=accessRoots.length;}
   if(tagData){labels.tagdata='Stored tag data';navCounts.tagdata=tagContents.length;}
   if(pid){labels.pid='PID evidence';navCounts.pid=pidOccurrences.length;}
+  if(calculations){labels.calculations='Calculations';navCounts.calculations=calculationOccurrences.length;}
   let state = {view:'overview',query:'',filter:'all',detail:null,contentId:null,listPages:{}};
   const backStack = [];
   const heading = document.getElementById('page-heading');
@@ -243,6 +257,7 @@
   tagContents.forEach(c=>searchable(c,[short(entityName(c.owner_id)),c.xml_name,c.format_kind,c.direct_text,...Object.values(c.attributes||{})]));
   tagElements.forEach(e=>searchable(e,[short(entityName(e.owner_id)),e.xml_name,e.kind,e.direct_text,...Object.values(e.attributes||{})]));
   pidOccurrences.forEach(p=>searchable(p,[p.signature_status,p.storage_status,sourceName(p.rung_id),entityPath(byRung.get(p.rung_id)?.parent_id),...p.operand_ids.map(id=>byOperand.get(id)?.raw_text)]));
+  calculationOccurrences.forEach(c=>searchable(c,[c.signature_status,c.syntax_status,c.error_code,sourceName(c.rung_id),entityPath(byRung.get(c.rung_id)?.parent_id),byOperand.get(c.destination_operand_id)?.raw_text,byOperand.get(c.expression_operand_id)?.raw_text]));
   // Index a member once even when several PID occurrences share its structure.
   (pidMembers?.members || []).forEach(m=>searchable(m,[m.field,pidMemberLabel(m.field),m.group,m.status,byTagElement.get(m.element_id)?.attributes?.Name]));
   const sfcSearch = new Map();elements.forEach(e=>add(sfcSearch,e.routine_id,[e.kind,e.direct_text,...Object.values(e.attributes||{})].join(' ')));
@@ -269,6 +284,7 @@
     if(tagData){const row=node('div','status-row');row.append(node('span','','Stored tag data capture'),badge(tagData.status));capture.append(row);}
     if(pid){const row=node('div','status-row');row.append(node('span','','PID operand and storage association'),badge(pid.status));capture.append(row);}
     if(pidMembers){const row=node('div','status-row');row.append(node('span','','PID documented member headers'),badge(pidMembers.status));capture.append(row);}
+    if(calculations){const row=node('div','status-row');row.append(node('span','','CPT expression syntax and references'),badge(calculations.status));capture.append(row);}
     capture.append(node('p','row-note',fmt(bySfcRoutine.size)+' SFC routines · '+fmt((sfc.links||[]).length)+' structural links · '+fmt((sfc.annotations||[]).length)+' note attachments'));
     const start=panel('Start your review','Each view links back to the exact evidence in this captured source snapshot.');
     [['objects','Find an object','Inspect declarations, source descriptions and where operands refer to them.'],['patterns','Compare repeated ladder','Group repeated syntax and open each occurrence in its own context.'],['findings','Work through capture gaps','Inspect unresolved and unsupported evidence before choosing a correction.']].forEach(([view,title,detail])=>{const b=button('',()=>go(view),'jump-card');const copy=node('span');copy.append(node('strong','',title),node('small','',detail));b.append(copy,node('span','jump-arrow','→'));start.append(b);});
@@ -276,6 +292,7 @@
     if(access)content.append(button('Explore tag reads and writes',()=>go('access')));
     if(tagData)content.append(button('Explore stored tag data',()=>go('tagdata')));
     if(pid)content.append(button('Explore PID instruction evidence',()=>go('pid')));
+    if(calculations)content.append(button('Explore calculations',()=>go('calculations')));
     const meta=panel('Snapshot details','This report is read-only. IDs belong to this byte snapshot and are not persistent equipment or correction identities.');
     meta.append(values({'Source size':fmt(data.snapshot.size_bytes)+' bytes','SHA-256':data.snapshot.sha256,'Report format':data.report_version,'Inventory parser':inv.parser_version,'Reference analyzer':refs.analyzer_version,'SFC analyzer':sfc.analyzer_version}));content.append(meta);
   }
@@ -344,6 +361,7 @@
     const aliases=entityAliases.get(e.id)||[];if(aliases.length){const p=section('Alias bindings','Declared alias targets and root-resolution results; suffixes have not been validated.');p.append(table(['Alias','Declared target','Binding','Resolved root'],aliases,a=>[sourceCell(a.source_id),node('span','mono',a.raw_target),badge(a.status),sourceCell(a.target_id)],'Alias bindings'));content.append(p);}
     if(byRootAccess.has(e.id))content.append(button('Inspect root access occurrences',()=>openDetail('access',e.id,{accessRole:'all'})));
     if(ownerPids.has(e.id)){const p=section('PID instruction occurrences','These occurrences name this declaration or resolve to it. Storage association may remain unresolved.');p.append(pidTable(ownerPids.get(e.id),'Object PID occurrences'));content.append(p);}
+    if(ownerCalculations.has(e.id)){const p=section('Calculation occurrences','This declaration appears in a destination binding or a parsed expression reference, directly or through an alias. These links do not establish execution or data dependencies.');p.append(calculationTable(ownerCalculations.get(e.id),'Object calculation occurrences'));content.append(p);}
     const p=section('Operand occurrences',access
       ? 'Occurrences include the declared root, resolved target and traversed alias chain. Roles describe possible explicit operand use; they do not prove execution or member validity.'
       : 'Occurrences include the declared root, resolved target and traversed alias chain. They do not describe reads or writes.');
@@ -359,6 +377,7 @@
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
     if(rungPids.has(r.id)){const p=section('PID evidence on this rung');p.append(pidTable(rungPids.get(r.id),'Rung PID occurrences'));content.append(p);}
+    if(rungCalculations.has(r.id)){const p=section('Calculations on this rung');p.append(calculationTable(rungCalculations.get(r.id),'Rung calculation occurrences'));content.append(p);}
     const ops=section('Operand bindings','Root resolution is source evidence only. A binding does not validate a member, array bound, data type or instruction effect.');
     if((rungOperands.get(r.id)||[]).some(o=>byOperandAccess.get(o.id)?.reason==='timer_pseudo_operand'))ops.append(node('p','row-note','Timer preset and accumulator fields describe initialization, not separate runtime reads. A question mark supplies no value here. Timer values, units and configuration are not validated.'));
     ops.append(table(['Operand','Instruction / argument','Binding','Declared / resolved root',...(access?['Operand role']:[])],rungOperands.get(r.id)||[],o=>{const root=node('div','inline-links');if(o.symbol_id)root.append(sourceCell(o.symbol_id));if(o.target_id && o.target_id!==o.symbol_id)root.append(node('span','','→'),sourceCell(o.target_id));if(!root.childNodes.length)root.append(node('span','muted',human(o.reason || 'No root binding')));return[node('span','mono',o.raw_text),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),primary(badge(o.status),o.reason?human(o.reason):''),root,...(access?[accessCell(o)]:[])];},'Rung operand bindings'));content.append(ops);
@@ -741,6 +760,98 @@
     }
     content.append(technical({'Instruction ID':p.id,'Rung ID':p.rung_id,'Storage association':p.storage_status}));
   }
+  function calculationName(c){return 'CPT · '+short(byOperand.get(c.destination_operand_id)?.raw_text || '(destination not assigned)',100);}
+  function calculationNotice(){return notice('Expression syntax and source evidence','Grouping and reference links describe the captured CPT expression. No value is calculated, and no execution, scan order, data type, member validity or control dependency is inferred. Unsupported expressions retain their source without a partial syntax tree or partial reference bindings.');}
+  function calculationTable(rows,caption='Calculation occurrences'){
+    return table(['Occurrence','Expression preview','Rung','Syntax'],rows,c=>[
+      button(calculationName(c),()=>openDetail('calculation',c.id),'text-link'),
+      node('div','snippet',short(byOperand.get(c.expression_operand_id)?.raw_text ?? 'Expression function not assigned',180)),
+      sourceCell(c.rung_id),primary(badge(c.syntax_status),c.error_code?human(c.error_code):'')
+    ],caption,{emptyTitle:'No calculations match',emptyDetail:'This view covers CPT instructions in captured ladder. Other calculation instructions and languages are outside this slice.'});
+  }
+  function calculationList(){
+    content.append(calculationNotice());
+    const c=calculations.coverage,totals=panel('Calculation coverage','Counts describe captured instruction and expression occurrences. Repeated references remain separate.');
+    totals.append(values({'CPT instruction occurrences':calculationOccurrences.length,
+      'Expressions with parsed syntax':c.expressions_by_status.parsed,
+      'Unsupported expressions':c.expressions_by_status.unsupported,
+      'Unresolved signatures':c.expressions_by_status.signature_unresolved,
+      'Expression reference occurrences':c.reference_occurrences,
+      'Expressions with reference binding gaps':c.expressions_with_binding_gaps}));
+    content.append(totals,calculationTable(calculationOccurrences.filter(c=>matches(c)&&(state.filter==='all'||c.syntax_status===state.filter))));
+  }
+  function calculationBinding(binding){
+    const box=node('div');
+    if(!binding){box.append(node('span','muted','No binding assigned'));return box;}
+    const roots=node('div','inline-links');
+    if(binding.symbol_id)roots.append(sourceCell(binding.symbol_id));
+    if(binding.target_id && binding.target_id!==binding.symbol_id)roots.append(node('span','','→'),sourceCell(binding.target_id));
+    if(!roots.childNodes.length)roots.append(node('span','muted','No resolved declaration'));
+    box.append(roots);
+    if(binding.suffix)box.append(node('div','mono cell-sub','Suffix: '+binding.suffix));
+    if(binding.alias_chain?.length){
+      const aliases=node('details','calculation-aliases');aliases.append(node('summary','','Traversed alias declarations ('+fmt(binding.alias_chain.length)+')'));
+      aliases.append(table(['Alias declaration'],binding.alias_chain,id=>[sourceCell(id)],'Calculation aliases '+(binding.symbol_id || '')+' '+(binding.suffix || '')));box.append(aliases);
+    }
+    if(binding.reason)box.append(node('div','cell-sub',human(binding.reason)));
+    return box;
+  }
+  function calculationOutline(c){
+    // Traverse iteratively and render only one page. Child order is syntax order,
+    // not evaluation order; node_ids may be stored in a different order.
+    const rows=[],seen=new Set(),stack=c.root_node_id?[{id:c.root_node_id,depth:0,parent:null,child:0}]:[];
+    while(stack.length){
+      const entry=stack.pop(),n=byCalculationNode.get(entry.id);
+      if(!n || seen.has(n.id))continue;
+      seen.add(n.id);const ordinal=rows.length+1;rows.push({...entry,node:n,ordinal});
+      for(let i=n.child_ids.length-1;i>=0;i--)stack.push({id:n.child_ids[i],depth:entry.depth+1,parent:ordinal,child:i+1});
+    }
+    return rows;
+  }
+  function calculationSpan(n){return '['+n.start+', '+n.end+')';}
+  function calculationDetail(c){
+    setDetailHeading('CALCULATION SOURCE EVIDENCE',calculationName(c),sourceName(c.rung_id));
+    content.append(calculationNotice());
+    const meta=node('div','detail-meta');meta.append(badge(c.signature_status),badge(c.syntax_status),sourceCell(c.rung_id));content.append(meta);
+    const destination=byOperand.get(c.destination_operand_id),expression=byOperand.get(c.expression_operand_id);
+    if(c.signature_status==='recognized'){
+      const dest=panel('Destination operand','The destination slot belongs to the captured CPT signature. A root binding does not validate a writable member or establish that the instruction executes.');
+      if(destination){dest.append(sourceText(destination.raw_text),sourceCell(destination.id));const details=node('div','detail-meta');details.append(badge(destination.status));dest.append(details,calculationBinding(destination));}
+      else dest.append(empty('No destination operand captured','Inspect the original rung for this instruction.'));
+      content.append(dest);
+    }else{
+      const args=panel('Captured instruction arguments','The CPT signature is unresolved. No destination or expression function is assigned to these arguments.');
+      const rows=(rungOperands.get(c.rung_id)||[]).filter(o=>o.instruction_id===c.id);
+      args.append(table(['Argument position','Exact source'],rows,o=>[String(o.argument_index+1),link(o.raw_text || '(empty argument)',o.id)],'Unresolved CPT arguments'));
+      content.append(args);
+    }
+    const raw=panel('Original expression','Exact expression operand text, available to select and copy. Character spans below are zero-based, with the end position excluded.');
+    if(expression){raw.append(sourceText(expression.raw_text),sourceCell(expression.id));}
+    else raw.append(empty('No expression function assigned','Open the rung to inspect the captured instruction and all its arguments.'));
+    content.append(raw);
+    if(c.syntax_status!=='parsed'){
+      const errors={lexical_error:'A source token is outside the supported expression syntax.',syntax_error:'The expression does not match the supported syntax.',unsupported_function:'A function in this expression is not supported by this parser.',length_limit:'The expression exceeds the supported length limit.',token_limit:'The expression exceeds the supported token limit.',depth_limit:'The expression exceeds the supported nesting limit.'};
+      const gap=panel('Expression parsing gap','No partial syntax tree or partial expression reference bindings are published. The original source remains available above and on the rung.');
+      gap.append(values({'Syntax status':human(c.syntax_status),'Reason':c.error_code?(errors[c.error_code] || human(c.error_code)):'Instruction signature is unresolved.','Error code':c.error_code,'Character offset':c.error_offset}));content.append(gap);
+    }else{
+      const rows=calculationOutline(c),leaves=rows.filter(x=>x.node.kind==='reference').sort((a,b)=>a.node.start-b.node.start);
+      const repeatTotals=new Map(),repeatSeen=new Map();
+      leaves.forEach(x=>repeatTotals.set(x.node.raw_text,(repeatTotals.get(x.node.raw_text)||0)+1));
+      const references=leaves.map(x=>{const spelling=x.node.raw_text,index=(repeatSeen.get(spelling)||0)+1;repeatSeen.set(spelling,index);return{...x,index,total:repeatTotals.get(spelling)};});
+      const bindings=section('Expression reference occurrences','Each reference leaf stays separate, including repeated source spelling. These are possible expression inputs; root links do not prove execution or validate a suffix. Open a declaration to inspect its source.');
+      bindings.append(table(['Reference / repeated spelling','Character span','Binding','Declared / resolved root'],references,x=>[
+        primary(node('span','mono',x.node.raw_text),x.total>1?'Occurrence '+x.index+' of '+x.total+' with this exact spelling':'One occurrence with this exact spelling'),
+        node('span','mono',calculationSpan(x.node)),badge(x.node.binding?.status),calculationBinding(x.node.binding)
+      ],'Calculation expression references',{emptyTitle:'No reference leaves in this parsed expression',emptyDetail:'An expression can contain only literal values. No value has been calculated.'}));content.append(bindings);
+      const outline=section('Expression grouping','Parent rows precede their children in source syntax order. Indentation and child numbers show grouping, not evaluation order. Parent links refer to row numbers in this outline.');
+      outline.append(table(['Row / grouping','Kind / operator','Character span','Leaf source'],rows,x=>{
+        const grouping=node('div','calculation-grouping');grouping.style.paddingLeft=Math.min(x.depth,12)*10+'px';
+        grouping.append(node('strong','',String(x.ordinal)),node('div','cell-sub',x.parent===null?'Root':'Child '+x.child+' of row '+x.parent),node('div','cell-sub','Depth '+x.depth));
+        return[grouping,primary(human(x.node.kind),x.node.operator || (x.node.kind==='group'?'Explicit parentheses':'')),node('span','mono',calculationSpan(x.node)),x.node.raw_text===null?node('span','muted','See child rows'):node('span','mono',x.node.raw_text)];
+      },'Calculation syntax grouping'));content.append(outline);
+    }
+    content.append(technical({'Instruction ID':c.id,'Rung ID':c.rung_id,'Destination operand ID':c.destination_operand_id,'Expression operand ID':c.expression_operand_id,'Root node ID':c.root_node_id}));
+  }
   function tagDataNotice(){return notice('Exported values, with source context','These are saved source values, not live readings or approved DeltaV settings. Data and DefaultData representations stay separate; no precedence, numeric conversion, member validity or effective value is inferred. Opaque and duplicate data remain visible.');}
   function tagContentName(c){const ordinal=c.locator.match(/\[([0-9]+)\]$/)?.[1];return c.xml_name+(ordinal?' '+ordinal:'')+' / '+human(c.format_kind);}
   function tagElementName(e){return short(e.attributes?.Name || e.attributes?.Index || e.xml_name,100);}
@@ -809,6 +920,7 @@
     else if(state.view==='access')accessList();
     else if(state.view==='tagdata')tagDataList();
     else if(state.view==='pid')pidList();
+    else if(state.view==='calculations')calculationList();
   }
   function render(focus=false){
     heading.replaceChildren();toolbar.replaceChildren();content.replaceChildren();
@@ -825,6 +937,7 @@
       else if(d.type==='tagcontent')tagContentDetail(byTagContent.get(d.id));
       else if(d.type==='tagelement')tagElementDetail(byTagElement.get(d.id));
       else if(d.type==='pid')pidDetail(byPid.get(d.id));
+      else if(d.type==='calculation')calculationDetail(byCalculation.get(d.id));
     }else{
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));
       if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
@@ -835,6 +948,7 @@
       else if(state.view==='access')toolbarFor('Search root names, scopes, opcodes or rung context');
       else if(state.view==='tagdata')toolbarFor('Search declarations, members, saved values or data text',countsFilter(tagContents,'format_kind'));
       else if(state.view==='pid')toolbarFor(pidMembers?'Search PID operands, member labels, groups or source context':'Search PID operands, rung context or association status',countsFilter(pidOccurrences,'storage_status'));
+      else if(state.view==='calculations')toolbarFor('Search CPT destinations, expressions, rung context or syntax status',countsFilter(calculationOccurrences,'syntax_status'));
       renderList();
     }
     if(focus){document.getElementById('main').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}
