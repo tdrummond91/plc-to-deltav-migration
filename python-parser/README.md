@@ -41,13 +41,13 @@ do not establish that the source project has an invalid tag.
 
 Private inventory schema 3 (`source-inventory-3`) includes module ports, ordinary
 connections, input/output/configuration tags and dedicated rack declarations
-without changing ordinary tag/alias totals. Reference schema 5 (`source-references-8`) includes the three ordinary I/O
+without changing ordinary tag/alias totals. Reference schema 6 (`source-references-9`) includes the three ordinary I/O
 symbol kinds and a fixed `reason` on unresolved/unsupported-address bindings.
 Reasons distinguish missing declared roots, qualified or dynamic addresses and
 other bounded syntax gaps; they do not claim to identify every gap's engineering
 cause. Raw declarations remain separate from inferred names.
 
-Analyzer `source-references-8` retains recognition of exact trimmed `?` only in the preset
+Analyzer `source-references-9` retains recognition of exact trimmed `?` only in the preset
 and accumulator slots (1/2) of valid three-argument TON/TOF/RTO instructions.
 These are `non_data` for root lookup; original text is preserved. No timer values,
 types, configuration or effects are validated. Root slots, aliases and other
@@ -108,7 +108,7 @@ reason counts, module naming origins/unavailable reasons, analysis coverage and
 a nested schema-4 `source_summary`, plus closed rack-candidate counts. Code provenance is
 `source_summary.tool_revision`. It contains no names, values, source identities
 or individual reference links. Its report kind is `l5x_reference_review_summary`,
-schema 11, policy 2, exporter `reference-summary-11`, analyzer `source-references-8`.
+schema 12, policy 2, exporter `reference-summary-12`, analyzer `source-references-9`.
 `operands.by_status.system_flag` counts recognized first-scan contact operands
 separately from ordinary bindings, literals and non-data roles.
 `routine_instruction_shapes` observes JSR/SBR/RET argument counts, with fixed
@@ -128,15 +128,24 @@ declarations for unique candidates, plus program-Type counts restricted to
 not_analyzed contexts. Missing, empty, known exact enums and unknown explicit
 values stay distinct; no omitted-Type default is assigned. Counts are weighted
 by calls, not distinct targets. Private text includes the same counts when
-inventory is supplied; private JSON/schema5/analyzer8 remain unchanged.
+inventory is supplied. Private JSON/schema6/analyzer9 now also contains the
+separate static graph; existing metadata and candidate results are unchanged.
 Reference10 is frozen and rejects this new metadata field. See
 [the metadata review](../public/docs/reviews/ROUTINE_METADATA_REVIEW.md).
+Private `routine_graph` records program-local routine nodes, grouped candidate
+JSR calls with instruction links, observed body coverage, explicit main
+designations and candidate cycles. Text presents a labeled map; JSON retains
+canonical source IDs. SFC bodies remain unmodeled, and this static graph does
+not establish execution, scheduling, valid recursion or parameter roles. Public
+`routine_graph` contains only fixed counts, with no topology, names or IDs.
+Reference11 stays frozen as analyzer8 and rejects the graph field. See
+[the graph review](../public/docs/reviews/ROUTINE_GRAPH_REVIEW.md).
 `operands.malformed_address_shapes` partitions only malformed-address occurrences
 into seven fixed observational buckets, including a separate alias-target bucket.
 The diagnostic does not change address recognition or binding. See the
 [address-shape contract](../public/docs/reviews/ADDRESS_SHAPE_REVIEW.md).
 The validator also accepts reference schema 1/source schema 2 and reference
-schemas 2/3/4 with source schema 3, and references 5/6/7/8/9/10/11 with source 4. Historical
+schemas 2/3/4 with source schema 3, and references 5/6/7/8/9/10/11/12 with source 4. Historical
 status vocabularies remain exact; mixed version combinations are rejected.
 The publisher accepts only the source, reference and work-check aggregate schemas and validates again
 before writing. New filename, location, 32-KiB limit and no-overwrite rules apply.
@@ -230,7 +239,7 @@ same scope as the work-machine checks.
 Successful tests enable a single captured-source inventory/reference analysis
 and a new private workspace. The feedback includes test counts, bounded
 code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 9 includes `diagnostic_sample`: one actual direct malformed
+Work-check schema 10 includes `diagnostic_sample`: one actual direct malformed
 operand, or a direct unresolved colon operand with no rack candidate when no
 eligible malformed sample exists. It retains at most 128 printable characters,
 a standard instruction and zero-based argument position; otherwise it is null.
@@ -246,9 +255,9 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema 9 and carries reference schema 11 with source
-schema 4 when analysis succeeds. Historical schema-1/2/3/4/5/6/7/8 reports remain readable;
-schemas 3/4/5/6/7/8 require references 5/6/7/8/9/10 respectively. The tested
+The outer report is schema 10 and carries reference schema 12 with source
+schema 4 when analysis succeeds. Historical schema-1/2/3/4/5/6/7/8/9 reports remain readable;
+schemas 3/4/5/6/7/8/9 require references 5/6/7/8/9/10/11 respectively. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
 `46467af` validated the local report-commit workflow. The later report in `349ee29`
@@ -288,10 +297,14 @@ Report `7e15843`, testing clean `3598710`, confirms 76 unique candidates,
 (one skip) and 139 helpers pass; earlier counts are unchanged. A unique
 declaration candidate does not prove a valid call or parameter role.
 
-The next run adds unique-candidate metadata total76 with program-Type and
-target-language partitions, including the unknown-context subset. Their
-distributions remain unknown until returned. Every existing count, including
-76unique/66distinct/76unknown, should stay unchanged. Partial remains expected.
+Report `3431389`, testing clean `5f91400`, confirms all 76 program-Type
+observations are absent, with target-language occurrences RLL62/SFC14. All 335
+application cases (one skip) and 139 helpers pass; earlier counts are unchanged.
+
+The next run adds static graph counts with 76 linked calls and zero unlinked
+calls. Grouped edges, callers, isolated nodes, main-designation matches, structural
+body coverage and candidate cycles remain unknown until returned. Earlier counts
+should stay unchanged. Partial remains expected; SFC outgoing logic is unmodeled.
 
 Review the local feedback report before sharing, then run `git push` when ready.
 There is no manual copy, staging or commit step. Older reports in

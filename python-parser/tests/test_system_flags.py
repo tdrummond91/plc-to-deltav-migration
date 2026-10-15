@@ -49,7 +49,7 @@ class SystemFlagTests(unittest.TestCase):
         self.assertEqual(result.coverage['instructions_catalogued'], 2)
         self.assertEqual(result.coverage['operands_total'], 2)
         self.assertEqual(result.status, 'complete')
-        self.assertEqual((result.schema_version, result.analyzer_version), (5, 'source-references-8'))
+        self.assertEqual((result.schema_version, result.analyzer_version), (6, 'source-references-9'))
         self.assertEqual((source.schema_version, source.parser_version), (3, 'source-inventory-3'))
         for field in ('semantic_analysis', 'effect_analysis', 'member_validation'):
             self.assertEqual(getattr(result, field), 'not_implemented')
@@ -186,7 +186,7 @@ class SystemFlagTests(unittest.TestCase):
         self.assertIn('No runtime first-scan value or execution behavior is simulated.', text)
         self.assertIn('s:fs -> system_flag', text)
         payload = json.loads(render_reference_json(result))
-        self.assertEqual(payload['schema_version'], 5)
+        self.assertEqual(payload['schema_version'], 6)
         self.assertEqual(payload['operands'][0]['raw_text'], 's:fs')
         self.assertNotIn('value', payload['operands'][0])
 

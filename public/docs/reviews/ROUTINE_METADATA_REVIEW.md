@@ -139,3 +139,22 @@ Input, earlier runs and all manifest artifact hashes remain intact. Report-only
 local commits cite their tested parents and leave a clean checkout. Git traces
 contain no fetch/pull/push, and copied root code/test/config hashes match final
 working bytes. No normal project confidential input or listener was used.
+
+## Returned metadata confirmation (2026-10-14)
+
+Commit `3431389` adds only
+[work-check-20261015T005328Z-f9bff3e7.json](../../inspection/work-check-20261015T005328Z-f9bff3e7.json)
+and has tested clean `5f91400` as parent. Work9/reference11/source4 validates;
+335 application cases (one skip) and 139 helpers pass. All 76 program-Type
+observations are absent, including every unclassified context. Call-weighted
+target languages are RLL62/SFC14; other language/type buckets are zero. All prior
+source/reference/candidate/shape and diagnostic counters are identical. Partial,
+private_run_saved and null sample remain expected. The UTC filename is October
+15; the local report/review date is October 14.
+
+This confirms why the explicit-Normal fallback did not classify the contexts;
+it does not prove an omitted Type means Normal. The next slice groups static JSR
+relationships and records body coverage, main designations and candidate cycles,
+while preserving these existing results. Read [the graph review](ROUTINE_GRAPH_REVIEW.md)
+for current versions and next work-machine expectations. No repeat metadata-only
+check is needed.

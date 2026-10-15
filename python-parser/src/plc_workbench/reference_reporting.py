@@ -105,6 +105,43 @@ def render_reference_text(result: ReferenceResult, *, inventory: InventoryResult
         for group in ('by_program_type', 'by_target_language', 'unclassified_context_by_program_type'):
             lines.append(f"  {group}:")
             lines.extend(f"    {bucket}: {count}" for bucket, count in metadata[group].items())
+    graph = payload['routine_graph']
+    entities = {entity.id: entity for entity in inventory.entities} if inventory is not None else {}
+
+    def routine_label(entity_id: str) -> str:
+        entity = entities.get(entity_id)
+        return f"{entity.name!r} [{entity_id}]" if entity is not None else entity_id
+
+    lines.extend([
+        "", "Declared program-local JSR candidate graph:",
+        "Edges group unique declaration candidates and retain every parsed JSR instruction ID.",
+        "Execution, scheduling, call legality and parameter semantics are not analyzed.",
+        "Cycles describe candidate edges only; unmodeled or partial bodies are not proven terminal routines.",
+        "Main designations use raw program attributes and do not establish runtime entry or reachability.",
+        "  Routine nodes:",
+    ])
+    for node in graph['nodes']:
+        lines.append(f"    {routine_label(node['routine_id'])}; program: {routine_label(node['program_id'])}; "
+                     f"language: {node['language']}; body: {node['body_status']}; rungs: {node['rung_counts']}")
+    lines.append("  Grouped candidate edges:")
+    for edge in graph['edges']:
+        lines.extend([
+            f"    {routine_label(edge['caller_routine_id'])} -> {routine_label(edge['target_routine_id'])}; "
+            f"program: {routine_label(edge['program_id'])}",
+            f"      instruction IDs: {', '.join(edge['instruction_ids'])}",
+        ])
+    lines.append(f"  Unlinked JSR instruction IDs: {', '.join(graph['unlinked_instruction_ids']) or '(none)'}")
+    lines.append("  Main designations:")
+    for designation in graph['main_designations']:
+        target = designation['target_routine_id']
+        lines.append(f"    {routine_label(designation['program_id'])}: {designation['raw_name']!r} "
+                     f"-> {designation['status']}; candidates: {designation['candidate_count']}; "
+                     f"target: {routine_label(target) if target is not None else '(none)'}")
+    lines.append("  Candidate cyclic components:")
+    if not graph['cyclic_components']:
+        lines.append("    (none)")
+    for component in graph['cyclic_components']:
+        lines.append(f"    {', '.join(routine_label(entity_id) for entity_id in component)}")
     lines.extend(["", "Rack logical-root candidates (backing mapping not analyzed):",
                   "Candidate matches do not change declared root bindings.",
                   "candidate_names_unavailable means matching is inconclusive."])

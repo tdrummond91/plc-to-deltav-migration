@@ -55,7 +55,7 @@ class BitOperationTests(unittest.TestCase):
         self.assertEqual(result.status, 'complete')
         # Lexical literals, including a destination literal, do not establish
         # legal execution, mask width, data type or destination access.
-        self.assertEqual((result.schema_version, result.analyzer_version), (5, 'source-references-8'))
+        self.assertEqual((result.schema_version, result.analyzer_version), (6, 'source-references-9'))
         for field in ('member_validation', 'semantic_analysis', 'effect_analysis'):
             self.assertEqual(getattr(result, field), 'not_implemented')
         validate_references(source, result)
@@ -141,7 +141,7 @@ class BitOperationTests(unittest.TestCase):
             with self.subTest(fields=fields), self.assertRaises(ReferenceError):
                 validate_references(source, changed)
         for changed in (replace(original, analyzer_version='source-references-6'),
-                        replace(original, schema_version=4)):
+                        replace(original, schema_version=5)):
             with self.assertRaises(ReferenceError):
                 validate_references(source, changed)
             with self.assertRaises(ReferenceSummaryError):
@@ -154,7 +154,7 @@ class BitOperationTests(unittest.TestCase):
         before = deepcopy(source.to_dict())
         nested = build_reference_summary(source, analyze_references(source), revision=REVISION)
         self.assertEqual((nested['schema_version'], nested['exporter_version'], nested['analyzer_version']),
-                         (11, 'reference-summary-11', 'source-references-8'))
+                         (12, 'reference-summary-12', 'source-references-9'))
         self.assertEqual(nested['source_summary'], build_summary(source, revision=REVISION))
         self.assertEqual((source.schema_version, source.parser_version), (3, 'source-inventory-3'))
         self.assertEqual(nested['source_summary']['schema_version'], 4)
@@ -169,8 +169,8 @@ class BitOperationTests(unittest.TestCase):
                         source.snapshot['id'], source.snapshot['sha256']):
             self.assertNotIn(private, rendered)
         payload = report(report_source('MVM(A,1,A)SWPB(A,UnknownMode,A);'))
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (9, 'work-check-9'))
-        self.assertEqual(payload['analysis']['reference_summary']['schema_version'], 11)
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (10, 'work-check-10'))
+        self.assertEqual(payload['analysis']['reference_summary']['schema_version'], 12)
         self.assertEqual(payload['status'], 'passed')
         self.assertIsNone(payload['diagnostic_sample'])
         self.assertEqual(json.loads(work_check.render_work_check_report(payload)), payload)
@@ -226,7 +226,7 @@ class BitOperationTests(unittest.TestCase):
         self.assertEqual(json.loads(render_reference_summary(historical)), historical)
         current = report(report_source('MVM(A,1,A)SWPB(A,UnknownMode,A);'))
         self.assertEqual(current['analysis']['reference_summary'].keys(),
-                         historical.keys() | {'routine_instruction_shapes', 'routine_targets', 'routine_target_metadata'})
+                         historical.keys() | {'routine_instruction_shapes', 'routine_targets', 'routine_target_metadata', 'routine_graph'})
         for base, constants in ((previous, {'schema_version': 6, 'workflow_version': 'work-check-6'}),
                                 (current, {'schema_version': 5, 'workflow_version': 'work-check-5'})):
             changed = deepcopy(base)

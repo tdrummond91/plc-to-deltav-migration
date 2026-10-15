@@ -9,7 +9,7 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `7e15843` confirms all 76 JSRs have unique program-local candidates covering 66 distinct targets; all contexts remain not_analyzed. Both suites passed and earlier counts stayed unchanged. The new observation-only slice profiles program-Type provenance and target-language metadata to explain that context gap, without changing candidate links or parameter roles. Read [metadata scope and evidence](docs/reviews/ROUTINE_METADATA_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `3431389` confirms all 76 unique JSR candidates have absent program-Type metadata; target languages are RLL62/SFC14. Both suites passed and earlier counts stayed unchanged. The next slice groups declared JSR relationships into a private static graph with structural body coverage, explicit main-designation evidence and candidate cycles. Read [graph scope and evidence](docs/reviews/ROUTINE_GRAPH_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
 
 ## Development-only listener files (2026-10-14)
 
@@ -98,8 +98,9 @@ fallback, schema 4 carries reference schema 6 with system-flag recognition,
 schema 5 carries reference 7 with the ABS/LN/SQR signature catalog,
 schema 6 carries reference 8 with MVM/SWPB roles and schema 7 carries
 reference 9 with observation-only routine-instruction shapes. Schema 8
-carries reference 10 with declared JSR first-field candidates; current schema 9
-carries reference 11 with unique-candidate metadata observations.
+carries reference 10 with declared JSR first-field candidates; schema 9
+carries reference 11 with unique-candidate metadata observations. Current schema
+10 carries reference 12 with the static candidate graph counts.
 Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
@@ -135,14 +136,15 @@ run and changed only the feedback JSON. Ordinary source/reference counters are
 unchanged; 26 XML elements across three paths are newly modeled and 11 warnings
 now describe unknown backing instead of omitted declarations. The sample is null.
 
-Current contracts: private inventory/reference schemas 3/5 with
-`source-inventory-3` / `source-references-8`; public source/reference schemas 4/11;
-work-check schema 9 and reference-run manifest schema 2. Private JSON now includes
-canonical routine_targets occurrences, unchanged by the metadata profile; public output contains closed counts only. Historical public
+Current contracts: private inventory/reference schemas 3/6 with
+`source-inventory-3` / `source-references-9`; public source/reference schemas 4/12;
+work-check schema 10 and reference-run manifest schema 2. Private JSON now includes
+canonical routine_targets occurrences and routine_graph; public output contains closed counts only. Historical public
 reports still validate with exact original status vocabularies. Work schema 3
 still requires reference 5, work schema 4 requires reference 6, and work schema
 5 requires reference 7, work schema 6 requires reference 8 and work schema 7
-requires reference 9; work schema 8 requires reference 10. Read [metadata review](docs/reviews/ROUTINE_METADATA_REVIEW.md)
+requires reference 9; work schema 8 requires reference 10 and work schema 9
+requires reference 11. Read [graph review](docs/reviews/ROUTINE_GRAPH_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 
 Rack validation: 316 development application/workflow tests passed (one existing
@@ -259,14 +261,33 @@ bindings stay intact. Returned `7e15843` confirms all 76 candidates unique, 66 d
 all 76 contexts not_analyzed, with 325 application cases (one skip) and 139 helpers
 passing. All earlier counters are unchanged. No repeat candidate-only run is needed.
 
-Current metadata profile observes exact program-Type buckets and target-language
+The preceding metadata profile observes exact program-Type buckets and target-language
 declarations for unique JSR candidates, with a program-Type subset for unknown
 contexts. Missing, empty and unknown explicit attributes remain distinct. No
 omitted-Type default or execution/body availability is inferred. Public11/work9
 add the profile; private5/analyzer8 and earlier bindings/candidates remain intact.
-Next run should preserve 76 unique candidates, 66 distinct targets and 76
-unknown contexts, and add a profile total of 76;
-its partitions remain unknown until returned. Partial remains expected.
+Returned `3431389` confirms all 76 program-Type observations are absent, with
+call-weighted RLL62/SFC14 target languages. Both suites pass (335 application
+cases, one skip; 139 helpers), and every earlier counter is unchanged.
+
+Current static graph groups unique JSR calls into program-local edges while
+retaining source instruction links. Nodes include isolated declarations, observed
+rung/body coverage and unmodeled SFC envelopes. Explicit main designations and
+iterative candidate cycles supply source context without execution, recursion,
+parameter or scheduling claims. Private6/analyzer9/public12/work10 carry this
+slice; earlier counters should remain unchanged. Next report should have 76
+linked calls and zero unlinked calls; other graph counts remain unknown. Partial
+remains expected.
+
+Static graph validation: 450 development cases pass (one symlink skip), excluding
+the listener loader. Independent review passes 37 focused cases and 150 generated
+mixed-language/multi-program summaries; iterative SCCs match 1,800 independent
+small-graph checks. Two final actual script runs each pass 354 application cases
+(one skip) and 139 helpers. Private CLI/JSON/text, source/prior-run preservation,
+artifact hashes, report-only local commits and final copied bytes verify, with
+no remote Git calls. Baseline `3431389` inventory and all earlier private/public
+fields remain unchanged apart from graph/version/revision additions. All 15
+stored work reports validate. See [full graph evidence](docs/reviews/ROUTINE_GRAPH_REVIEW.md).
 
 Metadata validation: 431 development cases pass (one symlink skip); listener
 loader excluded. Independent review passes 26 focused cases and verifies three

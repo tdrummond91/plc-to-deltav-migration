@@ -43,7 +43,8 @@ _V5_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 5, "workflow_version": "w
 _V6_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 6, "workflow_version": "work-check-6"}
 _V7_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 7, "workflow_version": "work-check-7"}
 _V8_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 8, "workflow_version": "work-check-8"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 9, "workflow_version": "work-check-9"}
+_V9_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 9, "workflow_version": "work-check-9"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 10, "workflow_version": "work-check-10"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _GIT_REPOSITORY_OVERRIDES = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
@@ -72,7 +73,7 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = {"diagnostic_sample"} if version >= 2 else set()
@@ -100,7 +101,7 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12}[version]:
             _invalid()
         if nested["status"] != analysis["status"] or nested["source_summary"]["tool_revision"] != revision:
             _invalid()
@@ -132,7 +133,7 @@ def validate_work_check_report(report: Any) -> None:
             if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
                 # This fallback needs dedicated rack evidence. Historical v2
                 # reports retain their original malformed-only sample contract.
-                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11)}
+                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12)}
                         or nested["rack_candidates"]["matches"]["direct_operands"]
                         ["by_status"]["no_candidate_match"] == 0):
                     _invalid()
@@ -147,13 +148,13 @@ def validate_work_check_report(report: Any) -> None:
                 _invalid()
             # Keep historical samples readable under their original analyzer,
             # but a current report cannot label a recognized slot as malformed.
-            if nested["schema_version"] in {4, 5, 6, 7, 8, 9, 10, 11} and _timer_placeholder(
+            if nested["schema_version"] in {4, 5, 6, 7, 8, 9, 10, 11, 12} and _timer_placeholder(
                     sample["opcode"], sample["argument_index"], sample["raw_text"]):
                 _invalid()
             operands = nested["operands"]
             # Samples are direct operands, never a caller hiding an alias-target
-            # failure. Schemas 3 through 11 carry the required shape histogram.
-            if (nested["schema_version"] not in {3, 4, 5, 6, 7, 8, 9, 10, 11}
+            # failure. Schemas 3 through 12 carry the required shape histogram.
+            if (nested["schema_version"] not in {3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
                     or operands["by_reason"]["unsupported_address"]["malformed_address"]
                     <= operands["malformed_address_shapes"]["alias_target_failure"]):
                 _invalid()

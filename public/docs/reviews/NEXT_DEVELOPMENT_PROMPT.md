@@ -1,4 +1,5 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/ROUTINE_GRAPH_REVIEW.md,
 public/docs/reviews/ROUTINE_METADATA_REVIEW.md,
 public/docs/reviews/ROUTINE_TARGET_REVIEW.md,
 public/docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md,
@@ -50,8 +51,8 @@ confidential/ and must not be shared.
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
 development unittest discovery remains available, excluding the ignored listener
-loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8 remain readable. Current
-schema 9 requires reference 11 and retains at most one authorized operand example.
+loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9 remain readable. Current
+schema 10 requires reference 12 and retains at most one authorized operand example.
 The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
@@ -73,10 +74,10 @@ uv run --project python-parser python -B -m unittest discover \
   -s tools/l5x_inspect/tests -v
 
 Current baseline: 139 passing helper tests. Also run the full development
-application command in ROUTINE_METADATA_REVIEW.md, which explicitly excludes the
+application command in ROUTINE_GRAPH_REVIEW.md, which explicitly excludes the
 ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in ROUTINE_METADATA_REVIEW.md;
+Use the final application test count and tested revision in ROUTINE_GRAPH_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -194,16 +195,27 @@ ROUTINE_TARGET_REVIEW.md. Returned `7e15843` tests clean `3598710`: 325
 application cases (one skip) and 139 helpers pass. There are 76 unique candidates,
 66 distinct targets and 76 not_analyzed contexts; earlier counters are unchanged.
 
-Current slice adds routine_target_metadata unique-call observations: exact
+The preceding slice adds routine_target_metadata unique-call observations: exact
 program-Type provenance and target-language declarations, with a program-Type
 subset for unknown context. Public11/exporter11 keeps analyzer8/private5; work9
 requires reference11. Earlier contracts remain frozen/readable. Do not default
 missing Program.Type to Normal: the official example suggests it but no explicit
 default rule was verified. Program Sequence is a documented enum;
 EquipmentSequence remains unknown. Read ROUTINE_METADATA_REVIEW.md.
-Next report should preserve every earlier count and add metadata total76; its
-partitions remain unknown until returned. Choose further context/body analysis
-from that evidence, not guessed parameters. Partial remains expected.
+Returned `3431389` tests clean `5f91400`, passing 335 application cases (one
+skip) and 139 helpers. All 76 program-Type observations are absent; call-weighted
+languages are RLL62/SFC14. All earlier counters remain unchanged.
+
+Current slice adds a static program-local declared-candidate JSR graph, grouping
+repeated calls with private instruction links, isolated routine nodes, observed
+structural body coverage, explicit main designations and iterative candidate
+cycles. Private6/analyzer9, public12 and work10 record the new derivation. SFC
+bodies remain unmodeled; no outgoing observed edges does not mean runtime leaf.
+Missing Type is still not defaulted, and no parameters, scheduling, valid-call
+or runtime reachability are inferred. Read ROUTINE_GRAPH_REVIEW.md. Next report
+should preserve earlier counters and have 76 linked/zero unlinked calls. Graph
+edge/body/designation/cycle partitions remain unknown until returned. Partial
+remains expected.
 Continue authorized work until a specific evidence gap or phase boundary needs
 Tyler's input. Do not activate the listener or access confidential inputs.
 

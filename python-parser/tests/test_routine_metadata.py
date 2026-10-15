@@ -180,7 +180,7 @@ class RoutineMetadataTests(unittest.TestCase):
         metadata = build_routine_target_metadata(source, refs.routine_targets)
         self.assertEqual(source.to_dict(), before_source)
         self.assertEqual(refs.to_dict(), before_refs)
-        self.assertEqual((refs.schema_version, refs.analyzer_version), (5, 'source-references-8'))
+        self.assertEqual((refs.schema_version, refs.analyzer_version), (6, 'source-references-9'))
         self.assertEqual(metadata['total'], 2)
         self.assertEqual(refs.operands[0]['status'], 'root_bound')
         self.assertTrue(all(row['status'] == 'unsupported_instruction' for row in refs.operands[1:]))
@@ -209,7 +209,7 @@ class RoutineMetadataTests(unittest.TestCase):
         _, source, refs = evidence(program(0, routine('PRIVATE_CALLER', text='JSR(PRIVATE_TARGET);'),
                                            routine('PRIVATE_TARGET'), program_type='PRIVATE_TYPE'))
         summary = build_reference_summary(source, refs)
-        self.assertEqual(summary['schema_version'], 11)
+        self.assertEqual(summary['schema_version'], 12)
         self.assertEqual(summary['routine_target_metadata'], build_routine_target_metadata(source, refs.routine_targets))
         self.assertEqual(set(summary['routine_target_metadata']), set(ROUTINE_METADATA_CONSTANTS) | {
             'total', 'by_program_type', 'by_target_language', 'unclassified_context_by_program_type'})

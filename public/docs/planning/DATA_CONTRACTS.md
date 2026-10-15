@@ -2,7 +2,25 @@
 
 Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current JSR candidate metadata contract (2026-10-14)
+## Current static JSR candidate graph contract (2026-10-14)
+
+Private references6 / source-references-9 adds routine_graph: consistently owned
+program routine nodes, grouped unique-candidate edges with instruction links,
+nonunique-call evidence, explicit main-designation matches and cyclic components.
+Nodes preserve language and observed rung/structural body coverage; SFC bodies
+remain unmodeled. Main metadata does not imply scheduling; candidate cycles do
+not imply runtime recursion. Canonical reanalysis verifies every derived record.
+
+Public reference12 / reference-summary-12 publishes fixed graph counts only.
+Nodes, calls, grouped/repeated/self edges, participating/isolated nodes, main
+designation statuses and candidate-cycle counts reconcile to existing candidate
+and source evidence. No topology, IDs, names or component membership is shared.
+Reference11 stays frozen as analyzer8 and rejects the graph field. Work10 /
+work-check-10 requires reference12; work9/reference11 and earlier contracts stay
+readable. Source3/aggregate4/manifest2, paths and manual pull/push are unchanged.
+See [exact scope and validation](../reviews/ROUTINE_GRAPH_REVIEW.md).
+
+## JSR candidate metadata contract checkpoint (2026-10-14)
 
 Public reference11 / reference-summary-11 adds routine_target_metadata for unique
 candidate occurrences: fixed scope/semantics/execution metadata, total, exact

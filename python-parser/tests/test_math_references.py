@@ -33,7 +33,7 @@ class MathReferenceTests(unittest.TestCase):
         # Negative LN/SQR input and these synthetic DINT declarations do not
         # trigger domain or data-type analysis in this root-reference stage.
         self.assertEqual(result.status, 'complete')
-        self.assertEqual((result.schema_version, result.analyzer_version), (5, 'source-references-8'))
+        self.assertEqual((result.schema_version, result.analyzer_version), (6, 'source-references-9'))
         for field in ('semantic_analysis', 'effect_analysis', 'member_validation'):
             self.assertEqual(getattr(result, field), 'not_implemented')
         validate_references(source, result)

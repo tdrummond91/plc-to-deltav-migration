@@ -16,6 +16,7 @@ from .models import EntityRecord, InventoryResult
 from .module_io import MODULE_IO_KINDS, ModuleIOError, derive_module_io_names
 from .rack_candidates import RackCandidateError, build_rack_candidates
 from .routine_targets import RoutineTargetError, build_routine_targets
+from .routine_graph import RoutineGraphError, build_routine_graph
 
 MAX_OPERANDS = 250_000
 MAX_ALIAS_DEPTH = 64
@@ -92,8 +93,9 @@ class ReferenceResult:
     status: str
     rack_candidates: dict[str, Any]
     routine_targets: dict[str, Any]
-    schema_version: int = 5
-    analyzer_version: str = 'source-references-8'
+    routine_graph: dict[str, Any]
+    schema_version: int = 6
+    analyzer_version: str = 'source-references-9'
     analysis_scope: str = 'scoped_root_bindings'
     semantic_analysis: str = 'not_implemented'
     effect_analysis: str = 'not_implemented'
@@ -418,9 +420,13 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
         routine_targets = build_routine_targets(inventory)
     except RoutineTargetError:
         raise ReferenceError('Routine target analysis could not complete within its evidence contract.') from None
+    try:
+        routine_graph = build_routine_graph(inventory, routine_targets)
+    except RoutineGraphError:
+        raise ReferenceError('Routine graph analysis could not complete within its evidence contract.') from None
     return ReferenceResult(dict(inventory.snapshot), symbols, aliases, operands,
                            coverage, 'partial' if partial else 'complete', rack_candidates,
-                           routine_targets)
+                           routine_targets, routine_graph)
 
 
 def _strict_record_match(expected: dict[str, Any], actual: dict[str, Any]) -> bool:

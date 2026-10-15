@@ -48,7 +48,7 @@ WORK_MACHINE_MODULES = {
         "test_system_flags", "test_system_flag_summary", "test_system_flag_report",
         "test_math_references", "test_math_summary", "test_math_report",
         "test_bit_operations",
-        "test_routine_shapes", "test_routine_targets", "test_routine_metadata",
+        "test_routine_shapes", "test_routine_targets", "test_routine_metadata", "test_routine_graph",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

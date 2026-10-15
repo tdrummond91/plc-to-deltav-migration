@@ -187,6 +187,19 @@ Normal/phase roles. The official program sequence enum is Sequence, distinct
 from Routine.Type and an unknown EquipmentSequence spelling. See
 [evidence and contract](../reviews/ROUTINE_METADATA_REVIEW.md).
 
+### Map declared routine relationships before runtime interpretation (2026-10-14)
+
+Returned `3431389` confirms all 76 candidate program-Type observations are absent
+and target-language occurrences are RLL62/SFC14, with earlier evidence stable.
+Retain that gap without inventing an omitted-Type default. Build a bounded
+program-local graph of declared JSR candidates, grouping repeated calls while
+retaining their instruction links. Include isolated nodes, explicit main metadata
+and observed body coverage; use iterative SCCs for candidate cycles. Do not infer
+SFC outgoing calls, runtime leaves, recursion, scheduling or parameter roles.
+The graph supports private reading and future source-linked engineering records;
+public feedback remains closed counts only. See
+[the graph contract](../reviews/ROUTINE_GRAPH_REVIEW.md).
+
 ## Open questions for the relevant milestone
 
 - Which parts of the earlier Excel PCSD/test-sheet format should be retained after understanding the L5X evidence?

@@ -59,6 +59,7 @@ def earlier_summary(current: dict, version: int) -> dict:
     report = deepcopy(current)
     del report['routine_targets']
     del report['routine_target_metadata']
+    del report['routine_graph']
     if version < 9:
         del report['routine_instruction_shapes']
     report.update(schema_version=version, exporter_version=f'reference-summary-{version}')
@@ -175,7 +176,7 @@ class AddressShapeSummaryTests(unittest.TestCase):
             self.assertIsNone(row['symbol_id'])
             self.assertIsNone(row['target_id'])
         self.assertEqual(report['status'], 'partial')
-        self.assertEqual((references.schema_version, references.analyzer_version), (5, 'source-references-8'))
+        self.assertEqual((references.schema_version, references.analyzer_version), (6, 'source-references-9'))
         self.assertEqual(source.to_dict(), source_before)
         self.assertEqual(references.to_dict(), references_before)
 
@@ -187,7 +188,7 @@ class AddressShapeSummaryTests(unittest.TestCase):
         self.assertEqual(report['operands']['total'], 0)
         self.assertEqual(report['status'], 'complete')
         self.assertEqual((report['schema_version'], report['exporter_version'], report['analyzer_version']),
-                         (11, 'reference-summary-11', 'source-references-8'))
+                         (12, 'reference-summary-12', 'source-references-9'))
         self.assertEqual(report['source_summary']['schema_version'], 4)
 
     def test_renaming_values_and_rung_order_do_not_reveal_private_details(self) -> None:

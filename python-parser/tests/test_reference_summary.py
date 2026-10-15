@@ -7,7 +7,7 @@ import json
 import unittest
 
 from plc_workbench.reference_summary import (
-    CONSTANTS, V8_CONSTANTS, V9_CONSTANTS, V10_CONSTANTS, MAX_REPORT_BYTES,
+    CONSTANTS, V8_CONSTANTS, V9_CONSTANTS, V10_CONSTANTS, V11_CONSTANTS, MAX_REPORT_BYTES,
     ReferenceSummaryError, build_reference_summary,
     render_reference_summary, validate_reference_summary,
 )
@@ -51,7 +51,162 @@ def complete_inventory():
     ))
 
 
+def graph_inventory(*, add_aoi: bool = False):
+    aoi = (
+        b'<AddOnInstructionDefinitions><AddOnInstructionDefinition Name="PRIVATE_AOI">'
+        b'<Routines><Routine Name="PRIVATE_AOI_RLL" Type="RLL"><RLLContent/></Routine>'
+        b'<Routine Name="PRIVATE_AOI_ST" Type="ST"/>'
+        b'<Routine Name="PRIVATE_AOI_ST_2" Type="ST"/>'
+        b'<Routine Name="PRIVATE_AOI_ST_3" Type="ST"/></Routines>'
+        b'</AddOnInstructionDefinition></AddOnInstructionDefinitions>'
+    ) if add_aoi else b''
+    return analyze_snapshot(snapshot_from_bytes(
+        b'<RSLogix5000Content><Controller Name="PRIVATE_CONTROLLER">' + aoi + b'<Programs>'
+        b'<Program Name="PRIVATE_PROGRAM" MainRoutineName="PRIVATE_A"><Routines>'
+        b'<Routine Name="PRIVATE_A" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+        b'<Text>JSR(PRIVATE_B)JSR(PRIVATE_B)JSR(PRIVATE_A)JSR(PRIVATE_C)JSR(PRIVATE_MISSING);'
+        b'</Text></Rung></RLLContent></Routine>'
+        b'<Routine Name="PRIVATE_B" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+        b'<Text>JSR(PRIVATE_A);</Text></Rung></RLLContent></Routine>'
+        b'<Routine Name="PRIVATE_C" Type="ST"/>'
+        b'<Routine Name="PRIVATE_D" Type="RLL"/>'
+        b'<Routine Name="PRIVATE_E" Type="RLL"><RLLContent/></Routine>'
+        b'</Routines></Program><Program Name="PRIVATE_OTHER"/>'
+        b'</Programs></Controller></RSLogix5000Content>'
+    ))
+
+
 class ReferenceSummaryTests(unittest.TestCase):
+    def test_graph_validator_rejects_partition_coherent_but_impossible_graphs(self) -> None:
+        source = graph_inventory()
+        original = build_reference_summary(source, analyze_references(source))
+        two_rll = analyze_snapshot(snapshot_from_bytes(
+            b'<RSLogix5000Content><Controller Name="C"><Programs><Program Name="P"><Routines>'
+            b'<Routine Name="A" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+            b'<Text>JSR(A)JSR(B)JSR(B)JSR(B);</Text></Rung></RLLContent></Routine>'
+            b'<Routine Name="B" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+            b'<Text>JSR(A);</Text></Rung></RLLContent></Routine>'
+            b'</Routines></Program></Programs></Controller></RSLogix5000Content>'
+        ))
+        two_report = build_reference_summary(two_rll, analyze_references(two_rll))
+        three_programs = analyze_snapshot(snapshot_from_bytes(
+            b'<RSLogix5000Content><Controller Name="C"><Programs><Program Name="P"><Routines>'
+            b'<Routine Name="A" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+            b'<Text>JSR(B)JSR(C)JSR(A);</Text></Rung></RLLContent></Routine>'
+            b'<Routine Name="B" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+            b'<Text>JSR(A);</Text></Rung></RLLContent></Routine>'
+            b'<Routine Name="C" Type="ST"/></Routines></Program>'
+            b'<Program Name="Q"/><Program Name="S"/>'
+            b'</Programs></Controller></RSLogix5000Content>'
+        ))
+        three_report = build_reference_summary(three_programs, analyze_references(three_programs))
+        with_aoi = graph_inventory(add_aoi=True)
+        aoi_report = build_reference_summary(with_aoi, analyze_references(with_aoi))
+        cases = (
+            ('cycle edges exceed possible pairs', original,
+             lambda g: g['cycles'].update(edges=4)),
+            ('partial bodies exceed failed routine count', original,
+             lambda g: g['nodes']['by_body_status'].update(
+                 rll_structure_parsed=2, rll_structure_partial=2)),
+            ('cyclic nodes exceed available RLL callers', three_report,
+             lambda g: g['cycles'].update(nodes=3)),
+            ('main candidates require disjoint program-owned declarations', three_report,
+             lambda g: g['programs']['main_designations'].update(
+                 absent=0, unique_candidate=1, ambiguous_candidate=2)),
+            ('edges exceed grouped-pair capacity with exact self count', two_report,
+             lambda g: g['edges'].update(total=4, extra_call_occurrences=1)),
+            ('AOI language declarations cannot supply a program target', aoi_report,
+             lambda g: (g['nodes']['by_language'].update(RLL=5, ST=0),
+                        g['nodes']['by_body_status'].update(
+                            rll_structure_parsed=4, language_unmodeled=0))),
+            ('distinct targets exceed call-weighted graph-language capacity', aoi_report,
+             lambda g: (g['nodes']['by_language'].update(RLL=1, ST=4),
+                        g['nodes']['by_body_status'].update(
+                            rll_structure_parsed=0, language_unmodeled=4),
+                        g['cycles'].update(nodes=1, edges=1))),
+        )
+        for label, base, mutate in cases:
+            report = deepcopy(base)
+            mutate(report['routine_graph'])
+            graph = report['routine_graph']
+            # All mutations preserve the visible partitions and call accounting.
+            self.assertEqual(sum(graph['nodes']['by_language'].values()), graph['nodes']['total'])
+            self.assertEqual(sum(graph['nodes']['by_body_status'].values()), graph['nodes']['total'])
+            self.assertEqual(sum(graph['programs']['main_designations'].values()), graph['programs']['total'])
+            self.assertEqual(graph['calls']['linked'] - graph['edges']['total'],
+                             graph['edges']['extra_call_occurrences'])
+            with self.subTest(case=label), self.assertRaises(ReferenceSummaryError):
+                validate_reference_summary(report)
+
+    def test_graph_counts_keep_cycle_and_repeat_observations_without_topology(self) -> None:
+        source = graph_inventory()
+        report = build_reference_summary(source, analyze_references(source))
+        graph = report['routine_graph']
+        self.assertEqual(graph['nodes'], {
+            'total': 5,
+            'by_language': {'RLL': 4, 'FBD': 0, 'SFC': 0, 'ST': 1, 'missing': 0, 'other': 0},
+            'by_body_status': {'rll_structure_parsed': 3, 'rll_structure_partial': 1,
+                               'language_unmodeled': 1},
+        })
+        self.assertEqual(graph['programs']['total'], 2)
+        self.assertEqual(graph['programs']['main_designations']['unique_candidate'], 1)
+        self.assertEqual(graph['programs']['main_designations']['absent'], 1)
+        self.assertEqual(graph['calls'], {'total': 6, 'linked': 5, 'unlinked': 1})
+        self.assertEqual(graph['edges'], {'total': 4, 'repeated_pairs': 1,
+                                        'extra_call_occurrences': 1, 'self_pairs': 1})
+        self.assertEqual(graph['cycles'], {'components': 1, 'nodes': 2, 'edges': 3})
+        self.assertEqual((graph['participating_nodes'], graph['isolated_nodes']), (3, 2))
+        self.assertEqual(graph['execution'], 'not_analyzed')
+        rendered = render_reference_summary(report)
+        for forbidden in ('PRIVATE', source.snapshot['sha256'], 'routine_id', 'program_id',
+                          'instruction_ids', 'raw_name', 'cyclic_components'):
+            self.assertNotIn(forbidden, rendered)
+
+    def test_graph_validator_rejects_private_fields_types_and_inconsistent_counts(self) -> None:
+        source = graph_inventory()
+        original = build_reference_summary(source, analyze_references(source))
+        cases = [
+            lambda g: g.update(execution='analyzed'),
+            lambda g: g.update(program_id='PRIVATE'),
+            lambda g: g['nodes']['by_language'].update(PRIVATE=0),
+            lambda g: g['nodes'].update(total=6),
+            lambda g: g['nodes']['by_language'].update(RLL=3, ST=2),
+            lambda g: g['nodes']['by_body_status'].update(rll_structure_parsed=4, rll_structure_partial=0),
+            lambda g: g['nodes']['by_body_status'].update(rll_structure_partial=2, language_unmodeled=0),
+            lambda g: g['programs'].update(total=1),
+            lambda g: g['programs']['main_designations'].update(absent=0),
+            lambda g: g['calls'].update(total=7, unlinked=2),
+            lambda g: g['calls'].update(linked=4, unlinked=2),
+            lambda g: g['edges'].update(total=6),
+            lambda g: g['edges'].update(extra_call_occurrences=2),
+            lambda g: g['edges'].update(repeated_pairs=2),
+            lambda g: g['edges'].update(repeated_pairs=0),
+            lambda g: g['edges'].update(self_pairs=2),
+            lambda g: g.update(participating_nodes=2, isolated_nodes=3),
+            lambda g: g.update(isolated_nodes=3),
+            lambda g: g['cycles'].update(nodes=4, edges=4),
+            lambda g: g['cycles'].update(edges=1),
+            lambda g: g['cycles'].update(components=0),
+            lambda g: g['cycles'].update(components=2),
+            lambda g: g['cycles'].update(components=0, nodes=0, edges=0),
+        ]
+        for bad_count in (True, -1, 1.5, 10**15):
+            cases.extend((
+                lambda g, value=bad_count: g['nodes'].update(total=value),
+                lambda g, value=bad_count: g['nodes']['by_language'].update(RLL=value),
+                lambda g, value=bad_count: g['programs']['main_designations'].update(absent=value),
+                lambda g, value=bad_count: g['calls'].update(linked=value),
+                lambda g, value=bad_count: g['edges'].update(repeated_pairs=value),
+                lambda g, value=bad_count: g['cycles'].update(nodes=value),
+                lambda g, value=bad_count: g.update(participating_nodes=value),
+            ))
+        for mutate in cases:
+            report = deepcopy(original)
+            mutate(report['routine_graph'])
+            with self.subTest(mutate=mutate), self.assertRaises(ReferenceSummaryError) as caught:
+                render_reference_summary(report)
+            self.assertNotIn('PRIVATE', str(caught.exception))
+
     def test_frozen_v8_keeps_exact_old_fields_and_analyzer_metadata(self) -> None:
         source = complete_inventory()
         current = build_reference_summary(source, analyze_references(source))
@@ -60,10 +215,11 @@ class ReferenceSummaryTests(unittest.TestCase):
         del historical['routine_instruction_shapes']
         del historical['routine_targets']
         del historical['routine_target_metadata']
+        del historical['routine_graph']
         self.assertEqual(V8_CONSTANTS['analyzer_version'], 'source-references-7')
-        self.assertEqual(CONSTANTS['analyzer_version'], 'source-references-8')
+        self.assertEqual(CONSTANTS['analyzer_version'], 'source-references-9')
         self.assertEqual(set(historical), set(current) - {
-            'routine_instruction_shapes', 'routine_targets', 'routine_target_metadata',
+            'routine_instruction_shapes', 'routine_targets', 'routine_target_metadata', 'routine_graph',
         })
         self.assertEqual(json.loads(render_reference_summary(historical)), historical)
         for base, changes in (
@@ -86,8 +242,11 @@ class ReferenceSummaryTests(unittest.TestCase):
         historical.update(V9_CONSTANTS)
         del historical['routine_targets']
         del historical['routine_target_metadata']
+        del historical['routine_graph']
         self.assertEqual(V9_CONSTANTS['analyzer_version'], 'source-references-7')
-        self.assertEqual(set(historical), set(current) - {'routine_targets', 'routine_target_metadata'})
+        self.assertEqual(set(historical), set(current) - {
+            'routine_targets', 'routine_target_metadata', 'routine_graph',
+        })
         self.assertEqual(historical['routine_instruction_shapes'], current['routine_instruction_shapes'])
         self.assertEqual(json.loads(render_reference_summary(historical)), historical)
         historical['routine_targets'] = deepcopy(current['routine_targets'])
@@ -113,8 +272,9 @@ class ReferenceSummaryTests(unittest.TestCase):
         historical = deepcopy(current)
         historical.update(V10_CONSTANTS)
         del historical['routine_target_metadata']
-        self.assertEqual(V10_CONSTANTS['analyzer_version'], CONSTANTS['analyzer_version'])
-        self.assertEqual(set(historical), set(current) - {'routine_target_metadata'})
+        del historical['routine_graph']
+        self.assertEqual(V10_CONSTANTS['analyzer_version'], 'source-references-8')
+        self.assertEqual(set(historical), set(current) - {'routine_target_metadata', 'routine_graph'})
         self.assertEqual(historical['routine_targets'], current['routine_targets'])
         self.assertEqual(json.loads(render_reference_summary(historical)), historical)
         for base, changes in (
@@ -126,6 +286,27 @@ class ReferenceSummaryTests(unittest.TestCase):
             report = deepcopy(base)
             report.update(changes)
             with self.subTest(changes=changes), self.assertRaises(ReferenceSummaryError):
+                validate_reference_summary(report)
+
+    def test_frozen_v11_preserves_metadata_and_excludes_graph_counts(self) -> None:
+        source = complete_inventory()
+        current = build_reference_summary(source, analyze_references(source))
+        historical = deepcopy(current)
+        historical.update(V11_CONSTANTS)
+        del historical['routine_graph']
+        self.assertEqual(V11_CONSTANTS['analyzer_version'], 'source-references-8')
+        self.assertEqual(set(historical), set(current) - {'routine_graph'})
+        self.assertEqual(historical['routine_target_metadata'], current['routine_target_metadata'])
+        self.assertEqual(json.loads(render_reference_summary(historical)), historical)
+        for base, mutate in (
+            (historical, lambda r: r.update(routine_graph=current['routine_graph'])),
+            (historical, lambda r: r.update(analyzer_version=CONSTANTS['analyzer_version'])),
+            (current, lambda r: r.pop('routine_graph')),
+            (current, lambda r: r.update(analyzer_version=V11_CONSTANTS['analyzer_version'])),
+        ):
+            report = deepcopy(base)
+            mutate(report)
+            with self.subTest(mutate=mutate), self.assertRaises(ReferenceSummaryError):
                 validate_reference_summary(report)
 
     def test_target_metadata_counts_calls_and_rejects_private_labels_or_inconsistent_partitions(self) -> None:

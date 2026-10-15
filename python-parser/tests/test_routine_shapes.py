@@ -117,7 +117,7 @@ class RoutineShapeTests(unittest.TestCase):
         self.assertEqual(analyze_references(source).to_dict(), private_before)
         self.assertEqual(references.coverage['instructions_catalogued'], 1)
         self.assertEqual((references.schema_version, references.analyzer_version),
-                         (5, 'source-references-8'))
+                         (6, 'source-references-9'))
         self.assertNotIn('routine_instruction_shapes', private_before)
         self.assertEqual(json.loads(render_reference_json(references)), private_before)
         other = analyze_snapshot(snapshot_from_bytes(source_bytes(
@@ -198,10 +198,10 @@ class RoutineShapeTests(unittest.TestCase):
         source = inventory('JSR(PRIVATE_TARGET,0)SBR(A)RET(A);')
         nested = build_reference_summary(source, analyze_references(source))
         self.assertEqual((nested['schema_version'], nested['exporter_version'], nested['analyzer_version']),
-                         (11, 'reference-summary-11', 'source-references-8'))
+                         (12, 'reference-summary-12', 'source-references-9'))
         self.assertEqual(nested['routine_instruction_shapes'], build_routine_instruction_shapes(source))
         payload = report(source_bytes('JSR(PRIVATE_TARGET,0)SBR(A)RET(A);'))
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (9, 'work-check-9'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (10, 'work-check-10'))
         self.assertEqual(json.loads(work_check.render_work_check_report(payload)), payload)
         rendered = render_reference_summary(nested)
         self.assertNotIn('PRIVATE', rendered)

@@ -32,9 +32,9 @@ class MathReportTests(unittest.TestCase):
 
     def test_current_math_report_uses_new_pair_without_changing_source_contract(self) -> None:
         payload = report(MATH_SOURCE)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (9, 'work-check-9'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (10, 'work-check-10'))
         nested = payload['analysis']['reference_summary']
-        self.assertEqual((nested['schema_version'], nested['analyzer_version']), (11, 'source-references-8'))
+        self.assertEqual((nested['schema_version'], nested['analyzer_version']), (12, 'source-references-9'))
         self.assertEqual(nested['source_summary']['schema_version'], 4)
         self.assertEqual(nested['coverage']['instructions_catalogued'], 3)
         self.assertEqual(nested['operands']['by_status']['root_bound'], 5)
@@ -63,7 +63,7 @@ class MathReportTests(unittest.TestCase):
             saved, = (root / 'confidential/workspaces/work-check').glob('run-*')
             references = json.loads((saved / 'references.json').read_text(encoding='utf-8'))
             self.assertEqual((references['schema_version'], references['analyzer_version']),
-                             (5, 'source-references-8'))
+                             (6, 'source-references-9'))
             self.assertEqual([item['raw_text'] for item in references['operands']], ['A', 'A', '2', 'A', 'A', 'A'])
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), MATH_SOURCE)
             self.assertEqual(path.read_bytes(), MATH_SOURCE)
@@ -81,6 +81,7 @@ class MathReportTests(unittest.TestCase):
             del payload['analysis']['reference_summary']['routine_instruction_shapes']
             del payload['analysis']['reference_summary']['routine_targets']
             del payload['analysis']['reference_summary']['routine_target_metadata']
+            del payload['analysis']['reference_summary']['routine_graph']
             payload['analysis']['reference_summary'].update(
                 schema_version=6, exporter_version='reference-summary-6', analyzer_version='source-references-5',
             )

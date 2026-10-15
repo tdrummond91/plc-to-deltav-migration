@@ -191,7 +191,7 @@ class RoutineTargetTests(unittest.TestCase):
         self.assertEqual(result.routine_targets, {**ROUTINE_TARGET_CONSTANTS,
                                                 'occurrences': result.routine_targets['occurrences']})
         self.assertEqual(build_routine_instruction_shapes(source)['by_opcode']['JSR']['total'], 3)
-        self.assertEqual((result.schema_version, result.analyzer_version), (5, 'source-references-8'))
+        self.assertEqual((result.schema_version, result.analyzer_version), (6, 'source-references-9'))
         validate_references(source, result)
 
     def test_parsed_only_jsr_ascii_opcodes_and_raw_ids(self) -> None:
@@ -274,13 +274,13 @@ class RoutineTargetTests(unittest.TestCase):
         references = analyze_references(source)
         summary = build_reference_summary(source, references)
         rendered = render_reference_summary(summary)
-        self.assertEqual(summary['schema_version'], 11)
-        self.assertEqual(summary['analyzer_version'], 'source-references-8')
+        self.assertEqual(summary['schema_version'], 12)
+        self.assertEqual(summary['analyzer_version'], 'source-references-9')
         for forbidden in ('PRIVATE_', source.snapshot['id'], source.snapshot['sha256'], 'raw_target_name',
                           'instruction_id', 'target_routine_id', 'caller_routine_id', 'program_id'):
             self.assertNotIn(forbidden, rendered)
         current = report(data)
-        self.assertEqual((current['schema_version'], current['workflow_version']), (9, 'work-check-9'))
+        self.assertEqual((current['schema_version'], current['workflow_version']), (10, 'work-check-10'))
         self.assertNotIn('PRIVATE_', work_check.render_work_check_report(current))
         frozen = json.loads(PREVIOUS_REPORT.read_text(encoding='utf-8'))
         self.assertEqual((frozen['schema_version'], frozen['analysis']['reference_summary']['schema_version']), (7, 9))

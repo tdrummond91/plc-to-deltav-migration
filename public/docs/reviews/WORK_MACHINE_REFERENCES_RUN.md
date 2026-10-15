@@ -1,6 +1,6 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. The next routine-metadata check is on
+Use **main** for the consolidated baseline. The next routine-graph check is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
@@ -40,18 +40,24 @@ and 11 three-field second-other calls. SBR has one field; RET has none. Every
 earlier counter is unchanged. A second field spelled zero does not establish
 its parameter role. See [the confirmed shape review](ROUTINE_CALL_SHAPE_REVIEW.md).
 
-Latest evidence: `7e15843` tested `3598710`, passed 325 application cases (one
+Candidate evidence: `7e15843` tested `3598710`, passed 325 application cases (one
 skip) and 139 helpers. All 76 JSRs have unique declared candidates covering
 66 distinct targets; all contexts remain not_analyzed. Earlier counters remain
 unchanged. See [the confirmed candidate review](ROUTINE_TARGET_REVIEW.md).
 
-The next check uses work-check schema 9 and reference/source schemas 11/4.
-`analysis.reference_summary.routine_target_metadata` adds exact program-Type
-provenance and target-language counts for unique calls, plus the program-Type
-subset for unknown context. Expect total=76 with every earlier count unchanged,
-including 76unique/66distinct/76unknown. New partitions remain unknown until the
-run; neither missing Type nor target-language metadata establishes runtime
-behavior. See [the metadata review](ROUTINE_METADATA_REVIEW.md).
+Latest evidence: `3431389` tests clean `5f91400`, passing 335 application cases
+(one skip) and 139 helpers. All 76 program-Type observations are absent; targets
+are RLL62/SFC14 by call occurrence. Every earlier counter remains unchanged.
+See [the confirmed metadata review](ROUTINE_METADATA_REVIEW.md).
+
+The next check uses work-check schema 10 and reference/source schemas 12/4.
+`analysis.reference_summary.routine_graph` adds closed routine/body/language,
+main-designation, grouped-call and candidate-cycle counts. Expect 76 linked
+calls and zero unlinked calls; every earlier count should stay unchanged. Other
+graph partitions remain unknown until returned. Names, source IDs and topology
+stay in private references.json/references.txt. SFC outgoing logic remains
+unmodeled; these counts make no runtime claim. See
+[the graph review](ROUTINE_GRAPH_REVIEW.md).
 
 ## Manual runs
 
@@ -91,7 +97,7 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 9 and their tested SHA identifies which suite
+check. New reports use schema 10 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
