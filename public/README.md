@@ -52,3 +52,6 @@ For the first parsing discussion, read [L5X structure and branch locations](docs
 
 20. [Stored-state conditions and SFC reset targets](docs/reviews/STATEFUL_SEQUENCE_REVIEW.md),
     with the [invented stored-state and sequence report](examples/stateful-sequence-demo.html).
+
+21. [AOI bodies and unmatched SFR target context](docs/reviews/AOI_BODY_REVIEW.md),
+    with the [invented body-context report](examples/aoi-body-demo.html).

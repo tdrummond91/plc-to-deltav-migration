@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from io import StringIO
 from itertools import chain
 import json
@@ -57,6 +57,17 @@ COVERAGE_KEYS = frozenset(COUNT_MAPS) | {
     'source_sfc_contents', 'source_sfc_steps', 'calls_total', 'steps_total',
     'content_matches_total', 'matched_calls', 'fully_matched_calls', 'multiple_content_calls',
 }
+CONTEXT_CONSTANTS_V2 = {**CONTEXT_CONSTANTS, 'schema_version': 2, 'analyzer_version': 'sfr-context-2'}
+GAP_LINK_KINDS = frozenset({'same_content_root', 'other_edit_exact', 'peer_chart_exact'})
+PEER_CONTENT_KINDS = frozenset({'eligible', 'protected', 'unsupported_context', 'incomplete_context'})
+COUNT_MAPS_V2 = {**COUNT_MAPS, 'missing_matches_by_selector_kind': frozenset({'named', 'initial'}),
+                'gap_candidate_links_by_kind': GAP_LINK_KINDS,
+                'gap_peer_content_counts': PEER_CONTENT_KINDS}
+COVERAGE_KEYS_V2 = COVERAGE_KEYS | frozenset(COUNT_MAPS_V2) | {
+    'gap_contexts_total', 'gap_candidate_links_total', 'gaps_with_candidates', 'gaps_with_no_candidates',
+    'gaps_with_excluded_peer_contents', 'gaps_with_peer_routines_without_content',
+    'gap_peer_contents_total', 'gap_peer_routines_without_content_total',
+}
 _NAME = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z', re.ASCII)
 _PROTECTION_MARKERS = frozenset({'Protected', 'IsProtected', 'SourceProtected', 'SourceKey',
                                 'SourceKeyName', 'ProtectionType', 'Encrypted', 'EncryptionInfo'})
@@ -88,10 +99,11 @@ class SfrContextResult:
     reset_effects: str = 'not_analyzed'
     edit_selection: str = 'not_analyzed'
     member_validation: str = 'not_analyzed'
+    gap_contexts: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         render_sfr_context_json(self)
-        return deepcopy(vars(self))
+        return deepcopy(_project_data(self))
 
 
 def _namespace(name: str) -> str | None:
@@ -105,7 +117,7 @@ def _name(value: str | None) -> str | None:
 
 
 def _derive(snapshot: SourceSnapshot, inventory: InventoryResult, access: AccessResult,
-            sfc_structure: SfcStructureResult) -> SfrContextResult:
+            sfc_structure: SfcStructureResult, schema_version: int) -> SfrContextResult:
     if max(len(inventory.entities), len(inventory.rungs), len(access.instructions),
            len(access.operands), len(sfc_structure.elements)) > MAX_RECORDS:
         _limit()
@@ -338,16 +350,113 @@ def _derive(snapshot: SourceSnapshot, inventory: InventoryResult, access: Access
     complete = (coverage['fully_matched_calls'] == len(calls)
                 and coverage['steps_by_binding']['root_bound'] == len(steps)
                 and coverage['initial_markers_by_kind']['other'] == 0)
-    return SfrContextResult(dict(inventory.snapshot), 'complete' if complete else 'partial',
-                            calls, steps, coverage)
+    result = SfrContextResult(dict(inventory.snapshot), 'complete' if complete else 'partial',
+                              calls, steps, coverage)
+    if schema_version == 1:
+        return result
+
+    # Version 2 explains named-selector misses without changing any existing
+    # match, target, or completeness disposition. Index peer evidence once;
+    # every lookup is restricted to the caller's actual program source ID.
+    content_dispositions: dict[str, str] = {}
+    peer_counts: dict[str, dict[str, int]] = {}
+    missing_charts: dict[str, list[str]] = defaultdict(list)
+    chart_programs: dict[str, str] = {}
+    for chart in sfc_structure.routines:
+        routine = entities[chart['routine_id']]
+        owner = entities.get(routine.parent_id)
+        if owner is None or owner.kind != 'program' or routine.scope_id != owner.id:
+            continue
+        chart_programs[routine.id] = owner.id
+        counts = peer_counts.setdefault(owner.id, dict.fromkeys(sorted(PEER_CONTENT_KINDS), 0))
+        contents = contents_by_routine[routine.id]
+        if not contents:
+            missing_charts[owner.id].append(routine.id)
+        for content in contents:
+            disposition = (
+                'unsupported_context' if _name(routine.name) is None or not supported[routine.locator]
+                or not supported[content['locator']] or content['id'] in unsupported_contents else
+                'protected' if chart['protection_markers']
+                or _PROTECTION_MARKERS.intersection(routine.attributes) else
+                'incomplete_context' if chart['unmodeled_children'] or chart['direct_text'].strip()
+                or content['id'] in incomplete_contents or content['direct_text'].strip()
+                or content['id'] in named_incomplete else 'eligible')
+            content_dispositions[content['id']] = disposition
+            counts[disposition] += 1
+    exact_peer_steps: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    root_content_steps: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for step in steps:
+        if step['binding_status'] != 'root_bound':
+            continue
+        root_content_steps[step['content_id'], step['target_id']].append(step)
+        program_id = chart_programs.get(step['routine_id'])
+        if program_id is not None and content_dispositions.get(step['content_id']) == 'eligible':
+            exact_peer_steps[program_id, step['target_id'], step['suffix']].append(step)
+    gaps: list[dict[str, Any]] = []
+    for key, vocabulary in COUNT_MAPS_V2.items():
+        if key not in coverage:
+            coverage[key] = dict.fromkeys(sorted(vocabulary), 0)
+    # Review HTML embeds to_dict() in insertion order. Set iteration would
+    # otherwise change identical artifacts between Python hash seeds.
+    coverage.update({key: 0 for key in sorted(COVERAGE_KEYS_V2 - COVERAGE_KEYS - COUNT_MAPS_V2.keys())})
+    for call in calls:
+        for match in call['content_matches']:
+            if match['status'] != 'missing_candidate':
+                continue
+            coverage['missing_matches_by_selector_kind'][call['selector_kind']] += 1
+            if call['selector_kind'] != 'named' or call['selector_binding_status'] != 'root_bound':
+                continue
+            source = operand_access[call['target_operand_id']]
+            program_id, content_id = call['program_id'], match['content_id']
+            same_root = [step['element_id'] for step in root_content_steps[content_id, source['target_id']]
+                         if step['suffix'] != source['suffix']]
+            exact = exact_peer_steps[program_id, source['target_id'], source['suffix']]
+            other_edits = [step['element_id'] for step in exact
+                           if step['routine_id'] == call['target_routine_id'] and step['content_id'] != content_id]
+            peer_charts = [step['element_id'] for step in exact if step['routine_id'] != call['target_routine_id']]
+            counts = dict(peer_counts[program_id])
+            # The selected content is not a peer. Existing missing_candidate
+            # requires complete, eligible evidence in this exact content.
+            if content_dispositions.get(content_id) != 'eligible':
+                _invalid()
+            counts['eligible'] -= 1
+            row = {'instruction_id': call['instruction_id'], 'rung_id': call['rung_id'],
+                   'content_id': content_id, 'target_routine_id': call['target_routine_id'],
+                   'program_id': program_id, 'target_operand_id': call['target_operand_id'],
+                   'same_content_root_step_ids': same_root, 'other_edit_exact_step_ids': other_edits,
+                   'peer_chart_exact_step_ids': peer_charts, 'peer_content_counts': counts,
+                   'peer_routines_without_content_ids': list(missing_charts[program_id])}
+            charge(row)
+            gaps.append(row)
+            links = len(same_root) + len(other_edits) + len(peer_charts)
+            coverage['gap_candidate_links_by_kind']['same_content_root'] += len(same_root)
+            coverage['gap_candidate_links_by_kind']['other_edit_exact'] += len(other_edits)
+            coverage['gap_candidate_links_by_kind']['peer_chart_exact'] += len(peer_charts)
+            coverage['gap_candidate_links_total'] += links
+            coverage['gaps_with_candidates'] += int(bool(links))
+            coverage['gaps_with_no_candidates'] += int(not links)
+            coverage['gaps_with_excluded_peer_contents'] += int(sum(counts.values()) != counts['eligible'])
+            coverage['gaps_with_peer_routines_without_content'] += int(bool(missing_charts[program_id]))
+            coverage['gap_peer_routines_without_content_total'] += len(missing_charts[program_id])
+            coverage['gap_peer_contents_total'] += sum(counts.values())
+            for kind, count in counts.items():
+                coverage['gap_peer_content_counts'][kind] += count
+    coverage['gap_contexts_total'] = len(gaps)
+    if (any(value > MAX_RECORDS for value in coverage.values() if type(value) is int)
+            or any(value > MAX_RECORDS for key in COUNT_MAPS_V2 for value in coverage[key].values())
+            or records + coverage['gap_candidate_links_total'] > MAX_RECORDS):
+        _limit()
+    return SfrContextResult(**{**vars(result), **CONTEXT_CONSTANTS_V2, 'gap_contexts': gaps})
 
 
 def analyze_sfr_context(snapshot: SourceSnapshot, inventory: InventoryResult,
                         references: ReferenceResult, access: AccessResult,
                         calculations: CalculationResult,
-                        sfc_structure: SfcStructureResult) -> SfrContextResult:
+                        sfc_structure: SfcStructureResult, *, schema_version: int = 1) -> SfrContextResult:
     """Authenticate supplied companions and derive only bounded target context."""
     try:
+        if type(schema_version) is not int or schema_version not in {1, 2}:
+            _invalid()
         validate_calculations(snapshot, inventory, references, calculations)
         if type(access) is not AccessResult or type(access.schema_version) is not int or access.schema_version not in {3, 4}:
             _invalid()
@@ -356,7 +465,7 @@ def analyze_sfr_context(snapshot: SourceSnapshot, inventory: InventoryResult,
         else:
             validate_access(inventory, references, access)
         validate_sfc_structure(snapshot, inventory, sfc_structure)
-        result = _derive(snapshot, inventory, access, sfc_structure)
+        result = _derive(snapshot, inventory, access, sfc_structure, schema_version)
         render_sfr_context_json(result)
         return result
     except SfrContextError:
@@ -370,7 +479,10 @@ def validate_sfr_context(snapshot: SourceSnapshot, inventory: InventoryResult,
                          calculations: CalculationResult, sfc_structure: SfcStructureResult,
                          result: SfrContextResult) -> None:
     try:
-        expected = analyze_sfr_context(snapshot, inventory, references, access, calculations, sfc_structure)
+        if type(result) is not SfrContextResult:
+            _invalid()
+        expected = analyze_sfr_context(snapshot, inventory, references, access, calculations, sfc_structure,
+                                       schema_version=result.schema_version)
         if type(result) is not SfrContextResult or not _strict_record_match(vars(expected), vars(result)):
             _invalid()
     except SfrContextError:
@@ -379,12 +491,21 @@ def validate_sfr_context(snapshot: SourceSnapshot, inventory: InventoryResult,
         _invalid()
 
 
+def _project_data(result: SfrContextResult) -> dict[str, Any]:
+    if (type(result) is not SfrContextResult or vars(result).keys() != set(SfrContextResult.__dataclass_fields__)
+            or type(result.schema_version) is not int or result.schema_version not in {1, 2}):
+        _invalid()
+    if result.schema_version == 1:
+        if type(result.gap_contexts) is not list or result.gap_contexts:
+            _invalid()
+        return {key: value for key, value in vars(result).items() if key != 'gap_contexts'}
+    return vars(result)
+
+
 def render_sfr_context_json(result: SfrContextResult) -> str:
     """Render private linked evidence with bounded native-container traversal."""
     try:
-        if type(result) is not SfrContextResult or vars(result).keys() != set(SfrContextResult.__dataclass_fields__):
-            _invalid()
-        payload = vars(result)
+        payload = _project_data(result)
         stack: list[tuple[Any, int | None]] = [(iter((payload,)), None)]
         active: set[int] = set()
         remaining = MAX_CONTEXT_BYTES

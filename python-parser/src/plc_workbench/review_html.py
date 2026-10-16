@@ -24,6 +24,8 @@ MAX_REVIEW_V12_HTML_BYTES = 216 * 1024 * 1024
 MAX_REVIEW_V12_PAYLOAD_BYTES = 184 * 1024 * 1024
 MAX_REVIEW_V13_HTML_BYTES = 224 * 1024 * 1024
 MAX_REVIEW_V13_PAYLOAD_BYTES = 192 * 1024 * 1024
+MAX_REVIEW_V14_HTML_BYTES = 232 * 1024 * 1024
+MAX_REVIEW_V14_PAYLOAD_BYTES = 200 * 1024 * 1024
 
 
 class ReviewHtmlError(ValueError):
@@ -35,6 +37,8 @@ class ReviewHtmlSizeLimitError(ReviewHtmlError):
 
 
 def _limits(version: int) -> tuple[int, int]:
+    if version == 14:
+        return MAX_REVIEW_V14_PAYLOAD_BYTES, MAX_REVIEW_V14_HTML_BYTES
     if version == 13:
         return MAX_REVIEW_V13_PAYLOAD_BYTES, MAX_REVIEW_V13_HTML_BYTES
     if version == 12:
@@ -56,44 +60,49 @@ def _payload(data: dict[str, Any]) -> str:
                 (5, 'engineering-review-5'), (6, 'engineering-review-6'),
                 (7, 'engineering-review-7'), (8, 'engineering-review-8'),
                 (9, 'engineering-review-9'), (10, 'engineering-review-10'),
-                (11, 'engineering-review-11'), (12, 'engineering-review-12'), (13, 'engineering-review-13'))
+                (11, 'engineering-review-11'), (12, 'engineering-review-12'), (13, 'engineering-review-13'), (14, 'engineering-review-14'))
             or (data.get('schema_version') == 1 and 'access' in data)
-            or (data.get('schema_version') in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13) and type(data.get('access')) is not dict)
+            or (data.get('schema_version') in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14) and type(data.get('access')) is not dict)
             or (data.get('schema_version') in (1, 2) and 'tag_data' in data)
-            or (data.get('schema_version') in (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13) and type(data.get('tag_data')) is not dict)
+            or (data.get('schema_version') in (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14) and type(data.get('tag_data')) is not dict)
             or (data.get('schema_version') in (1, 2, 3) and 'pid' in data)
-            or (data.get('schema_version') in (4, 5, 6, 7, 8, 9, 10, 11, 12, 13) and type(data.get('pid')) is not dict)
+            or (data.get('schema_version') in (4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14) and type(data.get('pid')) is not dict)
             or (data.get('schema_version') in (1, 2, 3, 4) and 'pid_members' in data)
-            or (data.get('schema_version') in (5, 6, 7, 8, 9, 10, 11, 12, 13) and type(data.get('pid_members')) is not dict)
+            or (data.get('schema_version') in (5, 6, 7, 8, 9, 10, 11, 12, 13, 14) and type(data.get('pid_members')) is not dict)
             or (data.get('schema_version') in (1, 2, 3, 4, 5) and 'calculations' in data)
-            or (data.get('schema_version') in (6, 7, 8, 9, 10, 11, 12, 13) and type(data.get('calculations')) is not dict)
-            or (data.get('schema_version') not in (7, 8, 9, 10, 11, 12, 13) and 'rung_analysis' in data)
-            or (data.get('schema_version') in (7, 8, 9, 10, 11, 12, 13) and type(data.get('rung_analysis')) is not dict)
-            or (data.get('schema_version') not in (8, 9, 10, 11, 12, 13) and 'relationships' in data)
-            or (data.get('schema_version') in (8, 9, 10, 11, 12, 13) and type(data.get('relationships')) is not dict)
-            or (data.get('schema_version') not in (9, 10, 11, 12, 13) and 'conditions' in data)
-            or (data.get('schema_version') in (9, 10, 11, 12, 13) and type(data.get('conditions')) is not dict)
-            or (data.get('schema_version') in (9, 10, 11, 12, 13)
+            or (data.get('schema_version') in (6, 7, 8, 9, 10, 11, 12, 13, 14) and type(data.get('calculations')) is not dict)
+            or (data.get('schema_version') not in (7, 8, 9, 10, 11, 12, 13, 14) and 'rung_analysis' in data)
+            or (data.get('schema_version') in (7, 8, 9, 10, 11, 12, 13, 14) and type(data.get('rung_analysis')) is not dict)
+            or (data.get('schema_version') not in (8, 9, 10, 11, 12, 13, 14) and 'relationships' in data)
+            or (data.get('schema_version') in (8, 9, 10, 11, 12, 13, 14) and type(data.get('relationships')) is not dict)
+            or (data.get('schema_version') not in (9, 10, 11, 12, 13, 14) and 'conditions' in data)
+            or (data.get('schema_version') in (9, 10, 11, 12, 13, 14) and type(data.get('conditions')) is not dict)
+            or (data.get('schema_version') in (9, 10, 11, 12, 13, 14)
                 and (type(data['conditions'].get('schema_version')) is not int
-                     or data['conditions'].get('schema_version') != (1 if data['schema_version'] == 9 else 3 if data['schema_version'] == 13 else 2)))
-            or (data.get('schema_version') not in (11, 12, 13) and 'binding_context' in data)
-            or (data.get('schema_version') in (11, 12, 13)
+                     or data['conditions'].get('schema_version') != (1 if data['schema_version'] == 9 else 3 if data['schema_version'] in (13, 14) else 2)))
+            or (data.get('schema_version') not in (11, 12, 13, 14) and 'binding_context' in data)
+            or (data.get('schema_version') in (11, 12, 13, 14)
                 and (type(data.get('binding_context')) is not dict
                      or type(data['binding_context'].get('schema_version')) is not int
                      or data['binding_context'].get('schema_version') != 1
                      or data['binding_context'].get('analyzer_version') != 'binding-context-1'))
-            or (data['schema_version'] not in (12, 13) and any(key in data for key in ('custom_instruction_context', 'indexed_access')))
-            or (data['schema_version'] in (12, 13) and any(
+            or (data['schema_version'] not in (12, 13, 14) and any(key in data for key in ('custom_instruction_context', 'indexed_access')))
+            or (data['schema_version'] in (12, 13, 14) and any(
                 type(data.get(key)) is not dict
                 or type(data[key].get('schema_version')) is not int or data[key]['schema_version'] != 1
                 or data[key].get('analyzer_version') != version
                 for key, version in (('custom_instruction_context', 'custom-instruction-context-1'),
                                      ('indexed_access', 'indexed-access-1'))))
-            or (data['schema_version'] != 13 and 'sfr_context' in data)
-            or (data['schema_version'] == 13 and (type(data.get('sfr_context')) is not dict
+            or (data['schema_version'] not in (13, 14) and 'sfr_context' in data)
+            or (data['schema_version'] in (13, 14) and (type(data.get('sfr_context')) is not dict
                 or type(data['sfr_context'].get('schema_version')) is not int
-                or data['sfr_context']['schema_version'] != 1
-                or data['sfr_context'].get('analyzer_version') != 'sfr-context-1'))
+                or data['sfr_context']['schema_version'] != (2 if data['schema_version'] == 14 else 1)
+                or data['sfr_context'].get('analyzer_version') != ('sfr-context-2' if data['schema_version'] == 14 else 'sfr-context-1')))
+            or (data['schema_version'] != 14 and 'aoi_body_context' in data)
+            or (data['schema_version'] == 14 and (type(data.get('aoi_body_context')) is not dict
+                or type(data['aoi_body_context'].get('schema_version')) is not int
+                or data['aoi_body_context']['schema_version'] != 1
+                or data['aoi_body_context'].get('analyzer_version') != 'aoi-body-context-1'))
             or any(type(data.get(key)) is not dict
                    for key in ('snapshot', 'inventory', 'references', 'sfc', 'statistics'))
             or any(type(data.get(key)) is not list for key in ('patterns', 'findings'))):

@@ -408,6 +408,7 @@ class AccessWorkReportTests(unittest.TestCase):
             self.assertIsNone(result.pop('custom_instruction_summary'))
             self.assertIsNone(result.pop('indexed_access_summary'))
             self.assertIsNone(result.pop('sfr_summary'))
+            self.assertIsNone(result.pop('aoi_body_summary'))
             payload = report(COMPLETE)
             payload.update(schema_version=27, workflow_version='work-check-27', analysis=result, status='failed')
             self.assertNotIn('PRIVATE_SUMMARY', work_check.render_work_check_report(payload))

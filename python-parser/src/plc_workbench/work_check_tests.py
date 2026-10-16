@@ -69,6 +69,7 @@ WORK_MACHINE_MODULES = {
         "test_indexed_access", "test_indexed_access_summary", "test_instruction_context_workflow",
         "test_stateful_conditions", "test_stateful_condition_summary",
         "test_sfr_context", "test_sfr_summary", "test_stateful_sequence_workflow",
+        "test_aoi_body_context", "test_aoi_body_summary", "test_aoi_body_workflow",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

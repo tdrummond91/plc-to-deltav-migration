@@ -1,5 +1,14 @@
 # Stored-state conditions and SFC reset targets
 
+## Validated return
+
+Return `871b700` passed 1,128 application cases (two expected Windows skips) and
+139 helpers. All 133 ONS occurrences have modeled stored-state transfers, with
+no storage-binding gaps. Opaque coil guards fell from 59 to one; 43 became
+modeled and fifteen exposed existing predicate gaps. SFR matched 139 of 140
+calls to captured steps. Twelve earlier summaries and the fixed sample record
+remained unchanged. See [the follow-up](AOI_BODY_REVIEW.md) for current work.
+
 ## Returned evidence
 
 Return `5215baa` tested clean `7263af0`: 1,057 application cases passed with two
@@ -137,5 +146,6 @@ Original/PendingEdits candidates and navigation to the matching step/content.
 Source-comment markup remained literal text, with no injected content script,
 horizontal page overflow or browser console errors in the checked views.
 
-The real source still needs the next work-machine run. Synthetic results do not
-confirm how many real ONS guards or SFR targets will resolve.
+At publication, this checkpoint still needed its work-machine run; the validated
+return is recorded above. Synthetic results alone did not establish how many
+real ONS guards or SFR targets would resolve.

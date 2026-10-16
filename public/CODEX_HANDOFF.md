@@ -1,6 +1,23 @@
 # Codex handoff: PLC analysis workbench
 
-Current checkpoint (2026-10-15): **stored-state conditions and SFC reset targets**.
+Current checkpoint (2026-10-16): **AOI body ownership and unmatched SFR context**.
+Return `871b700` passed 1,128 application cases (two expected Windows skips) and
+139 helpers. All 133 ONS occurrences now have stored-state transfers; opaque
+coil guards fell from 59 to one. SFR target matching resolved 139 of 140 calls.
+Twelve earlier summaries and the frozen six-example record remain unchanged;
+all 37 historical reports validate.
+
+Review14/manifest17 adds AOI body and instance relationships plus SFR gap
+context, still with sixteen artifacts. Work31 returns their closed counts.
+See [scope, evidence and validation](docs/reviews/AOI_BODY_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new source
+samples or manual engineering/team review are needed. Git transport remains
+manual, and the listener remains disabled.
+
+## Historical stored-state checkpoint
+
+Historical checkpoint (2026-10-15): **stored-state conditions and SFC reset targets**.
 Return `5215baa` passed 1,057 application cases (two expected Windows skips) and
 139 helpers, saved its private run and preserved all eleven earlier summaries.
 The unknown call has one matching AOI declaration; both dynamic write roots and

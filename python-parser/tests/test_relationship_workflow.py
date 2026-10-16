@@ -185,6 +185,7 @@ class RelationshipWorkflowTests(unittest.TestCase):
             self.assertIsNotNone(outcome.pop('custom_instruction_summary'))
             self.assertIsNotNone(outcome.pop('indexed_access_summary'))
             self.assertIsNotNone(outcome.pop('sfr_summary'))
+            self.assertIsNotNone(outcome.pop('aoi_body_summary'))
             self.assertIsNotNone(outcome.pop('condition_summary'))
             self.assertIsNotNone(outcome.pop('binding_context_summary'))
             self.assertEqual(outcome, report()['analysis'])

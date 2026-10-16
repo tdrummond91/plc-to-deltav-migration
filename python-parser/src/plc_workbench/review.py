@@ -26,6 +26,7 @@ from .binding_context import BindingContextResult, analyze_binding_context
 from .custom_instruction_context import CustomInstructionContextResult, analyze_custom_instruction_context
 from .indexed_access import IndexedAccessResult, analyze_indexed_access
 from .sfr_context import SfrContextResult, analyze_sfr_context
+from .aoi_body_context import AoiBodyContextResult, analyze_aoi_body_context
 from .references import ReferenceResult, analyze_references
 from .sfc_structure import SfcStructureResult, analyze_sfc_structure
 from .source import analyze_snapshot
@@ -43,6 +44,7 @@ MAX_REVIEW_V10_BYTES = 160 * 1024 * 1024
 MAX_REVIEW_V11_BYTES = 168 * 1024 * 1024
 MAX_REVIEW_V12_BYTES = 184 * 1024 * 1024
 MAX_REVIEW_V13_BYTES = 192 * 1024 * 1024
+MAX_REVIEW_V14_BYTES = 200 * 1024 * 1024
 MAX_REVIEW_FINDINGS = 500_000
 MAX_REVIEW_PATTERNS = 100_000
 _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
@@ -99,7 +101,8 @@ def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     """Count UTF-8 bytes without retaining millions of small encoder chunks."""
     rendered = io.StringIO() if retain else None
     version = (data.get('schema_version'), data.get('report_version'))
-    limit = (MAX_REVIEW_V13_BYTES if version == (13, 'engineering-review-13') else
+    limit = (MAX_REVIEW_V14_BYTES if version == (14, 'engineering-review-14') else
+             MAX_REVIEW_V13_BYTES if version == (13, 'engineering-review-13') else
              MAX_REVIEW_V12_BYTES if version == (12, 'engineering-review-12') else
              MAX_REVIEW_V11_BYTES if version == (11, 'engineering-review-11') else
              MAX_REVIEW_V10_BYTES if version == (10, 'engineering-review-10') else
@@ -220,7 +223,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       binding_context: BindingContextResult | None = None,
                       custom_instruction_context: CustomInstructionContextResult | None = None,
                       indexed_access: IndexedAccessResult | None = None,
-                      sfr_context: SfrContextResult | None = None) -> dict[str, Any]:
+                      sfr_context: SfrContextResult | None = None,
+                      aoi_body_context: AoiBodyContextResult | None = None) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -268,6 +272,10 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         if sfr_context is not None or (conditions is not None and conditions.schema_version == 3):
             if (type(sfr_context) is not SfrContextResult or custom_instruction_context is None
                     or indexed_access is None or conditions is None or conditions.schema_version != 3):
+                _fail()
+        if aoi_body_context is not None or (sfr_context is not None and sfr_context.schema_version == 2):
+            if (type(aoi_body_context) is not AoiBodyContextResult or sfr_context is None
+                    or sfr_context.schema_version != 2):
                 _fail()
         canonical_inventory = analyze_snapshot(snapshot)
         if not _strict_equal(canonical_inventory, inventory):
@@ -361,8 +369,13 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         if sfr_context is not None:
             canonical_sfr_context = analyze_sfr_context(
                 snapshot, canonical_inventory, canonical_references, canonical_access,
-                canonical_calculations, canonical_sfc)
+                canonical_calculations, canonical_sfc, schema_version=sfr_context.schema_version)
             if not _strict_equal(canonical_sfr_context, sfr_context):
+                _fail()
+        canonical_aoi_body = None
+        if aoi_body_context is not None:
+            canonical_aoi_body = analyze_aoi_body_context(*companion_inputs, canonical_custom_context)
+            if not _strict_equal(canonical_aoi_body, aoi_body_context):
                 _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)
@@ -472,6 +485,11 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          'sfr_context': canonical_sfr_context.to_dict()})
             if canonical_sfr_context.status == 'partial':
                 data['status'] = 'partial'
+        if canonical_aoi_body is not None:
+            data.update({'schema_version': 14, 'report_version': 'engineering-review-14',
+                         'aoi_body_context': canonical_aoi_body.to_dict()})
+            if canonical_aoi_body.status == 'partial':
+                data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
     except ReviewSizeLimitError:
@@ -493,7 +511,8 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          binding_context: BindingContextResult | None = None,
                          custom_instruction_context: CustomInstructionContextResult | None = None,
                          indexed_access: IndexedAccessResult | None = None,
-                         sfr_context: SfrContextResult | None = None) -> None:
+                         sfr_context: SfrContextResult | None = None,
+                         aoi_body_context: AoiBodyContextResult | None = None) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
         if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
@@ -502,7 +521,8 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                                           rung_analysis=rung_analysis, relationships=relationships,
                                           conditions=conditions, binding_context=binding_context,
                                           custom_instruction_context=custom_instruction_context,
-                                          indexed_access=indexed_access, sfr_context=sfr_context), data):
+                                          indexed_access=indexed_access, sfr_context=sfr_context,
+                                          aoi_body_context=aoi_body_context), data):
             return
     except ReviewSizeLimitError:
         raise

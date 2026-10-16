@@ -1,6 +1,7 @@
 """Invented SFR calls preserve chart edits and uncertain target identities."""
 from copy import deepcopy
 from dataclasses import replace
+import hashlib
 import json
 from pathlib import Path
 import unittest
@@ -49,7 +50,7 @@ def document(programs=None, controller_tags='', extra='', attributes=''):
             '</Controller></RSLogix5000Content>')
 
 
-def capture(xml=None, access_version=4):
+def capture(xml=None, access_version=4, schema_version=1):
     snapshot = snapshot_from_bytes((document() if xml is None else xml).encode())
     inventory = analyze_snapshot(snapshot)
     references = analyze_references(inventory)
@@ -58,10 +59,162 @@ def capture(xml=None, access_version=4):
                             **({'snapshot': snapshot, 'calculations': calculations} if access_version == 4 else {}))
     sfc = analyze_sfc_structure(snapshot, inventory)
     parts = (snapshot, inventory, references, access, calculations, sfc)
-    return (*parts, analyze_sfr_context(*parts))
+    return (*parts, analyze_sfr_context(*parts, schema_version=schema_version))
+
+
+def gap_document():
+    body = (f'<SFCContent OnlineEditType="Original">{step("Container.Other")}</SFCContent>'
+            f'<SFCContent OnlineEditType="PendingEdits">{step("Container.Selected")}</SFCContent>')
+    peer = chart(f'<SFCContent>{step("Container.Selected")}</SFCContent>', name='PeerChart')
+    return document(program(text='SFR(PrivateChart,Alias);', charts=chart(body) + peer,
+                            tags=tag('Container') + tag('Alias', 'Container.Selected')))
 
 
 class SfrContextTests(unittest.TestCase):
+    def test_schema_one_default_bytes_remain_frozen(self):
+        result = capture()[-1]
+        rendered = render_sfr_context_json(result)
+        self.assertEqual(hashlib.sha256(rendered.encode()).hexdigest(),
+                         '7a09cf135fe80c1ec57252b2352e8debd4deebcac49a4ab548fb4bf3a518a0cf')
+        self.assertNotIn('gap_contexts', result.to_dict())
+        self.assertEqual(result.gap_contexts, [])
+        with self.assertRaises(SfrContextError):
+            render_sfr_context_json(replace(result, gap_contexts=[{}]))
+
+    def test_v2_gap_links_explain_three_populations_without_reassignment(self):
+        old = capture(gap_document())[-1]
+        parts = capture(gap_document(), schema_version=2)
+        result = parts[-1]
+        self.assertEqual(result, capture(gap_document(), access_version=3, schema_version=2)[-1])
+        self.assertEqual((result.calls, result.steps, result.status), (old.calls, old.steps, old.status))
+        self.assertEqual({key: result.coverage[key] for key in old.coverage}, old.coverage)
+        gap = result.gap_contexts[0]
+        self.assertEqual([len(gap[key]) for key in ('same_content_root_step_ids',
+                         'other_edit_exact_step_ids', 'peer_chart_exact_step_ids')], [1, 1, 1])
+        self.assertEqual(gap['peer_content_counts'], {'eligible': 2, 'protected': 0,
+                         'unsupported_context': 0, 'incomplete_context': 0})
+        self.assertIsNone(result.calls[0]['content_matches'][0]['target_step_id'])
+        self.assertEqual(result.calls[0]['content_matches'][0]['status'], 'missing_candidate')
+        all_step_ids = {row['element_id'] for row in result.steps}
+        self.assertTrue(all(identifier in all_step_ids for key in ('same_content_root_step_ids',
+                        'other_edit_exact_step_ids', 'peer_chart_exact_step_ids') for identifier in gap[key]))
+        validate_sfr_context(*parts)
+        self.assertEqual(result.coverage['gap_candidate_links_total'], 3)
+
+    def test_v2_embedded_coverage_scalar_order_is_stable(self):
+        # HTML embeds this mapping without sort_keys; the dedicated private
+        # JSON renderer sorts keys and would conceal hash-seed dependence.
+        expected = ['gap_candidate_links_total', 'gap_contexts_total', 'gap_peer_contents_total',
+                    'gap_peer_routines_without_content_total', 'gaps_with_candidates',
+                    'gaps_with_excluded_peer_contents', 'gaps_with_no_candidates',
+                    'gaps_with_peer_routines_without_content']
+        for xml in (gap_document(), document(programs='')):
+            with self.subTest(has_gap=xml == gap_document()):
+                coverage = capture(xml, schema_version=2)[-1].to_dict()['coverage']
+                self.assertEqual(list(coverage)[-len(expected):], expected)
+
+    def test_v2_no_related_steps_is_an_observation_not_reassignment(self):
+        xml = document(program(text='SFR(PrivateChart,Other);', tags=tag() + tag('Other')))
+        result = capture(xml, schema_version=2)[-1]
+        gap = result.gap_contexts[0]
+        self.assertEqual([gap[key] for key in ('same_content_root_step_ids',
+                         'other_edit_exact_step_ids', 'peer_chart_exact_step_ids')], [[], [], []])
+        self.assertEqual(result.coverage['gaps_with_no_candidates'], 1)
+        self.assertEqual(result.calls[0]['content_matches'][0]['status'], 'missing_candidate')
+
+    def test_v2_other_program_or_controller_is_never_a_peer(self):
+        selected = program(text='SFR(PrivateChart,Other);', tags=tag() + tag('Other'))
+        unrelated = program(text='XIC(Other);', charts=chart(f'<SFCContent>{step("Other")}</SFCContent>'),
+                            tags=tag('Other'), name='OtherProgram')
+        xml = document(selected + unrelated, controller_tags=tag('Other'))
+        result = capture(xml, schema_version=2)[-1]
+        self.assertEqual(result.gap_contexts[0]['peer_chart_exact_step_ids'], [])
+        self.assertEqual(result.coverage['gap_peer_contents_total'], 0)
+        # Shared controller-scoped root identity still cannot cross programs.
+        xml = document(program(text='SFR(PrivateChart,Other);') +
+                       program(text='XIC(Other);', charts=chart(f'<SFCContent>{step("Other")}</SFCContent>'),
+                               name='OtherProgram'), controller_tags=tag('Other'))
+        result = capture(xml, schema_version=2)[-1]
+        self.assertEqual(result.coverage['gap_peer_contents_total'], 0)
+        self.assertEqual(result.coverage['gap_candidate_links_total'], 0)
+
+    def test_v2_protected_namespace_incomplete_and_missing_peers_stay_excluded(self):
+        body = f'<SFCContent>{step("Other")}</SFCContent>'
+        charts = (chart() + chart(body + '<EncodedData/>', name='Protected')
+                  + chart(body, name='AttributeProtected', attributes='SourceKey="PrivateKey"')
+                  + chart(body, name='Foreign', attributes='x:Private="marker"')
+                  + chart(body, name='Invalid-Name')
+                  + chart(f'<SFCContent>{step("Other")}{step(None, identifier="2")}</SFCContent>', name='Incomplete')
+                  + chart('', name='Missing'))
+        xml = document(program(text='SFR(PrivateChart,Other);', charts=charts, tags=tag() + tag('Other')),
+                       attributes='xmlns:x="urn:vendor"')
+        result = capture(xml, schema_version=2)[-1]
+        gap = result.gap_contexts[0]
+        self.assertEqual(gap['peer_chart_exact_step_ids'], [])
+        self.assertEqual(gap['peer_content_counts'], {'eligible': 0, 'protected': 2,
+                         'unsupported_context': 2, 'incomplete_context': 1})
+        self.assertEqual(len(gap['peer_routines_without_content_ids']), 1)
+        self.assertEqual(result.coverage['gaps_with_excluded_peer_contents'], 1)
+        self.assertEqual(result.coverage['gaps_with_peer_routines_without_content'], 1)
+
+    def test_v2_exact_case_suffix_and_alias_identity_keep_their_original_rules(self):
+        body = f'<SFCContent>{step("Container.other")}</SFCContent>'
+        peers = (chart(f'<SFCContent>{step("Container.selected")}</SFCContent>', name='DifferentCase')
+                 + chart(f'<SFCContent>{step("Alias")}</SFCContent>', name='ExactAlias'))
+        xml = document(program(text='SFR(PrivateChart,Container.Selected);', charts=chart(body) + peers,
+                               tags=tag('Container') + tag('Alias', 'Container.Selected')))
+        result = capture(xml, schema_version=2)[-1]
+        gap = result.gap_contexts[0]
+        self.assertEqual(len(gap['same_content_root_step_ids']), 1)
+        self.assertEqual(len(gap['peer_chart_exact_step_ids']), 1)
+        selected_id = gap['peer_chart_exact_step_ids'][0]
+        selected = next(row for row in result.steps if row['element_id'] == selected_id)
+        self.assertEqual(selected['suffix'], '.Selected')
+
+    def test_v2_initial_missing_and_unresolved_selectors_do_not_create_named_gaps(self):
+        for operand, missing_initial in (('0', 1), ('Missing', 0), ('1', 0), ('PrivateStep[Index]', 0)):
+            with self.subTest(operand=operand):
+                result = capture(document(program(text=f'SFR(PrivateChart,{operand});')), schema_version=2)[-1]
+                self.assertEqual(result.gap_contexts, [])
+                self.assertEqual(result.coverage['missing_matches_by_selector_kind']['initial'], missing_initial)
+        xml = document(program(charts=chart(f'<SFCContent>{step(None)}</SFCContent>')))
+        self.assertEqual(capture(xml, schema_version=2)[-1].gap_contexts, [])
+
+    def test_v2_repeated_calls_and_multiple_missing_edits_keep_occurrences(self):
+        charts = chart(f'<SFCContent>{step()}</SFCContent><SFCContent>{step()}</SFCContent>')
+        xml = document(program(text='SFR(PrivateChart,Other)SFR(PrivateChart,Other);', charts=charts,
+                               tags=tag() + tag('Other')))
+        result = capture(xml, schema_version=2)[-1]
+        self.assertEqual(len(result.gap_contexts), 4)
+        pairs = {(row['instruction_id'], row['content_id']) for row in result.gap_contexts}
+        self.assertEqual(len(pairs), 4)
+        self.assertEqual(result.coverage['gap_peer_contents_total'], 4)
+
+    def test_v2_canonical_validation_rejects_removed_or_reassigned_gap_links(self):
+        parts = capture(gap_document(), schema_version=2)
+        for field in ('same_content_root_step_ids', 'other_edit_exact_step_ids', 'peer_chart_exact_step_ids'):
+            gaps = deepcopy(parts[-1].gap_contexts); gaps[0][field] = []
+            with self.subTest(field=field), self.assertRaises(SfrContextError):
+                validate_sfr_context(*parts[:-1], replace(parts[-1], gap_contexts=gaps))
+        with self.assertRaises(SfrContextError):
+            validate_sfr_context(*parts[:-1], replace(parts[-1], gap_contexts=[]))
+        with self.assertRaises(SfrContextError):
+            analyze_sfr_context(*parts[:-1], schema_version=True)
+        old = capture(gap_document())[-1]
+        with self.assertRaises(SfrContextError):
+            validate_sfr_context(*parts[:-1], replace(old, schema_version=2, analyzer_version='sfr-context-2'))
+
+    def test_v2_extra_links_are_charged_to_existing_private_resource_budget(self):
+        xml = gap_document()
+        old_size = len(render_sfr_context_json(capture(xml)[-1]))
+        newer = capture(xml, schema_version=2)[-1]
+        self.assertGreater(len(render_sfr_context_json(newer)), old_size)
+        with patch('plc_workbench.sfr_context.MAX_CONTEXT_BYTES', old_size):
+            with self.assertRaises(SfrContextError): capture(xml, schema_version=2)
+        cyclic = []; cyclic.append(cyclic)
+        with self.assertRaises(SfrContextError):
+            render_sfr_context_json(replace(newer, gap_contexts=cyclic))
+
     def test_unique_candidate_uses_existing_ids_and_preserves_companions(self):
         parts = capture()
         before = [deepcopy(part.to_dict()) for part in parts[1:-1]]

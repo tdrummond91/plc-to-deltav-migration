@@ -93,7 +93,10 @@
   const customDeclarations=customContext?.declarations || [], byCustomDeclaration=new Map(customDeclarations.map(d=>[d.source_id,d]));
   const byCustomCall=new Map(customCalls.map(c=>[c.instruction_id,c]));
   const indexedAccess=data.indexed_access || null, indexedUses=indexedAccess?.uses || [];
+  const aoiBody=data.aoi_body_context||null,aoiBodyDeclarations=aoiBody?.declarations||[],aoiBodyRoutines=aoiBody?.routines||[],aoiBodySymbols=aoiBody?.symbols||[],aoiBodyCalls=aoiBody?.calls||[];
+  const byAoiBodyDeclaration=new Map(aoiBodyDeclarations.map(d=>[d.declaration_id,d])),byAoiBodyRoutine=new Map(aoiBodyRoutines.map(r=>[r.routine_id,r])),byAoiBodySymbol=new Map(aoiBodySymbols.map(x=>[x.source_id,x])),byAoiBodyCall=new Map(aoiBodyCalls.map(c=>[c.instruction_id,c]));
   const sfrContext=data.sfr_context || null,sfrCalls=sfrContext?.calls || [],sfrSteps=sfrContext?.steps || [];
+  const sfrGaps=sfrContext?.gap_contexts || [],sfrGapsByCall=new Map();
   const bySfrCall=new Map(sfrCalls.map(c=>[c.instruction_id,c])),bySfrStep=new Map(sfrSteps.map(s=>[s.element_id,s])),sfrCallsByRung=new Map();
   const byIndexedUse=new Map(indexedUses.map(u=>[u.id,u])), byIndexedSource=new Map(indexedUses.map(u=>[u.source_id,u])), indexedByRung=new Map();
   const candidateAddresses = bindingContext?.logical_addresses || [];
@@ -178,6 +181,7 @@
   conditionTransfers.forEach(n=>add(transfersByRung,n.rung_id,n));
   indexedUses.forEach(u=>add(indexedByRung,u.rung_id,u));
   sfrCalls.forEach(c=>add(sfrCallsByRung,c.rung_id,c));
+  sfrGaps.forEach(g=>add(sfrGapsByCall,g.instruction_id,g));
   tagElements.forEach(x => {add(tagContentElements,x.content_id,x);add(tagChildren,x.parent_id,x);});
   (tagData?.issues || []).forEach(x => add(tagIssues,x.content_id,x));
   entities.forEach(x => add(entityChildren, x.parent_id, x));
@@ -436,6 +440,7 @@
     if(calculations){const row=node('div','status-row');row.append(node('span','','CPT expression syntax and references'),badge(calculations.status));capture.append(row);}
     if(customContext){const row=node('div','status-row');row.append(node('span','','Custom-instruction declaration context'),badge(customContext.status));capture.append(row);}
     if(indexedAccess){const row=node('div','status-row');row.append(node('span','','Symbolic array selector context'),badge(indexedAccess.status));capture.append(row);}
+    if(aoiBody){const row=node('div','status-row');row.append(node('span','','AOI body and instance context'),badge(aoiBody.status));capture.append(row);}
     if(sfrContext){const row=node('div','status-row');row.append(node('span','','SFR routine and step context'),badge(sfrContext.status));capture.append(row);}
     capture.append(node('p','row-note',fmt(bySfcRoutine.size)+' SFC routines · '+fmt((sfc.links||[]).length)+' structural links · '+fmt((sfc.annotations||[]).length)+' note attachments'));
     const start=panel('Start your review','Each view links back to the exact evidence in this captured source snapshot.');
@@ -556,7 +561,9 @@
   ],caption);}
   function sfrContextList(){
     content.append(sfrNotice());const c=sfrContext.coverage,p=panel('Sequence reset coverage','Counts describe captured candidate evidence, with no content version selected as active.');
-    p.append(values({'SFR occurrences':c.calls_total,'Classified reset forms':c.calls_by_signature.classified,'Named selectors':c.calls_by_selector_kind.named,'Initial-step selectors':c.calls_by_selector_kind.initial,'Captured SFC steps':c.steps_total,'Content candidate comparisons':c.content_matches_total,'Calls with a candidate match':c.matched_calls,'Calls matched in every inspected content':c.fully_matched_calls,'Calls with multiple content versions':c.multiple_content_calls}));content.append(p,sfrCallTable(sfrCalls.filter(matches),'SFR target contexts'));
+    p.append(values({'SFR occurrences':c.calls_total,'Classified reset forms':c.calls_by_signature.classified,'Named selectors':c.calls_by_selector_kind.named,'Initial-step selectors':c.calls_by_selector_kind.initial,'Captured SFC steps':c.steps_total,'Content candidate comparisons':c.content_matches_total,'Calls with a candidate match':c.matched_calls,'Calls matched in every inspected content':c.fully_matched_calls,'Calls with multiple content versions':c.multiple_content_calls}));content.append(p);
+    if(sfrContext.schema_version>=2){const diagnostics=panel('Missing-target diagnostic coverage','Candidate links explain missing named targets without changing the declared routine, selected content or original missing result.');diagnostics.append(values({'Missing named-target contexts':c.gap_contexts_total,'Contexts with nearby candidates':c.gaps_with_candidates,'Contexts without nearby candidates':c.gaps_with_no_candidates,'Candidate links':c.gap_candidate_links_total,'Contexts with excluded peer content':c.gaps_with_excluded_peer_contents}));content.append(diagnostics);}
+    content.append(sfrCallTable(sfrCalls.filter(matches),'SFR target contexts'));
   }
   function sfrCallDetail(c){
     setDetailHeading('SEQUENCE RESET CONTEXT','SFR target candidates',sourceName(c.rung_id));content.append(sfrNotice());
@@ -568,6 +575,8 @@
       if(!m.candidate_step_ids.length)choices.append(node('span','muted','No unique target selected'));
       return[sourceCell(m.content_id),human(m.edit_kind),human(m.status),fmt(m.candidate_count),choices];
     },'SFR content candidates'));content.append(versions);
+    const gaps=sfrGapsByCall.get(c.instruction_id)||[];
+    if(gaps.length){const diagnostics=section('Missing named-target context','These are diagnostic links only. The original missing candidate result remains unchanged; no candidate replaces the SFR target.');diagnostics.append(table(['Missing content','Same-content root / different suffix','Other edit exact identity','Peer chart exact identity','Inspect'],gaps,g=>[sourceCell(g.content_id),fmt(g.same_content_root_step_ids.length),fmt(g.other_edit_exact_step_ids.length),fmt(g.peer_chart_exact_step_ids.length),button('Inspect nearby candidates',()=>openDetail('sfrgap',c.instruction_id,{sfrContentId:g.content_id}),'text-link')],'SFR missing-target contexts'));content.append(diagnostics);}
   }
   function sfrContentDetail(c){
     const match=c.content_matches.find(m=>m.content_id===state.sfrContentId);setDetailHeading('SFR CONTENT CANDIDATES','Step candidates',human(match?.edit_kind));content.append(sfrNotice());
@@ -575,6 +584,17 @@
     content.append(sourceCell(match.content_id),table(['Step source','Operand identity binding','Declared root / suffix','Initial marker'],match.candidate_step_ids,id=>{
       const step=bySfrStep.get(id);return[sourceCell(id),human(step?.binding_status),step?.target_id?primary(sourceCell(step.target_id),step.suffix || '(root)'):'Unresolved',human(step?.initial_kind)];
     },'SFR step candidates'));
+  }
+  function sfrGapDetail(c){
+    const g=(sfrGapsByCall.get(c.instruction_id)||[]).find(x=>x.content_id===state.sfrContentId);
+    setDetailHeading('SFR MISSING-TARGET DIAGNOSTICS','Nearby source candidates',sourceName(c.rung_id));content.append(sfrNotice());
+    if(!g){content.append(empty('No retained diagnostic context'));return;}
+    content.append(notice('Original missing result is unchanged','Same-content roots have a different suffix. Other-edit and peer-chart links share captured exact Operand identity but are outside the requested content. None is substituted as the reset target.'));
+    const scope=panel('Inspected context'),links=node('div','inline-links');links.append(sourceCell(g.content_id),sourceCell(g.target_routine_id),sourceCell(g.target_operand_id));scope.append(links,values({'Eligible peer contents':g.peer_content_counts.eligible,'Protected peer contents excluded':g.peer_content_counts.protected,'Unsupported peer contents excluded':g.peer_content_counts.unsupported_context,'Incomplete peer contents excluded':g.peer_content_counts.incomplete_context}));content.append(scope);
+    for(const [key,label] of [['same_content_root_step_ids','Same content: shared root, different suffix'],['other_edit_exact_step_ids','Other edits of the requested chart: exact identity'],['peer_chart_exact_step_ids','Other charts in the same program: exact identity']]){
+      const p=section(label);p.append(table(['Step candidate','Captured chart','Content version','Root / suffix'],g[key],id=>{const step=bySfrStep.get(id);return[sourceCell(id),sourceCell(step?.routine_id),sourceCell(step?.content_id),step?.target_id?primary(sourceCell(step.target_id),step.suffix||'(root)'):'Unresolved'];},label));content.append(p);
+    }
+    if(g.peer_routines_without_content_ids.length){const missing=section('Peer routines without content','No candidate step search is possible in these captured routines.');missing.append(table(['Routine'],g.peer_routines_without_content_ids,id=>[sourceCell(id)],'Peer routines without content'));content.append(missing);}
   }
   function customCallLink(c){return button(short(sourceName(c.instruction_id),120),()=>openDetail('customcall',c.instruction_id),'text-link');}
   function customCallTable(rows,caption){return table(['Custom instruction occurrence','Declaration candidate status','Declaration','Rung'],rows,c=>[
@@ -590,6 +610,7 @@
     content.append(contextNotice());
     const c=customContext.coverage,i=indexedAccess.coverage,totals=panel('Context coverage','These counts explain source evidence; they do not reduce existing binding or condition gaps.');
     totals.append(values({'Unrecognized instruction occurrences':c.unknown_family_calls,'Unique declaration candidates':c.calls_by_status.unique_candidate,'Custom definitions':c.definitions_total,'Parameter declarations':c.parameters_total,'Routine declarations':c.routines_total,'Definitions with encoded regions':c.definitions_with_encoded_regions,'Indexed source occurrences':i.uses_total,'Symbolically parsed occurrences':i.symbolic_uses,'Dynamic selectors':i.dynamic_selectors,'Possible index reads':i.index_read_occurrences,'Bound index-read roots':i.bound_index_reads}));content.append(totals);
+    if(aoiBody){const bodies=panel('AOI body context','Routine ownership and possible access evidence remain separate from call effects. Zero observed accesses does not mean unused.');bodies.append(values({'Indexed definitions':aoiBodyDeclarations.length,'Owned routines':aoiBodyRoutines.length,'Declared parameters and local tags':aoiBodySymbols.length,'Call instance contexts':aoiBodyCalls.length}));content.append(bodies);}
     const calls=section('Custom-instruction occurrences','Open a call to follow its candidate declaration and inspect parameters, source routines and protection markers.');calls.append(customCallTable(customCalls.filter(matches),'Custom instruction occurrences'));content.append(calls);
     const declarations=section('Custom declarations','Definitions are shown even when no unknown instruction occurrence names them.');declarations.append(table(['Declaration','Name context','Parameters / routines','Encoded / protected context'],customDeclarations.filter(matches),d=>[
       button(short(entityName(d.source_id),160),()=>openDetail('customdeclaration',d.source_id),'text-link'),human(d.status),d.parameters.length+' / '+d.routines.length,fmt(d.encoded_region_ids.length)+' encoded regions · '+human(d.protection_marker)
@@ -602,13 +623,45 @@
     if(c.declaration_id)links.append(button('Inspect declaration: '+short(entityName(c.declaration_id),140),()=>openDetail('customdeclaration',c.declaration_id),'text-link'));p.append(links);content.append(p);
     const slots=(rungOperands.get(c.rung_id)||[]).filter(o=>o.instruction_id===c.instruction_id),args=section('Captured call operands','Parameter declarations have not been mapped to these argument positions. Existing roles remain unchanged.');
     args.append(table(['Position','Source operand','Captured role'],slots,o=>[o.argument_index+1,sourceCell(o.id),human(byOperandAccess.get(o.id)?.role)],'Custom call operand slots'));content.append(args);
+    if(byAoiBodyCall.has(c.instruction_id))aoiInstancePanel(byAoiBodyCall.get(c.instruction_id));
   }
   function customDeclarationDetail(d){
     setDetailHeading('CUSTOM DECLARATION CONTEXT',entityName(d.source_id),entityPath(d.controller_id));content.append(contextNotice());
     const p=panel('Definition context');p.append(values({'Name context':human(d.status),'Protection marker':human(d.protection_marker),'Encoded regions':d.encoded_region_ids.length}),sourceCell(d.source_id));content.append(p);
     const params=section('Parameter declarations','Usage and flags are exported metadata. They are not assigned to call operands or promoted to runtime access roles.');params.append(table(['Source parameter','Usage','Required','Visible','Data type metadata'],d.parameters,p=>[sourceCell(p.source_id),human(p.usage),human(p.required),human(p.visible),human(p.datatype)],'Custom parameter declarations'));content.append(params);
-    const routines=section('Routine declarations','The source view retains captured routine evidence. No internal routine behavior has been expanded into the calling rung.');routines.append(table(['Routine','Declared language','Content form'],d.routines,r=>[sourceCell(r.source_id),human(r.language),human(r.content)],'Custom routine declarations'));content.append(routines);
+    const routines=section('Routine declarations','The source view retains captured routine evidence. No internal routine behavior has been expanded into the calling rung.');routines.append(table(['Routine','Declared language','Content form',...(aoiBody?['Body context']:[])],d.routines,r=>[sourceCell(r.source_id),human(r.language),human(r.content),...(aoiBody?[byAoiBodyRoutine.has(r.source_id)?primary(button('Inspect body',()=>openDetail('aoiroutine',r.source_id),'text-link'),human(byAoiBodyRoutine.get(r.source_id).body_status)):'No owned body']:[])],'Custom routine declarations'));content.append(routines);
+    if(byAoiBodyDeclaration.has(d.source_id))aoiDeclarationSymbols(byAoiBodyDeclaration.get(d.source_id));
     if(d.encoded_region_ids.length){const encoded=section('Encoded regions','Encoded source is unavailable for behavioral analysis.');encoded.append(table(['Source region'],d.encoded_region_ids,id=>[sourceCell(id)],'Custom encoded regions'));content.append(encoded);}
+  }
+  function aoiNotice(){return notice('Body evidence is declaration-owned','These indexes describe captured AOI routines and possible operand or expression accesses. They do not execute the AOI, map call arguments to parameters, prove an effect or validate member types. Declared Usage and observed access roles are separate. Zero observed accesses does not mean unused.');}
+  function aoiInstancePanel(c){
+    const p=panel('First-field instance context','A resolved first-field root and matching type name are candidate evidence only. Array bounds, member types, call signatures and runtime instance effects remain unvalidated.');
+    p.append(values({'Declaration candidate':human(c.declaration_status),'Instance context':human(c.instance_status),'Root binding':human(c.binding_status),'Address shape':human(c.address_shape),'Declared type-name comparison':human(c.datatype_status)}));
+    const links=node('div','inline-links');if(c.first_operand_id)links.append(sourceCell(c.first_operand_id));if(c.symbol_id)links.append(primary(sourceCell(c.symbol_id),'Directly named declaration'));if(c.target_id)links.append(primary(sourceCell(c.target_id),'Resolved root declaration'));p.append(links);
+    if(c.alias_chain.length)p.append(table(['Alias declaration'],c.alias_chain,id=>[sourceCell(id)],'Instance alias chain'));content.append(p);
+  }
+  function aoiDeclarationSymbols(d){
+    content.append(aoiNotice());const p=section('Declaration-owned symbols','Direct-name indexes retain the symbol written in source; resolved-root indexes follow aliases. An occurrence may be in both, so those columns must not be added.');
+    p.append(table(['Parameter / local tag','Declared kind / Usage','Context','Direct slots / leaves','Resolved slots / leaves','Inspect'],[...d.parameter_ids,...d.local_tag_ids],id=>{
+      const x=byAoiBodySymbol.get(id);return[sourceCell(id),primary(human(x?.kind),byEntity.get(id)?.attributes?.Usage||'No Usage metadata'),human(x?.context_status),x?fmt(x.direct_operand_ids.length)+' / '+fmt(x.direct_expression_use_ids.length):'0 / 0',x?fmt(x.resolved_operand_ids.length)+' / '+fmt(x.resolved_expression_use_ids.length):'0 / 0',x?button('Inspect observed accesses',()=>openDetail('aoisymbol',id),'text-link'):'Unavailable'];
+    },'AOI declaration-owned symbols'));content.append(p);
+  }
+  function aoiRoutineDetail(r){
+    setDetailHeading('AOI OWNED BODY',sourceName(r.routine_id),sourceName(r.declaration_id));content.append(aoiNotice());
+    const p=panel('Captured routine body');p.append(values({'Body context':human(r.body_status),'Rungs':r.rung_ids.length,'Instructions':r.instruction_ids.length,'Operand slots':r.operand_ids.length,'Expression leaves':r.expression_use_ids.length}));const links=node('div','inline-links');links.append(sourceCell(r.routine_id),sourceCell(r.declaration_id));p.append(links);content.append(p);
+    const rows=section('Owned source rungs','Source links retain every block and branch. Body ownership does not imply this routine is executed by a particular call.');rows.append(table(['Rung','Parse status','Instructions'],r.rung_ids,id=>{const rung=byRung.get(id);return[sourceCell(id),human(rung?.parse_status),fmt(rung?.instructions?.length||0)];},'AOI owned rungs'));content.append(rows);
+    const slots=section('Owned operand slots');slots.append(aoiAccessTable(r.operand_ids,false,'AOI routine operand slots'));content.append(slots);
+    const leaves=section('Owned expression leaves');leaves.append(aoiAccessTable(r.expression_use_ids,true,'AOI routine expression leaves'));content.append(leaves);
+  }
+  function aoiAccessTable(ids,expression,caption){return table(['Source occurrence','Observed role','Root binding','Source rung'],ids,id=>{
+    const use=expression?byExpressionUse.get(id):byOperandAccess.get(id);return[expression?engineeringEvidence(id):sourceCell(id),human(use?.role),human(use?.binding_status),sourceCell(use?.rung_id)];
+  },caption);}
+  function aoiSymbolDetail(x){
+    setDetailHeading('AOI SYMBOL ACCESSES',sourceName(x.source_id),sourceName(x.declaration_id));content.append(aoiNotice());
+    const p=panel('Declared symbol','The direct and resolved lists may contain the same occurrence. They explain naming and alias resolution, not independent executions.');p.append(values({'Kind':human(x.kind),'Declared Usage':byEntity.get(x.source_id)?.attributes?.Usage||'No Usage metadata','Context':human(x.context_status)}));const links=node('div','inline-links');links.append(sourceCell(x.source_id),sourceCell(x.declaration_id));p.append(links);content.append(p);
+    for(const [key,label,expression] of [['direct_operand_ids','Directly named operand slots',false],['resolved_operand_ids','Resolved-root operand slots',false],['direct_expression_use_ids','Directly named expression leaves',true],['resolved_expression_use_ids','Resolved-root expression leaves',true]]){
+      const rows=section(label);rows.append(aoiAccessTable(x[key],expression,label));content.append(rows);
+    }
   }
   function indexedUseDetail(u){
     const raw=indexedRaw(u);setDetailHeading('SYMBOLIC INDEX CONTEXT',short(raw,160)||'(blank source)',human(u.disposition));content.append(contextNotice());
@@ -1672,9 +1725,12 @@
       else if(d.type==='bindingcontext')bindingContextDetail(byBindingContext.get(d.id));
       else if(d.type==='customcall')customCallDetail(byCustomCall.get(d.id));
       else if(d.type==='customdeclaration')customDeclarationDetail(byCustomDeclaration.get(d.id));
+      else if(d.type==='aoiroutine')aoiRoutineDetail(byAoiBodyRoutine.get(d.id));
+      else if(d.type==='aoisymbol')aoiSymbolDetail(byAoiBodySymbol.get(d.id));
       else if(d.type==='indexeduse')indexedUseDetail(byIndexedUse.get(d.id));
       else if(d.type==='sfrcall')sfrCallDetail(bySfrCall.get(d.id));
       else if(d.type==='sfrcontent')sfrContentDetail(bySfrCall.get(d.id));
+      else if(d.type==='sfrgap')sfrGapDetail(bySfrCall.get(d.id));
       else if(d.type==='candidateaddress')candidateAddressDetail(byCandidateAddress.get(d.id));
       else if(d.type==='reusepattern')reusePatternDetail(byReusePattern.get(d.id));
       else if(d.type==='tagcontent')tagContentDetail(byTagContent.get(d.id));

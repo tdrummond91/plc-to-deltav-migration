@@ -540,7 +540,13 @@ class GitAndWorkflowTests(unittest.TestCase):
             sfc_structure = analyze_sfc_structure(snapshot, inventory)
             sfr_inputs = (snapshot, inventory, references, access, calculations, sfc_structure)
             analysis_payload["sfr_summary"] = build_sfr_summary(
-                *sfr_inputs, analyze_sfr_context(*sfr_inputs),
+                *sfr_inputs, analyze_sfr_context(*sfr_inputs, schema_version=2),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.aoi_body_context import analyze_aoi_body_context
+            from plc_workbench.aoi_body_summary import build_aoi_body_summary
+            body_inputs = (*companion_inputs, analyze_custom_instruction_context(*companion_inputs))
+            analysis_payload["aoi_body_summary"] = build_aoi_body_summary(
+                *body_inputs, analyze_aoi_body_context(*body_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))

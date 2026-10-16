@@ -13,12 +13,13 @@ from .references import ReferenceResult
 from .sfc_structure import SfcStructureResult
 from .sfr_context import (
     CONTEXT_CONSTANTS, COUNT_MAPS, COVERAGE_KEYS, MAX_RECORDS, SfrContextResult,
-    validate_sfr_context,
+    CONTEXT_CONSTANTS_V2, COUNT_MAPS_V2, COVERAGE_KEYS_V2, validate_sfr_context,
 )
 
 MAX_REPORT_BYTES = 4 * 1024
 CONSTANTS = {**CONTEXT_CONSTANTS, 'policy_version': 2, 'report_kind': 'l5x_sfr_context_summary',
              'exporter_version': 'sfr-summary-1', 'sharing_status': 'aggregate_sync_allowed'}
+CONSTANTS_V2 = {**CONSTANTS, **CONTEXT_CONSTANTS_V2, 'exporter_version': 'sfr-summary-2'}
 
 
 class SfrSummaryError(ValueError):
@@ -36,7 +37,13 @@ def _keys(value: Any, keys: set[str] | frozenset[str]) -> None:
 
 def validate_sfr_summary(summary: dict[str, Any]) -> None:
     _keys(summary, set(CONSTANTS) | {'status', 'coverage', 'tool_revision'})
-    for key, value in CONSTANTS.items():
+    if type(summary['schema_version']) is not int or summary['schema_version'] not in {1, 2}:
+        _invalid()
+    version = summary['schema_version']
+    constants = CONSTANTS_V2 if version == 2 else CONSTANTS
+    count_maps = COUNT_MAPS_V2 if version == 2 else COUNT_MAPS
+    coverage_keys = COVERAGE_KEYS_V2 if version == 2 else COVERAGE_KEYS
+    for key, value in constants.items():
         if type(summary[key]) is not type(value) or summary[key] != value:
             _invalid()
     revision = summary['tool_revision']
@@ -52,12 +59,12 @@ def validate_sfr_summary(summary: dict[str, Any]) -> None:
     else:
         _invalid()
     c = summary['coverage']
-    _keys(c, COVERAGE_KEYS)
+    _keys(c, coverage_keys)
     counts = []
-    for key, vocabulary in COUNT_MAPS.items():
+    for key, vocabulary in count_maps.items():
         _keys(c[key], vocabulary)
         counts.extend(c[key].values())
-    counts.extend(c[key] for key in COVERAGE_KEYS - COUNT_MAPS.keys())
+    counts.extend(c[key] for key in coverage_keys - count_maps.keys())
     if any(type(value) is not int or not 0 <= value <= MAX_RECORDS for value in counts):
         _invalid()
     calls, steps, matches = c['calls_total'], c['steps_total'], c['content_matches_total']
@@ -103,6 +110,29 @@ def validate_sfr_summary(summary: dict[str, Any]) -> None:
                 and c['initial_markers_by_kind']['other'] == 0)
     if type(summary['status']) is not str or summary['status'] != ('complete' if complete else 'partial'):
         _invalid()
+    if version == 2:
+        gaps, links = c['gap_contexts_total'], c['gap_candidate_links_total']
+        peers, no_contents = c['gap_peer_contents_total'], c['gap_peer_routines_without_content_total']
+        missing = c['missing_matches_by_selector_kind']
+        candidates, peer_counts = c['gap_candidate_links_by_kind'], c['gap_peer_content_counts']
+        excluded = peers - peer_counts['eligible']
+        if (sum(missing.values()) != matching['missing_candidate'] or missing['named'] != gaps
+                or any(missing[kind] > selector[kind] * c['source_sfc_contents'] for kind in missing)
+                or sum(candidates.values()) != links or sum(peer_counts.values()) != peers
+                or c['gaps_with_candidates'] + c['gaps_with_no_candidates'] != gaps
+                or c['gaps_with_candidates'] > min(gaps, links)
+                or bool(c['gaps_with_candidates']) != bool(links)
+                or c['gaps_with_excluded_peer_contents'] > min(gaps, excluded)
+                or bool(c['gaps_with_excluded_peer_contents']) != bool(excluded)
+                or c['gaps_with_peer_routines_without_content'] > min(gaps, no_contents)
+                or bool(c['gaps_with_peer_routines_without_content']) != bool(no_contents)
+                or peers > gaps * max(0, c['source_sfc_contents'] - 1)
+                or no_contents > gaps * max(0, c['source_sfc_routines'] - 1)
+                or links > gaps * c['steps_by_binding']['root_bound']
+                or candidates['other_edit_exact'] + candidates['peer_chart_exact'] > peer_counts['eligible'] * steps
+                or (candidates['other_edit_exact'] and not c['multiple_content_calls'])
+                or calls + steps + matches + gaps + links > MAX_RECORDS):
+            _invalid()
 
 
 def build_sfr_summary(snapshot: SourceSnapshot, inventory: InventoryResult,
@@ -111,7 +141,8 @@ def build_sfr_summary(snapshot: SourceSnapshot, inventory: InventoryResult,
                       result: SfrContextResult, revision: dict[str, Any] | None = None) -> dict[str, Any]:
     try:
         validate_sfr_context(snapshot, inventory, references, access, calculations, sfc_structure, result)
-        summary = {**CONSTANTS, 'status': result.status, 'coverage': deepcopy(result.coverage),
+        constants = CONSTANTS_V2 if result.schema_version == 2 else CONSTANTS
+        summary = {**constants, 'status': result.status, 'coverage': deepcopy(result.coverage),
                    'tool_revision': revision if revision is not None else {'commit': None, 'worktree': 'unavailable'}}
         validate_sfr_summary(summary)
         summary['tool_revision'] = dict(summary['tool_revision'])

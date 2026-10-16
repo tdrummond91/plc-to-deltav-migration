@@ -1,11 +1,11 @@
 # PLC analysis workbench
 
-Latest checkpoint: returned `5215baa` passed 1,057 application cases (two expected
-Windows skips) and 139 helpers. The unknown block has one matching AOI declaration;
-both dynamic write roots and their index reads bind. Earlier summaries and the
-six-example reservation remain unchanged. Work30 now measures ONS stored-state
-conditions and SFR chart/step target context. Detailed source evidence stays local.
-See [scope and validation](public/docs/reviews/STATEFUL_SEQUENCE_REVIEW.md).
+Latest checkpoint: returned `871b700` passed 1,128 application cases (two expected
+Windows skips) and 139 helpers. All 133 ONS instructions now have stored-state
+conditions, leaving one opaque coil guard. SFR targets match for 139 of 140 calls.
+Work31 adds AOI body/instance relationships and diagnostic context for unmatched
+SFR targets. Earlier analysis and the six-example reservation are preserved.
+See [scope and validation](public/docs/reviews/AOI_BODY_REVIEW.md).
 The next step is the normal work-machine run; team review remains deferred.
 
 Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected

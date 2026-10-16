@@ -167,7 +167,8 @@ class StatefulSequenceWorkflowTests(unittest.TestCase):
             self.assertEqual(first['condition_summary']['coverage']['stateful_opcodes']['ONS'], 1)
             self.assertEqual(first['condition_summary']['coverage']['node_kinds']['opaque_transfer'], 0)
             self.assertIsNone(first.pop('diagnostic_sample'))
-            payload = report(data)
+            from test_aoi_body_workflow import report as current_report
+            payload = current_report(data)
             payload.update(analysis=first, targeted_samples=envelope)
             work_check.validate_work_check_report(payload)
             path.write_bytes(source('NOP();'))
@@ -185,7 +186,7 @@ class StatefulSequenceWorkflowTests(unittest.TestCase):
                 result = work_check._analyze(root, path, root, REVISION)
             self.assertEqual((result['failure_code'], result['private_run_saved']), ('sfr_context_error', False))
             self.assertIsNone(result['sfr_summary'])
-            payload = failed_report(30, 'sfr_context_error')
+            payload = failed_report(31, 'sfr_context_error')
             payload['analysis'] = {k: v for k, v in result.items() if k not in {'diagnostic_sample', 'targeted_samples'}}
             self.assertNotIn('PRIVATE_FAILURE', work_check.render_work_check_report(payload))
             self.assertIn('PRIVATE_FAILURE', (root / 'analysis.log').read_text())

@@ -1,5 +1,18 @@
 # Independently synthetic L5X fixture
 
+## AOI body and SFR gap fixture
+
+[aoi_body_demo.L5X](aoi_body_demo.L5X) is an independently invented 75-rung input.
+It covers body ownership, parameter aliases, repeated CPT reads, unknown roles,
+zero-observation symbols, distinct Logic/Prescan routines, an ST body and instance
+binding/type/shape gaps. Related SFR addresses occur in separate edits, peer
+charts, a protected chart and another program. No target is reassigned.
+
+The [offline demonstration](../../examples/aoi-body-demo.html) exercises body
+navigation and access pagination. See the [checkpoint](../../docs/reviews/AOI_BODY_REVIEW.md)
+for scope. Use isolated checkouts for work-check QA; invented inputs must not
+establish the production sample reservation. This is not controller-ready code.
+
 ## Stored-state and SFC target fixture
 
 [stateful_sequence_demo.L5X](stateful_sequence_demo.L5X) is an independently invented 70-rung report fixture.

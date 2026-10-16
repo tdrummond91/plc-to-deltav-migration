@@ -1,6 +1,7 @@
 """SFR publication summaries contain closed counts only, never source records."""
 from copy import deepcopy
 from dataclasses import replace
+import hashlib
 import json
 import unittest
 from unittest.mock import patch
@@ -8,14 +9,72 @@ from unittest.mock import patch
 from plc_workbench.sfr_summary import (
     SfrSummaryError, build_sfr_summary, render_sfr_summary, validate_sfr_summary,
 )
-from test_sfr_context import capture, chart, document, program, step, tag
+from test_sfr_context import capture, chart, document, gap_document, program, step, tag
 
 
-def summary(xml=None, **kwargs):
-    return build_sfr_summary(*capture(xml), **kwargs)
+def summary(xml=None, schema_version=1, **kwargs):
+    return build_sfr_summary(*capture(xml, schema_version=schema_version), **kwargs)
 
 
 class SfrSummaryTests(unittest.TestCase):
+    def test_schema_one_summary_bytes_are_frozen(self):
+        rendered = render_sfr_summary(summary())
+        self.assertEqual(hashlib.sha256(rendered.encode()).hexdigest(),
+                         '0c4dfa604d09c8c0815984d15a2c36446fe42860d841aed6c3156126145fe619')
+
+    def test_v2_summary_preserves_old_counts_and_contains_only_closed_gap_counts(self):
+        old, newer = summary(gap_document()), summary(gap_document(), schema_version=2)
+        self.assertEqual({key: newer['coverage'][key] for key in old['coverage']}, old['coverage'])
+        c = newer['coverage']
+        self.assertEqual((c['gap_contexts_total'], c['gap_candidate_links_total']), (1, 3))
+        self.assertEqual(c['gap_candidate_links_by_kind'], {'same_content_root': 1, 'other_edit_exact': 1,
+                                                          'peer_chart_exact': 1})
+        text = render_sfr_summary(newer)
+        self.assertLessEqual(len(text), 4096)
+        self.assertEqual(json.loads(text), newer)
+        for secret in ('Private', 'Container', 'Alias', 'Selected', 'target_id', 'step_ids', 'content_id'):
+            self.assertNotIn(secret, text)
+        self.assertEqual(newer['schema_version'], 2)
+        self.assertEqual(newer['analyzer_version'], 'sfr-context-2')
+
+    def test_v2_gap_population_and_candidate_counts_cannot_be_erased_or_invented(self):
+        base = summary(gap_document(), schema_version=2)
+        mutations = (
+            lambda c: c.update(gap_contexts_total=0),
+            lambda c: c['missing_matches_by_selector_kind'].update(named=0),
+            lambda c: c['missing_matches_by_selector_kind'].update(named=0, initial=1),
+            lambda c: c.update(gap_candidate_links_total=0),
+            lambda c: c['gap_candidate_links_by_kind'].update(same_content_root=0),
+            lambda c: c.update(gaps_with_candidates=0, gaps_with_no_candidates=1),
+            lambda c: c.update(gap_peer_contents_total=0),
+            lambda c: c['gap_peer_content_counts'].update(eligible=0),
+            lambda c: c.update(gaps_with_excluded_peer_contents=1),
+            lambda c: c.update(gap_peer_routines_without_content_total=1),
+            lambda c: c.update(gaps_with_peer_routines_without_content=1),
+        )
+        for mutate in mutations:
+            report = deepcopy(base); mutate(report['coverage'])
+            with self.subTest(mutation=mutate), self.assertRaises(SfrSummaryError): validate_sfr_summary(report)
+
+    def test_v2_peer_exclusions_and_empty_diagnostics_validate(self):
+        body = f'<SFCContent>{step("Other")}</SFCContent>'
+        charts = chart() + chart(body + '<EncodedData/>', name='Protected') + chart('', name='Missing')
+        xml = document(program(text='SFR(PrivateChart,Other);', charts=charts, tags=tag() + tag('Other')))
+        report = summary(xml, schema_version=2)
+        self.assertEqual(report['coverage']['gap_peer_content_counts']['protected'], 1)
+        self.assertEqual(report['coverage']['gap_peer_routines_without_content_total'], 1)
+        validate_sfr_summary(report)
+        for xml in (document(programs=''), document(), document(program(text='SFR(PrivateChart,0);'))):
+            validate_sfr_summary(summary(xml, schema_version=2))
+
+    def test_v2_cannot_be_downgraded_by_changing_version_constants_only(self):
+        report = summary(gap_document(), schema_version=2)
+        report.update(schema_version=1, analyzer_version='sfr-context-1', exporter_version='sfr-summary-1')
+        with self.assertRaises(SfrSummaryError): validate_sfr_summary(report)
+        report = summary()
+        report.update(schema_version=2, analyzer_version='sfr-context-2', exporter_version='sfr-summary-2')
+        with self.assertRaises(SfrSummaryError): validate_sfr_summary(report)
+
     def test_closed_report_is_small_and_never_exposes_names_or_identifiers(self):
         report = summary()
         text = render_sfr_summary(report)

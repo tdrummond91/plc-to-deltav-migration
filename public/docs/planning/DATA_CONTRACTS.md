@@ -1,5 +1,16 @@
 # Data contracts, traceability, and checkpoints
 
+## AOI body and SFR gap revision (2026-10-16)
+
+AOI body context1 links existing body and access IDs without duplicating source
+totals. SFR context2 adds bounded gap diagnostics while preserving schema1 and
+its default. Review14 embeds both under 200 MiB JSON / 232 MiB HTML limits.
+Manifest17 still hashes sixteen artifacts. Work31 adds AOI body summary1 and
+SFR summary2 inside the unchanged 64 KiB outer cap. Earlier analysis versions,
+condition3 and the frozen diagnostic sample request remain unchanged. See
+[scope and verification](../reviews/AOI_BODY_REVIEW.md).
+Work31 renders compact JSON; versions1-30 retain their historical whitespace.
+
 ## Stored-state and SFC target revision (2026-10-15)
 
 Condition3 adds one occurrence-level ONS stored-state node and propagated state
