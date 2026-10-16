@@ -170,6 +170,7 @@ class BindingContextWorkflowTests(unittest.TestCase):
                 self.assertIsNone(outcome['failure_code'])
                 self.assertEqual(save.call_args.kwargs['binding_context'].to_dict(), parts[-1].to_dict())
                 outcome.pop('diagnostic_sample')
+                outcome.pop('targeted_samples', None)
                 self.assertEqual(outcome, report()['analysis'])
 
     def test_context_failures_are_fixed_and_do_not_publish_private_diagnostics(self) -> None:

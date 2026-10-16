@@ -1,8 +1,8 @@
 """Run local parser checks and analysis using the already checked-out code.
 
 Source exports, saved engineering records and raw test output remain private.
-Feedback reports include counts and at most one user-authorized mystery operand
-example, committed locally for manual review and pushing.
+Feedback reports include counts and one immutable, bounded request for scrubbed
+whole-rung examples, committed locally for manual review and pushing.
 This workflow never fetches, pulls or pushes.
 """
 from __future__ import annotations
@@ -47,9 +47,12 @@ from .storage import StorageError, save_run
 from .tag_data import analyze_tag_data
 from .tag_data_summary import build_tag_data_summary, validate_tag_data_summary
 from .work_check_tests import unavailable_result, validate_test_result
+from .targeted_samples import build_targeted_samples
+from .targeted_sample_history import resolve_targeted_samples, sample_envelope, validate_sample_envelope
 
 MAX_REPORT_BYTES = 32 * 1024
 MAX_REPORT_V22_BYTES = 48 * 1024
+MAX_REPORT_V28_BYTES = 64 * 1024
 _LEGACY_CONSTANTS = {
     "schema_version": 1,
     "report_kind": "l5x_work_machine_check",
@@ -80,7 +83,8 @@ _V23_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 23, "workflow_version": 
 _V24_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 24, "workflow_version": "work-check-24"}
 _V25_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 25, "workflow_version": "work-check-25"}
 _V26_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 26, "workflow_version": "work-check-26"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 27, "workflow_version": "work-check-27"}
+_V27_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 27, "workflow_version": "work-check-27"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 28, "workflow_version": "work-check-28"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _SAVE_FAILURE_CODES = frozenset({
     "review_size_limit", "review_validation_error", "review_render_error",
@@ -160,10 +164,10 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _V25_CONSTANTS, 26: _V26_CONSTANTS, 27: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _V25_CONSTANTS, 26: _V26_CONSTANTS, 27: _V27_CONSTANTS, 28: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
-    extra = {"diagnostic_sample"} if version >= 2 else set()
+    extra = ({"diagnostic_sample"} if version >= 2 else set()) | ({"targeted_samples"} if version >= 28 else set())
     _keys(report, set(constants) | {"run_id", "tool_revision", "tests", "analysis", "status"} | extra)
     for key, fixed in constants.items():
         if type(report[key]) is not type(fixed) or report[key] != fixed:
@@ -198,14 +202,14 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12, 26: 12, 27: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12, 26: 12, 27: 12, 28: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2, 26: 2, 27: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2, 26: 2, 27: 2, 28: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
@@ -622,6 +626,51 @@ def validate_work_check_report(report: Any) -> None:
     )
     if report["status"] != expected:
         _invalid()
+    if version >= 28:
+        envelope = report["targeted_samples"]
+        validate_sample_envelope(envelope)
+        if report["diagnostic_sample"] is not None:
+            _invalid()
+        if analysis["status"] in ("failed", "not_run"):
+            if envelope["status"] != "not_run":
+                _invalid()
+        elif envelope["status"] == "not_run":
+            _invalid()
+        elif envelope["status"] == "selected":
+            record = envelope["record"]
+            source_count = analysis["binding_context_summary"]["coverage"]["source_rungs"]
+            if record["source_rungs"] != source_count or record["charged_rungs"] > source_count:
+                _invalid()
+            found = {row['slot']: row['status'] != 'not_found' for row in record['cases']}
+            context_counts = analysis['binding_context_summary']['coverage']
+            dynamic = context_counts['gaps_by_category']['non_static_array_index']
+            rung_counts = analysis['rung_analysis_summary']['coverage']
+            condition_counts = analysis['condition_summary']['coverage']
+            opcodes = analysis['reference_summary']['source_summary']['instructions']['counts']
+            # The public category count includes expression leaves, whereas
+            # this request deliberately selects ordinary operand gaps only.
+            # Preserve an exact check when no expression gaps exist; otherwise
+            # bound ordinary occurrences by the two known population sizes.
+            lower = min(2, max(0, dynamic - context_counts['expression_binding_gaps']))
+            upper = min(2, dynamic, context_counts['operand_binding_gaps'])
+            found_dynamic = int(found['dynamic_index_1']) + int(found['dynamic_index_2'])
+            if (not lower <= found_dynamic <= upper
+                    or found['dynamic_index_2'] and not found['dynamic_index_1']
+                    or found['unknown_block_1'] != (rung_counts['block_families']['unknown'] > 0)):
+                _invalid()
+            opaque_cases = int(found['opaque_ons_1']) + int(found['opaque_sfr_1'])
+            missing_opcodes = sum(int(found[slot]) and opcodes.get(opcode, 0) == 0
+                                  for slot, opcode in (('opaque_ons_1', 'ONS'), ('opaque_sfr_1', 'SFR')))
+            if (opaque_cases > condition_counts['node_kinds']['opaque_transfer']
+                    or missing_opcodes > opcodes.get('withheld', 0)
+                    or found['branched_output_1'] and (
+                        not rung_counts['structures']['branched']
+                        or not condition_counts['action_statuses']['recognized']
+                        or not sum(condition_counts['predicate_opcodes'][opcode]
+                                   for opcode in ('EQU', 'NEQ', 'LES', 'LEQ', 'GRT', 'GEQ', 'LIM')))):
+                _invalid()
+        # A replay is explicitly historical: never compare its immutable source
+        # population with the newly analyzed export or pretend it was resampled.
     if version >= 2:
         sample = report["diagnostic_sample"]
         validate_diagnostic_sample(sample)
@@ -634,7 +683,7 @@ def validate_work_check_report(report: Any) -> None:
             if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
                 # This fallback needs dedicated rack evidence. Historical v2
                 # reports retain their original malformed-only sample contract.
-                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12), (15, 12), (16, 12), (17, 12), (18, 12), (19, 12), (20, 12), (21, 12), (22, 12), (23, 12), (24, 12), (25, 12), (26, 12), (27, 12)}
+                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12), (15, 12), (16, 12), (17, 12), (18, 12), (19, 12), (20, 12), (21, 12), (22, 12), (23, 12), (24, 12), (25, 12), (26, 12), (27, 12), (28, 12)}
                         or nested["rack_candidates"]["matches"]["direct_operands"]
                         ["by_status"]["no_candidate_match"] == 0):
                     _invalid()
@@ -663,10 +712,16 @@ def validate_work_check_report(report: Any) -> None:
     _report_size(report)
 
 
+def _report_limit(version: int) -> int:
+    if version == 28:
+        return MAX_REPORT_V28_BYTES
+    return MAX_REPORT_V22_BYTES if version in (22, 23, 24, 25, 26, 27) else MAX_REPORT_BYTES
+
+
 def _report_size(report: dict[str, Any]) -> None:
-    """Keep historical envelopes bounded while adding fixed analysis counts."""
+    """Keep historical caps while reserving work28 space for targeted examples."""
     rendered = json.dumps(report, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
-    limit = MAX_REPORT_V22_BYTES if report["schema_version"] in (22, 23, 24, 25, 26, 27) else MAX_REPORT_BYTES
+    limit = _report_limit(report["schema_version"])
     if len(rendered.encode("utf-8")) > limit:
         raise WorkCheckError("Work-machine report exceeds its publication size limit.")
 
@@ -674,7 +729,7 @@ def _report_size(report: dict[str, Any]) -> None:
 def render_work_check_report(report: Any) -> str:
     validate_work_check_report(report)
     rendered = json.dumps(report, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
-    if len(rendered.encode("utf-8")) > (MAX_REPORT_V22_BYTES if report["schema_version"] in (22, 23, 24, 25, 26, 27) else MAX_REPORT_BYTES):
+    if len(rendered.encode("utf-8")) > _report_limit(report["schema_version"]):
         raise WorkCheckError("Work-machine report exceeds its publication size limit.")
     return rendered
 
@@ -846,7 +901,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
                               "access_summary": None, "tag_data_summary": None, "pid_summary": None,
                               "pid_member_summary": None, "calculation_summary": None, "rung_analysis_summary": None, "relationship_summary": None, "condition_summary": None,
                               "binding_context_summary": None,
-                              "diagnostic_sample": None}
+                              "diagnostic_sample": None, "targeted_samples": sample_envelope()}
     try:
         snapshot = capture_snapshot(source)
         inventory = analyze_snapshot(snapshot)
@@ -909,7 +964,10 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         context_summary = build_binding_context_summary(
             snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions,
             binding_context, revision=revision)
-        sample = build_diagnostic_sample(inventory, references)
+        # Current releases use the durable targeted reservation. Retain the
+        # legacy field as null; its source-order raw sampler must not rotate
+        # additional examples outside the new cumulative disclosure budget.
+        sample = None
         status = "partial" if "partial" in (summary["status"], sfc_summary["status"], access.status,
                                            tag_data.status, pid.status, pid_members.status, calculations.status, rung_analysis.status,
                                            relationships.status, conditions.status, binding_context.status) else "complete"
@@ -925,6 +983,10 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
                       condition_summary=condition_summary,
                       binding_context_summary=context_summary,
                       diagnostic_sample=sample)
+        result["targeted_samples"] = resolve_targeted_samples(
+            root, lambda: build_targeted_samples(
+                snapshot, inventory, references, access, calculations,
+                rung_analysis, relationships, conditions, binding_context))
     except Exception as exc:
         # Only our exact storage exception may refine the save stage. Do not
         # inspect arbitrary exception attributes, messages, causes or tracebacks:
@@ -970,11 +1032,18 @@ def run_check(root: Path, supplied_source: str | None) -> int:
     status = "failed" if analysis["status"] in ("not_run", "failed") else (
         "partial" if analysis["status"] == "partial" else "passed"
     )
-    # The bounded sample is separate from the unchanged count-only reference
-    # summary and its historical analysis envelope.
+    # Targeted examples are separate from the unchanged count-only summaries.
+    # The historical raw sample field remains null in current reports.
     sample = analysis.pop("diagnostic_sample", None)
+    targeted = analysis.pop("targeted_samples", None)
+    if targeted is None:
+        # Historical mocked analysis dictionaries remain usable in workflow
+        # tests; no fresh selection is made without the current analysis chain.
+        targeted = sample_envelope('not_run' if analysis['status'] in ('not_run', 'failed')
+                                   else 'unavailable', reason=None if analysis['status'] in ('not_run', 'failed')
+                                   else 'selection_error')
     report = dict(_CONSTANTS, run_id=run_id, tool_revision=revision, tests=results,
-                  analysis=analysis, status=status, diagnostic_sample=sample)
+                  analysis=analysis, status=status, diagnostic_sample=sample, targeted_samples=targeted)
     rendered = render_work_check_report(report)
     _check_pinned(root, branch, commit)
     relative_report = f"public/inspection/work-check-{run_id}.json"

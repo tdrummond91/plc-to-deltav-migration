@@ -1,5 +1,16 @@
 # Independently synthetic L5X fixture
 
+## Targeted diagnostic sampling fixture
+
+`targeted_samples_demo.L5X` contains six independently invented diagnostic rungs
+and 394 NOP padding rungs. It exercises both dynamic-index selectors, one unknown
+instruction, ONS/SFR gaps, and a branched comparison/output. The 400-rung count
+allows exactly six new examples plus two conservative reserved units under the
+2% budget. Names and conspicuous numeric values test removal; the intentionally
+unknown `INVENTED_UNLISTED` mnemonic is the one permitted narrow clue.
+This fixture tests publication and replay, not controller operation. The HTML
+demo continues using the binding-context fixture below.
+
 ## Current binding-context demonstration
 
 `binding_context_review_demo.L5X` extends the condition-transfer fixture with

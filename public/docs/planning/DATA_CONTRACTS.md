@@ -1,5 +1,15 @@
 # Data contracts, traceability, and checkpoints
 
+## Targeted diagnostic revision (2026-10-15)
+
+Work28 adds top-level targeted_samples schema1 and permits a 64 KiB outer report.
+Its immutable record is capped at 16 KiB and six rungs under one fixed request;
+public history and an ignored local reservation prevent automatic rotation.
+The new-information budget reserves the two historical operand clues, and the
+legacy diagnostic_sample must now be null. Work1-27 keep their original fields,
+validation and byte caps. All eleven summaries and review11/manifest14's sixteen
+artifacts are unchanged. See [selection and accounting](../reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
+
 ## Binding context revision (2026-10-15)
 
 BindingContext1 is an 8 MiB bounded index of existing unresolved-use evidence,

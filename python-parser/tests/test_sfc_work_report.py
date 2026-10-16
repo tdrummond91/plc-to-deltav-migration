@@ -125,6 +125,7 @@ class SfcWorkReportTests(unittest.TestCase):
             self.assertIsNone(result['reference_summary'])
             payload = report()
             result.pop('diagnostic_sample')
+            result.pop('targeted_samples', None)
             payload.update(schema_version=27, workflow_version='work-check-27',
                            analysis=result, status='failed', diagnostic_sample=None)
             rendered = work_check.render_work_check_report(payload)

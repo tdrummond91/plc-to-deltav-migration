@@ -1,5 +1,28 @@
 # Codex handoff: PLC analysis workbench
 
+Current checkpoint (2026-10-15): **fixed targeted diagnostic rung examples**.
+Tyler confirmed the 2% limit counts new informative examples separately from
+older scrubbed structural catalogs. Small evidence-driven pulls are authorized;
+no per-case approval gate is needed within that boundary.
+
+Work28 adds a maximum six-rung request for two dynamic indexes, an unknown
+instruction, ONS/SFR condition gaps and a branched comparison/output pattern.
+Per-rung substitutions remove plant names and literal values. One bounded
+unknown mnemonic is an intentional diagnostic clue. Public history plus an
+ignored local reservation freeze the whole request across retries and changed
+exports; historical replay is explicitly marked. The old rotating operand
+sampler is disabled in work28. Earlier contracts remain readable.
+
+Returned `aed0fc4` tested clean `a12ada1`: 945 application cases passed (one
+expected skip), plus 139 helpers; the private run saved and all ten prior summaries
+were unchanged. All 303 predicate gaps and 16 unbound outputs have unique rack
+context, with two dynamic-index writes remaining. All 34 older reports validate.
+The next normal work-machine run collects targeted examples; no manual engineering
+or UI review is needed. See [selection, accounting and validation](docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
+Git transport stays manual and the listener stays disabled.
+
+## Historical binding-context checkpoint
+
 Latest return (2026-10-15): `aed0fc4` tested clean `a12ada1`; 945 application
 cases passed (one expected skip), plus 139 helpers, and the private run saved.
 All ten prior summaries are unchanged. The 303 predicate gaps and 16 unbound
@@ -10,12 +33,11 @@ All 34 historical reports validate. See the returned-result section in
 
 Tyler reauthorized small targeted source-derived diagnostic pulls to investigate
 unclear patterns. Next work should collect representative cases rather than rely
-only on aggregate counters and invented tests. A clarification is pending on how
-the 2% accounting treats older scrubbed structural catalogs versus new informative
-examples; no sampler or new disclosure has been implemented at this checkpoint.
-No additional work-PC run is needed for the returned binding-context result.
+only on aggregate counters and invented tests. That checkpoint awaited the
+accounting clarification resolved above. No sampler
+or new disclosure had been implemented at that historical checkpoint.
 
-Current checkpoint (2026-10-15): **binding gaps and logical rack context**.
+Historical checkpoint (2026-10-15): **binding gaps and logical rack context**.
 Returned `248b12a` tested clean `ef4ba8d`: 907 application cases passed (one
 expected skip), plus 139 helpers, with a saved private run. Nine earlier summaries
 are unchanged. Condition2 explains 2,718 instruction transfers; 459 remain opaque.

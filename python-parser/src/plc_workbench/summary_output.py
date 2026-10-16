@@ -53,18 +53,20 @@ def publish_summary(output: Path, rendered: str, *, input_path: Path) -> None:
         # This entry point can write into the synced tree. Validate independently
         # of the CLI and serialize canonical output rather than copying arbitrary
         # caller text (including duplicate JSON keys or hidden extra fields).
-        # The larger work22-27 envelopes add only closed analysis counts.
+        # Work22-27 add closed counts; work28 adds the separately validated,
+        # bounded and immutable targeted sample request.
         # Bound parsing first, then retain the original cap for every other
         # contract; a caller cannot obtain the larger allowance via a flag.
-        from .work_check import MAX_REPORT_V22_BYTES
+        from .work_check import MAX_REPORT_V22_BYTES, MAX_REPORT_V28_BYTES
         supplied_bytes = len(rendered.encode('utf-8'))
-        if supplied_bytes > max(MAX_REPORT_BYTES, MAX_REPORT_V22_BYTES):
+        if supplied_bytes > max(MAX_REPORT_BYTES, MAX_REPORT_V22_BYTES, MAX_REPORT_V28_BYTES):
             raise SummaryOutputError('Summary exceeds its publication size limit.')
         try:
             payload = json.loads(rendered)
             current_work = (type(payload) is dict and payload.get('report_kind') == 'l5x_work_machine_check'
-                            and type(payload.get('schema_version')) is int and payload['schema_version'] in (22, 23, 24, 25, 26, 27))
-            limit = MAX_REPORT_V22_BYTES if current_work else MAX_REPORT_BYTES
+                            and type(payload.get('schema_version')) is int and payload['schema_version'] in (22, 23, 24, 25, 26, 27, 28))
+            limit = (MAX_REPORT_V28_BYTES if current_work and payload["schema_version"] == 28
+                     else MAX_REPORT_V22_BYTES if current_work else MAX_REPORT_BYTES)
             if supplied_bytes > limit:
                 raise SummaryOutputError('Summary exceeds its publication size limit.')
             # Dispatch only known closed publication contracts. Callers cannot

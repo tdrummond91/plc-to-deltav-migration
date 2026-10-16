@@ -1,13 +1,22 @@
 # PLC analysis workbench
 
-Latest checkpoint: returned `e0b6b0c` passed 870 application cases (one expected
+Latest checkpoint: returned `aed0fc4` passed 945 application cases (one expected
+skip) and 139 helpers, saved the private analysis, and preserved all ten preceding
+summaries. Binding context links 303 predicate gaps and 16 unbound coil targets
+to unique rack candidates; two write operands use dynamic indexes. Work28 now
+requests at most six targeted rung examples to investigate unclear cases. It
+substitutes plant names and values and freezes the request across reruns. See
+[the sample contract](public/docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
+The next step is the normal work-machine run; team review remains deferred.
+
+Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected
 skip) and 139 helpers, but reported a save-stage failure and no analysis counts.
 The [save repair](public/docs/reviews/SAVE_FAILURE_REVIEW.md) gives review9 its
 additional bounded condition allowance and adds precise, source-free work25
-failure codes. The private cause remains unconfirmed until the next normal run.
+failure codes. The private cause remained unconfirmed at that checkpoint.
 Phase 1 analysis continues before team review.
 
-Previous successful analysis baseline:
+Earlier successful analysis baseline:
 
 Status: updated 2026-10-15. Phase 1 includes source inventory, I/O declarations,
 reference bindings, routine-call candidates, SFC structure/notes, PID stored
@@ -39,7 +48,7 @@ Start with [CODEX_HANDOFF.md](CODEX_HANDOFF.md). Read [the architecture](public/
 ## Agreed direction
 
 - Keep command-line argument parsing and presentation separate from the reusable analysis functions.
-- Keep real exports and private engineering artifacts under root `confidential/`; approved count summaries can be synced in `public/inspection/`.
+- Keep real exports and private engineering artifacts under root `confidential/`; approved count summaries and bounded diagnostic examples can be synced in `public/inspection/`.
 - Retain immutable source snapshots and versioned analysis runs; use Git for application code and synthetic tests.
 - Publish machine-readable JSON results and coverage reports at every stage.
 - Show both the source hierarchy and relationships across rungs, programs, tasks, and controllers.
@@ -79,7 +88,9 @@ On the work machine, Codex may inspect the project read-only and produce handoff
 filename on the first run and remembers it locally for later runs. It tests the
 already checked out clean named branch, including `main`, using explicit parser/helper test lists,
 saves private analysis and automatically commits only the new validated feedback
-under `public/inspection/`: counts plus at most one short actual mystery operand.
+under `public/inspection/`: counts plus a fixed request containing at most six
+targeted rung examples with plant names and values substituted. The request
+replays the same record on later runs; new legacy single-operand samples are disabled.
 Update code manually before running, then review the
 report and run `git push` when ready. See the [work-machine procedure](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
@@ -104,7 +115,7 @@ binding/coverage counts, module naming and gap-reason counts, plus the structura
 summary. Follow the
 [current work-machine procedure](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
-Unit test source belongs in `python-parser/tests/`. Private reports, reviewer workbooks, source snapshots and checkpoints belong under `confidential/`; approved aggregate reports are the explicit sync exception. Real data must not be placed in synthetic fixtures or application documentation.
+Unit test source belongs in `python-parser/tests/`. Private reports, reviewer workbooks, source snapshots and checkpoints belong under `confidential/`; approved aggregate reports and bounded diagnostic examples are the explicit sync exceptions. Real data must not be placed in synthetic fixtures or application documentation.
 
 ## First development input
 
@@ -115,6 +126,6 @@ Repository roles:
 - `python-parser/`: application source, dependency files, and test code.
 - `confidential/`: actual exports and every derived private artifact.
 
-The full repository is the portable development bundle; `public/` complements the Python source rather than duplicating it. The work-machine runner automatically stages and commits only its new validated feedback report, including at most one authorized mystery-operand example. Review it and manually push when ready. Earlier reports in `public/inspection/local/` remain ignored and are not included automatically. Detailed production outputs and raw logs stay private.
+The full repository is the portable development bundle; `public/` complements the Python source rather than duplicating it. The work-machine runner automatically stages and commits only its new validated feedback report, including the fixed targeted-sample request. Review it and manually push when ready. Earlier reports in `public/inspection/local/` remain ignored and are not included automatically. Detailed production outputs and raw logs stay private.
 
 For the new-copy workflow, read [fresh Git setup](public/docs/planning/GIT_FRESH_START.md).

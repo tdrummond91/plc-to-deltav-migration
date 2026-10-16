@@ -30,13 +30,18 @@ hints are separate. Internal Boolean outputs do not imply physical DOs; no
 known local result does not prove dead code. CPT expression reads retain their
 own population, node/span links and repeated occurrences.
 
-The latest automated return (`248b12a`) saved successfully and accounts for
+The latest automated return (`aed0fc4`) saved successfully and accounts for
 4,163 coil outputs: 3,923 modeled guards, 181 with condition binding gaps and
 59 with opaque transfers. Documented transfers explain 2,718 occurrences;
 459 remain opaque. Earlier summaries remain unchanged, including
 7,591 exact addresses and 1,489 operand-reuse patterns covering 4,286 rungs.
-The next run traces the 303 predicate binding gaps and 16 unbound coil targets
-to existing rack-candidate context, without promoting those bindings.
+All 303 predicate binding gaps and 16 unbound coil targets now have unique
+rack-candidate context: 319 uses across 94 candidate addresses and 11 roots.
+Two additional writes use dynamic indexes. The next run requests at most six
+targeted, source-derived rung examples to investigate those cases and unclear
+instruction patterns. Names/values are substituted; the fixed request is reserved
+and replayed across reruns, including changed exports. See the
+[targeted-sample contract](../public/docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
 Continue the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)
 before requesting team feedback. No manual engineering/UI review is needed now.
 See [binding context scope and contracts](../public/docs/reviews/BINDING_CONTEXT_REVIEW.md).
@@ -65,9 +70,12 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work27 adds binding-context summary1 beside condition2, relationship1, rung-analysis1,
+manual. Current work28 adds a fixed targeted-sample record alongside the unchanged
+binding-context summary1, condition2, relationship1, rung-analysis1,
 access4, calculation2, PID member1, PID1, Tag Data1, reference12/source4 and SFC2.
-Work22-27 permit 48 KiB for the complete public report; work1-21 retain 32 KiB.
+Work28 permits 64 KiB including at most 16 KiB of targeted evidence. Work22-27
+retain 48 KiB; work1-21 retain 32 KiB. New legacy single-operand samples are
+disabled so they cannot rotate outside the targeted request's budget.
 Work25 adds fixed save-failure categories; review11 allows 168 MiB JSON / 200 MiB
 HTML, reserving 8 MiB for the embedded context index. Review9/10 retain
 160 MiB JSON / 192 MiB HTML, and earlier versions retain their original budgets. See the

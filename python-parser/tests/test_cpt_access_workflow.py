@@ -101,6 +101,7 @@ class CptAccessWorkflowTests(unittest.TestCase):
             self.assertEqual(save.call_args.kwargs['calculations'].to_dict(), parts[-1].to_dict())
             current = report()
             outcome.pop('diagnostic_sample')
+            outcome.pop('targeted_samples', None)
             self.assertIsNotNone(outcome.pop('rung_analysis_summary'))
             self.assertIsNotNone(outcome.pop('relationship_summary'))
             self.assertIsNotNone(outcome.pop('condition_summary'))

@@ -25,13 +25,15 @@ Use at most six distinct rungs with local substitutions and no dependency closur
 freeze the selected examples so reruns cannot quietly rotate through the unit.
 This sampler is proposed, not implemented by this documentation checkpoint.
 
-One accounting definition is pending: whether the 2% boundary includes the older
+Historical question, now resolved by Tyler: new informative examples count
+separately; see [the implemented sampler](TARGETED_RUNG_SAMPLES_REVIEW.md). The
+previous accounting question was: whether the 2% boundary includes the older
 scrubbed structural catalogs or measures new informative examples separately.
 Existing files already include 554 opcode/arity/branch shapes, 2,397 minimized
 rung layouts and a 276-rung review subset. They remove original values and
 cross-rung tag identities, but their presence prevents claiming a zero historical
 topology baseline. No new source sample has been collected or published here.
-No further work-machine run is needed until the targeted-sampling change is ready.
+The targeted-sampling change now supplies the next work-machine run.
 
 ## Returned evidence
 

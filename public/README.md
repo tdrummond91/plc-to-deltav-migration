@@ -42,3 +42,7 @@ For the first parsing discussion, read [L5X structure and branch locations](docs
 15. [Current exact-address relationships and operand-reuse patterns](docs/reviews/RELATIONSHIP_REVIEW.md).
 
 16. [Current Boolean conditions and output actions](docs/reviews/CONDITION_REVIEW.md).
+
+17. [Confirmed binding gaps and rack context](docs/reviews/BINDING_CONTEXT_REVIEW.md).
+
+18. [Fixed targeted diagnostic rung examples](docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).

@@ -246,7 +246,7 @@ class DiagnosticReportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             work_check.render_work_check_report(payload)
 
-    def test_analysis_uses_captured_records_for_single_actual_operand(self) -> None:
+    def test_current_analysis_suppresses_legacy_rotating_raw_operand(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve()
             source = root / "toy.L5X"
@@ -254,9 +254,8 @@ class DiagnosticReportTests(unittest.TestCase):
             with patch.object(work_check, "capture_snapshot", wraps=work_check.capture_snapshot) as capture:
                 result = work_check._analyze(root, source, root, {"commit": COMMIT, "worktree": "clean"})
             capture.assert_called_once_with(source)
-            self.assertEqual(result["diagnostic_sample"], {
-                "kind": "direct_malformed_operand", "opcode": "TON", "argument_index": 1, "raw_text": "Preset?",
-            })
+            self.assertIsNone(result["diagnostic_sample"])
+            self.assertNotIn("Preset?", json.dumps(result))
             self.assertNotIn("ToyTimer", json.dumps(result))
 
 

@@ -70,7 +70,7 @@ class SaveFailureDiagnosticsTests(unittest.TestCase):
         self.assertTrue(all(value is None for key, value in result.items() if key.endswith('_summary')))
         self.assertNotIn('PRIVATE_SENTINEL', json.dumps(result))
         payload = failed_report(27)
-        payload['analysis'] = {key: value for key, value in result.items() if key != 'diagnostic_sample'}
+        payload['analysis'] = {key: value for key, value in result.items() if key not in ('diagnostic_sample', 'targeted_samples')}
         work_check.validate_work_check_report(payload)
 
     def test_each_exact_storage_code_is_safe_and_messages_stay_in_private_log(self) -> None:
@@ -175,6 +175,7 @@ class SaveFailureDiagnosticsTests(unittest.TestCase):
                 manifest = json.loads((saved / 'manifest.json').read_bytes())
                 self.assertEqual((manifest['schema_version'], len(manifest['artifacts'])), (14, 16))
                 result.pop('diagnostic_sample')
+                result.pop('targeted_samples', None)
                 self.assertEqual(result, current_report()['analysis'])
 
 

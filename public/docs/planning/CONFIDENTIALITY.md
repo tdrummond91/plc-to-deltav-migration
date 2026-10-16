@@ -1,6 +1,6 @@
 # Confidential data, synthetic examples, and Git
 
-Status: updated 2026-10-13 with Tyler's clarified boundary. The bounded aggregate-summary command is implemented on feat/summary-export-pc; later data exchange/redaction workflows remain proposals. No audit of the old repository's history is claimed.
+Status: updated 2026-10-15 with Tyler's targeted-sampling clarification. Aggregate summaries and bounded diagnostic examples are implemented; general data exchange/editing remains planned. No audit of the old repository's history is claimed.
 
 ## Confirmed confidentiality boundary
 
@@ -9,13 +9,16 @@ for cases where the parser needs more information or the result does not make
 sense. This is standing authorization to investigate within the boundary below;
 do not impose a new approval request for each small diagnostic case. Selection
 should follow parser evidence and avoid accumulating enough connected logic to
-reconstruct the unit. A new targeted rung sampler is not yet implemented.
+reconstruct the unit.
 
-Accounting question pending: earlier shared structural catalogs already retain
-many source-derived layouts with names/values removed. Do not initialize a ledger
-at zero and claim it certifies all historical rung knowledge. Distinguish those
-older catalogs from newly informative samples once Tyler confirms how they count.
-See [the returned context result and sampling proposal](../reviews/BINDING_CONTEXT_REVIEW.md).
+Tyler confirmed that the 2% limit counts **new informative examples**, separately
+from the older scrubbed structural catalogs. Work28's first fixed request selects
+at most six whole-rung examples and conservatively reserves two units for the
+older operand clues. It removes names/values, preserves local syntax/relationships,
+and can retain one bounded unknown instruction mnemonic as a diagnostic clue.
+Existing report history and a local reservation freeze the selected record across
+reruns, including changed exports. No automatic next request or dependency
+expansion is allowed. See [the targeted-sample contract](../reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
 
 Tyler defines confidential material here as information that enables rebuilding
 the entire unit with data values, or provides more than 2% rung knowledge.
@@ -31,9 +34,9 @@ specific bounded diagnostic exception, not a general raw-export permission.
 Standalone source/reference summaries remain count-only. See the
 [sample contract](../reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md).
 
-Full exports and detailed inventories remain private. Future rung-sample outputs
-need their own coverage accounting; the aggregate exporter exposes no samples
-and does not certify the 2% threshold for other artifacts.
+Full exports and detailed inventories remain private. The targeted sampler has
+its own new-information accounting; the standalone aggregate exporter exposes no
+samples and does not certify the 2% threshold for other artifacts.
 
 ## Current layout and output boundary
 
@@ -105,7 +108,7 @@ Default tracked areas:
 - independently synthetic L5X fixtures and expected outputs;
 - tests and dependency lock files.
 
-Do not put actual tag names, plant descriptions, IPs, source paths, credentials, schedules, export fragments, equipment topology, or private hashes in code, documentation or synthetic fixtures. The explicitly authorized single-operand field in work-check reports under `public/inspection/` is a bounded diagnostic exception. Tests that use real exports run locally under the confidential workspace and do not upload full reports to CI.
+Do not put actual tag names, plant descriptions, IPs, source paths, credentials, schedules, export fragments, equipment topology, or private hashes in code, documentation or synthetic fixtures. Authorized work-check diagnostic fields under `public/inspection/` are bounded exceptions: historical single operands and current targeted samples. Work28 disables new legacy single-operand selection so it cannot bypass the fixed sample budget. Tests that use real exports run locally under the confidential workspace and do not upload full reports to CI.
 
 A future local pre-commit/publish checker should flag:
 - files under confidential even if force-added;
@@ -132,7 +135,7 @@ See [the work-machine procedure](../reviews/WORK_MACHINE_SUMMARY_RUN.md).
 3. Pseudonymized structural slice: replace names consistently within a bounded sample, preserve only requested relationships, and keep the reverse mapping private.
 4. Independently synthetic fixture: construct a small example from the grammar rather than exporting plant structure. Preferred for public tests and AI assistance.
 
-Removing names alone does not hide plant logic. Branch topology, task rates, timer values, scaling, AOI bodies, module inventories, communications, and comments can reveal design. A structural example is useful but still needs a human sharing decision.
+Removing names alone does not hide plant logic. Branch topology, task rates, timer values, scaling, AOI bodies, module inventories, communications, and comments can reveal design. The user's standing authorization covers the bounded targeted sampler above; broader structural exports need a separate sharing decision.
 
 ## Redaction helper requirements
 
@@ -144,7 +147,7 @@ Removing names alone does not hide plant logic. Branch topology, task rates, tim
 - No automatic full dependency closure: it could reconstruct a large part of a plant. Use selected bounded references or explicit external placeholders.
 - Private mapping file separated from the sharing bundle. Use fresh per-bundle public IDs to limit correlation across releases.
 - Reparse and validate the candidate, scan for known original tokens/literals, and compare the intended structural invariants.
-- Manual inspection of the exact candidate and a release manifest listing included files and remaining disclosure.
+- For broader exports outside the authorized targeted sampler, manual inspection of the exact candidate and a release manifest listing included files and remaining disclosure.
 - Do not call it risk-free or guarantee anonymization.
 
 The existing structural publication helpers and aggregate exporter have their
