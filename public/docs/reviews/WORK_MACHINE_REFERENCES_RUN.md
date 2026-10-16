@@ -1,6 +1,25 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-15): **custom declarations and symbolic array selectors**.
+Current checkpoint (2026-10-15): **stored-state conditions and SFC reset targets**.
+Return `5215baa` passed 1,057 application cases (two expected Windows skips) and
+139 helpers, saved its private run and preserved all eleven earlier summaries.
+The unknown call has one matching AOI declaration; both dynamic write roots and
+their index reads bind. One unknown-role indexed operand remains deferred.
+All 36 historical reports validate and the six samples replay unchanged.
+
+Condition3 explains ONS storage dependence without selecting runtime values.
+SFR context links reset calls to program-local chart and step candidates while
+retaining edit revisions and unresolved matches. Review13/manifest16 retains
+sixteen artifacts; work30 returns the new SFR counts and updated condition counts.
+See [scope, evidence and validation](STATEFUL_SEQUENCE_REVIEW.md).
+
+The next ordinary work-machine run measures these changes; no new rung samples
+or manual engineering/team review are needed. Git transport remains manual and
+the listener remains disabled. AOI body/instance mapping is a recorded follow-up.
+
+## Historical instruction-context checkpoint
+
+Historical checkpoint (2026-10-15): **custom declarations and symbolic array selectors**.
 The targeted return `51315bd` passed 991 application cases (two expected Windows
 skips) and 139 helpers and saved its private run. All six samples were included;
 all eleven prior summaries were unchanged. No additional sampling is requested.

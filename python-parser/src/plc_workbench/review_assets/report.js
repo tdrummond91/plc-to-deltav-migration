@@ -85,7 +85,7 @@
   // Reuse the condition nodes: no duplicated serialized instruction contexts or
   // per-instruction ancestor lists. Older reports retain their original views.
   const instructionConditions = conditions?.schema_version>=2;
-  const conditionTransfers = instructionConditions?conditionNodes.filter(n=>['pass_through','opaque_transfer'].includes(n.kind)):[];
+  const conditionTransfers = instructionConditions?conditionNodes.filter(n=>['pass_through','stateful_transfer','opaque_transfer'].includes(n.kind)):[];
   const transfersByRung = new Map();
   const bindingContext = data.binding_context || null, bindingContextGaps = bindingContext?.gaps || [];
   const byBindingContext = new Map(bindingContextGaps.map(g=>[g.source_id,g]));
@@ -93,6 +93,8 @@
   const customDeclarations=customContext?.declarations || [], byCustomDeclaration=new Map(customDeclarations.map(d=>[d.source_id,d]));
   const byCustomCall=new Map(customCalls.map(c=>[c.instruction_id,c]));
   const indexedAccess=data.indexed_access || null, indexedUses=indexedAccess?.uses || [];
+  const sfrContext=data.sfr_context || null,sfrCalls=sfrContext?.calls || [],sfrSteps=sfrContext?.steps || [];
+  const bySfrCall=new Map(sfrCalls.map(c=>[c.instruction_id,c])),bySfrStep=new Map(sfrSteps.map(s=>[s.element_id,s])),sfrCallsByRung=new Map();
   const byIndexedUse=new Map(indexedUses.map(u=>[u.id,u])), byIndexedSource=new Map(indexedUses.map(u=>[u.source_id,u])), indexedByRung=new Map();
   const candidateAddresses = bindingContext?.logical_addresses || [];
   const byCandidateAddress = new Map(candidateAddresses.map(a=>[a.id,a]));
@@ -175,6 +177,7 @@
   conditionalOutputs.forEach(o=>{add(outputsByRung,o.rung_id,o);add(outputsByAddress,o.target_address_id,o);});
   conditionTransfers.forEach(n=>add(transfersByRung,n.rung_id,n));
   indexedUses.forEach(u=>add(indexedByRung,u.rung_id,u));
+  sfrCalls.forEach(c=>add(sfrCallsByRung,c.rung_id,c));
   tagElements.forEach(x => {add(tagContentElements,x.content_id,x);add(tagChildren,x.parent_id,x);});
   (tagData?.issues || []).forEach(x => add(tagIssues,x.content_id,x));
   entities.forEach(x => add(entityChildren, x.parent_id, x));
@@ -229,6 +232,7 @@
   headings.transfers=['Instruction conditions','Inspect incoming rung conditions and normal-scan condition transfer at other instruction occurrences, including rungs without a coil output.'];
   headings.bindingcontext=['Binding gaps & context','Follow unresolved source occurrences through their alias chains and available rack-name candidates. Candidate addresses remain separate from confirmed root bindings.'];
   headings.instructioncontext=['Instruction & index context','Inspect custom-instruction declaration candidates and symbolic array selectors while unresolved roles and exact-element gaps remain visible.'];
+  headings.sfrcontext=['Sequence reset context','Follow captured SFR routine and step candidates across every exported SFC content version. Reset effects and outgoing rung conditions remain unresolved.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
@@ -237,6 +241,7 @@
   if(instructionConditions){labels.transfers='Instruction conditions';navCounts.transfers=conditionTransfers.length;}
   if(bindingContext){labels.bindingcontext='Binding gaps & context';navCounts.bindingcontext=bindingContextGaps.length;}
   if(customContext&&indexedAccess){labels.instructioncontext='Instruction & index context';navCounts.instructioncontext=customCalls.length+indexedUses.length;}
+  if(sfrContext){labels.sfrcontext='Sequence reset context';navCounts.sfrcontext=sfrCalls.length;}
   if(access){labels.access='Tag access';navCounts.access=accessRoots.length;}
   if(tagData){labels.tagdata='Stored tag data';navCounts.tagdata=tagContents.length;}
   if(pid){labels.pid='PID evidence';navCounts.pid=pidOccurrences.length;}
@@ -387,6 +392,7 @@
   customCalls.forEach(c=>searchable(c,[short(sourceName(c.instruction_id),120),human(c.status),short(entityName(c.declaration_id),120),short(sourceName(c.rung_id),120)]));
   customDeclarations.forEach(d=>searchable(d,[short(entityName(d.source_id),160),human(d.status),human(d.protection_marker)]));
   indexedUses.forEach(u=>searchable(u,[short(indexedRaw(u),200),human(u.kind),human(u.role),human(u.disposition),short(sourceName(u.rung_id),120)]));
+  sfrCalls.forEach(c=>searchable(c,[short(sourceName(c.instruction_id),120),short(sourceName(c.target_routine_id),120),human(c.routine_status),human(c.chart_status),human(c.selector_kind),short(sourceName(c.rung_id),120)]));
   candidateAddresses.forEach(a=>searchable(a,[candidateAddressName(a),human(a.profile)]));
   localLinks.forEach(l=>searchable(l,[addressName(byAddress.get(l.address_id)),sourceName(l.rung_id),sourceName(l.producer_instruction_id),sourceName(l.consumer_instruction_id),l.read_kind==='expression'?'Expression read':'Operand read']));
   reusePatterns.forEach(p=>searchable(p,[rungName(byRung.get(p.representative_rung_id)),byRung.get(p.representative_rung_id)?.text,p.rung_ids.length>1?'Repeated operand reuse':'Single occurrence',p.address_variables+' address variables']));
@@ -430,6 +436,7 @@
     if(calculations){const row=node('div','status-row');row.append(node('span','','CPT expression syntax and references'),badge(calculations.status));capture.append(row);}
     if(customContext){const row=node('div','status-row');row.append(node('span','','Custom-instruction declaration context'),badge(customContext.status));capture.append(row);}
     if(indexedAccess){const row=node('div','status-row');row.append(node('span','','Symbolic array selector context'),badge(indexedAccess.status));capture.append(row);}
+    if(sfrContext){const row=node('div','status-row');row.append(node('span','','SFR routine and step context'),badge(sfrContext.status));capture.append(row);}
     capture.append(node('p','row-note',fmt(bySfcRoutine.size)+' SFC routines · '+fmt((sfc.links||[]).length)+' structural links · '+fmt((sfc.annotations||[]).length)+' note attachments'));
     const start=panel('Start your review','Each view links back to the exact evidence in this captured source snapshot.');
     if(rungAnalysis){const b=button('',()=>go('engineering'),'jump-card');const copy=node('span');copy.append(node('strong','','Explore engineering analysis'),node('small','','Follow function families, branch structure and uncertainty before reviewing individual instructions.'));b.append(copy,node('span','jump-arrow','→'));start.append(b);}
@@ -542,6 +549,33 @@
   }
   function bindingUse(g){return g?.kind==='expression'?byExpressionUse.get(g.source_id):byOperandAccess.get(g?.source_id);}
   function contextNotice(){return notice('Context with explicit limits','A custom-instruction name match identifies a declaration candidate. Its parameter order, operand roles, internal behavior and effects remain unvalidated. Symbolic array selectors identify a root and possible index reads; no index value, selected element, bounds, overlap or execution is inferred. Existing unresolved classifications remain visible.');}
+  function sfrNotice(){return notice('Reset candidates preserve each content version','SFR routine names are declaration candidates. A named selector is compared with captured Step Operand root and suffix evidence; an initial selector uses explicit InitialStep markers. Step Name and numeric ID are not substituted for Operand. Each exported edit content remains separate. Candidate identity does not prove an active step, selected edit, reset action, execution or outgoing rung condition.');}
+  function sfrCallLink(c){return button('Inspect SFR target context',()=>openDetail('sfrcall',c.instruction_id),'text-link');}
+  function sfrCallTable(rows,caption){return table(['SFR occurrence','Routine candidate','Chart context','Selector','Content versions','Source rung'],rows,c=>[
+    sfrCallLink(c),primary(c.target_routine_id?sourceCell(c.target_routine_id):human(c.routine_status),human(c.routine_status)),human(c.chart_status),human(c.selector_kind),fmt(c.content_matches.length),sourceCell(c.rung_id)
+  ],caption);}
+  function sfrContextList(){
+    content.append(sfrNotice());const c=sfrContext.coverage,p=panel('Sequence reset coverage','Counts describe captured candidate evidence, with no content version selected as active.');
+    p.append(values({'SFR occurrences':c.calls_total,'Classified reset forms':c.calls_by_signature.classified,'Named selectors':c.calls_by_selector_kind.named,'Initial-step selectors':c.calls_by_selector_kind.initial,'Captured SFC steps':c.steps_total,'Content candidate comparisons':c.content_matches_total,'Calls with a candidate match':c.matched_calls,'Calls matched in every inspected content':c.fully_matched_calls,'Calls with multiple content versions':c.multiple_content_calls}));content.append(p,sfrCallTable(sfrCalls.filter(matches),'SFR target contexts'));
+  }
+  function sfrCallDetail(c){
+    setDetailHeading('SEQUENCE RESET CONTEXT','SFR target candidates',sourceName(c.rung_id));content.append(sfrNotice());
+    const p=panel('Captured reset call','The existing operand signature and routine candidate remain separate from SFC step matching.');p.append(values({'Signature':human(c.signature_status),'Routine candidate':human(c.routine_status),'Routine candidate count':c.routine_candidate_count,'Chart context':human(c.chart_status),'Selector kind':human(c.selector_kind),'Selector binding':human(c.selector_binding_status)}),sourceCell(c.instruction_id),sourceCell(c.rung_id));if(c.target_operand_id)p.append(sourceCell(c.target_operand_id));if(c.target_routine_id)p.append(sourceCell(c.target_routine_id));content.append(p);
+    const versions=section('Exported content candidates','Every content keeps its own result. Open a candidate step for its exact Operand, InitialStep marker, source attributes and chart context. No version is selected as effective.');
+    versions.append(table(['Content version','Edit kind','Candidate result','Candidate count','Step candidates'],c.content_matches,m=>{
+      const choices=node('div','inline-links');m.candidate_step_ids.slice(0,8).forEach(id=>choices.append(sourceCell(id)));
+      if(m.candidate_step_ids.length>8)choices.append(button('Inspect all '+fmt(m.candidate_step_ids.length)+' step candidates',()=>openDetail('sfrcontent',c.instruction_id,{sfrContentId:m.content_id}),'text-link'));
+      if(!m.candidate_step_ids.length)choices.append(node('span','muted','No unique target selected'));
+      return[sourceCell(m.content_id),human(m.edit_kind),human(m.status),fmt(m.candidate_count),choices];
+    },'SFR content candidates'));content.append(versions);
+  }
+  function sfrContentDetail(c){
+    const match=c.content_matches.find(m=>m.content_id===state.sfrContentId);setDetailHeading('SFR CONTENT CANDIDATES','Step candidates',human(match?.edit_kind));content.append(sfrNotice());
+    if(!match){content.append(empty('No retained content match'));return;}
+    content.append(sourceCell(match.content_id),table(['Step source','Operand identity binding','Declared root / suffix','Initial marker'],match.candidate_step_ids,id=>{
+      const step=bySfrStep.get(id);return[sourceCell(id),human(step?.binding_status),step?.target_id?primary(sourceCell(step.target_id),step.suffix || '(root)'):'Unresolved',human(step?.initial_kind)];
+    },'SFR step candidates'));
+  }
   function customCallLink(c){return button(short(sourceName(c.instruction_id),120),()=>openDetail('customcall',c.instruction_id),'text-link');}
   function customCallTable(rows,caption){return table(['Custom instruction occurrence','Declaration candidate status','Declaration','Rung'],rows,c=>[
     customCallLink(c),human(c.status),c.declaration_id?button(short(entityName(c.declaration_id),140),()=>openDetail('customdeclaration',c.declaration_id),'text-link'):'No unique candidate',sourceCell(c.rung_id)
@@ -720,7 +754,7 @@
   }
   function conditionNotice(){return notice('Source condition structure for normal execution','Incoming rung context is retained as a symbolic input, not assumed to be true. Contacts and comparisons remain separate source occurrences; intervening writes can change later reads. This is not PLC simulation, scan-order proof, or an assessment of alarms, shutdowns or physical outputs. Prescan and postscan behavior are not modeled.');}
   function conditionalOutputTable(rows,caption){return table(['Output occurrence','Target evidence','Normal-execution action','Condition evidence','Rung'],rows,o=>[
-    button(o.opcode+' · '+conditionTargetName(o),()=>openDetail('condition',o.id),'text-link'),conditionTarget(o),conditionActionLabel(o.action),conditionGuardLabel(o.guard_status),sourceCell(o.rung_id)
+    button(o.opcode+' · '+conditionTargetName(o),()=>openDetail('condition',o.id),'text-link'),conditionTarget(o),conditionActionLabel(o.action),primary(conditionGuardLabel(o.guard_status),o.has_stateful?'Contains stored-state condition':''),sourceCell(o.rung_id)
   ],caption,{emptyTitle:'No conditional outputs in this selection',emptyDetail:'This layer covers captured OTE, OTL and OTU occurrences. Other instruction effects remain in their source and access views.'});}
   function conditionsToolbar(){
     toolbarFor('Search output targets, opcodes, rung context or condition quality',[['all','All output opcodes'],['OTE','OTE'],['OTL','OTL'],['OTU','OTU']]);
@@ -731,32 +765,40 @@
   function conditionsList(){
     content.append(conditionNotice());
     const summary=panel('Captured coil occurrences','Each row is one output instruction. A modeled guard describes syntax, not an approved engineering function.');
-    summary.append(values({'OTE / OTL / OTU occurrences':conditionalOutputs.length,'Modeled condition structure':conditionalOutputs.filter(o=>o.guard_status==='modeled').length,'Condition binding gaps':conditionalOutputs.filter(o=>o.guard_status==='binding_gaps').length,'Contains unknown transfer':conditionalOutputs.filter(o=>o.guard_status==='opaque').length,'Guards containing a branch join':conditions.coverage.outputs_with_branches}));content.append(summary);
+    summary.append(values({'OTE / OTL / OTU occurrences':conditionalOutputs.length,'Modeled condition structure':conditionalOutputs.filter(o=>o.guard_status==='modeled').length,'Condition binding gaps':conditionalOutputs.filter(o=>o.guard_status==='binding_gaps').length,'Contains unknown transfer':conditionalOutputs.filter(o=>o.guard_status==='opaque').length,'Guards containing a branch join':conditions.coverage.outputs_with_branches,...(conditions.schema_version>=3?{'Guards containing stored-state conditions':conditions.coverage.outputs_with_stateful_conditions}:{})}));content.append(summary);
     content.append(conditionalOutputTable(conditionalOutputs.filter(o=>matches(o)&&(state.filter==='all'||o.opcode===state.filter)&&(!state.conditionQuality||state.conditionQuality==='all'||o.guard_status===state.conditionQuality)),'Conditional output occurrences'));
   }
   function transferOpcode(n){return short(byInstruction.get(n.instruction_id)?.instruction.opcode || 'Instruction',80);}
-  function transferLabel(n){return n.kind==='pass_through'?'Passes incoming condition':'Unknown condition transfer';}
+  function transferLabel(n){return n.kind==='pass_through'?'Passes incoming condition':n.kind==='stateful_transfer'?'ONS stored-state condition':'Unknown condition transfer';}
   function conditionQuality(n){return n?.has_opaque?'opaque':n?.has_binding_gap?'binding_gaps':'modeled';}
   function transferNotice(){return notice('Normal-scan condition transfer','A pass-through instruction keeps its incoming rung condition as its outgoing condition during documented normal execution. This is not an execution or write guard: evaluation with a false condition can still change instruction state, including timer, counter and OSF state. The OSF output bit is distinct from its outgoing rung condition. Data operands, values, types, faults and other instruction effects are not evaluated by this view. Inspect source and operand-access evidence separately.');}
+  function statefulNotice(){return notice('ONS uses state at this occurrence','During normal evaluation: outgoing = incoming AND NOT storage-before; storage-after = incoming. A false incoming condition makes outgoing false and clears storage. Storage-before means immediately before this instruction occurrence; it is not assumed to be the previous scan value. Shared storage, later writes, task order and the final value are not simulated. The stored-state marker records syntax ancestry without Boolean simplification; a bypass can make a result independent of that state. ONS prescan sets its storage bit; prescan and first-scan execution are not evaluated here. OSF retains its separate pass-through rule; OSR remains deferred.');}
+  function statefulPanel(n){
+    const panelNode=panel('ONS normal-evaluation rule','This is a symbolic stored-state condition, not a predicted pulse or execution result.');
+    panelNode.append(values({'Outgoing condition':'incoming AND NOT storage-before','Storage after this occurrence':'incoming','Known false incoming':'outgoing false; storage cleared','Storage identity':n.operand_ids.length&&byUseAddress.has(n.operand_ids[0])?'Exact address spelling available; member/type validity unverified':'Unresolved storage identity'}),statefulNotice());
+    if(n.operand_ids.length){const links=node('div','inline-links');links.append(sourceCell(n.operand_ids[0]),addressCell(n.operand_ids[0]));panelNode.append(links);}return panelNode;
+  }
   function transferTable(rows,caption){return table(['Instruction occurrence','Normal-scan condition transfer','Incoming condition evidence','Operand preview','Rung'],rows,n=>[
     button(transferOpcode(n),()=>openDetail('transfer',n.id),'text-link'),transferLabel(n),conditionGuardLabel(conditionQuality(byConditionNode.get(n.child_ids[0]))),
     node('div','snippet',n.operand_ids.slice(0,4).map(id=>short(byOperand.get(id)?.raw_text || '(blank)',80)).join(' · ')+(n.operand_ids.length>4?' · additional operands':'')),sourceCell(n.rung_id)
   ],caption,{emptyTitle:'No instruction condition transfers in this selection',emptyDetail:'Contacts, comparisons and coil outputs have their own condition evidence. This list retains other captured instruction occurrences.'});}
   function transfersList(){
     content.append(conditionNotice(),transferNotice());
+    if(conditions.schema_version>=3)content.append(statefulNotice());
     const summary=panel('Instruction occurrences','Each row retains its own source occurrence, including instructions on rungs with no coil output. A pass-through rule can still have an unknown or unbound incoming condition.');
-    summary.append(values({'Instruction transfers':conditionTransfers.length,'Documented pass-through':conditionTransfers.filter(n=>n.kind==='pass_through').length,'Unknown transfer':conditionTransfers.filter(n=>n.kind==='opaque_transfer').length}));content.append(summary);
+    summary.append(values({'Instruction transfers':conditionTransfers.length,'Documented pass-through':conditionTransfers.filter(n=>n.kind==='pass_through').length,...(conditions.schema_version>=3?{'Stored-state transfer':conditionTransfers.filter(n=>n.kind==='stateful_transfer').length}:{}),'Unknown transfer':conditionTransfers.filter(n=>n.kind==='opaque_transfer').length}));content.append(summary);
     content.append(transferTable(conditionTransfers.filter(n=>matches(n)&&(state.filter==='all'||n.kind===state.filter)),'Instruction condition transfers'));
   }
   function transferDetail(n){
     setDetailHeading('INSTRUCTION CONDITION TRANSFER',transferOpcode(n),sourceName(n.rung_id));
     content.append(conditionNotice(),transferNotice());
     const incoming=byConditionNode.get(n.child_ids[0]);
-    const summary=panel('Captured instruction occurrence',n.kind==='pass_through'?'The documented normal-scan rule preserves the incoming rung condition. Data binding gaps do not alter this transfer rule.':'The incoming rung condition is retained as context. Outgoing condition behavior remains unmodeled.');
+    const summary=panel('Captured instruction occurrence',n.kind==='pass_through'?'The documented normal-scan rule preserves the incoming rung condition. Data binding gaps do not alter this transfer rule.':n.kind==='stateful_transfer'?'The outgoing condition uses the stored value immediately before this occurrence. Normal evaluation also updates storage.':'The incoming rung condition is retained as context. Outgoing condition behavior remains unmodeled.');
     summary.append(values({'Opcode':transferOpcode(n),'Transfer':transferLabel(n),'Incoming condition evidence':conditionGuardLabel(conditionQuality(incoming)),'Outgoing condition evidence':conditionGuardLabel(conditionQuality(n)),'Reason':human(n.reason)}));
     const links=node('div','inline-links');links.append(sourceCell(n.instruction_id),sourceCell(n.rung_id));summary.append(links);content.append(summary);
     const operands=n.operand_ids.map(id=>byOperandAccess.get(id)).filter(Boolean);
     if(operands.length){const evidence=section('Separate operand-access evidence','Possible reads and writes and their bindings do not establish execution, data validity or the final value. They are separate from the Boolean condition-transfer rule.');evidence.append(accessBindingTable(operands,'Instruction transfer operand access'));content.append(evidence);}
+    if(n.kind==='stateful_transfer')content.append(statefulPanel(n));
     conditionGraph(n.id,'Instruction condition nodes','Instruction outgoing condition');
     content.append(technical({'Condition node ID':n.id,'Instruction ID':n.instruction_id,'Evaluation scope':'Normal execution only'}));
   }
@@ -771,6 +813,7 @@
     if(n.kind==='entry')return 'Incoming rung context';
     if(n.kind==='all')return 'All inputs must hold';
     if(n.kind==='any')return 'Any branch input may hold';
+    if(n.kind==='stateful_transfer')return 'ONS: incoming AND NOT storage before this occurrence';
     const opcode=byInstruction.get(n.instruction_id)?.instruction.opcode || 'Instruction';
     if(n.kind==='pass_through')return 'Pass through '+short(opcode,80)+' · incoming condition retained';
     return n.kind==='predicate'?'Test '+opcode:'Unknown transfer through '+short(opcode,80);
@@ -779,11 +822,12 @@
     setDetailHeading('CONDITIONAL OUTPUT EVIDENCE',o.opcode+' · '+conditionTargetName(o),sourceName(o.rung_id));
     content.append(conditionNotice());
     const summary=panel('Output action',({assign_condition:'During normal execution, OTE writes 1 when its incoming condition is true and writes 0 when false.',set_if_true:'During normal execution, OTL sets its target when its incoming condition is true; a false condition leaves the target unchanged.',clear_if_true:'During normal execution, OTU clears its target when its incoming condition is true; a false condition leaves the target unchanged.',unresolved:'The captured output signature is unresolved. No target action is assigned.'})[o.action]);
-    summary.append(values({'Opcode':o.opcode,'Action':conditionActionLabel(o.action),'Guard quality':conditionGuardLabel(o.guard_status),'Target identity':human(o.target_status)}));
+    summary.append(values({'Opcode':o.opcode,'Action':conditionActionLabel(o.action),'Guard quality':conditionGuardLabel(o.guard_status),'Target identity':human(o.target_status),...(conditions.schema_version>=3?{'Contains stored-state condition':o.has_stateful?'Yes':'No'}:{})}));
     const links=node('div','inline-links');links.append(conditionTarget(o),sourceCell(o.target_operand_id),sourceCell(o.instruction_id),sourceCell(o.rung_id));summary.append(links);
     const target=byEntity.get(byAddress.get(o.target_address_id)?.target_id);
     if(['module_input_tag','module_output_tag'].includes(target?.kind))summary.append(node('p','row-note','Source declaration kind: '+human(target.kind)+'. This identifies module-tag context; a physical channel or process effect has not been confirmed.'));
     content.append(summary);
+    if(o.has_stateful)content.append(statefulNotice());
     conditionGraph(o.guard_id,'Output condition nodes','Output guard');
     content.append(technical({'Output ID':o.id,'Guard node ID':o.guard_id,'Instruction ID':o.instruction_id,'Evaluation scope':'Normal execution only'}));
   }
@@ -797,14 +841,15 @@
       const meaning=node('div');meaning.append(node('div','cell-main',conditionNodeLabel(n)));
       if(n.child_ids.length){const children=node('div','inline-links');children.append(node('span','muted',n.kind==='all'?'All of: ':n.kind==='any'?'Any of: ':'Incoming context: '));n.child_ids.slice(0,8).forEach(id=>children.append(childLink(id)));meaning.append(children);if(n.child_ids.length>8)meaning.append(button('Inspect all '+fmt(n.child_ids.length)+' inputs',()=>selectNode(n.id),'text-link'));}
       if(n.operand_ids.length)meaning.append(node('div','cell-sub',n.operand_ids.slice(0,4).map(id=>short(byOperand.get(id)?.raw_text || '(blank)',80)).join(' · ')+(n.operand_ids.length>4?' · additional operands':'')));
-      return[button(labels.get(n.id),()=>selectNode(n.id),'text-link'),meaning,sourceCell(n.instruction_id),[n.has_opaque?'Contains unknown transfer':'',n.has_binding_gap?'Contains binding gap':'',n.reason?human(n.reason):''].filter(Boolean).join(' · ') || 'No gap from this rule'];
+      return[button(labels.get(n.id),()=>selectNode(n.id),'text-link'),meaning,sourceCell(n.instruction_id),[n.has_opaque?'Contains unknown transfer':'',n.has_binding_gap?'Contains binding gap':'',n.has_stateful?'Contains stored-state condition':'',n.reason?human(n.reason):''].filter(Boolean).join(' · ') || 'No gap from this rule'];
     },caption));content.append(graph);
     const selected=byConditionNode.get(state.focusConditionNode);
     if(selected&&labels.has(selected.id)){
       const detail=section('Selected condition '+labels.get(selected.id),conditionNodeLabel(selected));
-      detail.append(values({'Node kind':human(selected.kind),'Includes a branch join':selected.has_branch?'Yes':'No','Reason':selected.reason?human(selected.reason):'No gap from this rule'}));
+      detail.append(values({'Node kind':human(selected.kind),'Includes a branch join':selected.has_branch?'Yes':'No',...(conditions?.schema_version>=3?{'Contains stored-state condition':selected.has_stateful?'Yes':'No'}:{}),'Reason':selected.reason?human(selected.reason):'No gap from this rule'}));
       if(selected.instruction_id)detail.append(sourceCell(selected.instruction_id));
-      if(instructionConditions&&['pass_through','opaque_transfer'].includes(selected.kind)&&state.detail?.type!=='transfer')detail.append(button('Inspect instruction condition transfer',()=>openDetail('transfer',selected.id),'text-link'));
+      if(selected.kind==='stateful_transfer')detail.append(statefulPanel(selected));
+      if(instructionConditions&&['pass_through','stateful_transfer','opaque_transfer'].includes(selected.kind)&&state.detail?.type!=='transfer')detail.append(button('Inspect instruction condition transfer',()=>openDetail('transfer',selected.id),'text-link'));
       if(selected.child_ids.length)detail.append(table(['Input occurrence','Condition node','Meaning'],selected.child_ids,(id,i)=>[i+1,childLink(id),conditionNodeLabel(byConditionNode.get(id))],'Selected condition inputs'));
       if(selected.operand_ids.length)detail.append(table(['Source operand','Exact address evidence','Occurrence identity'],selected.operand_ids,id=>[sourceCell(id),addressCell(id),technical({'Operand ID':id})],'Selected condition operands'));
       detail.append(technical({'Condition node ID':selected.id,'Instruction ID':selected.instruction_id}));
@@ -863,6 +908,7 @@
     return box;
   }
   function engineeringList(){
+    if(sfrContext){const reset=panel('Inspect sequence reset candidates','Follow SFR routine and step evidence separately for every exported chart content version.');reset.append(button('Explore sequence reset context',()=>go('sfrcontext'),'text-link'));content.append(reset);}
     if(customContext&&indexedAccess){const context=panel('Inspect custom instructions and dynamic indexes','Follow declaration candidates and symbolic selectors without hiding unresolved block roles or exact-element gaps.');context.append(button('Explore instruction & index context',()=>go('instructioncontext'),'text-link'));content.append(context);}
     if(conditions){const conditional=panel('Follow conditions to coil outputs','Inspect the incoming conditions at OTE, OTL and OTU occurrences, with branch joins, bypasses and unmodeled transfers retained.');conditional.append(button('Explore conditional outputs',()=>go('conditions'),'text-link'));content.append(conditional);}
     if(instructionConditions){const transfers=panel('Follow conditions through other instructions','Inspect normal-scan condition transfer at math, copy, timer, counter and other instruction occurrences, including rungs without a coil output.');transfers.append(button('Explore instruction conditions',()=>go('transfers'),'text-link'));content.append(transfers);}
@@ -1017,6 +1063,7 @@
     const text=panel('Rung text','Exact captured ladder source. No execution behavior is inferred.');text.append(sourceText(r.text));content.append(text);
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
     if(byRungAnalysis.has(r.id))engineeringRungDetail(r,byRungAnalysis.get(r.id));
+    if(sfrCallsByRung.has(r.id)){const reset=section('SFR target context on this rung','Candidate matches do not establish reset execution or outgoing condition.');reset.append(sfrCallTable(sfrCallsByRung.get(r.id),'Rung SFR target contexts'));content.append(reset);}
     if(indexedByRung.has(r.id)){const indexed=section('Indexed source context on this rung','Array roots and possible selector reads stay separate from exact-address relationships.');indexed.append(indexedUseTable(indexedByRung.get(r.id),'Rung indexed source context'));content.append(indexed);}
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
     if(rungPids.has(r.id)){const p=section('PID evidence on this rung');p.append(pidTable(rungPids.get(r.id),'Rung PID occurrences'));content.append(p);}
@@ -1596,6 +1643,7 @@
     else if(state.view==='transfers')transfersList();
     else if(state.view==='bindingcontext')bindingContextList();
     else if(state.view==='instructioncontext')instructionContextList();
+    else if(state.view==='sfrcontext')sfrContextList();
     else if(state.view==='objects')objectList();
     else if(state.view==='ladder')content.append(rungList());
     else if(state.view==='sfc')sfcList();
@@ -1625,6 +1673,8 @@
       else if(d.type==='customcall')customCallDetail(byCustomCall.get(d.id));
       else if(d.type==='customdeclaration')customDeclarationDetail(byCustomDeclaration.get(d.id));
       else if(d.type==='indexeduse')indexedUseDetail(byIndexedUse.get(d.id));
+      else if(d.type==='sfrcall')sfrCallDetail(bySfrCall.get(d.id));
+      else if(d.type==='sfrcontent')sfrContentDetail(bySfrCall.get(d.id));
       else if(d.type==='candidateaddress')candidateAddressDetail(byCandidateAddress.get(d.id));
       else if(d.type==='reusepattern')reusePatternDetail(byReusePattern.get(d.id));
       else if(d.type==='tagcontent')tagContentDetail(byTagContent.get(d.id));
@@ -1636,9 +1686,10 @@
       if(state.view==='engineering')engineeringToolbar();
       else if(state.view==='relationships')relationshipsToolbar();
       else if(state.view==='conditions')conditionsToolbar();
-      else if(state.view==='transfers')toolbarFor('Search instruction opcodes, operand previews or rung context',[['all','All transfers'],['pass_through','Documented pass-through'],['opaque_transfer','Unknown transfer']]);
+      else if(state.view==='transfers')toolbarFor('Search instruction opcodes, operand previews or rung context',[['all','All transfers'],['pass_through','Documented pass-through'],...(conditions?.schema_version>=3?[['stateful_transfer','ONS stored-state transfer']]:[]),['opaque_transfer','Unknown transfer']]);
       else if(state.view==='bindingcontext')bindingContextToolbar();
       else if(state.view==='instructioncontext')toolbarFor('Search instruction names, declarations, index expressions or context status');
+      else if(state.view==='sfrcontext')toolbarFor('Search SFR routines, selector kinds, chart context or rung names');
       else if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
       else if(state.view==='ladder')toolbarFor('Search rung text, comments or routine names',countsFilter(rungs,'parse_status'));
       else if(state.view==='sfc')toolbarFor('Search SFC routines, elements and source text');

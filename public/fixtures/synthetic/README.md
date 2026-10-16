@@ -1,5 +1,19 @@
 # Independently synthetic L5X fixture
 
+## Stored-state and SFC target fixture
+
+[stateful_sequence_demo.L5X](stateful_sequence_demo.L5X) is an independently invented 70-rung report fixture.
+It covers ONS storage dependencies, separate branch guards, repeated storage,
+invalid storage and upstream unknowns; 55 extra ONS occurrences exercise paging.
+SFR examples cover named and initial targets, missing and wrong-language routines,
+missing and duplicate steps, and separate Original/PendingEdits contents. It is
+an analyzer input, not controller-ready code. Use isolated checkouts for work-check
+QA so invented inputs cannot establish the production sample reservation.
+
+Open the [offline demonstration](../../examples/stateful-sequence-demo.html) in a
+browser. The [checkpoint](../../docs/reviews/STATEFUL_SEQUENCE_REVIEW.md) explains
+what these source relationships establish and what remains unresolved.
+
 ## Declaration and selector context fixture
 
 `instruction_context_demo.L5X` is an invented controller with two custom

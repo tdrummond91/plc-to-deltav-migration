@@ -30,6 +30,7 @@ OUTPUT_ACTIONS = {'OTE': 'assign_condition', 'OTL': 'set_if_true', 'OTU': 'clear
 # CONDITION_TRANSFER_REVIEW.md. Operand access alone is never sufficient to
 # admit an opcode. Stateful effects and faults are outside this transfer model.
 PASSTHROUGH_OPCODES = frozenset('ABS ADD CLR COP CPS CPT CTU DIV LN MOV MUL OSF RES RTO SQR SUB TON'.split())
+STATEFUL_OPCODES = frozenset({'ONS'})
 CONDITION_CONSTANTS = {
     'schema_version': 1, 'analyzer_version': 'condition-analysis-1',
     'analysis_scope': 'local_rung_boolean_conditions', 'execution_analysis': 'not_implemented',
@@ -52,7 +53,7 @@ COVERAGE_KEYS = frozenset(COUNT_MAPS) | {
 
 
 def condition_constants(schema_version: int) -> dict[str, Any]:
-    if type(schema_version) is not int or schema_version not in (1, 2):
+    if type(schema_version) is not int or schema_version not in (1, 2, 3):
         _invalid()
     return {**CONDITION_CONSTANTS, 'schema_version': schema_version,
             'analyzer_version': f'condition-analysis-{schema_version}'}
@@ -62,12 +63,18 @@ def count_maps(schema_version: int) -> dict[str, frozenset[str]]:
     condition_constants(schema_version)
     if schema_version == 1:
         return dict(COUNT_MAPS)
-    return {**COUNT_MAPS, 'node_kinds': COUNT_MAPS['node_kinds'] | {'pass_through'},
+    maps = {**COUNT_MAPS, 'node_kinds': COUNT_MAPS['node_kinds'] | {'pass_through'},
             'passthrough_opcodes': PASSTHROUGH_OPCODES}
+    if schema_version == 3:
+        maps['node_kinds'] = maps['node_kinds'] | {'stateful_transfer'}
+        maps['stateful_opcodes'] = STATEFUL_OPCODES
+    return maps
 
 
 def coverage_keys(schema_version: int) -> frozenset[str]:
-    return frozenset(COVERAGE_KEYS | count_maps(schema_version).keys())
+    return frozenset(COVERAGE_KEYS | count_maps(schema_version).keys()
+                     | ({'binding_gap_stateful', 'outputs_with_stateful_conditions'}
+                        if schema_version == 3 else set()))
 
 
 class ConditionError(ValueError):
@@ -159,6 +166,8 @@ def _derive(inventory: InventoryResult, access: AccessResult,
                'has_opaque': kind == 'opaque_transfer' or any(by_id[c]['has_opaque'] for c in child_ids),
                'has_binding_gap': binding_gap or any(by_id[c]['has_binding_gap'] for c in child_ids),
                'has_branch': kind == 'any' or any(by_id[c]['has_branch'] for c in child_ids)}
+        if schema_version == 3:
+            row['has_stateful'] = kind == 'stateful_transfer' or any(by_id[c]['has_stateful'] for c in child_ids)
         budget.record(row)
         nodes.append(row)
         by_id[identifier] = row
@@ -197,6 +206,9 @@ def _derive(inventory: InventoryResult, access: AccessResult,
                    'opcode': opcode, 'action': OUTPUT_ACTIONS[opcode] if classified else 'unresolved',
                    'guard_id': incoming, 'guard_status': guard_status, 'target_operand_id': target,
                    'target_address_id': address, 'target_status': target_status}
+            if schema_version == 3:
+                row['has_stateful'] = guard['has_stateful']
+                coverage['outputs_with_stateful_conditions'] += int(row['has_stateful'])
             budget.record(row)
             outputs.append(row)
             output_ids.append(identifier)
@@ -213,7 +225,22 @@ def _derive(inventory: InventoryResult, access: AccessResult,
             # incoming condition through. Their destination actions differ.
             if classified:
                 return incoming
-        if schema_version == 2 and opcode in PASSTHROUGH_OPCODES and classified:
+        if schema_version == 3 and opcode in STATEFUL_OPCODES and classified:
+            # ONS filters its incoming condition using the storage value read
+            # at this occurrence: outgoing = incoming AND NOT storage-before.
+            # Normal evaluation assigns storage-after = incoming. We record
+            # that symbolic rule, not values, a prior scan, or an inferred state
+            # chain between occurrences that happen to share a storage address.
+            # Unlike a predicate constant, a literal/system flag cannot supply
+            # an exact retained-storage address. Type/member validity is still
+            # outside this local condition model.
+            gap = operand_ids[0] not in addresses
+            coverage['stateful_opcodes'][opcode] += 1
+            coverage['binding_gap_stateful'] += int(gap)
+            return node(rung_id, 'stateful_transfer', [incoming], instruction_id=instruction_id,
+                        operand_ids=operand_ids, reason='documented_normal_scan_stored_state',
+                        binding_gap=gap)
+        if schema_version >= 2 and opcode in PASSTHROUGH_OPCODES and classified:
             coverage['passthrough_opcodes'][opcode] += 1
             # Keep the occurrence even though the Boolean transfer is identity.
             # Data binding gaps do not change that documented transfer. These
@@ -221,7 +248,8 @@ def _derive(inventory: InventoryResult, access: AccessResult,
             return node(rung_id, 'pass_through', [incoming], instruction_id=instruction_id,
                         operand_ids=operand_ids, reason='documented_normal_scan_passthrough')
         reason = ('signature_unresolved' if opcode in PREDICATE_OPCODES or opcode in OUTPUT_ACTIONS
-                  or (schema_version == 2 and opcode in PASSTHROUGH_OPCODES)
+                  or (schema_version >= 2 and opcode in PASSTHROUGH_OPCODES)
+                  or (schema_version == 3 and opcode in STATEFUL_OPCODES)
                   else 'unsupported_condition_behavior')
         return node(rung_id, 'opaque_transfer', [incoming], instruction_id=instruction_id,
                     operand_ids=operand_ids, reason=reason)
@@ -274,6 +302,7 @@ def _derive(inventory: InventoryResult, access: AccessResult,
     coverage.update(nodes_total=len(nodes), outputs_total=len(outputs), output_addresses=len(target_addresses))
     partial = bool(coverage['rung_statuses']['unparsed'] or coverage['node_kinds']['opaque_transfer']
                    or coverage['binding_gap_predicates']
+                   or coverage.get('binding_gap_stateful', 0)
                    or len(outputs) != coverage['target_statuses']['exact_address'])
     return ConditionResult(deepcopy(inventory.snapshot), 'partial' if partial else 'complete',
                            nodes, outputs, rungs, coverage, **constants)

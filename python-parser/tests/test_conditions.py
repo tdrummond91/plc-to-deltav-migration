@@ -123,7 +123,7 @@ class ConditionTransferTests(unittest.TestCase):
 
     def test_version_and_forged_transfer_cannot_bypass_replay(self) -> None:
         inputs = capture(('MOV(A,B)OTE(D);',), schema_version=2)
-        for version in (True, 0, 3, '2', 2.0):
+        for version in (True, 0, 4, '2', 2.0):
             with self.subTest(version=version), self.assertRaises(ConditionError):
                 analyze_conditions(*inputs[:-1], schema_version=version)
         for mutate in (lambda r: r.nodes[1].update(reason=None),

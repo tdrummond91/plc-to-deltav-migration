@@ -1,12 +1,11 @@
 # PLC analysis workbench
 
-Latest checkpoint: returned `51315bd` passed 991 application cases (two expected
-Windows skips) and 139 helpers, saved private analysis, and preserved all eleven
-preceding summaries. All six targeted examples were included. Work29 now adds
-custom-instruction declaration candidates and symbolic array-selector context,
-while replaying those examples unchanged. The new context explains possible
-declarations, outer roots and index reads; effects and exact elements remain
-unresolved. See [scope and validation](public/docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md).
+Latest checkpoint: returned `5215baa` passed 1,057 application cases (two expected
+Windows skips) and 139 helpers. The unknown block has one matching AOI declaration;
+both dynamic write roots and their index reads bind. Earlier summaries and the
+six-example reservation remain unchanged. Work30 now measures ONS stored-state
+conditions and SFR chart/step target context. Detailed source evidence stays local.
+See [scope and validation](public/docs/reviews/STATEFUL_SEQUENCE_REVIEW.md).
 The next step is the normal work-machine run; team review remains deferred.
 
 Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected

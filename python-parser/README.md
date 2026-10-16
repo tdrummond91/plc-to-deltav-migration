@@ -36,17 +36,19 @@ hints are separate. Internal Boolean outputs do not imply physical DOs; no
 known local result does not prove dead code. CPT expression reads retain their
 own population, node/span links and repeated occurrences.
 
-The latest automated return (`51315bd`) saved successfully and accounts for
+The latest automated return (`5215baa`) saved successfully and accounts for
 4,163 coil outputs: 3,923 modeled guards, 181 with condition binding gaps and
 59 with opaque transfers. Documented transfers explain 2,718 occurrences;
 459 remain opaque. Earlier summaries remain unchanged, including
 7,591 exact addresses and 1,489 operand-reuse patterns covering 4,286 rungs.
 All 303 predicate binding gaps and 16 unbound coil targets now have unique
 rack-candidate context: 319 uses across 94 candidate addresses and 11 roots.
-Two additional writes use dynamic indexes. All six targeted rung examples were
-returned with names/values substituted; that fixed request now replays unchanged.
-The next run measures declaration candidates and symbolic selector/index-read
-evidence. See [the context contract](../public/docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md)
+Both additional dynamic writes now have bound outer roots and index reads. The
+unknown block has a unique AOI declaration candidate, while one indexed operand
+with an unknown role stays deferred. All six targeted rung examples replay unchanged.
+The next run measures ONS stored-state conditions and SFR chart/step candidates.
+See [the current scope](../public/docs/reviews/STATEFUL_SEQUENCE_REVIEW.md),
+[the context contract](../public/docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md)
 and [sampling boundaries](../public/docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
 Continue the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)
 before requesting team feedback. No manual engineering/UI review is needed now.
@@ -60,7 +62,7 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-review12/manifest15 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+review13/manifest16 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
 references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json, rung-analysis.json, relationships.json, boolean-conditions.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
@@ -76,18 +78,22 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work29 adds custom-instruction and indexed-access count summaries
-beside the fixed targeted-sample record and unchanged
-binding-context summary1, condition2, relationship1, rung-analysis1,
+manual. Current work30 adds SFR target counts and uses condition3 for ONS stored-state
+dependencies. It retains custom-instruction/indexed-access summaries, the fixed
+targeted-sample record and unchanged
+binding-context summary1, relationship1, rung-analysis1,
 access4, calculation2, PID member1, PID1, Tag Data1, reference12/source4 and SFC2.
-Work28/29 permit 64 KiB including at most 16 KiB of targeted evidence. Work22-27
+Work28-30 permit 64 KiB including at most 16 KiB of targeted evidence. Work22-27
 retain 48 KiB; work1-21 retain 32 KiB. New legacy single-operand samples are
 disabled so they cannot rotate outside the targeted request's budget.
-Work25 adds fixed save-failure categories. Review12 allows 184 MiB JSON / 216 MiB
-HTML, reserving 8 MiB each for the two new contexts. Review11 retains 168 MiB JSON /
+Work25 adds fixed save-failure categories. Review13 allows 192 MiB JSON / 224 MiB
+HTML, reserving 8 MiB for SFR context. Review12 retains 184 MiB JSON / 216 MiB
+HTML for custom-instruction and index context. Review11 retains 168 MiB JSON /
 200 MiB HTML for the earlier binding context. Review9/10 retain
 160 MiB JSON / 192 MiB HTML, and earlier versions retain their original budgets. See the
 [save failure checkpoint](../public/docs/reviews/SAVE_FAILURE_REVIEW.md).
+See [stored-state conditions and SFC targets](../public/docs/reviews/STATEFUL_SEQUENCE_REVIEW.md)
+for current semantics and work-machine validation.
 Earlier work17 added count-only
 PID member summary1 while preserving
 PID1, Tag Data1/reference12/source4/SFC2/access2 summaries. Documented member

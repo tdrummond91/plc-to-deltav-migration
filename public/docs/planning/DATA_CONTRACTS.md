@@ -1,5 +1,16 @@
 # Data contracts, traceability, and checkpoints
 
+## Stored-state and SFC target revision (2026-10-15)
+
+Condition3 adds one occurrence-level ONS stored-state node and propagated state
+ancestry flags; condition1/2 defaults and replay remain frozen. SFR context1
+adds bounded chart/step candidates with separate edit-content outcomes. Review13
+embeds this 8 MiB context under 192 MiB JSON / 224 MiB HTML caps. Manifest16 retains
+sixteen artifacts. Work30 uses condition summary3 and SFR summary1 under the
+unchanged 64 KiB outer cap. Existing sample requests keep condition2 selection
+semantics and replay the frozen record. See
+[scope and verification](../reviews/STATEFUL_SEQUENCE_REVIEW.md).
+
 ## Instruction context revision (2026-10-15)
 
 Custom-instruction context1 and indexed-access1 add bounded derived private

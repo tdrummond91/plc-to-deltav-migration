@@ -223,7 +223,8 @@ class InstructionContextWorkflowTests(unittest.TestCase):
             self.assertTrue(result['private_run_saved'])
             self.assertEqual(result.pop('targeted_samples'), sample_envelope('replayed', record()))
             self.assertIsNone(result.pop('diagnostic_sample'))
-            self.assertEqual(result, report()['analysis'])
+            from test_stateful_sequence_workflow import report as latest_report
+            self.assertEqual(result, latest_report(SOURCE)['analysis'])
 
     def test_publication_retains_64k_cap_and_does_not_accept_private_context(self) -> None:
         current = report()

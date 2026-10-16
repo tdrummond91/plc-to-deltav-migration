@@ -167,7 +167,7 @@ class ConditionWorkflowTests(unittest.TestCase):
             self.assertFalse((saved / 'manifest.json').exists())
 
     def test_cli_and_runner_save_identical_conditions_and_fixed_safe_failures(self) -> None:
-        parts = captured(schema_version=2)
+        parts = captured(schema_version=3)
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve()
             source = root / 'invented.L5X'
@@ -185,9 +185,11 @@ class ConditionWorkflowTests(unittest.TestCase):
             outcome.pop('targeted_samples', None)
             self.assertIsNotNone(outcome.pop('custom_instruction_summary'))
             self.assertIsNotNone(outcome.pop('indexed_access_summary'))
+            self.assertIsNotNone(outcome.pop('sfr_summary'))
             # Current reports add context without changing this frozen layer.
             outcome.pop('binding_context_summary')
-            self.assertEqual(outcome, report(schema_version=26)['analysis'])
+            self.assertEqual(outcome.pop('condition_summary')['schema_version'], 3)
+            self.assertEqual(outcome, {k: v for k, v in report(schema_version=26)['analysis'].items() if k != 'condition_summary'})
             with patch('plc_workbench.conditions.analyze_conditions', side_effect=ConditionError('PRIVATE_FAILURE')):
                 code, output, error = invoke(['review', str(source), '--workspace', str(root / 'failed')])
             self.assertEqual((code, output), (1, ''))

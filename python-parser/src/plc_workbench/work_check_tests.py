@@ -67,6 +67,8 @@ WORK_MACHINE_MODULES = {
         "test_targeted_samples", "test_targeted_sample_history", "test_targeted_sample_workflow",
         "test_custom_instruction_context", "test_custom_instruction_summary",
         "test_indexed_access", "test_indexed_access_summary", "test_instruction_context_workflow",
+        "test_stateful_conditions", "test_stateful_condition_summary",
+        "test_sfr_context", "test_sfr_summary", "test_stateful_sequence_workflow",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

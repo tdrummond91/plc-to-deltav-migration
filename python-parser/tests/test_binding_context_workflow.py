@@ -163,7 +163,7 @@ class BindingContextWorkflowTests(unittest.TestCase):
                 self.assertEqual((code, error), (3, ''))
                 saved, = (root / 'runs').iterdir()
                 self.assertIn(str(saved / 'review.html'), output)
-                from test_instruction_context_workflow import captured as latest_captured, options as latest_options
+                from test_stateful_sequence_workflow import captured as latest_captured, options as latest_options
                 latest = latest_captured(SOURCE)
                 data = build_review_data(*latest[:4], **latest_options(latest))
                 self.assertEqual((saved / 'review.html').read_bytes(), render_review_html(data).encode())
@@ -175,7 +175,9 @@ class BindingContextWorkflowTests(unittest.TestCase):
                 outcome.pop('targeted_samples', None)
                 outcome.pop('custom_instruction_summary')
                 outcome.pop('indexed_access_summary')
-                self.assertEqual(outcome, report()['analysis'])
+                outcome.pop('sfr_summary')
+                self.assertEqual(outcome.pop('condition_summary')['schema_version'], 3)
+                self.assertEqual(outcome, {k: v for k, v in report()['analysis'].items() if k != 'condition_summary'})
 
     def test_context_failures_are_fixed_and_do_not_publish_private_diagnostics(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

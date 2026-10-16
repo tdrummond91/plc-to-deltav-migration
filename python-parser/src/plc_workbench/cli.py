@@ -240,6 +240,7 @@ def _review(args: argparse.Namespace) -> int:
     from .binding_context import BindingContextError, analyze_binding_context
     from .custom_instruction_context import CustomInstructionContextError, analyze_custom_instruction_context
     from .indexed_access import IndexedAccessError, analyze_indexed_access
+    from .sfr_context import SfrContextError, analyze_sfr_context
     from .references import ReferenceError, analyze_references
     from .sfc_structure import SfcStructureError, analyze_sfc_structure
     from .source import SourceError, analyze_snapshot, capture_snapshot
@@ -257,13 +258,14 @@ def _review(args: argparse.Namespace) -> int:
         rung_analysis = analyze_rungs(snapshot, inventory, references, access, calculations)
         relationships = analyze_relationships(snapshot, inventory, references, access, calculations, rung_analysis)
         conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
-                                        schema_version=2)
+                                        schema_version=3)
         binding_context = analyze_binding_context(
             snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
         companion_inputs = (snapshot, inventory, references, access, calculations,
                             rung_analysis, relationships, conditions, binding_context)
         custom_context = analyze_custom_instruction_context(*companion_inputs)
         indexed_access = analyze_indexed_access(*companion_inputs)
+        sfr_context = analyze_sfr_context(snapshot, inventory, references, access, calculations, sfc)
         tag_data = analyze_tag_data(snapshot, inventory)
         pid = analyze_pid(snapshot, inventory, references, tag_data)
         pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
@@ -271,12 +273,12 @@ def _review(args: argparse.Namespace) -> int:
                          sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data, pid=pid,
                          pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis, relationships=relationships,
                          conditions=conditions, binding_context=binding_context,
-                         custom_instruction_context=custom_context, indexed_access=indexed_access)
+                         custom_instruction_context=custom_context, indexed_access=indexed_access, sfr_context=sfr_context)
         print(f"Private review report: {saved / 'review.html'}")
         return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status,
                                 tag_data.status, pid.status, pid_members.status, calculations.status, rung_analysis.status,
                                 relationships.status, conditions.status, binding_context.status,
-                                custom_context.status, indexed_access.status) else 0
+                                custom_context.status, indexed_access.status, sfr_context.status) else 0
     except SourceError:
         print("plc: Cannot read or analyze source; no review report was produced.", file=sys.stderr)
         return 1
@@ -298,7 +300,7 @@ def _review(args: argparse.Namespace) -> int:
     except BindingContextError:
         print("plc: Cannot analyze binding context; no review report was produced.", file=sys.stderr)
         return 1
-    except (CustomInstructionContextError, IndexedAccessError):
+    except (CustomInstructionContextError, IndexedAccessError, SfrContextError):
         print("plc: Cannot analyze instruction or indexed-access context; no review report was produced.", file=sys.stderr)
         return 1
     except RelationshipError:

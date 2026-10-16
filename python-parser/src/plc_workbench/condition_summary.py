@@ -89,6 +89,9 @@ def validate_condition_summary(summary: dict[str, Any]) -> None:
     predicates = kinds['predicate']
     opaque = kinds['opaque_transfer']
     passes = kinds.get('pass_through', 0)
+    stateful = kinds.get('stateful_transfer', 0)
+    stateful_gaps = c.get('binding_gap_stateful', 0)
+    stateful_outputs = c.get('outputs_with_stateful_conditions', 0)
     if (max(rungs, instructions, operands, expressions, nodes, outputs) > MAX_RECORDS
             or c['branch_legs'] > MAX_EVIDENCE_IDS
             or parsed + unparsed != rungs or kinds['entry'] != parsed
@@ -97,7 +100,8 @@ def validate_condition_summary(summary: dict[str, Any]) -> None:
             or kinds['any'] != c['branch_joins']
             or sum(c['opaque_reasons'].values()) != opaque
             or sum(c.get('passthrough_opcodes', {}).values()) != passes
-            or predicates + passes + opaque + actions['recognized'] != instructions
+            or sum(c.get('stateful_opcodes', {}).values()) != stateful
+            or predicates + passes + stateful + opaque + actions['recognized'] != instructions
             or any(sum(c[key].values()) != outputs for key in ('output_opcodes', 'guard_statuses', 'action_statuses', 'target_statuses'))
             or actions['unresolved'] != targets['signature_unresolved']
             or actions['unresolved'] > c['opaque_reasons']['signature_unresolved']
@@ -108,7 +112,12 @@ def validate_condition_summary(summary: dict[str, Any]) -> None:
             or c['output_addresses'] > targets['exact_address']
             or bool(c['output_addresses']) != bool(targets['exact_address'])
             or c['binding_gap_predicates'] > predicates
-            or (guards['binding_gaps'] and not c['binding_gap_predicates'])
+            or stateful_gaps > stateful
+            or stateful_outputs > outputs
+            or (stateful_outputs and not stateful)
+            or (guards['binding_gaps'] and not (c['binding_gap_predicates'] or stateful_gaps))
+            or (version == 3 and not c['binding_gap_predicates']
+                and guards['binding_gaps'] > stateful_outputs)
             or (guards['opaque'] and not opaque)
             or c['outputs_with_branches'] > outputs
             or (c['outputs_with_branches'] and not c['branch_joins'])
@@ -117,9 +126,10 @@ def validate_condition_summary(summary: dict[str, Any]) -> None:
             or (not parsed and (instructions or nodes or c['branch_joins']))
             or (not instructions and (operands or expressions))
             or (not operands and expressions)
-            or predicates + passes + actions['recognized'] > operands):
+            or predicates + passes + stateful + actions['recognized'] > operands):
         _invalid()
-    partial = bool(unparsed or opaque or c['binding_gap_predicates'] or outputs != targets['exact_address'])
+    partial = bool(unparsed or opaque or c['binding_gap_predicates'] or stateful_gaps
+                   or outputs != targets['exact_address'])
     if summary['status'] != ('partial' if partial else 'complete'):
         _invalid()
 

@@ -32,6 +32,8 @@ from .binding_context import analyze_binding_context
 from .custom_instruction_context import analyze_custom_instruction_context
 from .custom_instruction_summary import build_custom_instruction_summary, validate_custom_instruction_summary
 from .indexed_access import analyze_indexed_access
+from .sfr_context import analyze_sfr_context
+from .sfr_summary import build_sfr_summary, validate_sfr_summary
 from .indexed_access_summary import build_indexed_access_summary, validate_indexed_access_summary
 from .binding_context_summary import build_binding_context_summary, validate_binding_context_summary
 from .calculation_summary import build_calculation_summary, validate_calculation_summary
@@ -89,7 +91,8 @@ _V25_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 25, "workflow_version": 
 _V26_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 26, "workflow_version": "work-check-26"}
 _V27_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 27, "workflow_version": "work-check-27"}
 _V28_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 28, "workflow_version": "work-check-28"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 29, "workflow_version": "work-check-29"}
+_V29_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 29, "workflow_version": "work-check-29"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 30, "workflow_version": "work-check-30"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _SAVE_FAILURE_CODES = frozenset({
     "review_size_limit", "review_validation_error", "review_render_error",
@@ -169,7 +172,7 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _V25_CONSTANTS, 26: _V26_CONSTANTS, 27: _V27_CONSTANTS, 28: _V28_CONSTANTS, 29: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _V25_CONSTANTS, 26: _V26_CONSTANTS, 27: _V27_CONSTANTS, 28: _V28_CONSTANTS, 29: _V29_CONSTANTS, 30: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = ({"diagnostic_sample"} if version >= 2 else set()) | ({"targeted_samples"} if version >= 28 else set())
@@ -200,7 +203,8 @@ def validate_work_check_report(report: Any) -> None:
           | ({"relationship_summary"} if version >= 23 else set())
           | ({"condition_summary"} if version >= 24 else set())
           | ({"binding_context_summary"} if version >= 27 else set())
-          | ({"custom_instruction_summary", "indexed_access_summary"} if version >= 29 else set()))
+          | ({"custom_instruction_summary", "indexed_access_summary"} if version >= 29 else set())
+          | ({"sfr_summary"} if version >= 30 else set()))
     if type(analysis["private_run_saved"]) is not bool or type(analysis["status"]) is not str:
         _invalid()
     if analysis["status"] in ("complete", "partial"):
@@ -208,14 +212,14 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12, 26: 12, 27: 12, 28: 12, 29: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12, 26: 12, 27: 12, 28: 12, 29: 12, 30: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2, 26: 2, 27: 2, 28: 2, 29: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2, 26: 2, 27: 2, 28: 2, 29: 2, 30: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
@@ -497,7 +501,7 @@ def validate_work_check_report(report: Any) -> None:
         if version >= 24:
             conditions = analysis["condition_summary"]
             validate_condition_summary(conditions)
-            if conditions["schema_version"] != (2 if version >= 26 else 1):
+            if conditions["schema_version"] != (3 if version >= 30 else 2 if version >= 26 else 1):
                 _invalid()
             condition_coverage = conditions["coverage"]
             access_coverage = analysis["access_summary"]["coverage"]
@@ -509,8 +513,10 @@ def validate_work_check_report(report: Any) -> None:
             # same withheld population, never one allowance per opcode family.
             opcode_counts = (condition_coverage["output_opcodes"]
                              | condition_coverage["predicate_opcodes"]
-                             | (condition_coverage["passthrough_opcodes"] if version >= 26 else {}))
+                             | (condition_coverage["passthrough_opcodes"] if version >= 26 else {})
+                             | (condition_coverage["stateful_opcodes"] if version >= 30 else {}))
             pass_count = condition_coverage["node_kinds"]["pass_through"] if version >= 26 else 0
+            stateful_count = condition_coverage["node_kinds"]["stateful_transfer"] if version >= 30 else 0
             withheld_needed = sum(max(0, count - source_opcodes.get(opcode, 0))
                                   for opcode, count in opcode_counts.items())
             if (conditions["tool_revision"] != revision
@@ -523,7 +529,7 @@ def validate_work_check_report(report: Any) -> None:
                     or condition_coverage["branch_legs"] != rung_coverage["branch_legs"]
                     or condition_coverage["node_kinds"]["predicate"] > rung_coverage["block_families"]["boolean_condition"]
                     or condition_coverage["outputs_total"] > rung_coverage["block_families"]["boolean_output"]
-                    or condition_coverage["node_kinds"]["predicate"] + pass_count + condition_coverage["action_statuses"]["recognized"]
+                    or condition_coverage["node_kinds"]["predicate"] + pass_count + stateful_count + condition_coverage["action_statuses"]["recognized"]
                         > access_coverage["instructions_by_status"]["classified"]
                     or any(count < source_opcodes.get(opcode, 0)
                            for opcode, count in condition_coverage["output_opcodes"].items())
@@ -620,6 +626,27 @@ def validate_work_check_report(report: Any) -> None:
                            + (nested["aliases"]["total"] if role == "unknown" else 0)
                            for role in ("read", "write", "read_write", "unknown", "non_data", "expression_read"))):
                 _invalid()
+        if version >= 30:
+            sfr = analysis["sfr_summary"]
+            validate_sfr_summary(sfr)
+            sfr_counts = sfr["coverage"]
+            access_counts = analysis["access_summary"]["coverage"]
+            sfc_counts = analysis["sfc_structure_summary"]["counts"]
+            source_opcodes = nested["source_summary"]["instructions"]["counts"]
+            if (sfr["schema_version"] != 1 or sfr["tool_revision"] != revision
+                    or sfr_counts["source_rungs"] != access_counts["source_rungs"]
+                    or sfr_counts["source_instructions"] != access_counts["instructions_total"]
+                    or sfr_counts["source_operands"] != access_counts["operands_total"]
+                    or sfr_counts["source_sfc_routines"] != analysis["sfc_structure_summary"]["source_sfc_routines"]
+                    or sfr_counts["source_sfc_contents"] != sfc_counts["contents"]["total"]
+                    or sfr_counts["source_sfc_steps"] != sfc_counts["elements"]["by_kind"]["step"]
+                    or sfr_counts["calls_by_signature"]["classified"] != access_counts["extended_instructions"]["sfc_reset_step"] + access_counts["extended_instructions"]["sfc_reset_initial"]
+                    or sfr_counts["calls_by_selector_kind"]["named"] != access_counts["extended_instructions"]["sfc_reset_step"]
+                    or sfr_counts["calls_by_selector_kind"]["initial"] != access_counts["extended_instructions"]["sfc_reset_initial"]
+                    or sfr_counts["calls_total"] < source_opcodes.get("SFR", 0)
+                    or withheld_needed + max(0, sfr_counts["calls_total"] - source_opcodes.get("SFR", 0)) > source_opcodes.get("withheld", 0)):
+                _invalid()
+            expected_analysis = "partial" if "partial" in (expected_analysis, sfr["status"]) else "complete"
         if expected_analysis != analysis["status"] or nested["source_summary"]["tool_revision"] != revision:
             _invalid()
     elif analysis["status"] == "failed":
@@ -636,6 +663,7 @@ def validate_work_check_report(report: Any) -> None:
                     | ({"condition_error"} if version >= 24 else set())
                     | ({"binding_context_error"} if version >= 27 else set())
                     | ({"custom_instruction_context_error", "indexed_access_error"} if version >= 29 else set())
+                    | ({"sfr_context_error"} if version >= 30 else set())
                     | (_SAVE_FAILURE_CODES if version >= 25 else set())) or analysis["reference_summary"] is not None):
             _invalid()
         if analysis["private_run_saved"] and analysis["failure_code"] not in ("summary_error", "unexpected_error"):
@@ -667,6 +695,8 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     if version >= 29 and analysis["status"] in ("failed", "not_run") and any(
             analysis[key] is not None for key in ("custom_instruction_summary", "indexed_access_summary")):
+        _invalid()
+    if version >= 30 and analysis["status"] in ("failed", "not_run") and analysis["sfr_summary"] is not None:
         _invalid()
     expected = "failed" if not tests_passed or analysis["status"] == "failed" else (
         "partial" if analysis["status"] == "partial" else "passed"
@@ -708,7 +738,9 @@ def validate_work_check_report(report: Any) -> None:
             opaque_cases = int(found['opaque_ons_1']) + int(found['opaque_sfr_1'])
             missing_opcodes = sum(int(found[slot]) and opcodes.get(opcode, 0) == 0
                                   for slot, opcode in (('opaque_ons_1', 'ONS'), ('opaque_sfr_1', 'SFR')))
-            if (opaque_cases > condition_counts['node_kinds']['opaque_transfer']
+            historical_opaque = condition_counts['node_kinds']['opaque_transfer'] + (
+                condition_counts['node_kinds']['stateful_transfer'] if version >= 30 else 0)
+            if (opaque_cases > historical_opaque
                     or missing_opcodes > opcodes.get('withheld', 0)
                     or found['branched_output_1'] and (
                         not rung_counts['structures']['branched']
@@ -760,7 +792,7 @@ def validate_work_check_report(report: Any) -> None:
 
 
 def _report_limit(version: int) -> int:
-    if version in (28, 29):
+    if version in (28, 29, 30):
         return MAX_REPORT_V28_BYTES
     return MAX_REPORT_V22_BYTES if version in (22, 23, 24, 25, 26, 27) else MAX_REPORT_BYTES
 
@@ -947,7 +979,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
                               "reference_summary": None, "sfc_structure_summary": None,
                               "access_summary": None, "tag_data_summary": None, "pid_summary": None,
                               "pid_member_summary": None, "calculation_summary": None, "rung_analysis_summary": None, "relationship_summary": None, "condition_summary": None,
-                              "binding_context_summary": None, "custom_instruction_summary": None, "indexed_access_summary": None,
+                              "binding_context_summary": None, "custom_instruction_summary": None, "indexed_access_summary": None, "sfr_summary": None,
                               "diagnostic_sample": None, "targeted_samples": sample_envelope()}
     try:
         snapshot = capture_snapshot(source)
@@ -969,7 +1001,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         relationships = analyze_relationships(snapshot, inventory, references, access, calculations, rung_analysis)
         result["failure_code"] = "condition_error"
         conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
-                                        schema_version=2)
+                                        schema_version=3)
         result["failure_code"] = "binding_context_error"
         binding_context = analyze_binding_context(
             snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
@@ -979,6 +1011,9 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         custom_context = analyze_custom_instruction_context(*companion_inputs)
         result["failure_code"] = "indexed_access_error"
         indexed_access = analyze_indexed_access(*companion_inputs)
+        result["failure_code"] = "sfr_context_error"
+        sfr_inputs = (snapshot, inventory, references, access, calculations, sfc_structure)
+        sfr_context = analyze_sfr_context(*sfr_inputs)
         result["failure_code"] = "tag_data_error"
         tag_data = analyze_tag_data(snapshot, inventory)
         result["failure_code"] = "pid_error"
@@ -994,7 +1029,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
                              sfc_structure=sfc_structure, include_review=True, access=access, tag_data=tag_data, pid=pid,
                              pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis, relationships=relationships,
                              conditions=conditions, binding_context=binding_context,
-                             custom_instruction_context=custom_context, indexed_access=indexed_access)
+                             custom_instruction_context=custom_context, indexed_access=indexed_access, sfr_context=sfr_context)
         # save_run returns only after finalizing the manifest. A console failure
         # afterwards must not misreport a successfully saved private run.
         result["private_run_saved"] = True
@@ -1020,6 +1055,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
             binding_context, revision=revision)
         custom_summary = build_custom_instruction_summary(*companion_inputs, custom_context, revision=revision)
         indexed_summary = build_indexed_access_summary(*companion_inputs, indexed_access, revision=revision)
+        sfr_summary = build_sfr_summary(*sfr_inputs, sfr_context, revision=revision)
         # Current releases use the durable targeted reservation. Retain the
         # legacy field as null; its source-order raw sampler must not rotate
         # additional examples outside the new cumulative disclosure budget.
@@ -1027,7 +1063,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         status = "partial" if "partial" in (summary["status"], sfc_summary["status"], access.status,
                                            tag_data.status, pid.status, pid_members.status, calculations.status, rung_analysis.status,
                                            relationships.status, conditions.status, binding_context.status,
-                                           custom_context.status, indexed_access.status) else "complete"
+                                           custom_context.status, indexed_access.status, sfr_context.status) else "complete"
         result.update(status=status, failure_code=None, reference_summary=summary,
                       sfc_structure_summary=sfc_summary,
                       access_summary=access_summary,
@@ -1039,12 +1075,21 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
                       relationship_summary=relationship_summary,
                       condition_summary=condition_summary,
                       binding_context_summary=context_summary,
-                      custom_instruction_summary=custom_summary, indexed_access_summary=indexed_summary,
+                      custom_instruction_summary=custom_summary, indexed_access_summary=indexed_summary, sfr_summary=sfr_summary,
                       diagnostic_sample=sample)
-        result["targeted_samples"] = resolve_targeted_samples(
-            root, lambda: build_targeted_samples(
+        def frozen_sample_request() -> dict[str, Any]:
+            # Request rung-cases-1 is permanently tied to condition2 eligibility.
+            # Replays never invoke this builder; fresh checkouts still select the
+            # historical six slots instead of silently changing sample policy.
+            sample_conditions = analyze_conditions(
                 snapshot, inventory, references, access, calculations,
-                rung_analysis, relationships, conditions, binding_context))
+                rung_analysis, relationships, schema_version=2)
+            sample_context = analyze_binding_context(
+                snapshot, inventory, references, access, calculations,
+                rung_analysis, relationships, sample_conditions)
+            return build_targeted_samples(snapshot, inventory, references, access, calculations,
+                                          rung_analysis, relationships, sample_conditions, sample_context)
+        result["targeted_samples"] = resolve_targeted_samples(root, frozen_sample_request)
     except Exception as exc:
         # Only our exact storage exception may refine the save stage. Do not
         # inspect arbitrary exception attributes, messages, causes or tracebacks:
@@ -1086,7 +1131,7 @@ def run_check(root: Path, supplied_source: str | None) -> int:
         analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False,
                     "reference_summary": None, "sfc_structure_summary": None, "access_summary": None,
                     "tag_data_summary": None, "pid_summary": None, "pid_member_summary": None, "calculation_summary": None, "rung_analysis_summary": None, "relationship_summary": None, "condition_summary": None,
-                    "binding_context_summary": None, "custom_instruction_summary": None, "indexed_access_summary": None}
+                    "binding_context_summary": None, "custom_instruction_summary": None, "indexed_access_summary": None, "sfr_summary": None}
     status = "failed" if analysis["status"] in ("not_run", "failed") else (
         "partial" if analysis["status"] == "partial" else "passed"
     )

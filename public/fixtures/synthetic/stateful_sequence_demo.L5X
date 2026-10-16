@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.00" TargetType="Controller" ContainsContext="true">
+  <Controller Name="StatefulSequenceDemo">
+    <Tags/>
+    <Programs><Program Name="Demo" Type="Normal" MainRoutineName="Main"><Tags>
+      <Tag Name="Request" TagType="Base" DataType="BOOL"/>
+      <Tag Name="Permit" TagType="Base" DataType="BOOL"/>
+      <Tag Name="PulseMemory" TagType="Base" DataType="BOOL"/>
+      <Tag Name="Result" TagType="Base" DataType="BOOL"/>
+      <Tag Name="Alternative" TagType="Base" DataType="BOOL"/>
+      <Tag Name="ResetRequest" TagType="Base" DataType="BOOL"/>
+      <Tag Name="Feed" TagType="Base" DataType="DINT"/>
+      <Tag Name="Destination" TagType="Base" DataType="DINT"/>
+      <Tag Name="IdleStage" TagType="Base" DataType="SFC_STEP"/>
+      <Tag Name="RunStage" TagType="Base" DataType="SFC_STEP"/>
+      <Tag Name="AbsentStage" TagType="Base" DataType="SFC_STEP"/>
+      <Tag Name="History" TagType="Base" DataType="BOOL" Dimensions="55"/>
+      <Tag Name="Results" TagType="Base" DataType="BOOL" Dimensions="55"/>
+    </Tags><Routines>
+      <Routine Name="Main" Type="RLL"><RLLContent>
+        <Rung Number="0" Type="N"><Comment><![CDATA[State-dependent pulse condition; markup stays literal: <script>window.sourceLeak=true</script>]]></Comment><Text><![CDATA[XIC(Request)ONS(PulseMemory)OTE(Result);]]></Text></Rung>
+        <Rung Number="1" Type="N"><Comment><![CDATA[A one-shot branch and a separate contact branch retain separate incoming conditions.]]></Comment><Text><![CDATA[XIC(Request)[ONS(PulseMemory)OTE(Result),XIO(Permit)OTE(Alternative)];]]></Text></Rung>
+        <Rung Number="2" Type="N"><Comment><![CDATA[State-dependent input to a data move, without a coil.]]></Comment><Text><![CDATA[ONS(PulseMemory)MOV(Feed,Destination);]]></Text></Rung>
+        <Rung Number="3" Type="N"><Comment><![CDATA[Repeated storage identity does not authorize evaluation of state between occurrences.]]></Comment><Text><![CDATA[ONS(PulseMemory)OTU(PulseMemory)ONS(PulseMemory)OTE(Result);]]></Text></Rung>
+        <Rung Number="4" Type="N"><Comment><![CDATA[Missing storage declaration remains a binding gap.]]></Comment><Text><![CDATA[ONS(MissingStorage)OTE(Result);]]></Text></Rung>
+        <Rung Number="5" Type="N"><Comment><![CDATA[A literal is not valid retained storage.]]></Comment><Text><![CDATA[ONS(1)OTE(Result);]]></Text></Rung>
+        <Rung Number="6" Type="N"><Comment><![CDATA[Upstream unknown transfer remains visible.]]></Comment><Text><![CDATA[InventedUnknown(Request)ONS(PulseMemory)OTE(Result);]]></Text></Rung>
+        <Rung Number="7" Type="N"><Comment><![CDATA[Named target in an SFC content.]]></Comment><Text><![CDATA[SFR(DemoChart,RunStage);]]></Text></Rung>
+        <Rung Number="8" Type="N"><Comment><![CDATA[Explicit initial-step selector.]]></Comment><Text><![CDATA[XIC(ResetRequest)SFR(DemoChart,0);]]></Text></Rung>
+        <Rung Number="9" Type="N"><Comment><![CDATA[Missing chart declaration.]]></Comment><Text><![CDATA[SFR(AbsentChart,RunStage);]]></Text></Rung>
+        <Rung Number="10" Type="N"><Comment><![CDATA[Routine exists but is not SFC.]]></Comment><Text><![CDATA[SFR(PlainRoutine,RunStage);]]></Text></Rung>
+        <Rung Number="11" Type="N"><Comment><![CDATA[Declared target tag is absent from this chart.]]></Comment><Text><![CDATA[SFR(DemoChart,AbsentStage);]]></Text></Rung>
+        <Rung Number="12" Type="N"><Comment><![CDATA[Two step occurrences share an Operand in one content.]]></Comment><Text><![CDATA[SFR(DuplicateChart,RunStage);]]></Text></Rung>
+        <Rung Number="13" Type="N"><Comment><![CDATA[Both Original and PendingEdits content remain visible.]]></Comment><Text><![CDATA[SFR(EditedChart,RunStage);]]></Text></Rung>
+        <Rung Number="14" Type="N"><Comment><![CDATA[No active edit revision is chosen.]]></Comment><Text><![CDATA[SFR(EditedChart,0);]]></Text></Rung>
+        <Rung Number="15" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 1.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[0])OTE(Results[0]);]]></Text></Rung>
+        <Rung Number="16" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 2.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[1])OTE(Results[1]);]]></Text></Rung>
+        <Rung Number="17" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 3.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[2])OTE(Results[2]);]]></Text></Rung>
+        <Rung Number="18" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 4.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[3])OTE(Results[3]);]]></Text></Rung>
+        <Rung Number="19" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 5.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[4])OTE(Results[4]);]]></Text></Rung>
+        <Rung Number="20" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 6.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[5])OTE(Results[5]);]]></Text></Rung>
+        <Rung Number="21" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 7.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[6])OTE(Results[6]);]]></Text></Rung>
+        <Rung Number="22" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 8.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[7])OTE(Results[7]);]]></Text></Rung>
+        <Rung Number="23" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 9.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[8])OTE(Results[8]);]]></Text></Rung>
+        <Rung Number="24" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 10.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[9])OTE(Results[9]);]]></Text></Rung>
+        <Rung Number="25" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 11.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[10])OTE(Results[10]);]]></Text></Rung>
+        <Rung Number="26" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 12.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[11])OTE(Results[11]);]]></Text></Rung>
+        <Rung Number="27" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 13.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[12])OTE(Results[12]);]]></Text></Rung>
+        <Rung Number="28" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 14.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[13])OTE(Results[13]);]]></Text></Rung>
+        <Rung Number="29" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 15.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[14])OTE(Results[14]);]]></Text></Rung>
+        <Rung Number="30" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 16.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[15])OTE(Results[15]);]]></Text></Rung>
+        <Rung Number="31" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 17.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[16])OTE(Results[16]);]]></Text></Rung>
+        <Rung Number="32" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 18.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[17])OTE(Results[17]);]]></Text></Rung>
+        <Rung Number="33" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 19.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[18])OTE(Results[18]);]]></Text></Rung>
+        <Rung Number="34" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 20.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[19])OTE(Results[19]);]]></Text></Rung>
+        <Rung Number="35" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 21.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[20])OTE(Results[20]);]]></Text></Rung>
+        <Rung Number="36" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 22.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[21])OTE(Results[21]);]]></Text></Rung>
+        <Rung Number="37" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 23.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[22])OTE(Results[22]);]]></Text></Rung>
+        <Rung Number="38" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 24.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[23])OTE(Results[23]);]]></Text></Rung>
+        <Rung Number="39" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 25.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[24])OTE(Results[24]);]]></Text></Rung>
+        <Rung Number="40" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 26.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[25])OTE(Results[25]);]]></Text></Rung>
+        <Rung Number="41" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 27.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[26])OTE(Results[26]);]]></Text></Rung>
+        <Rung Number="42" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 28.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[27])OTE(Results[27]);]]></Text></Rung>
+        <Rung Number="43" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 29.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[28])OTE(Results[28]);]]></Text></Rung>
+        <Rung Number="44" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 30.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[29])OTE(Results[29]);]]></Text></Rung>
+        <Rung Number="45" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 31.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[30])OTE(Results[30]);]]></Text></Rung>
+        <Rung Number="46" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 32.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[31])OTE(Results[31]);]]></Text></Rung>
+        <Rung Number="47" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 33.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[32])OTE(Results[32]);]]></Text></Rung>
+        <Rung Number="48" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 34.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[33])OTE(Results[33]);]]></Text></Rung>
+        <Rung Number="49" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 35.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[34])OTE(Results[34]);]]></Text></Rung>
+        <Rung Number="50" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 36.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[35])OTE(Results[35]);]]></Text></Rung>
+        <Rung Number="51" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 37.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[36])OTE(Results[36]);]]></Text></Rung>
+        <Rung Number="52" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 38.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[37])OTE(Results[37]);]]></Text></Rung>
+        <Rung Number="53" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 39.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[38])OTE(Results[38]);]]></Text></Rung>
+        <Rung Number="54" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 40.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[39])OTE(Results[39]);]]></Text></Rung>
+        <Rung Number="55" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 41.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[40])OTE(Results[40]);]]></Text></Rung>
+        <Rung Number="56" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 42.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[41])OTE(Results[41]);]]></Text></Rung>
+        <Rung Number="57" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 43.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[42])OTE(Results[42]);]]></Text></Rung>
+        <Rung Number="58" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 44.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[43])OTE(Results[43]);]]></Text></Rung>
+        <Rung Number="59" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 45.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[44])OTE(Results[44]);]]></Text></Rung>
+        <Rung Number="60" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 46.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[45])OTE(Results[45]);]]></Text></Rung>
+        <Rung Number="61" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 47.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[46])OTE(Results[46]);]]></Text></Rung>
+        <Rung Number="62" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 48.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[47])OTE(Results[47]);]]></Text></Rung>
+        <Rung Number="63" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 49.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[48])OTE(Results[48]);]]></Text></Rung>
+        <Rung Number="64" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 50.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[49])OTE(Results[49]);]]></Text></Rung>
+        <Rung Number="65" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 51.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[50])OTE(Results[50]);]]></Text></Rung>
+        <Rung Number="66" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 52.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[51])OTE(Results[51]);]]></Text></Rung>
+        <Rung Number="67" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 53.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[52])OTE(Results[52]);]]></Text></Rung>
+        <Rung Number="68" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 54.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[53])OTE(Results[53]);]]></Text></Rung>
+        <Rung Number="69" Type="N"><Comment><![CDATA[Independently invented pagination occurrence 55.]]></Comment><Text><![CDATA[XIC(Request)ONS(History[54])OTE(Results[54]);]]></Text></Rung>
+      </RLLContent></Routine>
+      <Routine Name="PlainRoutine" Type="RLL"><RLLContent/></Routine>
+      <Routine Name="DemoChart" Type="SFC"><SFCContent>
+        <Step ID="1" Operand="IdleStage" InitialStep="true"/>
+        <Transition ID="2"><Condition><STContent><Line Number="0">Request;</Line></STContent></Condition></Transition>
+        <Step ID="3" Operand="RunStage" InitialStep="false"/>
+        <DirectedLink FromID="1" ToID="2"/><DirectedLink FromID="2" ToID="3"/>
+      </SFCContent></Routine>
+      <Routine Name="DuplicateChart" Type="SFC"><SFCContent>
+        <Step ID="1" Operand="RunStage" InitialStep="true"/>
+        <Step ID="2" Operand="RunStage" InitialStep="true"/>
+      </SFCContent></Routine>
+      <Routine Name="EditedChart" Type="SFC">
+        <SFCContent OnlineEditType="Original"><Step ID="1" Operand="RunStage" InitialStep="true"/></SFCContent>
+        <SFCContent OnlineEditType="PendingEdits"><Step ID="1" Operand="RunStage" InitialStep="true"/></SFCContent>
+      </Routine>
+    </Routines></Program></Programs>
+  </Controller>
+</RSLogix5000Content>

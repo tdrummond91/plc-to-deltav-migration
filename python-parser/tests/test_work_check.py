@@ -512,7 +512,7 @@ class GitAndWorkflowTests(unittest.TestCase):
             from plc_workbench.conditions import analyze_conditions
             from plc_workbench.condition_summary import build_condition_summary
             conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
-                                            schema_version=2)
+                                            schema_version=3)
             analysis_payload["condition_summary"] = build_condition_summary(
                 snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions,
                 revision={"commit": COMMIT, "worktree": "clean"})
@@ -534,6 +534,13 @@ class GitAndWorkflowTests(unittest.TestCase):
                 revision={"commit": COMMIT, "worktree": "clean"})
             analysis_payload["indexed_access_summary"] = build_indexed_access_summary(
                 *companion_inputs, analyze_indexed_access(*companion_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.sfr_context import analyze_sfr_context
+            from plc_workbench.sfr_summary import build_sfr_summary
+            sfc_structure = analyze_sfc_structure(snapshot, inventory)
+            sfr_inputs = (snapshot, inventory, references, access, calculations, sfc_structure)
+            analysis_payload["sfr_summary"] = build_sfr_summary(
+                *sfr_inputs, analyze_sfr_context(*sfr_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))

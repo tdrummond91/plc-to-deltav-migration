@@ -183,7 +183,9 @@ class TargetedSampleWorkflowTests(unittest.TestCase):
             result.pop('targeted_samples')
             result.pop('custom_instruction_summary')
             result.pop('indexed_access_summary')
-            self.assertEqual(result, report()['analysis'])
+            result.pop('sfr_summary')
+            self.assertEqual(result.pop('condition_summary')['schema_version'], 3)
+            self.assertEqual(result, {k: v for k, v in report()['analysis'].items() if k != 'condition_summary'})
 
     def test_publication_failure_keeps_reservation_and_retry_does_not_rotate(self) -> None:
         with tempfile.TemporaryDirectory() as folder, redirect_stdout(io.StringIO()):

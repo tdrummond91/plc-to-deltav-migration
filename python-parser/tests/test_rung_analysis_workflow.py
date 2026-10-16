@@ -168,6 +168,7 @@ class RungAnalysisWorkflowTests(unittest.TestCase):
             outcome.pop('targeted_samples', None)
             self.assertIsNotNone(outcome.pop('custom_instruction_summary'))
             self.assertIsNotNone(outcome.pop('indexed_access_summary'))
+            self.assertIsNotNone(outcome.pop('sfr_summary'))
             self.assertIsNotNone(outcome.pop('relationship_summary'))
             self.assertIsNotNone(outcome.pop('condition_summary'))
             self.assertIsNotNone(outcome.pop('binding_context_summary'))
