@@ -182,6 +182,8 @@ class RelationshipWorkflowTests(unittest.TestCase):
             self.assertEqual(save.call_args.kwargs['relationships'].to_dict(), parts[-1].to_dict())
             outcome.pop('diagnostic_sample')
             outcome.pop('targeted_samples', None)
+            self.assertIsNotNone(outcome.pop('custom_instruction_summary'))
+            self.assertIsNotNone(outcome.pop('indexed_access_summary'))
             self.assertIsNotNone(outcome.pop('condition_summary'))
             self.assertIsNotNone(outcome.pop('binding_context_summary'))
             self.assertEqual(outcome, report()['analysis'])

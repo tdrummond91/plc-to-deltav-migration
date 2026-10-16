@@ -24,24 +24,30 @@ group exact suffix spellings separately from confirmed address relationships.
 Original bindings and guard statuses remain unchanged; physical I/O backing,
 member validity and process purpose are still unconfirmed.
 
+Instruction context links unknown-family blocks to candidate AOI declarations
+within their controller, with parameter/body availability and source navigation.
+Symbolic indexed access shows outer-root bindings and the individual reads that
+select an array element. These companions retain existing unknown effects and
+exact-address gaps. Call validity, element values and array bounds are unproven.
+
 Candidate interpretations are unreviewed. Instruction roles, recognized
 mnemonics, structural motifs, declaration references and weak name/comment
 hints are separate. Internal Boolean outputs do not imply physical DOs; no
 known local result does not prove dead code. CPT expression reads retain their
 own population, node/span links and repeated occurrences.
 
-The latest automated return (`aed0fc4`) saved successfully and accounts for
+The latest automated return (`51315bd`) saved successfully and accounts for
 4,163 coil outputs: 3,923 modeled guards, 181 with condition binding gaps and
 59 with opaque transfers. Documented transfers explain 2,718 occurrences;
 459 remain opaque. Earlier summaries remain unchanged, including
 7,591 exact addresses and 1,489 operand-reuse patterns covering 4,286 rungs.
 All 303 predicate binding gaps and 16 unbound coil targets now have unique
 rack-candidate context: 319 uses across 94 candidate addresses and 11 roots.
-Two additional writes use dynamic indexes. The next run requests at most six
-targeted, source-derived rung examples to investigate those cases and unclear
-instruction patterns. Names/values are substituted; the fixed request is reserved
-and replayed across reruns, including changed exports. See the
-[targeted-sample contract](../public/docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
+Two additional writes use dynamic indexes. All six targeted rung examples were
+returned with names/values substituted; that fixed request now replays unchanged.
+The next run measures declaration candidates and symbolic selector/index-read
+evidence. See [the context contract](../public/docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md)
+and [sampling boundaries](../public/docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
 Continue the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)
 before requesting team feedback. No manual engineering/UI review is needed now.
 See [binding context scope and contracts](../public/docs/reviews/BINDING_CONTEXT_REVIEW.md).
@@ -54,7 +60,7 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-review11/manifest14 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+review12/manifest15 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
 references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json, rung-analysis.json, relationships.json, boolean-conditions.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
@@ -70,14 +76,16 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work28 adds a fixed targeted-sample record alongside the unchanged
+manual. Current work29 adds custom-instruction and indexed-access count summaries
+beside the fixed targeted-sample record and unchanged
 binding-context summary1, condition2, relationship1, rung-analysis1,
 access4, calculation2, PID member1, PID1, Tag Data1, reference12/source4 and SFC2.
-Work28 permits 64 KiB including at most 16 KiB of targeted evidence. Work22-27
+Work28/29 permit 64 KiB including at most 16 KiB of targeted evidence. Work22-27
 retain 48 KiB; work1-21 retain 32 KiB. New legacy single-operand samples are
 disabled so they cannot rotate outside the targeted request's budget.
-Work25 adds fixed save-failure categories; review11 allows 168 MiB JSON / 200 MiB
-HTML, reserving 8 MiB for the embedded context index. Review9/10 retain
+Work25 adds fixed save-failure categories. Review12 allows 184 MiB JSON / 216 MiB
+HTML, reserving 8 MiB each for the two new contexts. Review11 retains 168 MiB JSON /
+200 MiB HTML for the earlier binding context. Review9/10 retain
 160 MiB JSON / 192 MiB HTML, and earlier versions retain their original budgets. See the
 [save failure checkpoint](../public/docs/reviews/SAVE_FAILURE_REVIEW.md).
 Earlier work17 added count-only

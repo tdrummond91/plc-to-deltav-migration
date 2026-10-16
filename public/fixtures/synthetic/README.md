@@ -1,5 +1,19 @@
 # Independently synthetic L5X fixture
 
+## Declaration and selector context fixture
+
+`instruction_context_demo.L5X` is an invented controller with two custom
+declarations, a missing custom call, RLL/ST bodies, dynamic reads/writes, repeated
+index reads, aliases, program shadowing, an undeclared selector and unevaluated
+constant arithmetic. Its CPT selector remains explicitly deferred. A markup-like
+comment tests inert source rendering. It is a parser/report input, not a tested
+controller import. Run work-check demonstrations only in isolated QA checkouts,
+so synthetic results do not establish the production sample reservation.
+
+The [context HTML demonstration](../../examples/instruction-context-demo.html)
+uses review12 and includes Instruction & index context. The larger historical
+engineering-review demonstration remains available below.
+
 ## Targeted diagnostic sampling fixture
 
 `targeted_samples_demo.L5X` contains six independently invented diagnostic rungs

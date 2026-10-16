@@ -29,6 +29,10 @@ from .relationship_summary import build_relationship_summary, validate_relations
 from .conditions import analyze_conditions
 from .condition_summary import build_condition_summary, validate_condition_summary
 from .binding_context import analyze_binding_context
+from .custom_instruction_context import analyze_custom_instruction_context
+from .custom_instruction_summary import build_custom_instruction_summary, validate_custom_instruction_summary
+from .indexed_access import analyze_indexed_access
+from .indexed_access_summary import build_indexed_access_summary, validate_indexed_access_summary
 from .binding_context_summary import build_binding_context_summary, validate_binding_context_summary
 from .calculation_summary import build_calculation_summary, validate_calculation_summary
 from .access_summary import build_access_summary, validate_access_summary
@@ -84,7 +88,8 @@ _V24_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 24, "workflow_version": 
 _V25_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 25, "workflow_version": "work-check-25"}
 _V26_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 26, "workflow_version": "work-check-26"}
 _V27_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 27, "workflow_version": "work-check-27"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 28, "workflow_version": "work-check-28"}
+_V28_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 28, "workflow_version": "work-check-28"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 29, "workflow_version": "work-check-29"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _SAVE_FAILURE_CODES = frozenset({
     "review_size_limit", "review_validation_error", "review_render_error",
@@ -164,7 +169,7 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _V25_CONSTANTS, 26: _V26_CONSTANTS, 27: _V27_CONSTANTS, 28: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _V25_CONSTANTS, 26: _V26_CONSTANTS, 27: _V27_CONSTANTS, 28: _V28_CONSTANTS, 29: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = ({"diagnostic_sample"} if version >= 2 else set()) | ({"targeted_samples"} if version >= 28 else set())
@@ -194,7 +199,8 @@ def validate_work_check_report(report: Any) -> None:
           | ({"rung_analysis_summary"} if version >= 22 else set())
           | ({"relationship_summary"} if version >= 23 else set())
           | ({"condition_summary"} if version >= 24 else set())
-          | ({"binding_context_summary"} if version >= 27 else set()))
+          | ({"binding_context_summary"} if version >= 27 else set())
+          | ({"custom_instruction_summary", "indexed_access_summary"} if version >= 29 else set()))
     if type(analysis["private_run_saved"]) is not bool or type(analysis["status"]) is not str:
         _invalid()
     if analysis["status"] in ("complete", "partial"):
@@ -202,14 +208,14 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12, 26: 12, 27: 12, 28: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12, 26: 12, 27: 12, 28: 12, 29: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2, 26: 2, 27: 2, 28: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2, 26: 2, 27: 2, 28: 2, 29: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
@@ -577,6 +583,43 @@ def validate_work_check_report(report: Any) -> None:
                         for category, match in rack_categories.items())):
                 _invalid()
             expected_analysis = "partial" if "partial" in (expected_analysis, context["status"]) else "complete"
+        if version >= 29:
+            custom = analysis["custom_instruction_summary"]
+            indexed = analysis["indexed_access_summary"]
+            validate_custom_instruction_summary(custom)
+            validate_indexed_access_summary(indexed)
+            source_counts = nested["source_summary"]["counts"]
+            access_counts = analysis["access_summary"]["coverage"]
+            for companion in (custom, indexed):
+                counts = companion["coverage"]
+                if (companion["schema_version"] != 1 or companion["tool_revision"] != revision
+                        or counts["source_rungs"] != access_counts["source_rungs"]
+                        or counts["source_instructions"] != access_counts["instructions_total"]
+                        or counts["source_operands"] != access_counts["operands_total"]):
+                    _invalid()
+                expected_analysis = "partial" if "partial" in (expected_analysis, companion["status"]) else "complete"
+            custom_counts, indexed_counts = custom["coverage"], indexed["coverage"]
+            context_counts = analysis["binding_context_summary"]["coverage"]
+            known_dynamic = context_counts["gaps_by_category"]["non_static_array_index"]
+            if (custom_counts["unknown_family_calls"] != analysis["rung_analysis_summary"]["coverage"]["block_families"]["unknown"]
+                    or custom_counts["definitions_total"] != source_counts["aoi_definitions"]
+                    or custom_counts["parameters_total"] != source_counts["aoi_parameters"]
+                    or custom_counts["routines_total"] > source_counts["routines"]
+                    or custom_counts["encoded_regions_total"] > source_counts["encoded_regions"]
+                    or indexed_counts["expression_uses"] != access_counts["expression_uses_total"]
+                    or indexed_counts["source_aliases"] != nested["aliases"]["total"]
+                    # Every existing non-static gap retains an occurrence here,
+                    # even when parsing or exact-element analysis is deferred.
+                    # Alias declarations are additional records, never substitutes.
+                    or indexed_counts["uses_by_kind"]["operand"] + indexed_counts["uses_by_kind"]["expression"] < known_dynamic
+                    or indexed_counts["uses_by_kind"]["operand"] < max(0, known_dynamic - context_counts["gaps_by_kind"]["expression"])
+                    or indexed_counts["uses_by_kind"]["expression"] < max(0, known_dynamic - context_counts["gaps_by_kind"]["operand"])
+                    or sum(indexed_counts["uses_by_role"][role] for role in ("read", "write", "read_write")) < known_dynamic
+                    or any(indexed_counts["uses_by_role"][role] > access_counts["operands_by_role"][role]
+                           + (access_counts["expression_uses_total"] if role == "read" else 0)
+                           + (nested["aliases"]["total"] if role == "unknown" else 0)
+                           for role in ("read", "write", "read_write", "unknown", "non_data", "expression_read"))):
+                _invalid()
         if expected_analysis != analysis["status"] or nested["source_summary"]["tool_revision"] != revision:
             _invalid()
     elif analysis["status"] == "failed":
@@ -592,6 +635,7 @@ def validate_work_check_report(report: Any) -> None:
                     | ({"relationship_error"} if version >= 23 else set())
                     | ({"condition_error"} if version >= 24 else set())
                     | ({"binding_context_error"} if version >= 27 else set())
+                    | ({"custom_instruction_context_error", "indexed_access_error"} if version >= 29 else set())
                     | (_SAVE_FAILURE_CODES if version >= 25 else set())) or analysis["reference_summary"] is not None):
             _invalid()
         if analysis["private_run_saved"] and analysis["failure_code"] not in ("summary_error", "unexpected_error"):
@@ -620,6 +664,9 @@ def validate_work_check_report(report: Any) -> None:
     if version >= 24 and analysis["status"] in ("failed", "not_run") and analysis["condition_summary"] is not None:
         _invalid()
     if version >= 27 and analysis["status"] in ("failed", "not_run") and analysis["binding_context_summary"] is not None:
+        _invalid()
+    if version >= 29 and analysis["status"] in ("failed", "not_run") and any(
+            analysis[key] is not None for key in ("custom_instruction_summary", "indexed_access_summary")):
         _invalid()
     expected = "failed" if not tests_passed or analysis["status"] == "failed" else (
         "partial" if analysis["status"] == "partial" else "passed"
@@ -713,7 +760,7 @@ def validate_work_check_report(report: Any) -> None:
 
 
 def _report_limit(version: int) -> int:
-    if version == 28:
+    if version in (28, 29):
         return MAX_REPORT_V28_BYTES
     return MAX_REPORT_V22_BYTES if version in (22, 23, 24, 25, 26, 27) else MAX_REPORT_BYTES
 
@@ -900,7 +947,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
                               "reference_summary": None, "sfc_structure_summary": None,
                               "access_summary": None, "tag_data_summary": None, "pid_summary": None,
                               "pid_member_summary": None, "calculation_summary": None, "rung_analysis_summary": None, "relationship_summary": None, "condition_summary": None,
-                              "binding_context_summary": None,
+                              "binding_context_summary": None, "custom_instruction_summary": None, "indexed_access_summary": None,
                               "diagnostic_sample": None, "targeted_samples": sample_envelope()}
     try:
         snapshot = capture_snapshot(source)
@@ -926,6 +973,12 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         result["failure_code"] = "binding_context_error"
         binding_context = analyze_binding_context(
             snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
+        companion_inputs = (snapshot, inventory, references, access, calculations,
+                            rung_analysis, relationships, conditions, binding_context)
+        result["failure_code"] = "custom_instruction_context_error"
+        custom_context = analyze_custom_instruction_context(*companion_inputs)
+        result["failure_code"] = "indexed_access_error"
+        indexed_access = analyze_indexed_access(*companion_inputs)
         result["failure_code"] = "tag_data_error"
         tag_data = analyze_tag_data(snapshot, inventory)
         result["failure_code"] = "pid_error"
@@ -940,7 +993,8 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         saved_run = save_run(workspace, snapshot, inventory, references=references,
                              sfc_structure=sfc_structure, include_review=True, access=access, tag_data=tag_data, pid=pid,
                              pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis, relationships=relationships,
-                             conditions=conditions, binding_context=binding_context)
+                             conditions=conditions, binding_context=binding_context,
+                             custom_instruction_context=custom_context, indexed_access=indexed_access)
         # save_run returns only after finalizing the manifest. A console failure
         # afterwards must not misreport a successfully saved private run.
         result["private_run_saved"] = True
@@ -964,13 +1018,16 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         context_summary = build_binding_context_summary(
             snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions,
             binding_context, revision=revision)
+        custom_summary = build_custom_instruction_summary(*companion_inputs, custom_context, revision=revision)
+        indexed_summary = build_indexed_access_summary(*companion_inputs, indexed_access, revision=revision)
         # Current releases use the durable targeted reservation. Retain the
         # legacy field as null; its source-order raw sampler must not rotate
         # additional examples outside the new cumulative disclosure budget.
         sample = None
         status = "partial" if "partial" in (summary["status"], sfc_summary["status"], access.status,
                                            tag_data.status, pid.status, pid_members.status, calculations.status, rung_analysis.status,
-                                           relationships.status, conditions.status, binding_context.status) else "complete"
+                                           relationships.status, conditions.status, binding_context.status,
+                                           custom_context.status, indexed_access.status) else "complete"
         result.update(status=status, failure_code=None, reference_summary=summary,
                       sfc_structure_summary=sfc_summary,
                       access_summary=access_summary,
@@ -982,6 +1039,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
                       relationship_summary=relationship_summary,
                       condition_summary=condition_summary,
                       binding_context_summary=context_summary,
+                      custom_instruction_summary=custom_summary, indexed_access_summary=indexed_summary,
                       diagnostic_sample=sample)
         result["targeted_samples"] = resolve_targeted_samples(
             root, lambda: build_targeted_samples(
@@ -1028,7 +1086,7 @@ def run_check(root: Path, supplied_source: str | None) -> int:
         analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False,
                     "reference_summary": None, "sfc_structure_summary": None, "access_summary": None,
                     "tag_data_summary": None, "pid_summary": None, "pid_member_summary": None, "calculation_summary": None, "rung_analysis_summary": None, "relationship_summary": None, "condition_summary": None,
-                    "binding_context_summary": None}
+                    "binding_context_summary": None, "custom_instruction_summary": None, "indexed_access_summary": None}
     status = "failed" if analysis["status"] in ("not_run", "failed") else (
         "partial" if analysis["status"] == "partial" else "passed"
     )

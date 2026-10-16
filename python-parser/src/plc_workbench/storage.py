@@ -28,6 +28,8 @@ if TYPE_CHECKING:
     from .relationships import RelationshipResult
     from .conditions import ConditionResult
     from .binding_context import BindingContextResult
+    from .custom_instruction_context import CustomInstructionContextResult
+    from .indexed_access import IndexedAccessResult
     from .references import ReferenceResult
     from .sfc_structure import SfcStructureResult
     from .tag_data import TagDataResult
@@ -97,6 +99,8 @@ def save_run(
     relationships: RelationshipResult | None = None,
     conditions: ConditionResult | None = None,
     binding_context: BindingContextResult | None = None,
+    custom_instruction_context: CustomInstructionContextResult | None = None,
+    indexed_access: IndexedAccessResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -125,6 +129,10 @@ def save_run(
             raise StorageError("Condition records require a complete engineering review with relationship evidence.")
         if binding_context is not None and (conditions is None or not include_review):
             raise StorageError("Binding context requires an engineering review with condition evidence.")
+        if (custom_instruction_context is not None or indexed_access is not None) and (
+                custom_instruction_context is None or indexed_access is None
+                or binding_context is None or not include_review):
+            raise StorageError("Custom instruction and indexed access context require a complete engineering review.")
         payload = result.to_dict()
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
@@ -165,7 +173,9 @@ def save_run(
                                                 access=access, tag_data=tag_data, pid=pid,
                                                 pid_members=pid_members, calculations=calculations,
                                                 rung_analysis=rung_analysis, relationships=relationships,
-                                                conditions=conditions, binding_context=binding_context)
+                                                conditions=conditions, binding_context=binding_context,
+                                                custom_instruction_context=custom_instruction_context,
+                                                indexed_access=indexed_access)
                 review_html = render_review_html(review_data).encode("utf-8")
             except (ReviewSizeLimitError, ReviewHtmlSizeLimitError) as exc:
                 raise StorageError("Private engineering review exceeds its report size limit.", code='review_size_limit') from exc
@@ -388,6 +398,15 @@ def save_run(
                 "binding_context_schema_version": review_data["binding_context"]["schema_version"],
                 "binding_context_analyzer_version": review_data["binding_context"]["analyzer_version"],
             })
+        if custom_instruction_context is not None:
+            manifest["schema_version"] = 15
+            for companion_name in ("custom_instruction_context", "indexed_access"):
+                companion = review_data[companion_name]
+                manifest.update({
+                    f"{companion_name}_schema_version": companion["schema_version"],
+                    f"{companion_name}_analyzer_version": companion["analyzer_version"],
+                    "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete",
+                })
         _write_artifact(
             destination, run_dir, ".manifest.pending",
             (json.dumps(manifest, indent=2, ensure_ascii=False) + "\n").encode("utf-8"),

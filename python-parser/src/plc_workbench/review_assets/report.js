@@ -89,6 +89,11 @@
   const transfersByRung = new Map();
   const bindingContext = data.binding_context || null, bindingContextGaps = bindingContext?.gaps || [];
   const byBindingContext = new Map(bindingContextGaps.map(g=>[g.source_id,g]));
+  const customContext=data.custom_instruction_context || null, customCalls=customContext?.calls || [];
+  const customDeclarations=customContext?.declarations || [], byCustomDeclaration=new Map(customDeclarations.map(d=>[d.source_id,d]));
+  const byCustomCall=new Map(customCalls.map(c=>[c.instruction_id,c]));
+  const indexedAccess=data.indexed_access || null, indexedUses=indexedAccess?.uses || [];
+  const byIndexedUse=new Map(indexedUses.map(u=>[u.id,u])), byIndexedSource=new Map(indexedUses.map(u=>[u.source_id,u])), indexedByRung=new Map();
   const candidateAddresses = bindingContext?.logical_addresses || [];
   const byCandidateAddress = new Map(candidateAddresses.map(a=>[a.id,a]));
   const byRackCandidate = new Map((refs.rack_candidates?.candidates || []).map(c=>[c.source_id,c]));
@@ -169,6 +174,7 @@
   localLinks.forEach(l=>{add(linksByRung,l.rung_id,l);add(linksByAddress,l.address_id,l);});
   conditionalOutputs.forEach(o=>{add(outputsByRung,o.rung_id,o);add(outputsByAddress,o.target_address_id,o);});
   conditionTransfers.forEach(n=>add(transfersByRung,n.rung_id,n));
+  indexedUses.forEach(u=>add(indexedByRung,u.rung_id,u));
   tagElements.forEach(x => {add(tagContentElements,x.content_id,x);add(tagChildren,x.parent_id,x);});
   (tagData?.issues || []).forEach(x => add(tagIssues,x.content_id,x));
   entities.forEach(x => add(entityChildren, x.parent_id, x));
@@ -222,6 +228,7 @@
   headings.conditions=['Conditional outputs','Trace captured conditions leading to OTE, OTL and OTU instructions, with branch paths and unknown transfers kept visible.'];
   headings.transfers=['Instruction conditions','Inspect incoming rung conditions and normal-scan condition transfer at other instruction occurrences, including rungs without a coil output.'];
   headings.bindingcontext=['Binding gaps & context','Follow unresolved source occurrences through their alias chains and available rack-name candidates. Candidate addresses remain separate from confirmed root bindings.'];
+  headings.instructioncontext=['Instruction & index context','Inspect custom-instruction declaration candidates and symbolic array selectors while unresolved roles and exact-element gaps remain visible.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
@@ -229,6 +236,7 @@
   if(conditions){labels.conditions='Conditional outputs';navCounts.conditions=conditionalOutputs.length;}
   if(instructionConditions){labels.transfers='Instruction conditions';navCounts.transfers=conditionTransfers.length;}
   if(bindingContext){labels.bindingcontext='Binding gaps & context';navCounts.bindingcontext=bindingContextGaps.length;}
+  if(customContext&&indexedAccess){labels.instructioncontext='Instruction & index context';navCounts.instructioncontext=customCalls.length+indexedUses.length;}
   if(access){labels.access='Tag access';navCounts.access=accessRoots.length;}
   if(tagData){labels.tagdata='Stored tag data';navCounts.tagdata=tagContents.length;}
   if(pid){labels.pid='PID evidence';navCounts.pid=pidOccurrences.length;}
@@ -376,6 +384,9 @@
   // Index bounded previews once per occurrence/group. Alias chains, expanded
   // source text and ancestor graphs are inspected only in the selected dossier.
   bindingContextGaps.forEach(g=>searchable(g,[bindingGapName(g),bindingCategory(g.category),human(g.kind),short(sourceName(bindingUse(g)?.rung_id),180),short(byRackCandidate.get(g.candidate_id)?.name,120)]));
+  customCalls.forEach(c=>searchable(c,[short(sourceName(c.instruction_id),120),human(c.status),short(entityName(c.declaration_id),120),short(sourceName(c.rung_id),120)]));
+  customDeclarations.forEach(d=>searchable(d,[short(entityName(d.source_id),160),human(d.status),human(d.protection_marker)]));
+  indexedUses.forEach(u=>searchable(u,[short(indexedRaw(u),200),human(u.kind),human(u.role),human(u.disposition),short(sourceName(u.rung_id),120)]));
   candidateAddresses.forEach(a=>searchable(a,[candidateAddressName(a),human(a.profile)]));
   localLinks.forEach(l=>searchable(l,[addressName(byAddress.get(l.address_id)),sourceName(l.rung_id),sourceName(l.producer_instruction_id),sourceName(l.consumer_instruction_id),l.read_kind==='expression'?'Expression read':'Operand read']));
   reusePatterns.forEach(p=>searchable(p,[rungName(byRung.get(p.representative_rung_id)),byRung.get(p.representative_rung_id)?.text,p.rung_ids.length>1?'Repeated operand reuse':'Single occurrence',p.address_variables+' address variables']));
@@ -417,6 +428,8 @@
     if(pid){const row=node('div','status-row');row.append(node('span','','PID operand and storage association'),badge(pid.status));capture.append(row);}
     if(pidMembers){const row=node('div','status-row');row.append(node('span','','PID documented member headers'),badge(pidMembers.status));capture.append(row);}
     if(calculations){const row=node('div','status-row');row.append(node('span','','CPT expression syntax and references'),badge(calculations.status));capture.append(row);}
+    if(customContext){const row=node('div','status-row');row.append(node('span','','Custom-instruction declaration context'),badge(customContext.status));capture.append(row);}
+    if(indexedAccess){const row=node('div','status-row');row.append(node('span','','Symbolic array selector context'),badge(indexedAccess.status));capture.append(row);}
     capture.append(node('p','row-note',fmt(bySfcRoutine.size)+' SFC routines · '+fmt((sfc.links||[]).length)+' structural links · '+fmt((sfc.annotations||[]).length)+' note attachments'));
     const start=panel('Start your review','Each view links back to the exact evidence in this captured source snapshot.');
     if(rungAnalysis){const b=button('',()=>go('engineering'),'jump-card');const copy=node('span');copy.append(node('strong','','Explore engineering analysis'),node('small','','Follow function families, branch structure and uncertainty before reviewing individual instructions.'));b.append(copy,node('span','jump-arrow','→'));start.append(b);}
@@ -528,6 +541,50 @@
     return gap;
   }
   function bindingUse(g){return g?.kind==='expression'?byExpressionUse.get(g.source_id):byOperandAccess.get(g?.source_id);}
+  function contextNotice(){return notice('Context with explicit limits','A custom-instruction name match identifies a declaration candidate. Its parameter order, operand roles, internal behavior and effects remain unvalidated. Symbolic array selectors identify a root and possible index reads; no index value, selected element, bounds, overlap or execution is inferred. Existing unresolved classifications remain visible.');}
+  function customCallLink(c){return button(short(sourceName(c.instruction_id),120),()=>openDetail('customcall',c.instruction_id),'text-link');}
+  function customCallTable(rows,caption){return table(['Custom instruction occurrence','Declaration candidate status','Declaration','Rung'],rows,c=>[
+    customCallLink(c),human(c.status),c.declaration_id?button(short(entityName(c.declaration_id),140),()=>openDetail('customdeclaration',c.declaration_id),'text-link'):'No unique candidate',sourceCell(c.rung_id)
+  ],caption);}
+  function indexedRaw(u){return byOperand.get(u.source_id)?.raw_text ?? byCalculationNode.get(u.source_id)?.raw_text ?? byEntity.get(u.source_id)?.attributes?.AliasFor ?? '';}
+  function indexedLink(u){return button(short(indexedRaw(u),180)||'(blank source)',()=>openDetail('indexeduse',u.id),'text-link');}
+  function indexedSourceLink(id){const u=byIndexedSource.get(id);return u?button('Inspect symbolic index context',()=>openDetail('indexeduse',u.id),'text-link'):node('span','muted','No symbolic index context');}
+  function indexedUseTable(rows,caption){return table(['Indexed source occurrence','Kind / captured role','Context status','Index read occurrences','Rung or declaration'],rows,u=>[
+    indexedLink(u),primary(human(u.kind),human(u.role)),human(u.disposition),fmt(u.index_reads.length),sourceCell(u.rung_id || u.source_id)
+  ],caption);}
+  function instructionContextList(){
+    content.append(contextNotice());
+    const c=customContext.coverage,i=indexedAccess.coverage,totals=panel('Context coverage','These counts explain source evidence; they do not reduce existing binding or condition gaps.');
+    totals.append(values({'Unrecognized instruction occurrences':c.unknown_family_calls,'Unique declaration candidates':c.calls_by_status.unique_candidate,'Custom definitions':c.definitions_total,'Parameter declarations':c.parameters_total,'Routine declarations':c.routines_total,'Definitions with encoded regions':c.definitions_with_encoded_regions,'Indexed source occurrences':i.uses_total,'Symbolically parsed occurrences':i.symbolic_uses,'Dynamic selectors':i.dynamic_selectors,'Possible index reads':i.index_read_occurrences,'Bound index-read roots':i.bound_index_reads}));content.append(totals);
+    const calls=section('Custom-instruction occurrences','Open a call to follow its candidate declaration and inspect parameters, source routines and protection markers.');calls.append(customCallTable(customCalls.filter(matches),'Custom instruction occurrences'));content.append(calls);
+    const declarations=section('Custom declarations','Definitions are shown even when no unknown instruction occurrence names them.');declarations.append(table(['Declaration','Name context','Parameters / routines','Encoded / protected context'],customDeclarations.filter(matches),d=>[
+      button(short(entityName(d.source_id),160),()=>openDetail('customdeclaration',d.source_id),'text-link'),human(d.status),d.parameters.length+' / '+d.routines.length,fmt(d.encoded_region_ids.length)+' encoded regions · '+human(d.protection_marker)
+    ],'Custom declarations'));content.append(declarations);
+    const indexed=section('Symbolic indexed operands','Expression containers, unknown-role slots, dynamic alias targets and unsupported grammar stay in separate dispositions.');indexed.append(indexedUseTable(indexedUses.filter(matches),'Indexed source occurrences'));content.append(indexed);
+  }
+  function customCallDetail(c){
+    setDetailHeading('CUSTOM INSTRUCTION CONTEXT',sourceName(c.instruction_id),sourceName(c.rung_id));content.append(contextNotice());
+    const p=panel('Declaration candidate','Name matching is limited to the captured controller context; it does not validate a call signature.');p.append(values({'Candidate status':human(c.status)}));const links=node('div','inline-links');links.append(sourceCell(c.instruction_id),sourceCell(c.rung_id));
+    if(c.declaration_id)links.append(button('Inspect declaration: '+short(entityName(c.declaration_id),140),()=>openDetail('customdeclaration',c.declaration_id),'text-link'));p.append(links);content.append(p);
+    const slots=(rungOperands.get(c.rung_id)||[]).filter(o=>o.instruction_id===c.instruction_id),args=section('Captured call operands','Parameter declarations have not been mapped to these argument positions. Existing roles remain unchanged.');
+    args.append(table(['Position','Source operand','Captured role'],slots,o=>[o.argument_index+1,sourceCell(o.id),human(byOperandAccess.get(o.id)?.role)],'Custom call operand slots'));content.append(args);
+  }
+  function customDeclarationDetail(d){
+    setDetailHeading('CUSTOM DECLARATION CONTEXT',entityName(d.source_id),entityPath(d.controller_id));content.append(contextNotice());
+    const p=panel('Definition context');p.append(values({'Name context':human(d.status),'Protection marker':human(d.protection_marker),'Encoded regions':d.encoded_region_ids.length}),sourceCell(d.source_id));content.append(p);
+    const params=section('Parameter declarations','Usage and flags are exported metadata. They are not assigned to call operands or promoted to runtime access roles.');params.append(table(['Source parameter','Usage','Required','Visible','Data type metadata'],d.parameters,p=>[sourceCell(p.source_id),human(p.usage),human(p.required),human(p.visible),human(p.datatype)],'Custom parameter declarations'));content.append(params);
+    const routines=section('Routine declarations','The source view retains captured routine evidence. No internal routine behavior has been expanded into the calling rung.');routines.append(table(['Routine','Declared language','Content form'],d.routines,r=>[sourceCell(r.source_id),human(r.language),human(r.content)],'Custom routine declarations'));content.append(routines);
+    if(d.encoded_region_ids.length){const encoded=section('Encoded regions','Encoded source is unavailable for behavioral analysis.');encoded.append(table(['Source region'],d.encoded_region_ids,id=>[sourceCell(id)],'Custom encoded regions'));content.append(encoded);}
+  }
+  function indexedUseDetail(u){
+    const raw=indexedRaw(u);setDetailHeading('SYMBOLIC INDEX CONTEXT',short(raw,160)||'(blank source)',human(u.disposition));content.append(contextNotice());
+    const p=panel('Captured indexed occurrence','Character spans refer to this exact source spelling. The existing access role applies to the containing operand, not to a resolved array element.');p.append(sourceText(raw),values({'Occurrence kind':human(u.kind),'Captured role':human(u.role),'Context status':human(u.disposition)}));
+    const links=node('div','inline-links');if(u.kind==='expression'&&byCalculationNode.has(u.source_id))links.append(engineeringEvidence(u.source_id));else links.append(sourceCell(u.source_id));
+    if(u.rung_id)links.append(sourceCell(u.rung_id));p.append(links);content.append(p);
+    if(u.root_binding){const root=panel('Array root context','A bound root does not resolve the selected element or validate the suffix.');root.append(sourceText(raw.slice(u.root_start,u.root_end)),calculationBinding(u.root_binding));content.append(root);}
+    const selectors=section('Selector expressions','Group and dimension identify syntax positions. Constants remain source spelling; no expression is evaluated.');selectors.append(table(['Group / dimension','Exact selector','Kind','Character span'],u.selectors,s=>[(s.group_index+1)+' / '+(s.dimension_index+1),node('span','mono',raw.slice(s.start,s.end)),s.dynamic?'Symbolic expression':'Static spelling','['+s.start+', '+s.end+')'],'Symbolic selector expressions'));content.append(selectors);
+    const reads=section('Possible index reads','Repeated references remain separate occurrences. These reads choose an index; they are not data-flow edges or proof of execution.');reads.append(table(['Index reference','Selector position','Root binding','Declaration / suffix'],u.index_reads,r=>[node('span','mono',raw.slice(r.start,r.end)),r.selector_index+1,human(r.binding.status),calculationBinding(r.binding)],'Symbolic index read occurrences'));content.append(reads);
+  }
   function bindingGapName(g){return short(g?.kind==='expression'?byCalculationNode.get(g.source_id)?.raw_text:byOperand.get(g?.source_id)?.raw_text,180)||'(blank source)';}
   function bindingCategory(category){return ({rack_unique_candidate:'Unique rack-name candidate',rack_suffix_invalid:'Rack candidate with invalid expanded suffix',rack_ambiguous_candidate:'Ambiguous rack-name candidates',rack_names_unavailable:'Rack candidate names unavailable',rack_outside_scope:'Rack candidate outside visible scope',rack_no_match:'No rack-name match',rack_context_unavailable:'No existing rack-match evidence',non_static_array_index:'Non-static array index',unsupported_address:'Unsupported address form',undeclared_root:'Undeclared root',unresolved_scope:'Unresolved source scope',alias_cycle:'Alias cycle',alias_depth_limit:'Alias depth limit',ambiguous_root:'Ambiguous root',invalid_expanded_suffix:'Invalid expanded suffix',non_address_value:'Value is not an address',other_binding_gap:'Other binding gap'})[category] || human(category);}
   function bindingContextLink(id){return byBindingContext.has(id)?button('Explain binding gap',()=>openDetail('bindingcontext',id),'text-link'):node('span','muted','No indexed binding gap');}
@@ -573,6 +630,7 @@
     const source=panel('Unresolved source occurrence','The captured binding is preserved. Candidate context below does not promote this occurrence to a resolved address.');
     source.append(sourceText(raw),values({'Occurrence kind':human(g.kind),'Operand role':human(use.role),'Binding status':human(use.binding_status),'Binding reason':use.binding_reason?human(use.binding_reason):'No separate binding reason','Expanded suffix':use.suffix || '(empty suffix)','Gap context':bindingCategory(g.category)}));
     const links=node('div','inline-links');links.append(bindingSourceCell(g),sourceCell(use.instruction_id),sourceCell(use.rung_id));source.append(links);content.append(source);
+    if(byIndexedSource.has(g.source_id))content.append(indexedSourceLink(g.source_id));
     const chain=use.alias_chain || [];
     if(chain.length){const aliases=section('Captured alias chain','Declaration order follows the recorded chain. Open a declaration to read its complete target and source attributes.');aliases.append(table(['Position','Alias declaration','Declared target preview'],chain,(id,index)=>[index+1,sourceCell(id),short(byEntity.get(id)?.attributes?.AliasFor || '(target absent)',180)],'Binding context alias chain'));content.append(aliases);}
     const match=byRackMatch.get(g.source_id);
@@ -805,6 +863,7 @@
     return box;
   }
   function engineeringList(){
+    if(customContext&&indexedAccess){const context=panel('Inspect custom instructions and dynamic indexes','Follow declaration candidates and symbolic selectors without hiding unresolved block roles or exact-element gaps.');context.append(button('Explore instruction & index context',()=>go('instructioncontext'),'text-link'));content.append(context);}
     if(conditions){const conditional=panel('Follow conditions to coil outputs','Inspect the incoming conditions at OTE, OTL and OTU occurrences, with branch joins, bypasses and unmodeled transfers retained.');conditional.append(button('Explore conditional outputs',()=>go('conditions'),'text-link'));content.append(conditional);}
     if(instructionConditions){const transfers=panel('Follow conditions through other instructions','Inspect normal-scan condition transfer at math, copy, timer, counter and other instruction occurrences, including rungs without a coil output.');transfers.append(button('Explore instruction conditions',()=>go('transfers'),'text-link'));content.append(transfers);}
     if(bindingContext){const gaps=panel('Explain unresolved bindings','Trace unresolved operands and expression reads through source declarations, alias chains and available rack-name candidates.');gaps.append(button('Explore binding gaps & context',()=>go('bindingcontext'),'text-link'));content.append(gaps);}
@@ -882,9 +941,10 @@
       return [primary(ENGINEERING_FAMILIES[c.category] || human(c.category),engineeringBasis(c)),proof,missing];
     },'Rung function candidates',{emptyTitle:'No function candidate yet',emptyDetail:'The rung remains in the unclassified group. Its captured source and any parsed blocks remain below.'}));content.append(summary);
     const blocks=section('Ordered block functions','Every parsed instruction appears in source order. A known mnemonic can still have unresolved operand functions.');
-    blocks.append(table(['Order / instruction','Function family','Evidence level','Operand roles'],a.block_ids.map(id=>byRungBlock.get(id)),(b,n)=>[
+    blocks.append(table(['Order / instruction','Function family','Evidence level','Operand roles',...(customContext?['Declaration context']:[])],a.block_ids.map(id=>byRungBlock.get(id)),(b,n)=>[
       primary(link(b.opcode,b.id),'Block '+(n+1)),human(b.family),human(b.identification),
-      b.operand_ids.map(id=>human(byOperandAccess.get(id)?.role)).join(' · ') || 'No operands'
+      b.operand_ids.map(id=>human(byOperandAccess.get(id)?.role)).join(' · ') || 'No operands',
+      ...(customContext?[byCustomCall.has(b.id)?customCallLink(byCustomCall.get(b.id)):'Not an unknown-family call']:[])
     ],'Rung ordered block functions'));content.append(blocks);
     if(r.structure){const outline=node('details','technical');outline.append(node('summary','','Series and branch paths'),engineeringOutline(r));content.append(outline);}
     const uses=section('Explicit inputs and results','Operand reads and writes are possible uses. They do not establish execution, member overlap or a complete input-to-output relationship.');
@@ -950,11 +1010,14 @@
       const o=byOperand.get(state.focusOperand),a=byOperandAccess.get(o.id);
       content.append(notice('Selected operand · argument '+(o.argument_index+1),(o.raw_text || '(blank)')+' · original reference binding: '+human(o.status)+(access?' · role: '+human(accessLabel(o)):'')+(a?.binding_origin && a.binding_origin!=='source_references'?' · instruction access binding: '+human(a.binding_status):'')));
       if(byBindingContext.has(o.id))content.append(bindingContextLink(o.id));
+      if(byIndexedSource.has(o.id))content.append(indexedSourceLink(o.id));
     }
     if(state.focusInstruction && byInstruction.get(state.focusInstruction)?.rung.id===r.id)content.append(notice('Selected instruction',byInstruction.get(state.focusInstruction).instruction.opcode));
+    if(byCustomCall.has(state.focusInstruction))content.append(customCallLink(byCustomCall.get(state.focusInstruction)));
     const text=panel('Rung text','Exact captured ladder source. No execution behavior is inferred.');text.append(sourceText(r.text));content.append(text);
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
     if(byRungAnalysis.has(r.id))engineeringRungDetail(r,byRungAnalysis.get(r.id));
+    if(indexedByRung.has(r.id)){const indexed=section('Indexed source context on this rung','Array roots and possible selector reads stay separate from exact-address relationships.');indexed.append(indexedUseTable(indexedByRung.get(r.id),'Rung indexed source context'));content.append(indexed);}
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
     if(rungPids.has(r.id)){const p=section('PID evidence on this rung');p.append(pidTable(rungPids.get(r.id),'Rung PID occurrences'));content.append(p);}
     if(rungCalculations.has(r.id)){const p=section('Calculations on this rung');p.append(calculationTable(rungCalculations.get(r.id),'Rung calculation occurrences'));content.append(p);}
@@ -1532,6 +1595,7 @@
     else if(state.view==='conditions')conditionsList();
     else if(state.view==='transfers')transfersList();
     else if(state.view==='bindingcontext')bindingContextList();
+    else if(state.view==='instructioncontext')instructionContextList();
     else if(state.view==='objects')objectList();
     else if(state.view==='ladder')content.append(rungList());
     else if(state.view==='sfc')sfcList();
@@ -1558,6 +1622,9 @@
       else if(d.type==='condition')conditionDetail(byConditionalOutput.get(d.id));
       else if(d.type==='transfer')transferDetail(byConditionNode.get(d.id));
       else if(d.type==='bindingcontext')bindingContextDetail(byBindingContext.get(d.id));
+      else if(d.type==='customcall')customCallDetail(byCustomCall.get(d.id));
+      else if(d.type==='customdeclaration')customDeclarationDetail(byCustomDeclaration.get(d.id));
+      else if(d.type==='indexeduse')indexedUseDetail(byIndexedUse.get(d.id));
       else if(d.type==='candidateaddress')candidateAddressDetail(byCandidateAddress.get(d.id));
       else if(d.type==='reusepattern')reusePatternDetail(byReusePattern.get(d.id));
       else if(d.type==='tagcontent')tagContentDetail(byTagContent.get(d.id));
@@ -1571,6 +1638,7 @@
       else if(state.view==='conditions')conditionsToolbar();
       else if(state.view==='transfers')toolbarFor('Search instruction opcodes, operand previews or rung context',[['all','All transfers'],['pass_through','Documented pass-through'],['opaque_transfer','Unknown transfer']]);
       else if(state.view==='bindingcontext')bindingContextToolbar();
+      else if(state.view==='instructioncontext')toolbarFor('Search instruction names, declarations, index expressions or context status');
       else if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
       else if(state.view==='ladder')toolbarFor('Search rung text, comments or routine names',countsFilter(rungs,'parse_status'));
       else if(state.view==='sfc')toolbarFor('Search SFC routines, elements and source text');

@@ -181,6 +181,8 @@ class TargetedSampleWorkflowTests(unittest.TestCase):
             self.assertNotIn('PRIVATE_FAILURE', json.dumps(result))
             result.pop('diagnostic_sample')
             result.pop('targeted_samples')
+            result.pop('custom_instruction_summary')
+            result.pop('indexed_access_summary')
             self.assertEqual(result, report()['analysis'])
 
     def test_publication_failure_keeps_reservation_and_retry_does_not_rotate(self) -> None:

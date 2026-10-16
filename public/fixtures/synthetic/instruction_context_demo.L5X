@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Invented declaration and indexed-address cases. Not deployable controller code. -->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="33.01" TargetType="Controller">
+  <Controller Name="ContextDemo">
+    <AddOnInstructionDefinitions>
+      <AddOnInstructionDefinition Name="ToyClamp" Revision="1.0">
+        <Description><![CDATA[Invented declaration; identity alone does not establish call effects.]]></Description>
+        <Parameters>
+          <Parameter Name="InValue" DataType="REAL" Usage="Input" Required="false" Visible="true"/>
+          <Parameter Name="OutValue" DataType="REAL" Usage="Output" Required="false" Visible="true"/>
+        </Parameters>
+        <LocalTags/>
+        <Routines><Routine Name="Logic" Type="RLL"><RLLContent>
+          <Rung Number="0" Type="N"><Text><![CDATA[MOV(InValue,OutValue);]]></Text></Rung>
+        </RLLContent></Routine></Routines>
+      </AddOnInstructionDefinition>
+      <AddOnInstructionDefinition Name="ToyText" Revision="1.0">
+        <Parameters><Parameter Name="State" DataType="DINT" Usage="InOut" Required="true" Visible="true"/></Parameters>
+        <LocalTags/>
+        <Routines><Routine Name="Logic" Type="ST"><STContent><Line Number="0"><![CDATA[State := State + 1;]]></Line></STContent></Routine></Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+    <Tags>
+      <Tag Name="Feed" TagType="Base" DataType="REAL"/>
+      <Tag Name="Buffer" TagType="Base" DataType="REAL" Dimensions="16"/>
+      <Tag Name="Matrix" TagType="Base" DataType="REAL" Dimensions="8,8"/>
+      <Tag Name="Cursor" TagType="Base" DataType="DINT"/>
+      <Tag Name="OtherCursor" TagType="Base" DataType="DINT"/>
+      <Tag Name="CursorAlias" TagType="Alias" AliasFor="Cursor"/>
+      <Tag Name="BufferAlias" TagType="Alias" AliasFor="Buffer"/>
+      <Tag Name="Permit" TagType="Base" DataType="BOOL"/>
+      <Tag Name="Output" TagType="Base" DataType="BOOL"/>
+      <Tag Name="Instance" TagType="Base" DataType="ToyClamp"/>
+      <Tag Name="TextInstance" TagType="Base" DataType="ToyText"/>
+    </Tags>
+    <Programs><Program Name="Demo"><Tags>
+      <Tag Name="Cursor" TagType="Base" DataType="DINT"/>
+    </Tags><Routines><Routine Name="Main" Type="RLL"><RLLContent>
+      <Rung Number="0" Type="N"><Comment><![CDATA[Literal markup stays inert: <script>window.fixtureLeak=true</script>]]></Comment><Text><![CDATA[ToyClamp(Instance);]]></Text></Rung>
+      <Rung Number="1" Type="N"><Text><![CDATA[ToyText(TextInstance,Cursor);]]></Text></Rung>
+      <Rung Number="2" Type="N"><Text><![CDATA[ToyMissing(Instance);]]></Text></Rung>
+      <Rung Number="3" Type="N"><Text><![CDATA[MOV(Feed,Buffer[Cursor]);]]></Text></Rung>
+      <Rung Number="4" Type="N"><Text><![CDATA[MOV(Matrix[Cursor,OtherCursor],Feed);]]></Text></Rung>
+      <Rung Number="5" Type="N"><Text><![CDATA[MOV(Buffer[Cursor+Cursor],Feed);]]></Text></Rung>
+      <Rung Number="6" Type="N"><Text><![CDATA[MOV(Feed,BufferAlias[CursorAlias+2]);]]></Text></Rung>
+      <Rung Number="7" Type="N"><Text><![CDATA[MOV(Feed,Buffer[UnknownCursor]);]]></Text></Rung>
+      <Rung Number="8" Type="N"><Text><![CDATA[MOV(Feed,Buffer[1+2]);]]></Text></Rung>
+      <Rung Number="9" Type="N"><Text><![CDATA[CPT(Feed,Buffer[Cursor]+1);]]></Text></Rung>
+      <Rung Number="10" Type="N"><Text><![CDATA[XIC(Permit)OTE(Output);]]></Text></Rung>
+    </RLLContent></Routine></Routines></Program></Programs>
+  </Controller>
+</RSLogix5000Content>

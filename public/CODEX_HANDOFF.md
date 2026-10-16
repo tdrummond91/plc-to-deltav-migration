@@ -1,6 +1,27 @@
 # Codex handoff: PLC analysis workbench
 
-Current checkpoint (2026-10-15): **fixed targeted diagnostic rung examples**.
+Current checkpoint (2026-10-15): **custom declarations and symbolic array selectors**.
+Returned `51315bd` tested clean `bfd53e1`: 991 application cases passed (two
+expected Windows skips), plus 139 helpers; private analysis saved, all eleven
+earlier summaries were unchanged, and all 35 historical reports validate.
+All six targeted cases were included, reserving eight units with the two earlier
+operand clues. The sample request is now frozen and replayed across reruns.
+
+Review12 adds declaration context for unknown-family blocks and symbolic context
+for indexed ordinary operands. The new records preserve unresolved effects and
+exact-address gaps while exposing declaration candidates, outer-root bindings
+and individual index reads. Work29 returns two additional count-only summaries;
+manifest15 retains sixteen artifacts. Existing analysis companions remain unchanged.
+See [scope, returned evidence and verification](docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md).
+
+The next normal work-machine run measures these two companions. It requires no
+new source samples or manual engineering/team review. Git transport stays manual,
+and the listener stays disabled. ONS state dependence and SFR sequence effects
+remain explicit follow-up analysis; neither is inferred from the new context.
+
+## Historical targeted-sample checkpoint
+
+Historical checkpoint (2026-10-15): **fixed targeted diagnostic rung examples**.
 Tyler confirmed the 2% limit counts new informative examples separately from
 older scrubbed structural catalogs. Small evidence-driven pulls are authorized;
 no per-case approval gate is needed within that boundary.

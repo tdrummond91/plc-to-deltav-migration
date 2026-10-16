@@ -23,6 +23,8 @@ from .rung_analysis import RungAnalysisResult, analyze_rungs
 from .relationships import RelationshipResult, analyze_relationships
 from .conditions import ConditionResult, analyze_conditions
 from .binding_context import BindingContextResult, analyze_binding_context
+from .custom_instruction_context import CustomInstructionContextResult, analyze_custom_instruction_context
+from .indexed_access import IndexedAccessResult, analyze_indexed_access
 from .references import ReferenceResult, analyze_references
 from .sfc_structure import SfcStructureResult, analyze_sfc_structure
 from .source import analyze_snapshot
@@ -38,6 +40,7 @@ MAX_REVIEW_V9_BYTES = 160 * 1024 * 1024
 # Review10 changes transfer semantics without increasing the companion budget.
 MAX_REVIEW_V10_BYTES = 160 * 1024 * 1024
 MAX_REVIEW_V11_BYTES = 168 * 1024 * 1024
+MAX_REVIEW_V12_BYTES = 184 * 1024 * 1024
 MAX_REVIEW_FINDINGS = 500_000
 MAX_REVIEW_PATTERNS = 100_000
 _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
@@ -94,7 +97,8 @@ def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     """Count UTF-8 bytes without retaining millions of small encoder chunks."""
     rendered = io.StringIO() if retain else None
     version = (data.get('schema_version'), data.get('report_version'))
-    limit = (MAX_REVIEW_V11_BYTES if version == (11, 'engineering-review-11') else
+    limit = (MAX_REVIEW_V12_BYTES if version == (12, 'engineering-review-12') else
+             MAX_REVIEW_V11_BYTES if version == (11, 'engineering-review-11') else
              MAX_REVIEW_V10_BYTES if version == (10, 'engineering-review-10') else
              MAX_REVIEW_V9_BYTES if version == (9, 'engineering-review-9') else
              MAX_REVIEW_V3_BYTES if version
@@ -210,7 +214,9 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       rung_analysis: RungAnalysisResult | None = None,
                       relationships: RelationshipResult | None = None,
                       conditions: ConditionResult | None = None,
-                      binding_context: BindingContextResult | None = None) -> dict[str, Any]:
+                      binding_context: BindingContextResult | None = None,
+                      custom_instruction_context: CustomInstructionContextResult | None = None,
+                      indexed_access: IndexedAccessResult | None = None) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -250,6 +256,10 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             if (type(binding_context) is not BindingContextResult or type(binding_context.schema_version) is not int
                     or binding_context.schema_version != 1 or type(conditions) is not ConditionResult
                     or conditions.schema_version != 2):
+                _fail()
+        if custom_instruction_context is not None or indexed_access is not None:
+            if (type(custom_instruction_context) is not CustomInstructionContextResult
+                    or type(indexed_access) is not IndexedAccessResult or binding_context is None):
                 _fail()
         canonical_inventory = analyze_snapshot(snapshot)
         if not _strict_equal(canonical_inventory, inventory):
@@ -328,6 +338,16 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                 snapshot, canonical_inventory, canonical_references, canonical_access,
                 canonical_calculations, canonical_rungs, canonical_relationships, canonical_conditions)
             if not _strict_equal(canonical_binding_context, binding_context):
+                _fail()
+        canonical_custom_context = canonical_indexed_access = None
+        if custom_instruction_context is not None:
+            companion_inputs = (snapshot, canonical_inventory, canonical_references, canonical_access,
+                                canonical_calculations, canonical_rungs, canonical_relationships,
+                                canonical_conditions, canonical_binding_context)
+            canonical_custom_context = analyze_custom_instruction_context(*companion_inputs)
+            canonical_indexed_access = analyze_indexed_access(*companion_inputs)
+            if (not _strict_equal(canonical_custom_context, custom_instruction_context)
+                    or not _strict_equal(canonical_indexed_access, indexed_access)):
                 _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)
@@ -424,6 +444,14 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             })
             if canonical_binding_context.status == 'partial':
                 data['status'] = 'partial'
+        if canonical_custom_context is not None:
+            data.update({
+                'schema_version': 12, 'report_version': 'engineering-review-12',
+                'custom_instruction_context': canonical_custom_context.to_dict(),
+                'indexed_access': canonical_indexed_access.to_dict(),
+            })
+            if 'partial' in (canonical_custom_context.status, canonical_indexed_access.status):
+                data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
     except ReviewSizeLimitError:
@@ -442,14 +470,18 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          rung_analysis: RungAnalysisResult | None = None,
                          relationships: RelationshipResult | None = None,
                          conditions: ConditionResult | None = None,
-                         binding_context: BindingContextResult | None = None) -> None:
+                         binding_context: BindingContextResult | None = None,
+                         custom_instruction_context: CustomInstructionContextResult | None = None,
+                         indexed_access: IndexedAccessResult | None = None) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
         if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
                                           access=access, tag_data=tag_data, pid=pid,
                                           pid_members=pid_members, calculations=calculations,
                                           rung_analysis=rung_analysis, relationships=relationships,
-                                          conditions=conditions, binding_context=binding_context), data):
+                                          conditions=conditions, binding_context=binding_context,
+                                          custom_instruction_context=custom_instruction_context,
+                                          indexed_access=indexed_access), data):
             return
     except ReviewSizeLimitError:
         raise

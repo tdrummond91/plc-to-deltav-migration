@@ -183,6 +183,8 @@ class ConditionWorkflowTests(unittest.TestCase):
             self.assertEqual(save.call_args.kwargs['conditions'].to_dict(), parts[-1].to_dict())
             outcome.pop('diagnostic_sample')
             outcome.pop('targeted_samples', None)
+            self.assertIsNotNone(outcome.pop('custom_instruction_summary'))
+            self.assertIsNotNone(outcome.pop('indexed_access_summary'))
             # Current reports add context without changing this frozen layer.
             outcome.pop('binding_context_summary')
             self.assertEqual(outcome, report(schema_version=26)['analysis'])

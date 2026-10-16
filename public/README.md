@@ -46,3 +46,6 @@ For the first parsing discussion, read [L5X structure and branch locations](docs
 17. [Confirmed binding gaps and rack context](docs/reviews/BINDING_CONTEXT_REVIEW.md).
 
 18. [Fixed targeted diagnostic rung examples](docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
+
+19. [Custom-instruction declarations and symbolic array selectors](docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md),
+    with the [invented context report](examples/instruction-context-demo.html).

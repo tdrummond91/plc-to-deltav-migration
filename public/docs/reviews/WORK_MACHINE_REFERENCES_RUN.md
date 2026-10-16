@@ -1,6 +1,20 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-15): **fixed targeted diagnostic rung examples**.
+Current checkpoint (2026-10-15): **custom declarations and symbolic array selectors**.
+The targeted return `51315bd` passed 991 application cases (two expected Windows
+skips) and 139 helpers and saved its private run. All six samples were included;
+all eleven prior summaries were unchanged. No additional sampling is requested.
+
+The next normal `git pull`, `bash ./run-work-check.sh`, `git push` cycle produces
+work29: two new aggregate context summaries plus the identical frozen sample
+record. The private review12 contains declaration candidates and symbolic selector
+details; manifest15 keeps sixteen hashed artifacts. Git transport remains manual,
+and the script still commits only its validated feedback report. No manual
+engineering/team review is needed yet. See [scope and validation](INSTRUCTION_CONTEXT_REVIEW.md).
+
+## Historical targeted-sample checkpoint
+
+Historical checkpoint (2026-10-15): **fixed targeted diagnostic rung examples**.
 Tyler confirmed the 2% limit counts new informative examples separately from
 older scrubbed structural catalogs. Small evidence-driven pulls are authorized;
 no per-case approval gate is needed within that boundary.

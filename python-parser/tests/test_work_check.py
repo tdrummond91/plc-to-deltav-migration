@@ -523,6 +523,18 @@ class GitAndWorkflowTests(unittest.TestCase):
             analysis_payload["binding_context_summary"] = build_binding_context_summary(
                 snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions, binding_context,
                 revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.custom_instruction_context import analyze_custom_instruction_context
+            from plc_workbench.custom_instruction_summary import build_custom_instruction_summary
+            from plc_workbench.indexed_access import analyze_indexed_access
+            from plc_workbench.indexed_access_summary import build_indexed_access_summary
+            companion_inputs = (snapshot, inventory, references, access, calculations,
+                                rung_analysis, relationships, conditions, binding_context)
+            analysis_payload["custom_instruction_summary"] = build_custom_instruction_summary(
+                *companion_inputs, analyze_custom_instruction_context(*companion_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            analysis_payload["indexed_access_summary"] = build_indexed_access_summary(
+                *companion_inputs, analyze_indexed_access(*companion_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))
             stack.enter_context(redirect_stdout(io.StringIO()))

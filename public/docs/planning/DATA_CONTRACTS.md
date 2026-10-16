@@ -1,5 +1,14 @@
 # Data contracts, traceability, and checkpoints
 
+## Instruction context revision (2026-10-15)
+
+Custom-instruction context1 and indexed-access1 add bounded derived private
+evidence without changing earlier companions. Review12 embeds both 8 MiB indices
+under a 184 MiB JSON / 216 MiB HTML cap; earlier caps remain frozen. Manifest15
+retains sixteen artifacts. Work29 adds two closed count summaries under the same
+64 KiB outer cap as work28; the targeted sample record replays unchanged.
+See [source interpretation and verification](../reviews/INSTRUCTION_CONTEXT_REVIEW.md).
+
 ## Targeted diagnostic revision (2026-10-15)
 
 Work28 adds top-level targeted_samples schema1 and permits a 64 KiB outer report.

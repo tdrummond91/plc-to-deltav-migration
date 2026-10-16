@@ -1,6 +1,24 @@
 # Next development checkpoint
 
-Current checkpoint (2026-10-15): **fixed targeted diagnostic rung examples**.
+Current checkpoint (2026-10-15): **custom declarations and symbolic array selectors**.
+Return `51315bd` passed 991 application cases (two expected Windows skips) and
+139 helpers, saved private analysis, and preserved all eleven preceding summaries.
+The six targeted examples were included; their eight-unit reservation now replays
+unchanged. All 35 historical reports validate.
+
+Work29 adds custom-instruction and indexed-access count summaries. Review12 embeds
+both private contexts, while manifest15 keeps sixteen artifacts. Declaration
+candidates explain unknown-family identity; symbolic selectors explain outer roots
+and index reads. Effects, exact elements and older binding gaps remain explicit.
+See [implementation and validation](INSTRUCTION_CONTEXT_REVIEW.md).
+
+Next: analyze the ordinary work-machine return for these companions. No new
+samples, manual engineering review or team feedback are requested. ONS state
+dependence and SFR sequence effects remain subsequent analysis targets.
+
+## Historical targeted-sample checkpoint
+
+Historical checkpoint (2026-10-15): **fixed targeted diagnostic rung examples**.
 Tyler confirmed the 2% limit counts new informative examples separately from
 older scrubbed structural catalogs. Small evidence-driven pulls are authorized;
 no per-case approval gate is needed within that boundary.

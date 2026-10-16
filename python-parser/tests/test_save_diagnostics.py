@@ -35,6 +35,7 @@ def failed_report(version: int = 25, code: str = 'save_error') -> dict:
         'tag_data_summary': 15, 'pid_summary': 16, 'pid_member_summary': 17,
         'calculation_summary': 18, 'rung_analysis_summary': 22,
         'relationship_summary': 23, 'condition_summary': 24, 'binding_context_summary': 27,
+        'custom_instruction_summary': 29, 'indexed_access_summary': 29,
     }
     test_result = {
         'schema_version': 1, 'status': 'passed',
@@ -53,6 +54,9 @@ def failed_report(version: int = 25, code: str = 'save_error') -> dict:
     }
     if version >= 2:
         result['diagnostic_sample'] = None
+    if version >= 28:
+        from plc_workbench.targeted_sample_history import sample_envelope
+        result['targeted_samples'] = sample_envelope()
     return result
 
 
@@ -69,7 +73,7 @@ class SaveFailureDiagnosticsTests(unittest.TestCase):
         self.assertIsNone(result['diagnostic_sample'])
         self.assertTrue(all(value is None for key, value in result.items() if key.endswith('_summary')))
         self.assertNotIn('PRIVATE_SENTINEL', json.dumps(result))
-        payload = failed_report(27)
+        payload = failed_report(29)
         payload['analysis'] = {key: value for key, value in result.items() if key not in ('diagnostic_sample', 'targeted_samples')}
         work_check.validate_work_check_report(payload)
 
@@ -173,9 +177,11 @@ class SaveFailureDiagnosticsTests(unittest.TestCase):
                 self.assertTrue(result['private_run_saved'])
                 saved, = (root / 'confidential/workspaces/work-check').iterdir()
                 manifest = json.loads((saved / 'manifest.json').read_bytes())
-                self.assertEqual((manifest['schema_version'], len(manifest['artifacts'])), (14, 16))
+                self.assertEqual((manifest['schema_version'], len(manifest['artifacts'])), (15, 16))
                 result.pop('diagnostic_sample')
                 result.pop('targeted_samples', None)
+                result.pop('custom_instruction_summary')
+                result.pop('indexed_access_summary')
                 self.assertEqual(result, current_report()['analysis'])
 
 

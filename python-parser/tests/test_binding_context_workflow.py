@@ -163,7 +163,9 @@ class BindingContextWorkflowTests(unittest.TestCase):
                 self.assertEqual((code, error), (3, ''))
                 saved, = (root / 'runs').iterdir()
                 self.assertIn(str(saved / 'review.html'), output)
-                data = build_review_data(*parts[:4], **options(parts))
+                from test_instruction_context_workflow import captured as latest_captured, options as latest_options
+                latest = latest_captured(SOURCE)
+                data = build_review_data(*latest[:4], **latest_options(latest))
                 self.assertEqual((saved / 'review.html').read_bytes(), render_review_html(data).encode())
                 with patch.object(work_check, 'save_run', return_value=root / 'saved') as save:
                     outcome = work_check._analyze(root, input_path, root, REVISION)
@@ -171,6 +173,8 @@ class BindingContextWorkflowTests(unittest.TestCase):
                 self.assertEqual(save.call_args.kwargs['binding_context'].to_dict(), parts[-1].to_dict())
                 outcome.pop('diagnostic_sample')
                 outcome.pop('targeted_samples', None)
+                outcome.pop('custom_instruction_summary')
+                outcome.pop('indexed_access_summary')
                 self.assertEqual(outcome, report()['analysis'])
 
     def test_context_failures_are_fixed_and_do_not_publish_private_diagnostics(self) -> None:

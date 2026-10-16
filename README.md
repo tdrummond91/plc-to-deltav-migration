@@ -1,12 +1,12 @@
 # PLC analysis workbench
 
-Latest checkpoint: returned `aed0fc4` passed 945 application cases (one expected
-skip) and 139 helpers, saved the private analysis, and preserved all ten preceding
-summaries. Binding context links 303 predicate gaps and 16 unbound coil targets
-to unique rack candidates; two write operands use dynamic indexes. Work28 now
-requests at most six targeted rung examples to investigate unclear cases. It
-substitutes plant names and values and freezes the request across reruns. See
-[the sample contract](public/docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
+Latest checkpoint: returned `51315bd` passed 991 application cases (two expected
+Windows skips) and 139 helpers, saved private analysis, and preserved all eleven
+preceding summaries. All six targeted examples were included. Work29 now adds
+custom-instruction declaration candidates and symbolic array-selector context,
+while replaying those examples unchanged. The new context explains possible
+declarations, outer roots and index reads; effects and exact elements remain
+unresolved. See [scope and validation](public/docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md).
 The next step is the normal work-machine run; team review remains deferred.
 
 Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected
