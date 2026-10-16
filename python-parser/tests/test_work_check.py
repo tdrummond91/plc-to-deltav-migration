@@ -548,6 +548,14 @@ class GitAndWorkflowTests(unittest.TestCase):
             analysis_payload["aoi_body_summary"] = build_aoi_body_summary(
                 *body_inputs, analyze_aoi_body_context(*body_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.pid_connections import analyze_pid_connections
+            from plc_workbench.pid_connection_summary import build_pid_connection_summary
+            connection_inputs = (snapshot, inventory, references, access, calculations, rung_analysis,
+                                 relationships, conditions, tag_data, pid,
+                                 analyze_pid_members(snapshot, inventory, references, tag_data, pid))
+            analysis_payload["pid_connection_summary"] = build_pid_connection_summary(
+                *connection_inputs, analyze_pid_connections(*connection_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))
             stack.enter_context(redirect_stdout(io.StringIO()))

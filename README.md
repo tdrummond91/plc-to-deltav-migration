@@ -1,11 +1,11 @@
 # PLC analysis workbench
 
-Latest checkpoint: returned `871b700` passed 1,128 application cases (two expected
-Windows skips) and 139 helpers. All 133 ONS instructions now have stored-state
-conditions, leaving one opaque coil guard. SFR targets match for 139 of 140 calls.
-Work31 adds AOI body/instance relationships and diagnostic context for unmatched
-SFR targets. Earlier analysis and the six-example reservation are preserved.
-See [scope and validation](public/docs/reviews/AOI_BODY_REVIEW.md).
+Latest checkpoint: returned `4018156` passed 1,183 application cases (two expected
+Windows skips) and 139 helpers. The AOI body has no recorded context gaps; the
+unmatched SFR address occurs in a different chart of the same program.
+Work32 adds PID slot connections, observed member uses and explicit master
+candidates to the private report. Earlier analysis and the six-example
+reservation remain unchanged. See [scope and validation](public/docs/reviews/PID_CONNECTIONS_REVIEW.md).
 The next step is the normal work-machine run; team review remains deferred.
 
 Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected

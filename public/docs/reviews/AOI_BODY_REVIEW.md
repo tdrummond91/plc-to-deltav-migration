@@ -1,5 +1,19 @@
 # AOI body ownership and unmatched SFR target context
 
+## Confirmed work-machine return
+
+Return `4018156` tested clean `4b04e28`: 1,183 application cases and 139 helpers
+passed, with two expected Windows skips and a saved private run. All 38 historical
+reports validate; thirteen earlier summaries and the six-example reservation
+are unchanged. The AOI body has two parsed rungs, three classified calculation
+instructions and nine expression reads, with no recorded body/symbol context
+gaps. Its instance has a matching declared root type. The unmatched SFR address
+has one exact candidate in another chart of the same program, with all thirteen
+peer contents eligible. The original missing match is preserved.
+
+The next implementation is [PID connections and member uses](PID_CONNECTIONS_REVIEW.md).
+The earlier scope and validation below are retained as checkpoint evidence.
+
 ## Returned evidence
 
 Return `871b700` tested clean `60d5683`. All 1,128 application cases and 139

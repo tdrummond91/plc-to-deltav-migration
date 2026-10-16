@@ -1,5 +1,17 @@
 # Data contracts, traceability, and checkpoints
 
+## PID connection revision (2026-10-16)
+
+PID connections1 links existing PID slots, exact-address uses, direct member
+groups, master candidates and incoming conditions without changing prior
+analysis semantics. Review15 embeds the bounded 8 MiB companion under 208 MiB
+JSON / 240 MiB HTML limits. Manifest18 retains sixteen hashed artifacts.
+Work32 adds the closed PID connection summary under an 80 KiB outer limit;
+work28-31 retain 64 KiB. Work31 and work32 use compact JSON. The existing
+16 KiB diagnostic-record cap and frozen sample request are unchanged. The larger
+outer allowance accommodates fixed counters, not additional source examples.
+See [scope and verification](../reviews/PID_CONNECTIONS_REVIEW.md).
+
 ## AOI body and SFR gap revision (2026-10-16)
 
 AOI body context1 links existing body and access IDs without duplicating source

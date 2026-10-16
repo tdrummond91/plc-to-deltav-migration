@@ -74,6 +74,10 @@
   const tagData = data.tag_data || null;
   const pid = data.pid || null, pidOccurrences = pid?.occurrences || [];
   const pidMembers = data.pid_members || null;
+  const pidConnections = data.pid_connections || null;
+  const byPidConnection = new Map((pidConnections?.occurrences || []).map(x=>[x.id,x]));
+  const byPidConnectionSlot = new Map((pidConnections?.slots || []).map(x=>[x.id,x]));
+  const byPidConnectionAddress = new Map((pidConnections?.addresses || []).map(x=>[x.id,x]));
   const calculations = data.calculations || null, calculationOccurrences = calculations?.occurrences || [];
   const rungAnalysis = data.rung_analysis || null, analyzedRungs = rungAnalysis?.rungs || [];
   const relationships = data.relationships || null, addresses = relationships?.addresses || [];
@@ -86,6 +90,7 @@
   // per-instruction ancestor lists. Older reports retain their original views.
   const instructionConditions = conditions?.schema_version>=2;
   const conditionTransfers = instructionConditions?conditionNodes.filter(n=>['pass_through','stateful_transfer','opaque_transfer'].includes(n.kind)):[];
+  const transferByInstruction = new Map(conditionTransfers.map(n=>[n.instruction_id,n]));
   const transfersByRung = new Map();
   const bindingContext = data.binding_context || null, bindingContextGaps = bindingContext?.gaps || [];
   const byBindingContext = new Map(bindingContextGaps.map(g=>[g.source_id,g]));
@@ -437,6 +442,7 @@
     if(tagData){const row=node('div','status-row');row.append(node('span','','Stored tag data capture'),badge(tagData.status));capture.append(row);}
     if(pid){const row=node('div','status-row');row.append(node('span','','PID operand and storage association'),badge(pid.status));capture.append(row);}
     if(pidMembers){const row=node('div','status-row');row.append(node('span','','PID documented member headers'),badge(pidMembers.status));capture.append(row);}
+    if(pidConnections){const row=node('div','status-row');row.append(node('span','','PID source connections'),badge(pidConnections.status));capture.append(row);}
     if(calculations){const row=node('div','status-row');row.append(node('span','','CPT expression syntax and references'),badge(calculations.status));capture.append(row);}
     if(customContext){const row=node('div','status-row');row.append(node('span','','Custom-instruction declaration context'),badge(customContext.status));capture.append(row);}
     if(indexedAccess){const row=node('div','status-row');row.append(node('span','','Symbolic array selector context'),badge(indexedAccess.status));capture.append(row);}
@@ -1466,6 +1472,61 @@
   }
   function pidSlotLabel(slot){return ({pid_structure:'PID structure',process_variable:'Process variable (PV)',tieback:'Tieback',control_variable:'Control variable (CV)',master_loop:'Master PID operand',inhold_bit:'Inhold bit',inhold_value:'Inhold value',unknown:'Unclassified slot'})[slot] || human(slot);}
   function pidNotice(){return notice('Instruction evidence for loop review','Operand functions identify the positions in a supported PID signature. Read/write effects, active cascade behavior, execution timing and approved loop settings remain unmodeled. Multiple occurrences may share a declaration; this count is not a count of independent loops.');}
+  function pidConnectionNotice(){return notice('Observed source connections','Counts describe captured operand and expression uses at one exact expanded address spelling. They do not establish runtime data flow, scan order, execution, an active cascade or independent engineering loops. Unknown roles and namespace gaps remain separate; zero observed writers or readers does not prove an unused or uninitialized value.');}
+  function pidConnectionAddressLink(id){const a=byAddress.get(id);return a?button(addressName(a),()=>openDetail('pidaddress',id),'text-link'):node('span','muted','No exact address association');}
+  function pidConnectionCounts(a){return a?['read_operand_ids','write_operand_ids','read_write_operand_ids','unknown_operand_ids','expression_use_ids'].map(key=>fmt(a[key].length)):[0,0,0,0,0];}
+  function pidConnectionAddressTable(ids,caption){return table(['Exact address','Member / association','Operand reads','Writes','Read/write','Unknown roles','Expression reads'],ids.map(id=>byPidConnectionAddress.get(id)).filter(Boolean),a=>[
+    pidConnectionAddressLink(a.id),primary(a.field?pidMemberLabel(a.field):human(a.kind),a.field || ''),...pidConnectionCounts(a)
+  ],caption);}
+  function pidConnectionSections(p){
+    const c=byPidConnection.get(p.id);if(!c)return;
+    content.append(pidConnectionNotice());
+    const slots=section('Slot connections and observed usage','PV, CV, tieback, master and inhold are instruction positions. Setpoint uses appear below under the SP member. A linked address retains all its captured uses, including multiple writers.');
+    slots.append(table(['Operand function','Source operand','Identity evidence','Exact address','Operand reads','Writes','Read/write','Unknown roles','Expression reads'],c.slot_ids.map(id=>byPidConnectionSlot.get(id)).filter(Boolean),s=>[
+      pidSlotLabel(s.slot),sourceCell(s.id),human(s.status),pidConnectionAddressLink(s.address_id),...pidConnectionCounts(byPidConnectionAddress.get(s.address_id))
+    ],'PID slot connections'));content.append(slots);
+    const members=section('Member connections by function','Direct member spelling associates an observed address with this PID declaration. Saved headers remain separate evidence; a matching spelling does not validate a member value, type or effective configuration.');
+    members.append(values({'Control declaration association':human(c.control_status)}));
+    if(c.control_owner_id)members.append(sourceCell(c.control_owner_id));
+    const rows=Object.entries(c.member_address_ids_by_group).filter(([group])=>group!=='unknown').flatMap(([group,ids])=>ids.map(id=>({group,a:byPidConnectionAddress.get(id)}))).filter(x=>x.a);
+    members.append(table(['Function group','Member / label','Exact address','Operand reads','Writes','Read/write','Unknown roles','Expression reads'],rows,({group,a})=>[
+      human(group),primary(a.field,pidMemberLabel(a.field)),pidConnectionAddressLink(a.id),...pidConnectionCounts(a)
+    ],'PID member connections',{emptyTitle:'No direct member addresses associated',emptyDetail:'This only describes captured source references; missing observations do not establish unused members.'}));
+    for(const [key,title,detail] of [
+      ['whole_owner_address_ids','Whole-declaration uses','Whole-structure uses remain separate from direct member evidence.'],
+      ['deferred_address_ids','Deferred suffix uses','Nested members, element indices and bit suffixes retain exact spelling but are not promoted to direct member connections.'],
+      ['unknown_member_address_ids','Uncatalogued member spelling','These exact addresses have a direct member spelling outside the documented PID member catalogue.']
+    ])if(c[key].length){const extra=section(title,detail);extra.append(pidConnectionAddressTable(c[key],'PID '+title.toLocaleLowerCase()));members.append(extra);}
+    content.append(members);
+    const master=section('Explicit master operand candidates','Only the explicit master slot supplies this association. Candidate occurrences share an exact declaration identity; repeated occurrences, missing occurrences and self-reference remain visible. No active cascade is inferred.');
+    master.append(values({'Candidate status':human(c.master.status),'Self-reference':c.master.self_reference?'Yes':'No','Candidate occurrences':c.master.occurrence_ids.length}));
+    const masterLinks=node('div','inline-links');
+    if(c.master.operand_id)masterLinks.append(sourceCell(c.master.operand_id));
+    if(c.master.owner_id)masterLinks.append(sourceCell(c.master.owner_id));
+    master.append(masterLinks);
+    master.append(pidTable(c.master.occurrence_ids.map(id=>byPid.get(id)).filter(Boolean),'PID explicit master candidates'));content.append(master);
+    const incoming=section('Incoming condition evidence','These links reuse the captured condition nodes immediately before this PID occurrence. They are context evidence, not a PID execution guard; outgoing PID condition behavior remains unmodeled.');
+    const transfer=transferByInstruction.get(p.id);
+    incoming.append(table(['Incoming source condition','Condition evidence','Source rung'],c.incoming_condition_ids,id=>{
+      const n=byConditionNode.get(id);return [transfer?button(conditionNodeLabel(n),()=>openDetail('transfer',transfer.id,{focusConditionNode:id}),'text-link'):sourceCell(n?.instruction_id),conditionGuardLabel(conditionQuality(n)),sourceCell(p.rung_id)];
+    },'PID incoming conditions',{emptyTitle:'No incoming condition context captured',emptyDetail:'The absence of a link does not establish unconditional execution.'}));content.append(incoming);
+  }
+  function pidConnectionAddressDetail(a){
+    const exact=byAddress.get(a.id);
+    setDetailHeading('PID CONNECTION EVIDENCE',addressName(exact),human(a.kind));
+    content.append(pidConnectionNotice());
+    const summary=panel('Observed exact-address usage','Accepted uses and namespace gaps are counted separately. A namespace gap is retained evidence, not an association to the PID declaration.');
+    summary.append(values({'Declaration':addressRootPreview(a.owner_id),'Expanded suffix':exact.suffix || '(root address)','Member':a.field || 'No direct catalogued member','Group':a.group?human(a.group):'No direct member group','Saved member headers':a.member_ids.length,'Namespace operand gaps':a.namespace_gap_operand_ids.length,'Namespace expression gaps':a.namespace_gap_expression_use_ids.length}));
+    const links=node('div','inline-links');links.append(sourceCell(a.owner_id),button('Open complete exact address dossier',()=>openDetail('address',a.id),'text-link'));summary.append(links);content.append(summary);
+    for(const role of accessRoles){const ids=a[role+'_operand_ids'];if(!ids.length)continue;
+      const uses=section(({read:'Observed operand readers',write:'Observed operand writers',read_write:'Observed read/write uses',unknown:'Observed uses with unknown roles'})[role]);
+      uses.append(table(['Source operand','Rung','Instruction / argument','Role'],ids,id=>{const use=byOperandAccess.get(id);return[sourceCell(id),sourceCell(use.rung_id),sourceName(use.instruction_id)+' / '+(use.argument_index+1),accessCell(use)];},'PID connection '+role+' occurrences'));content.append(uses);
+    }
+    if(a.expression_use_ids.length){const uses=section('Observed expression readers');uses.append(expressionUseTable(a.expression_use_ids.map(id=>byExpressionUse.get(id)),'PID connection expression reads'));content.append(uses);}
+    if(a.member_ids.length){const headers=section('Saved direct member headers','Each stored representation and duplicate header remains separate. These are exported values, not effective settings.');headers.append(table(['Member evidence'],a.member_ids,id=>[sourceCell(id)],'PID connection saved member headers'));content.append(headers);}
+    if(a.namespace_gap_operand_ids.length){const gaps=section('Namespace gaps in operand uses','These observations are excluded from the accepted PID connection counts above.');gaps.append(table(['Source operand','Rung'],a.namespace_gap_operand_ids,id=>[sourceCell(id),sourceCell(byOperandAccess.get(id)?.rung_id)],'PID connection namespace operand gaps'));content.append(gaps);}
+    if(a.namespace_gap_expression_use_ids.length){const gaps=section('Namespace gaps in expression uses','These observations are excluded from the accepted PID connection counts above.');gaps.append(expressionUseTable(a.namespace_gap_expression_use_ids.map(id=>byExpressionUse.get(id)),'PID connection namespace expression gaps'));content.append(gaps);}
+  }
   function pidTable(rows,caption='PID instruction occurrences'){
     return table(['Occurrence','Rung','Signature','Storage association'],rows,p=>[
       button(pidName(p),()=>openDetail('pid',p.id),'text-link'),sourceCell(p.rung_id),badge(p.signature_status),badge(p.storage_status)
@@ -1478,6 +1539,7 @@
       'Occurrences with stored data':c.occurrences_with_data,'Occurrences with opaque-only data':c.occurrences_with_opaque_only,
       'Occurrences with multiple representations':c.occurrences_with_multiple_representations}));content.append(totals);
     if(pidMembers){const m=pidMembers.coverage,memberTotals=panel('Documented member coverage','These counts inspect each stored structure once, even when several PID instructions reference it. Header matches do not validate values or execution.');memberTotals.append(values({'Stored structures inspected':m.structures_total,'Direct member records':m.members_total,'Structures with member gaps':m.structures_with_gaps,'Missing catalog fields':m.missing_catalog_fields,'Duplicate catalog fields':m.duplicate_catalog_fields}));content.append(memberTotals);}
+    if(pidConnections){const c=pidConnections.coverage,connections=panel('Observed PID connections','Open an occurrence for slot usage, grouped member addresses, explicit master candidates and incoming condition evidence.');connections.append(values({'Exact addresses':c.addresses_total,'Slot observations':c.slots_total,'Direct member addresses':c.address_kinds.direct_member,'Master candidate links':c.master_candidate_links,'Occurrences with incoming context':c.occurrences_with_condition_context}));content.append(connections,pidConnectionNotice());}
     content.append(pidTable(pidOccurrences.filter(p=>(matches(p)||p.structure_candidates.some(c=>c.member_ids.some(id=>byPidMember.has(id)&&matches(byPidMember.get(id)))))&&(state.filter==='all'||p.storage_status===state.filter))));
   }
   function pidDetail(p){
@@ -1500,6 +1562,7 @@
       if(relationships){const exact=node('div','cell-sub');exact.append(addressCell(o.id));root.append(exact);}
       return[primary(String(e.argument_index+1),pidSlotLabel(e.slot)),link(o.raw_text,o.id),badge(o.status),root];
     },'PID operand functions'));content.append(args);
+    if(pidConnections)pidConnectionSections(p);
     const stored=section('Backing declaration and representations','All associated representations stay separate. Suffix, declaration and shape gaps remain visible; open the source declaration for their context.');
     if(p.backing_owner_id)stored.append(sourceCell(p.backing_owner_id));
     const representations=p.content_ids.map(id=>byTagContent.get(id)).filter(Boolean);
@@ -1736,6 +1799,7 @@
       else if(d.type==='tagcontent')tagContentDetail(byTagContent.get(d.id));
       else if(d.type==='tagelement')tagElementDetail(byTagElement.get(d.id));
       else if(d.type==='pid')pidDetail(byPid.get(d.id));
+      else if(d.type==='pidaddress')pidConnectionAddressDetail(byPidConnectionAddress.get(d.id));
       else if(d.type==='calculation')calculationDetail(byCalculation.get(d.id));
     }else{
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));

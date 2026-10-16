@@ -1,6 +1,25 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-16): **AOI body ownership and unmatched SFR context**.
+Current checkpoint (2026-10-16): **PID connections and observed member uses**.
+Return `4018156` passed 1,183 application cases (two expected Windows skips) and
+139 helpers. The AOI body has two rungs and three classified calculation blocks,
+with no recorded context gaps. The single unmatched SFR address has one exact
+candidate in another chart; its original missing match remains unchanged.
+Thirteen earlier summaries and the frozen six-example record are unchanged;
+all 38 historical reports validate.
+
+Review15/manifest18 adds source-linked PID slot, member-use and master-reference
+context while retaining sixteen artifacts. Work32 returns the closed connection
+counts. Existing access4 and condition3 semantics remain unchanged.
+See [scope, evidence and validation](PID_CONNECTIONS_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new source
+samples or manual engineering/team review are needed. Git transport remains
+manual, and the listener remains disabled.
+
+## Historical AOI body checkpoint
+
+Historical checkpoint (2026-10-16): **AOI body ownership and unmatched SFR context**.
 Return `871b700` passed 1,128 application cases (two expected Windows skips) and
 139 helpers. All 133 ONS occurrences now have stored-state transfers; opaque
 coil guards fell from 59 to one. SFR target matching resolved 139 of 140 calls.

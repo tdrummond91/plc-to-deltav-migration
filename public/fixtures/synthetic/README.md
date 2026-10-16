@@ -247,3 +247,14 @@ zero sentinel, unresolved/dynamic addresses and deliberately malformed forms.
 It is not controller-ready logic. The generated
 [offline demonstration](../../examples/engineering-review-demo.html) shows
 original reference findings separately from access-owned bindings.
+# PID connection demonstration
+
+`pid_connections_demo.L5X` is independently invented and contains 80 parsed
+rungs, 84 instructions and eleven PID occurrences, including a deliberately
+malformed signature. It exercises same-address PV/CV uses, aliases, repeated
+backing storage, program shadowing, explicit master candidates and gaps,
+setpoint/mode/alarm-member uses, whole-root copies and deferred suffixes.
+Fifty-five extra setpoint writes exercise pagination. Source markup in a comment
+must render as text. This fixture is not controller-ready logic.
+See the [checkpoint](../../docs/reviews/PID_CONNECTIONS_REVIEW.md) and
+[generated report](../../examples/pid-connections-demo.html).

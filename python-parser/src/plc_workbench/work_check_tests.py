@@ -57,6 +57,7 @@ WORK_MACHINE_MODULES = {
         "test_tag_data", "test_tag_data_summary", "test_tag_evidence_workflow",
         "test_pid", "test_pid_summary", "test_pid_workflow",
         "test_pid_members", "test_pid_member_summary", "test_pid_member_workflow",
+        "test_pid_connections", "test_pid_connection_summary", "test_pid_connection_workflow",
         "test_calculations", "test_calculation_summary", "test_calculation_workflow",
         "test_cpt_access", "test_cpt_access_summary", "test_cpt_access_workflow",
         "test_rung_analysis", "test_rung_analysis_summary", "test_rung_analysis_workflow",

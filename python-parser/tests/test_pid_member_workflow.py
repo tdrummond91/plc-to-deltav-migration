@@ -180,10 +180,14 @@ class PidMemberReviewStorageTests(unittest.TestCase):
 
             workspace = Path(directory) / 'runs'
             with patch('plc_workbench.source.capture_snapshot', side_effect=capture_then_replace) as capture, \
-                    patch('plc_workbench.pid_members.analyze_pid_members', wraps=analyze_pid_members) as analyze:
+                    patch('plc_workbench.storage.save_run', wraps=save_run) as save:
                 code, output, error = invoke(['review', str(source), '--workspace', str(workspace)])
             capture.assert_called_once_with(source)
-            analyze.assert_called_once()
+            # The CLI hands one captured result to storage. Canonical companion
+            # validation may replay member analysis over those immutable bytes.
+            save.assert_called_once()
+            self.assertEqual(save.call_args.args[1].data, DATA)
+            self.assertEqual(save.call_args.kwargs['pid_members'].to_dict(), captured()[-1].to_dict())
             self.assertEqual((code, error), (3, ''))
             saved, = workspace.iterdir()
             self.assertIn(str(saved / 'review.html'), output)

@@ -55,3 +55,6 @@ For the first parsing discussion, read [L5X structure and branch locations](docs
 
 21. [AOI bodies and unmatched SFR target context](docs/reviews/AOI_BODY_REVIEW.md),
     with the [invented body-context report](examples/aoi-body-demo.html).
+
+See [PID connections and observed member uses](docs/reviews/PID_CONNECTIONS_REVIEW.md)
+for the current checkpoint and [invented report](examples/pid-connections-demo.html).

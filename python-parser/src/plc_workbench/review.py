@@ -18,6 +18,7 @@ from .access import AccessResult, analyze_access
 from .models import InventoryResult, SourceSnapshot
 from .pid import PidResult, analyze_pid
 from .pid_members import PidMemberResult, analyze_pid_members
+from .pid_connections import PidConnectionResult, analyze_pid_connections
 from .calculations import CalculationResult, analyze_calculations
 from .rung_analysis import RungAnalysisResult, analyze_rungs
 from .relationships import RelationshipResult, analyze_relationships
@@ -45,6 +46,7 @@ MAX_REVIEW_V11_BYTES = 168 * 1024 * 1024
 MAX_REVIEW_V12_BYTES = 184 * 1024 * 1024
 MAX_REVIEW_V13_BYTES = 192 * 1024 * 1024
 MAX_REVIEW_V14_BYTES = 200 * 1024 * 1024
+MAX_REVIEW_V15_BYTES = 208 * 1024 * 1024
 MAX_REVIEW_FINDINGS = 500_000
 MAX_REVIEW_PATTERNS = 100_000
 _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
@@ -101,7 +103,8 @@ def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     """Count UTF-8 bytes without retaining millions of small encoder chunks."""
     rendered = io.StringIO() if retain else None
     version = (data.get('schema_version'), data.get('report_version'))
-    limit = (MAX_REVIEW_V14_BYTES if version == (14, 'engineering-review-14') else
+    limit = (MAX_REVIEW_V15_BYTES if version == (15, 'engineering-review-15') else
+             MAX_REVIEW_V14_BYTES if version == (14, 'engineering-review-14') else
              MAX_REVIEW_V13_BYTES if version == (13, 'engineering-review-13') else
              MAX_REVIEW_V12_BYTES if version == (12, 'engineering-review-12') else
              MAX_REVIEW_V11_BYTES if version == (11, 'engineering-review-11') else
@@ -224,7 +227,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       custom_instruction_context: CustomInstructionContextResult | None = None,
                       indexed_access: IndexedAccessResult | None = None,
                       sfr_context: SfrContextResult | None = None,
-                      aoi_body_context: AoiBodyContextResult | None = None) -> dict[str, Any]:
+                      aoi_body_context: AoiBodyContextResult | None = None,
+                      pid_connections: PidConnectionResult | None = None) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -277,6 +281,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             if (type(aoi_body_context) is not AoiBodyContextResult or sfr_context is None
                     or sfr_context.schema_version != 2):
                 _fail()
+        if pid_connections is not None and (aoi_body_context is None or pid_members is None):
+            _fail()
         canonical_inventory = analyze_snapshot(snapshot)
         if not _strict_equal(canonical_inventory, inventory):
             _fail()
@@ -376,6 +382,14 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         if aoi_body_context is not None:
             canonical_aoi_body = analyze_aoi_body_context(*companion_inputs, canonical_custom_context)
             if not _strict_equal(canonical_aoi_body, aoi_body_context):
+                _fail()
+        canonical_pid_connections = None
+        if pid_connections is not None:
+            canonical_pid_connections = analyze_pid_connections(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_calculations, canonical_rungs, canonical_relationships,
+                canonical_conditions, canonical_tag_data, canonical_pid, canonical_pid_members)
+            if not _strict_equal(canonical_pid_connections, pid_connections):
                 _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)
@@ -490,6 +504,11 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          'aoi_body_context': canonical_aoi_body.to_dict()})
             if canonical_aoi_body.status == 'partial':
                 data['status'] = 'partial'
+        if canonical_pid_connections is not None:
+            data.update({'schema_version': 15, 'report_version': 'engineering-review-15',
+                         'pid_connections': canonical_pid_connections.to_dict()})
+            if canonical_pid_connections.status == 'partial':
+                data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
     except ReviewSizeLimitError:
@@ -512,7 +531,8 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          custom_instruction_context: CustomInstructionContextResult | None = None,
                          indexed_access: IndexedAccessResult | None = None,
                          sfr_context: SfrContextResult | None = None,
-                         aoi_body_context: AoiBodyContextResult | None = None) -> None:
+                         aoi_body_context: AoiBodyContextResult | None = None,
+                         pid_connections: PidConnectionResult | None = None) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
         if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
@@ -522,7 +542,8 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                                           conditions=conditions, binding_context=binding_context,
                                           custom_instruction_context=custom_instruction_context,
                                           indexed_access=indexed_access, sfr_context=sfr_context,
-                                          aoi_body_context=aoi_body_context), data):
+                                          aoi_body_context=aoi_body_context,
+                                          pid_connections=pid_connections), data):
             return
     except ReviewSizeLimitError:
         raise
