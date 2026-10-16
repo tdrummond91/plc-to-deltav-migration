@@ -4,6 +4,19 @@ Status: updated 2026-10-13 with Tyler's clarified boundary. The bounded aggregat
 
 ## Confirmed confidentiality boundary
 
+2026-10-15 clarification: Tyler authorizes small, targeted source-derived pulls
+for cases where the parser needs more information or the result does not make
+sense. This is standing authorization to investigate within the boundary below;
+do not impose a new approval request for each small diagnostic case. Selection
+should follow parser evidence and avoid accumulating enough connected logic to
+reconstruct the unit. A new targeted rung sampler is not yet implemented.
+
+Accounting question pending: earlier shared structural catalogs already retain
+many source-derived layouts with names/values removed. Do not initialize a ledger
+at zero and claim it certifies all historical rung knowledge. Distinguish those
+older catalogs from newly informative samples once Tyler confirms how they count.
+See [the returned context result and sampling proposal](../reviews/BINDING_CONTEXT_REVIEW.md).
+
 Tyler defines confidential material here as information that enables rebuilding
 the entire unit with data values, or provides more than 2% rung knowledge.
 Aggregate counts and technical codes without individual rung logic or process

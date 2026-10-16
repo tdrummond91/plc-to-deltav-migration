@@ -1,5 +1,20 @@
 # Codex handoff: PLC analysis workbench
 
+Latest return (2026-10-15): `aed0fc4` tested clean `a12ada1`; 945 application
+cases passed (one expected skip), plus 139 helpers, and the private run saved.
+All ten prior summaries are unchanged. The 303 predicate gaps and 16 unbound
+coil targets each have unique rack context: 319 uses, 94 candidate addresses,
+11 roots. Only two further binding gaps remain, both dynamic-index writes.
+All 34 historical reports validate. See the returned-result section in
+[BINDING_CONTEXT_REVIEW.md](docs/reviews/BINDING_CONTEXT_REVIEW.md).
+
+Tyler reauthorized small targeted source-derived diagnostic pulls to investigate
+unclear patterns. Next work should collect representative cases rather than rely
+only on aggregate counters and invented tests. A clarification is pending on how
+the 2% accounting treats older scrubbed structural catalogs versus new informative
+examples; no sampler or new disclosure has been implemented at this checkpoint.
+No additional work-PC run is needed for the returned binding-context result.
+
 Current checkpoint (2026-10-15): **binding gaps and logical rack context**.
 Returned `248b12a` tested clean `ef4ba8d`: 907 application cases passed (one
 expected skip), plus 139 helpers, with a saved private run. Nine earlier summaries

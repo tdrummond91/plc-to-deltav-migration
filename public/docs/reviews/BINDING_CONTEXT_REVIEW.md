@@ -1,5 +1,38 @@
 # Binding gaps and logical rack context
 
+## Returned binding-context result (2026-10-15)
+
+Returned `aed0fc4` tested clean `a12ada1`: 945 application cases passed with
+one expected Windows symlink skip, plus 139 helpers. The private report saved
+with partial analysis and no failure code. All ten earlier summaries match
+`248b12a` after tool-revision normalization; all 34 historical reports validate.
+
+The new occurrence-level joins establish that all 303 predicate gaps and all
+16 unbound coil targets have unique rack-candidate context. Together those 319
+uses form 94 candidate logical addresses across 11 candidate roots. The address
+directions are 78 input and 16 output; access profiles are 78 read-only, six
+write-only and ten read-and-write. These are logical candidate associations,
+not validated adapter backing or physical channels. Two additional write
+operands have non-static array indexes. No ambiguous rack matches, invalid
+composed suffixes, expression gaps or other binding-gap categories were found.
+
+Tyler reaffirmed authorization for small targeted source-derived examples where
+parser findings need investigation. Recent aggregate-only returns are insufficient
+to inspect real implementation patterns. The next proposed evidence request
+targets the two dynamic-index uses, the single unknown instruction, representative
+ONS/SFR condition-transfer gaps and one branched comparison/output pattern.
+Use at most six distinct rungs with local substitutions and no dependency closure;
+freeze the selected examples so reruns cannot quietly rotate through the unit.
+This sampler is proposed, not implemented by this documentation checkpoint.
+
+One accounting definition is pending: whether the 2% boundary includes the older
+scrubbed structural catalogs or measures new informative examples separately.
+Existing files already include 554 opcode/arity/branch shapes, 2,397 minimized
+rung layouts and a 276-rung review subset. They remove original values and
+cross-rung tag identities, but their presence prevents claiming a zero historical
+topology baseline. No new source sample has been collected or published here.
+No further work-machine run is needed until the targeted-sampling change is ready.
+
 ## Returned evidence
 
 Returned `248b12a` tested clean `ef4ba8d`: 907 application cases passed with
