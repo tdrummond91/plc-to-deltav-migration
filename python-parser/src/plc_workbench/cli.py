@@ -253,7 +253,8 @@ def _review(args: argparse.Namespace) -> int:
                                 snapshot=snapshot, calculations=calculations)
         rung_analysis = analyze_rungs(snapshot, inventory, references, access, calculations)
         relationships = analyze_relationships(snapshot, inventory, references, access, calculations, rung_analysis)
-        conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships)
+        conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
+                                        schema_version=2)
         tag_data = analyze_tag_data(snapshot, inventory)
         pid = analyze_pid(snapshot, inventory, references, tag_data)
         pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)

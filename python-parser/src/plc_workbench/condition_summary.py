@@ -9,8 +9,9 @@ from typing import Any
 from .access import AccessResult
 from .calculations import CalculationResult
 from .conditions import (
-    CONDITION_CONSTANTS, COUNT_MAPS, COVERAGE_KEYS, MAX_EVIDENCE_IDS, MAX_RECORDS,
+    CONDITION_CONSTANTS, MAX_EVIDENCE_IDS, MAX_RECORDS,
     ConditionResult, validate_conditions,
+    condition_constants, count_maps, coverage_keys,
 )
 from .models import InventoryResult, SourceSnapshot
 from .references import ReferenceResult
@@ -23,6 +24,14 @@ CONSTANTS = {
     **CONDITION_CONSTANTS, 'policy_version': 2, 'report_kind': 'l5x_condition_summary',
     'exporter_version': 'condition-summary-1', 'sharing_status': 'aggregate_sync_allowed',
 }
+
+
+def summary_constants(schema_version: int) -> dict[str, Any]:
+    try:
+        return {**CONSTANTS, **condition_constants(schema_version),
+                'exporter_version': f'condition-summary-{schema_version}'}
+    except ValueError:
+        _invalid()
 
 
 class ConditionSummaryError(ValueError):
@@ -46,7 +55,8 @@ def _count(value: Any) -> None:
 def validate_condition_summary(summary: dict[str, Any]) -> None:
     """Reject nonnative values, open text fields, and inconsistent populations."""
     _keys(summary, set(CONSTANTS) | {'tool_revision', 'status', 'coverage'})
-    for key, expected in CONSTANTS.items():
+    version = summary['schema_version']
+    for key, expected in summary_constants(version).items():
         if type(summary[key]) is not type(expected) or summary[key] != expected:
             _invalid()
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
@@ -64,12 +74,13 @@ def validate_condition_summary(summary: dict[str, Any]) -> None:
     else:
         _invalid()
     c = summary['coverage']
-    _keys(c, COVERAGE_KEYS)
-    for key, vocabulary in COUNT_MAPS.items():
+    maps, keys = count_maps(version), coverage_keys(version)
+    _keys(c, keys)
+    for key, vocabulary in maps.items():
         _keys(c[key], vocabulary)
         for value in c[key].values():
             _count(value)
-    for key in COVERAGE_KEYS - COUNT_MAPS.keys():
+    for key in keys - maps.keys():
         _count(c[key])
     rungs, instructions, operands, expressions = (c[k] for k in ('source_rungs', 'source_instructions', 'source_operands', 'expression_uses'))
     nodes, outputs = c['nodes_total'], c['outputs_total']
@@ -77,6 +88,7 @@ def validate_condition_summary(summary: dict[str, Any]) -> None:
     parsed, unparsed = c['rung_statuses']['parsed'], c['rung_statuses']['unparsed']
     predicates = kinds['predicate']
     opaque = kinds['opaque_transfer']
+    passes = kinds.get('pass_through', 0)
     if (max(rungs, instructions, operands, expressions, nodes, outputs) > MAX_RECORDS
             or c['branch_legs'] > MAX_EVIDENCE_IDS
             or parsed + unparsed != rungs or kinds['entry'] != parsed
@@ -84,7 +96,8 @@ def validate_condition_summary(summary: dict[str, Any]) -> None:
             or predicates != kinds['all'] or sum(c['predicate_opcodes'].values()) != predicates
             or kinds['any'] != c['branch_joins']
             or sum(c['opaque_reasons'].values()) != opaque
-            or predicates + opaque + actions['recognized'] != instructions
+            or sum(c.get('passthrough_opcodes', {}).values()) != passes
+            or predicates + passes + opaque + actions['recognized'] != instructions
             or any(sum(c[key].values()) != outputs for key in ('output_opcodes', 'guard_statuses', 'action_statuses', 'target_statuses'))
             or actions['unresolved'] != targets['signature_unresolved']
             or actions['unresolved'] > c['opaque_reasons']['signature_unresolved']
@@ -104,7 +117,7 @@ def validate_condition_summary(summary: dict[str, Any]) -> None:
             or (not parsed and (instructions or nodes or c['branch_joins']))
             or (not instructions and (operands or expressions))
             or (not operands and expressions)
-            or predicates + actions['recognized'] > operands):
+            or predicates + passes + actions['recognized'] > operands):
         _invalid()
     partial = bool(unparsed or opaque or c['binding_gap_predicates'] or outputs != targets['exact_address'])
     if summary['status'] != ('partial' if partial else 'complete'):
@@ -117,7 +130,7 @@ def build_condition_summary(snapshot: SourceSnapshot, inventory: InventoryResult
                             result: ConditionResult, revision: dict[str, Any] | None = None) -> dict[str, Any]:
     try:
         validate_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships, result)
-        summary = {**CONSTANTS, 'status': result.status, 'coverage': deepcopy(result.coverage),
+        summary = {**summary_constants(result.schema_version), 'status': result.status, 'coverage': deepcopy(result.coverage),
                    'tool_revision': revision if revision is not None else {'commit': None, 'worktree': 'unavailable'}}
         validate_condition_summary(summary)
         summary['tool_revision'] = dict(summary['tool_revision'])

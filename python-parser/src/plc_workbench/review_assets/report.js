@@ -82,6 +82,11 @@
   const conditionNodeOrder = new Map(conditionNodes.map((n,i)=>[n.id,i]));
   const byConditionalOutput = new Map(conditionalOutputs.map(o=>[o.id,o]));
   const outputsByRung = new Map(), outputsByAddress = new Map();
+  // Reuse the condition nodes: no duplicated serialized instruction contexts or
+  // per-instruction ancestor lists. Older reports retain their original views.
+  const instructionConditions = conditions?.schema_version>=2;
+  const conditionTransfers = instructionConditions?conditionNodes.filter(n=>['pass_through','opaque_transfer'].includes(n.kind)):[];
+  const transfersByRung = new Map();
   const localLinks = relationships?.local_links || [], reusePatterns = relationships?.patterns || [];
   const byAddress = new Map(addresses.map(a=>[a.id,a])), byUseAddress = new Map();
   const byReusePattern = new Map(reusePatterns.map(p=>[p.id,p]));
@@ -157,6 +162,7 @@
   });
   localLinks.forEach(l=>{add(linksByRung,l.rung_id,l);add(linksByAddress,l.address_id,l);});
   conditionalOutputs.forEach(o=>{add(outputsByRung,o.rung_id,o);add(outputsByAddress,o.target_address_id,o);});
+  conditionTransfers.forEach(n=>add(transfersByRung,n.rung_id,n));
   tagElements.forEach(x => {add(tagContentElements,x.content_id,x);add(tagChildren,x.parent_id,x);});
   (tagData?.issues || []).forEach(x => add(tagIssues,x.content_id,x));
   entities.forEach(x => add(entityChildren, x.parent_id, x));
@@ -208,11 +214,13 @@
   headings.engineering=['Engineering analysis','Explore recognized instruction functions and possible purpose, with every rung accounted for and gaps kept in context.'];
   headings.relationships=['Address relationships','Follow exact expanded address spelling, its captured uses, and possible source-order calculation reuse.'];
   headings.conditions=['Conditional outputs','Trace captured conditions leading to OTE, OTL and OTU instructions, with branch paths and unknown transfers kept visible.'];
+  headings.transfers=['Instruction conditions','Inspect incoming rung conditions and normal-scan condition transfer at other instruction occurrences, including rungs without a coil output.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
   if(relationships){labels.relationships='Address relationships';navCounts.relationships=addresses.length;}
   if(conditions){labels.conditions='Conditional outputs';navCounts.conditions=conditionalOutputs.length;}
+  if(instructionConditions){labels.transfers='Instruction conditions';navCounts.transfers=conditionTransfers.length;}
   if(access){labels.access='Tag access';navCounts.access=accessRoots.length;}
   if(tagData){labels.tagdata='Stored tag data';navCounts.tagdata=tagContents.length;}
   if(pid){labels.pid='PID evidence';navCounts.pid=pidOccurrences.length;}
@@ -356,6 +364,7 @@
   // One bounded label per output; never copy ancestor conditions or complete
   // rung source into every coil's search record.
   conditionalOutputs.forEach(o=>searchable(o,[o.opcode,conditionTargetName(o),sourceName(o.rung_id),conditionGuardLabel(o.guard_status),conditionActionLabel(o.action),human(o.target_status)]));
+  conditionTransfers.forEach(n=>searchable(n,[transferOpcode(n),short(sourceName(n.rung_id),240),transferLabel(n),conditionGuardLabel(conditionQuality(n)),...n.operand_ids.slice(0,4).map(id=>short(byOperand.get(id)?.raw_text || '',80))]));
   localLinks.forEach(l=>searchable(l,[addressName(byAddress.get(l.address_id)),sourceName(l.rung_id),sourceName(l.producer_instruction_id),sourceName(l.consumer_instruction_id),l.read_kind==='expression'?'Expression read':'Operand read']));
   reusePatterns.forEach(p=>searchable(p,[rungName(byRung.get(p.representative_rung_id)),byRung.get(p.representative_rung_id)?.text,p.rung_ids.length>1?'Repeated operand reuse':'Single occurrence',p.address_variables+' address variables']));
   (relationships?.identity_gaps || []).forEach(g=>searchable(g,[byOperand.get(g.id)?.raw_text,byCalculationNode.get(g.id)?.raw_text,'Expanded suffix cannot form an address',g.kind]));
@@ -592,8 +601,34 @@
     summary.append(values({'OTE / OTL / OTU occurrences':conditionalOutputs.length,'Modeled condition structure':conditionalOutputs.filter(o=>o.guard_status==='modeled').length,'Condition binding gaps':conditionalOutputs.filter(o=>o.guard_status==='binding_gaps').length,'Contains unknown transfer':conditionalOutputs.filter(o=>o.guard_status==='opaque').length,'Guards containing a branch join':conditions.coverage.outputs_with_branches}));content.append(summary);
     content.append(conditionalOutputTable(conditionalOutputs.filter(o=>matches(o)&&(state.filter==='all'||o.opcode===state.filter)&&(!state.conditionQuality||state.conditionQuality==='all'||o.guard_status===state.conditionQuality)),'Conditional output occurrences'));
   }
+  function transferOpcode(n){return short(byInstruction.get(n.instruction_id)?.instruction.opcode || 'Instruction',80);}
+  function transferLabel(n){return n.kind==='pass_through'?'Passes incoming condition':'Unknown condition transfer';}
+  function conditionQuality(n){return n?.has_opaque?'opaque':n?.has_binding_gap?'binding_gaps':'modeled';}
+  function transferNotice(){return notice('Normal-scan condition transfer','A pass-through instruction keeps its incoming rung condition as its outgoing condition during documented normal execution. This is not an execution or write guard: evaluation with a false condition can still change instruction state, including timer, counter and OSF state. The OSF output bit is distinct from its outgoing rung condition. Data operands, values, types, faults and other instruction effects are not evaluated by this view. Inspect source and operand-access evidence separately.');}
+  function transferTable(rows,caption){return table(['Instruction occurrence','Normal-scan condition transfer','Incoming condition evidence','Operand preview','Rung'],rows,n=>[
+    button(transferOpcode(n),()=>openDetail('transfer',n.id),'text-link'),transferLabel(n),conditionGuardLabel(conditionQuality(byConditionNode.get(n.child_ids[0]))),
+    node('div','snippet',n.operand_ids.slice(0,4).map(id=>short(byOperand.get(id)?.raw_text || '(blank)',80)).join(' · ')+(n.operand_ids.length>4?' · additional operands':'')),sourceCell(n.rung_id)
+  ],caption,{emptyTitle:'No instruction condition transfers in this selection',emptyDetail:'Contacts, comparisons and coil outputs have their own condition evidence. This list retains other captured instruction occurrences.'});}
+  function transfersList(){
+    content.append(conditionNotice(),transferNotice());
+    const summary=panel('Instruction occurrences','Each row retains its own source occurrence, including instructions on rungs with no coil output. A pass-through rule can still have an unknown or unbound incoming condition.');
+    summary.append(values({'Instruction transfers':conditionTransfers.length,'Documented pass-through':conditionTransfers.filter(n=>n.kind==='pass_through').length,'Unknown transfer':conditionTransfers.filter(n=>n.kind==='opaque_transfer').length}));content.append(summary);
+    content.append(transferTable(conditionTransfers.filter(n=>matches(n)&&(state.filter==='all'||n.kind===state.filter)),'Instruction condition transfers'));
+  }
+  function transferDetail(n){
+    setDetailHeading('INSTRUCTION CONDITION TRANSFER',transferOpcode(n),sourceName(n.rung_id));
+    content.append(conditionNotice(),transferNotice());
+    const incoming=byConditionNode.get(n.child_ids[0]);
+    const summary=panel('Captured instruction occurrence',n.kind==='pass_through'?'The documented normal-scan rule preserves the incoming rung condition. Data binding gaps do not alter this transfer rule.':'The incoming rung condition is retained as context. Outgoing condition behavior remains unmodeled.');
+    summary.append(values({'Opcode':transferOpcode(n),'Transfer':transferLabel(n),'Incoming condition evidence':conditionGuardLabel(conditionQuality(incoming)),'Outgoing condition evidence':conditionGuardLabel(conditionQuality(n)),'Reason':human(n.reason)}));
+    const links=node('div','inline-links');links.append(sourceCell(n.instruction_id),sourceCell(n.rung_id));summary.append(links);content.append(summary);
+    const operands=n.operand_ids.map(id=>byOperandAccess.get(id)).filter(Boolean);
+    if(operands.length){const evidence=section('Separate operand-access evidence','Possible reads and writes and their bindings do not establish execution, data validity or the final value. They are separate from the Boolean condition-transfer rule.');evidence.append(accessBindingTable(operands,'Instruction transfer operand access'));content.append(evidence);}
+    conditionGraph(n.id,'Instruction condition nodes','Instruction outgoing condition');
+    content.append(technical({'Condition node ID':n.id,'Instruction ID':n.instruction_id,'Evaluation scope':'Normal execution only'}));
+  }
   function reachableConditionNodes(guardId){
-    // Only the selected output is traversed. Shared subgraphs are visited once;
+    // Only the selected condition is traversed. Shared subgraphs are visited once;
     // no recursive formula expansion or per-output ancestor cache is created.
     const seen=new Set(),pending=[guardId],rows=[];
     while(pending.length){const id=pending.pop();if(seen.has(id))continue;seen.add(id);const n=byConditionNode.get(id);if(!n)continue;rows.push(n);for(const child of n.child_ids)if(!seen.has(child))pending.push(child);}
@@ -604,6 +639,7 @@
     if(n.kind==='all')return 'All inputs must hold';
     if(n.kind==='any')return 'Any branch input may hold';
     const opcode=byInstruction.get(n.instruction_id)?.instruction.opcode || 'Instruction';
+    if(n.kind==='pass_through')return 'Pass through '+short(opcode,80)+' · incoming condition retained';
     return n.kind==='predicate'?'Test '+opcode:'Unknown transfer through '+short(opcode,80);
   }
   function conditionDetail(o){
@@ -615,28 +651,32 @@
     const target=byEntity.get(byAddress.get(o.target_address_id)?.target_id);
     if(['module_input_tag','module_output_tag'].includes(target?.kind))summary.append(node('p','row-note','Source declaration kind: '+human(target.kind)+'. This identifies module-tag context; a physical channel or process effect has not been confirmed.'));
     content.append(summary);
-    const rows=reachableConditionNodes(o.guard_id),labels=new Map(rows.map((n,i)=>[n.id,'C'+(i+1)]));
+    conditionGraph(o.guard_id,'Output condition nodes','Output guard');
+    content.append(technical({'Output ID':o.id,'Guard node ID':o.guard_id,'Instruction ID':o.instruction_id,'Evaluation scope':'Normal execution only'}));
+  }
+  function conditionGraph(rootId,caption,rootLabel){
+    const rows=reachableConditionNodes(rootId),labels=new Map(rows.map((n,i)=>[n.id,'C'+(i+1)]));
     const selectNode=id=>{state.focusConditionNode=id;render();};
     const childLink=id=>button(labels.get(id)||'Condition',()=>selectNode(id),'text-link');
-    const graph=section('Condition structure','Each dependency appears once. All combines conditions in series; Any joins branch results, including empty bypass paths. An unknown transfer keeps its incoming condition as context without assuming Boolean AND behavior. Labels describe this selected guard only.');
-    graph.append(values({'Output guard':labels.get(o.guard_id)||'Unavailable','Distinct dependency nodes':rows.length}));
+    const graph=section('Condition structure','Each dependency appears once. All combines conditions in series; Any joins branch results, including empty bypass paths. An unknown transfer keeps its incoming condition as context without assuming Boolean AND behavior. Labels describe this selected condition only.'+(instructionConditions?' Pass-through nodes retain their instruction occurrence and incoming condition; their data operations are not evaluated.':''));
+    graph.append(values({[rootLabel]:labels.get(rootId)||'Unavailable','Distinct dependency nodes':rows.length}));
     graph.append(table(['Node','Meaning / inputs','Source instruction','Evidence limits'],rows,n=>{
       const meaning=node('div');meaning.append(node('div','cell-main',conditionNodeLabel(n)));
       if(n.child_ids.length){const children=node('div','inline-links');children.append(node('span','muted',n.kind==='all'?'All of: ':n.kind==='any'?'Any of: ':'Incoming context: '));n.child_ids.slice(0,8).forEach(id=>children.append(childLink(id)));meaning.append(children);if(n.child_ids.length>8)meaning.append(button('Inspect all '+fmt(n.child_ids.length)+' inputs',()=>selectNode(n.id),'text-link'));}
       if(n.operand_ids.length)meaning.append(node('div','cell-sub',n.operand_ids.slice(0,4).map(id=>short(byOperand.get(id)?.raw_text || '(blank)',80)).join(' · ')+(n.operand_ids.length>4?' · additional operands':'')));
       return[button(labels.get(n.id),()=>selectNode(n.id),'text-link'),meaning,sourceCell(n.instruction_id),[n.has_opaque?'Contains unknown transfer':'',n.has_binding_gap?'Contains binding gap':'',n.reason?human(n.reason):''].filter(Boolean).join(' · ') || 'No gap from this rule'];
-    },'Output condition nodes'));content.append(graph);
+    },caption));content.append(graph);
     const selected=byConditionNode.get(state.focusConditionNode);
     if(selected&&labels.has(selected.id)){
       const detail=section('Selected condition '+labels.get(selected.id),conditionNodeLabel(selected));
       detail.append(values({'Node kind':human(selected.kind),'Includes a branch join':selected.has_branch?'Yes':'No','Reason':selected.reason?human(selected.reason):'No gap from this rule'}));
       if(selected.instruction_id)detail.append(sourceCell(selected.instruction_id));
+      if(instructionConditions&&['pass_through','opaque_transfer'].includes(selected.kind)&&state.detail?.type!=='transfer')detail.append(button('Inspect instruction condition transfer',()=>openDetail('transfer',selected.id),'text-link'));
       if(selected.child_ids.length)detail.append(table(['Input occurrence','Condition node','Meaning'],selected.child_ids,(id,i)=>[i+1,childLink(id),conditionNodeLabel(byConditionNode.get(id))],'Selected condition inputs'));
       if(selected.operand_ids.length)detail.append(table(['Source operand','Exact address evidence','Occurrence identity'],selected.operand_ids,id=>[sourceCell(id),addressCell(id),technical({'Operand ID':id})],'Selected condition operands'));
       detail.append(technical({'Condition node ID':selected.id,'Instruction ID':selected.instruction_id}));
       detail.tabIndex=-1;content.append(detail);detail.focus();
     }
-    content.append(technical({'Output ID':o.id,'Guard node ID':o.guard_id,'Instruction ID':o.instruction_id,'Evaluation scope':'Normal execution only'}));
   }
   function reusePatternDetail(p){
     setDetailHeading('OPERAND-REUSE PATTERN',fmt(p.rung_ids.length)+' rung'+(p.rung_ids.length===1?'':'s')+' with matching operand reuse',rungName(byRung.get(p.representative_rung_id)));
@@ -691,6 +731,7 @@
   }
   function engineeringList(){
     if(conditions){const conditional=panel('Follow conditions to coil outputs','Inspect the incoming conditions at OTE, OTL and OTU occurrences, with branch joins, bypasses and unmodeled transfers retained.');conditional.append(button('Explore conditional outputs',()=>go('conditions'),'text-link'));content.append(conditional);}
+    if(instructionConditions){const transfers=panel('Follow conditions through other instructions','Inspect normal-scan condition transfer at math, copy, timer, counter and other instruction occurrences, including rungs without a coil output.');transfers.append(button('Explore instruction conditions',()=>go('transfers'),'text-link'));content.append(transfers);}
     if(relationships){const connected=panel('Follow relationships between blocks','Inspect exact address readers and writers, possible local calculation reuse, and patterns that retain repeated-address structure.');connected.append(button('Explore address relationships',()=>go('relationships'),'text-link'));content.append(connected);}
     const groups=[['identified','Recognized instruction functions'],['partial','Possible / partial functions'],['unclassified','Unclassified / unparsed']];
     const cards=node('div','cards engineering-groups');
@@ -782,6 +823,7 @@
     if(a.result_kind==='no_known_result')uses.append(node('p','row-note','No known local result is an investigation candidate. This does not establish that the rung is dead, unused or unreachable.'));
     uses.append(node('p','row-note','A final lexical instruction is not necessarily a definite physical output. I/O candidates require separate module-root evidence.'));content.append(uses);
     if(conditions){const outputs=section('Conditional coil outputs in this rung','Inspect the captured incoming condition for each output occurrence. Source ordering and condition structure do not establish runtime values or an engineering purpose.');outputs.append(conditionalOutputTable(outputsByRung.get(r.id)||[],'Rung conditional outputs'));content.append(outputs);}
+    if(instructionConditions){const transfers=section('Instruction condition transfers in this rung','Incoming rung conditions are retained for these occurrences whether or not a coil follows. An incoming condition is not proof of execution or a write.');transfers.append(transferTable(transfersByRung.get(r.id)||[],'Rung instruction condition transfers'));content.append(transfers);}
     if(relationships){
       const related=section('Relationships in this rung');
       const pattern=byRungReuse.get(r.id);
@@ -1411,6 +1453,7 @@
     else if(state.view==='engineering')engineeringList();
     else if(state.view==='relationships')relationshipsList();
     else if(state.view==='conditions')conditionsList();
+    else if(state.view==='transfers')transfersList();
     else if(state.view==='objects')objectList();
     else if(state.view==='ladder')content.append(rungList());
     else if(state.view==='sfc')sfcList();
@@ -1435,6 +1478,7 @@
       else if(d.type==='access')accessDetail(byRootAccess.get(d.id));
       else if(d.type==='address')addressDetail(byAddress.get(d.id));
       else if(d.type==='condition')conditionDetail(byConditionalOutput.get(d.id));
+      else if(d.type==='transfer')transferDetail(byConditionNode.get(d.id));
       else if(d.type==='reusepattern')reusePatternDetail(byReusePattern.get(d.id));
       else if(d.type==='tagcontent')tagContentDetail(byTagContent.get(d.id));
       else if(d.type==='tagelement')tagElementDetail(byTagElement.get(d.id));
@@ -1445,6 +1489,7 @@
       if(state.view==='engineering')engineeringToolbar();
       else if(state.view==='relationships')relationshipsToolbar();
       else if(state.view==='conditions')conditionsToolbar();
+      else if(state.view==='transfers')toolbarFor('Search instruction opcodes, operand previews or rung context',[['all','All transfers'],['pass_through','Documented pass-through'],['opaque_transfer','Unknown transfer']]);
       else if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
       else if(state.view==='ladder')toolbarFor('Search rung text, comments or routine names',countsFilter(rungs,'parse_status'));
       else if(state.view==='sfc')toolbarFor('Search SFC routines, elements and source text');

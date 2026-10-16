@@ -29,7 +29,7 @@ class ReviewHtmlSizeLimitError(ReviewHtmlError):
 
 
 def _limits(version: int) -> tuple[int, int]:
-    if version == 9:
+    if version in (9, 10):
         return MAX_REVIEW_V9_PAYLOAD_BYTES, MAX_REVIEW_V9_HTML_BYTES
     if version in (3, 4, 5, 6, 7, 8):
         return MAX_REVIEW_V3_PAYLOAD_BYTES, MAX_REVIEW_V3_HTML_BYTES
@@ -42,23 +42,27 @@ def _payload(data: dict[str, Any]) -> str:
                ((1, 'engineering-review-1'), (2, 'engineering-review-2'),
                 (3, 'engineering-review-3'), (4, 'engineering-review-4'),
                 (5, 'engineering-review-5'), (6, 'engineering-review-6'),
-                (7, 'engineering-review-7'), (8, 'engineering-review-8'), (9, 'engineering-review-9'))
+                (7, 'engineering-review-7'), (8, 'engineering-review-8'),
+                (9, 'engineering-review-9'), (10, 'engineering-review-10'))
             or (data.get('schema_version') == 1 and 'access' in data)
-            or (data.get('schema_version') in (2, 3, 4, 5, 6, 7, 8, 9) and type(data.get('access')) is not dict)
+            or (data.get('schema_version') in (2, 3, 4, 5, 6, 7, 8, 9, 10) and type(data.get('access')) is not dict)
             or (data.get('schema_version') in (1, 2) and 'tag_data' in data)
-            or (data.get('schema_version') in (3, 4, 5, 6, 7, 8, 9) and type(data.get('tag_data')) is not dict)
+            or (data.get('schema_version') in (3, 4, 5, 6, 7, 8, 9, 10) and type(data.get('tag_data')) is not dict)
             or (data.get('schema_version') in (1, 2, 3) and 'pid' in data)
-            or (data.get('schema_version') in (4, 5, 6, 7, 8, 9) and type(data.get('pid')) is not dict)
+            or (data.get('schema_version') in (4, 5, 6, 7, 8, 9, 10) and type(data.get('pid')) is not dict)
             or (data.get('schema_version') in (1, 2, 3, 4) and 'pid_members' in data)
-            or (data.get('schema_version') in (5, 6, 7, 8, 9) and type(data.get('pid_members')) is not dict)
+            or (data.get('schema_version') in (5, 6, 7, 8, 9, 10) and type(data.get('pid_members')) is not dict)
             or (data.get('schema_version') in (1, 2, 3, 4, 5) and 'calculations' in data)
-            or (data.get('schema_version') in (6, 7, 8, 9) and type(data.get('calculations')) is not dict)
-            or (data.get('schema_version') not in (7, 8, 9) and 'rung_analysis' in data)
-            or (data.get('schema_version') in (7, 8, 9) and type(data.get('rung_analysis')) is not dict)
-            or (data.get('schema_version') not in (8, 9) and 'relationships' in data)
-            or (data.get('schema_version') in (8, 9) and type(data.get('relationships')) is not dict)
-            or (data.get('schema_version') != 9 and 'conditions' in data)
-            or (data.get('schema_version') == 9 and type(data.get('conditions')) is not dict)
+            or (data.get('schema_version') in (6, 7, 8, 9, 10) and type(data.get('calculations')) is not dict)
+            or (data.get('schema_version') not in (7, 8, 9, 10) and 'rung_analysis' in data)
+            or (data.get('schema_version') in (7, 8, 9, 10) and type(data.get('rung_analysis')) is not dict)
+            or (data.get('schema_version') not in (8, 9, 10) and 'relationships' in data)
+            or (data.get('schema_version') in (8, 9, 10) and type(data.get('relationships')) is not dict)
+            or (data.get('schema_version') not in (9, 10) and 'conditions' in data)
+            or (data.get('schema_version') in (9, 10) and type(data.get('conditions')) is not dict)
+            or (data.get('schema_version') in (9, 10)
+                and (type(data['conditions'].get('schema_version')) is not int
+                     or data['conditions'].get('schema_version') != data['schema_version'] - 8))
             or any(type(data.get(key)) is not dict
                    for key in ('snapshot', 'inventory', 'references', 'sfc', 'statistics'))
             or any(type(data.get(key)) is not list for key in ('patterns', 'findings'))):

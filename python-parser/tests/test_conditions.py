@@ -9,15 +9,140 @@ import unittest
 from unittest.mock import patch
 
 from plc_workbench.conditions import (
-    ConditionError, analyze_conditions, render_conditions_json, validate_conditions,
+    PASSTHROUGH_OPCODES, ConditionError, analyze_conditions, render_conditions_json, validate_conditions,
 )
 from plc_workbench.relationships import render_relationships_json
 from test_relationships import capture as capture_relationships, tag
 
 
-def capture(texts=('XIC(A)OTE(B);',), **kwargs):
+def capture(texts=('XIC(A)OTE(B);',), *, schema_version=1, **kwargs):
     inputs = capture_relationships(texts, **kwargs)
-    return (*inputs, analyze_conditions(*inputs))
+    return (*inputs, analyze_conditions(*inputs, schema_version=schema_version))
+
+
+PASS_EXAMPLES = (
+    'ABS(A,B)', 'ADD(A,1,B)', 'CLR(A)', 'COP(A,B,1)', 'CPS(A,B,1)',
+    'CPT(B,A+1)', 'CTU(A,?,?)', 'DIV(A,1,B)', 'LN(A,B)', 'MOV(A,B)',
+    'MUL(A,1,B)', 'OSF(A,B)', 'RES(A)', 'RTO(A,?,?)', 'SQR(A,B)',
+    'SUB(A,1,B)', 'TON(A,?,?)',
+)
+
+
+class ConditionTransferTests(unittest.TestCase):
+    def test_explicit_version_preserves_old_default_and_node_count(self) -> None:
+        inputs = capture(tuple(f'{block}OTE(D);' for block in PASS_EXAMPLES))
+        legacy = render_conditions_json(inputs[-1])
+        self.assertEqual(legacy, render_conditions_json(analyze_conditions(*inputs[:-1], schema_version=1)))
+        result = analyze_conditions(*inputs[:-1], schema_version=2)
+        self.assertEqual((result.schema_version, result.analyzer_version), (2, 'condition-analysis-2'))
+        self.assertEqual(len(result.nodes), len(inputs[-1].nodes))
+        self.assertEqual(result.coverage['node_kinds']['pass_through'], len(PASS_EXAMPLES))
+        self.assertEqual(result.coverage['node_kinds']['opaque_transfer'], 0)
+        self.assertEqual(result.status, 'complete')
+        self.assertEqual(set(result.coverage['passthrough_opcodes'].values()), {1})
+        self.assertNotIn('passthrough_opcodes', inputs[-1].coverage)
+        self.assertTrue(all(o['guard_status'] == 'opaque' for o in inputs[-1].outputs))
+        validate_conditions(*inputs[:-1], result)
+        self.assertEqual(legacy, render_conditions_json(inputs[-1]))
+
+    def test_each_admitted_opcode_retains_context_and_rejects_bad_signature(self) -> None:
+        self.assertEqual({b.split('(')[0] for b in PASS_EXAMPLES}, PASSTHROUGH_OPCODES)
+        for block in PASS_EXAMPLES:
+            with self.subTest(block=block):
+                inputs = capture((f'XIC(A){block}OTE(D);',), schema_version=2)
+                result = inputs[-1]
+                transfer = next(n for n in result.nodes if n['kind'] == 'pass_through')
+                source = inputs[3].instructions[1]
+                self.assertEqual(transfer['instruction_id'], source['id'])
+                self.assertEqual(transfer['operand_ids'], source['operand_ids'])
+                self.assertEqual(transfer['child_ids'], [result.nodes[2]['id']])
+                self.assertEqual(transfer['reason'], 'documented_normal_scan_passthrough')
+                self.assertEqual(result.outputs[0]['guard_id'], transfer['id'])
+                self.assertFalse(transfer['has_opaque'])
+                bad = capture((f'{block[:-1]},Extra)OTE(D);',), schema_version=2)[-1]
+                self.assertEqual(bad.coverage['node_kinds']['pass_through'], 0)
+                self.assertEqual(bad.coverage['opaque_reasons']['signature_unresolved'], 1)
+                self.assertEqual(bad.outputs[0]['guard_status'], 'opaque')
+
+    def test_nested_passes_preserve_both_boolean_states_and_empty_bypass(self) -> None:
+        result = capture(('XIC(A)[MOV(A,B)[XIO(C)TON(D,?,?),],OSF(A,B)]OTE(D);',), schema_version=2)[-1]
+        predicates = [n['id'] for n in result.nodes if n['kind'] == 'predicate']
+        for entry, first, second in product((False, True), repeat=3):
+            outcomes = dict(zip(predicates, (first, second), strict=True))
+            values = {}
+            for n in result.nodes:
+                kind = n['kind']
+                if kind == 'entry':
+                    value = entry
+                elif kind == 'predicate':
+                    value = outcomes[n['id']]
+                elif kind == 'all':
+                    value = all(values[c] for c in n['child_ids'])
+                elif kind == 'any':
+                    value = any(values[c] for c in n['child_ids'])
+                elif kind == 'pass_through':
+                    value = values[n['child_ids'][0]]
+                else:
+                    self.fail('Unexpected opaque transfer')
+                values[n['id']] = value
+            self.assertEqual(values[result.outputs[0]['guard_id']], entry and first)
+
+    def test_noncoil_context_is_retained_without_any_output(self) -> None:
+        result = capture(('XIC(A)MOV(A,B)TON(D,?,?);',), schema_version=2)[-1]
+        self.assertEqual(result.outputs, [])
+        self.assertEqual(result.rungs[0]['exit_id'], result.nodes[-1]['id'])
+        self.assertEqual(result.coverage['node_kinds']['pass_through'], 2)
+
+    def test_action_data_gaps_are_separate_from_boolean_guard_quality(self) -> None:
+        inputs = capture(('MOV(Missing,OtherMissing)CPT(B,Missing+1)TON(Missing,?,?)OTE(D);',), schema_version=2)
+        result = inputs[-1]
+        self.assertTrue(any(o['binding_status'] != 'root_bound' for o in inputs[3].operands))
+        self.assertEqual(result.coverage['binding_gap_predicates'], 0)
+        self.assertEqual(result.outputs[0]['guard_status'], 'modeled')
+        self.assertEqual(result.status, 'complete')  # condition scope only
+        bad = capture(('TON(A,Missing,?)OTE(D);',), schema_version=2)[-1]
+        self.assertEqual(bad.outputs[0]['guard_status'], 'opaque')
+
+    def test_unknown_ancestry_and_later_unknown_are_not_erased(self) -> None:
+        result = capture(('OTE(A)MYSTERY(A)MOV(A,B)OTE(D);',), schema_version=2)[-1]
+        self.assertEqual([o['guard_status'] for o in result.outputs], ['modeled', 'opaque'])
+        self.assertTrue(next(n for n in result.nodes if n['kind'] == 'pass_through')['has_opaque'])
+        for block in ('ONS(A)', 'OSR(A,B)', 'TOF(A,?,?)', 'CTD(A,?,?)', 'GSV(WallClockTime,,DateTime,A)',
+                      'MSG(A)', 'MVM(A,1,B)', 'SWPB(A,REVERSE,B)', 'JSR(R,0)', 'RET()', 'SBR()',
+                      'SFR(R,A)', 'PID(A,B,C,D,0,0,0)', 'FAL(A,1,0,ALL,B,A+1)'):
+            with self.subTest(block=block):
+                candidate = capture((f'{block}OTE(D);',), schema_version=2)[-1]
+                self.assertEqual(candidate.coverage['node_kinds']['pass_through'], 0)
+                self.assertEqual(candidate.outputs[0]['guard_status'], 'opaque')
+
+    def test_intervening_move_keeps_distinct_same_address_reads(self) -> None:
+        result = capture(('XIC(A)MOV(B,A)XIC(A)OTE(D);',), schema_version=2)[-1]
+        predicates = [n for n in result.nodes if n['kind'] == 'predicate']
+        self.assertNotEqual(predicates[0]['operand_ids'], predicates[1]['operand_ids'])
+        self.assertEqual([n['kind'] for n in result.nodes], ['entry', 'predicate', 'all', 'pass_through', 'predicate', 'all'])
+
+    def test_version_and_forged_transfer_cannot_bypass_replay(self) -> None:
+        inputs = capture(('MOV(A,B)OTE(D);',), schema_version=2)
+        for version in (True, 0, 3, '2', 2.0):
+            with self.subTest(version=version), self.assertRaises(ConditionError):
+                analyze_conditions(*inputs[:-1], schema_version=version)
+        for mutate in (lambda r: r.nodes[1].update(reason=None),
+                       lambda r: r.nodes[1].update(child_ids=[]),
+                       lambda r: r.nodes[1].update(has_binding_gap=True),
+                       lambda r: r.nodes[1].update(kind='opaque_transfer'),
+                       lambda r: r.coverage['passthrough_opcodes'].update(MOV=0)):
+            candidate = deepcopy(inputs[-1])
+            mutate(candidate)
+            with self.assertRaises(ConditionError):
+                validate_conditions(*inputs[:-1], candidate)
+        with self.assertRaises(ConditionError):
+            validate_conditions(*inputs[:-1], replace(inputs[-1], schema_version=1, analyzer_version='condition-analysis-1'))
+
+    def test_long_branch_chains_keep_linear_space(self) -> None:
+        result = capture((''.join('[MOV(A,B),TON(D,?,?)]' for _ in range(120)) + 'OTE(C);',), schema_version=2)[-1]
+        self.assertEqual(len(result.nodes), 361)
+        self.assertEqual(sum(len(n['child_ids']) for n in result.nodes), 480)
+        self.assertLess(len(render_conditions_json(result)), 300_000)
 
 
 class ConditionTests(unittest.TestCase):

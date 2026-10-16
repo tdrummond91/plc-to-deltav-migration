@@ -1,5 +1,17 @@
 # Data contracts, traceability, and checkpoints
 
+## Condition transfer revision (2026-10-15)
+
+Private condition2 keeps condition1's dataclass shape and 32 MiB cap, adds
+`pass_through` nodes and the fixed 17-spelling `passthrough_opcodes` coverage map.
+Each pass retains one incoming child and source/operand occurrences. Data-binding
+gaps remain separate from Boolean transfer. Explicit condition1 stays byte-compatible.
+Condition summary2 remains 4 KiB. Review10/manifest13 keeps 16 artifacts and 160/192 MiB
+JSON/HTML caps; all previous version contracts and budgets remain unchanged.
+Work26 requires condition summary2 and 48 KiB outer reports. Work24/25 still require
+condition1. Pass/predicate/coil counts share the single withheld opcode allowance.
+See [instruction catalogue and replay](../reviews/CONDITION_TRANSFER_REVIEW.md).
+
 ## Save diagnostics and condition report budget (2026-10-15)
 
 Work25 adds only five closed save failure codes: review_size_limit,

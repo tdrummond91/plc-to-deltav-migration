@@ -1,6 +1,17 @@
 # Independently synthetic L5X fixture
 
-## Current condition demonstration
+## Current instruction condition-transfer demonstration
+
+`condition_transfer_review_demo.L5X` extends the previous condition fixture
+with 71 invented rungs (191 total). It exercises all 17 documented transfer
+spellings, noncoil contexts, false-state explanations, data and signature gaps,
+unknown ancestry, repeated reads around writes, branches and empty bypasses.
+Sixty additional move occurrences exercise pagination. Markup-like source text
+tests inert rendering. No private source was used to construct this fixture.
+The [HTML demo](../../examples/engineering-review-demo.html) now uses review10
+and includes Instruction conditions. Earlier fixtures remain unchanged.
+
+## Historical condition demonstration
 
 `condition_review_demo.L5X` independently extends the relationship demo with 28
 invented rungs (120 total). Cases include nested series/parallel conditions,
@@ -9,8 +20,8 @@ opaque block transfers, invalid signatures, identity gaps, comparison predicates
 first-scan flags and module-root context. These exercise the analyzer; they are
 not validated controller logic or extracts from a plant export.
 
-The [HTML demo](../../examples/engineering-review-demo.html) now uses review9 and
-adds Conditional outputs. Earlier independent fixtures remain unchanged.
+The HTML demo previously used review9 and added Conditional outputs.
+Earlier independent fixtures remain unchanged.
 
 ## Historical relationship demonstration
 

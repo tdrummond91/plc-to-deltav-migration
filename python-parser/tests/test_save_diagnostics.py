@@ -24,9 +24,7 @@ SAVE_CODES = (
 
 
 def current_report() -> dict:
-    result = condition_report()
-    result.update(schema_version=25, workflow_version='work-check-25')
-    return result
+    return condition_report(schema_version=26)
 
 
 def failed_report(version: int = 25, code: str = 'save_error') -> dict:
@@ -174,23 +172,23 @@ class SaveFailureDiagnosticsTests(unittest.TestCase):
                 self.assertTrue(result['private_run_saved'])
                 saved, = (root / 'confidential/workspaces/work-check').iterdir()
                 manifest = json.loads((saved / 'manifest.json').read_bytes())
-                self.assertEqual((manifest['schema_version'], len(manifest['artifacts'])), (12, 16))
+                self.assertEqual((manifest['schema_version'], len(manifest['artifacts'])), (13, 16))
                 result.pop('diagnostic_sample')
                 self.assertEqual(result, current_report()['analysis'])
 
 
 class SaveFailureReportTests(unittest.TestCase):
-    def test_new_codes_are_exclusive_to_work25_older_contracts_stay_closed(self) -> None:
-        for version in range(1, 26):
+    def test_new_codes_require_work25_or_later_older_contracts_stay_closed(self) -> None:
+        for version in range(1, 27):
             work_check.validate_work_check_report(failed_report(version))
             for code in SAVE_CODES:
                 payload = failed_report(version, code)
-                if version == 25:
+                if version >= 25:
                     self.assertEqual(json.loads(work_check.render_work_check_report(payload)), payload)
                 else:
                     with self.subTest(version=version, code=code), self.assertRaises(work_check.WorkCheckError):
                         work_check.validate_work_check_report(payload)
-        for version in (0, 26, True, 25.0, '25'):
+        for version in (0, 27, True, 25.0, '25'):
             payload = failed_report()
             payload['schema_version'] = version
             with self.subTest(version=version), self.assertRaises(work_check.WorkCheckError):
@@ -227,7 +225,7 @@ class SaveFailureReportTests(unittest.TestCase):
     def test_success_contract_and_native_shapes_remain_strict(self) -> None:
         original = current_report()
         work_check.validate_work_check_report(original)
-        self.assertEqual(original['analysis'], condition_report()['analysis'])
+        self.assertEqual(original['analysis'], condition_report(schema_version=26)['analysis'])
         for mutate in (lambda p: p['analysis'].pop('condition_summary'),
                        lambda p: p['analysis']['condition_summary'].update(schema_version=True),
                        lambda p: p['analysis']['reference_summary'].update(schema_version=11),

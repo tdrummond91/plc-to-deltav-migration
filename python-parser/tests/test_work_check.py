@@ -512,7 +512,8 @@ class GitAndWorkflowTests(unittest.TestCase):
                 revision={"commit": COMMIT, "worktree": "clean"})
             from plc_workbench.conditions import analyze_conditions
             from plc_workbench.condition_summary import build_condition_summary
-            conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships)
+            conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
+                                            schema_version=2)
             analysis_payload["condition_summary"] = build_condition_summary(
                 snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions,
                 revision={"commit": COMMIT, "worktree": "clean"})

@@ -1,6 +1,26 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-15): **condition report save repair**.
+Current checkpoint (2026-10-15): **normal-scan instruction condition transfer**.
+Returned `b31392a` tested clean `78cf221`: 889 application cases passed (one
+expected skip), plus 139 helpers, and the private report saved successfully.
+All nine preceding summaries are unchanged after tool revision normalization.
+The first condition return accounts for all 4,163 coils: 3,920 modeled incoming
+guards, 181 with predicate binding gaps and 62 with opaque transfers; 16 targets
+remain unbound. This confirms recovery, without proving the earlier failure's cause.
+
+Condition2 preserves incoming context through 17 documented, signature-classified
+instruction spellings, including math, move, timer, counter and reset blocks.
+The report also exposes noncoil instruction contexts without requiring a downstream
+coil. Normal-scan condition transfer does not simulate effects or execution.
+Review10/manifest13 retains sixteen artifacts; work26 returns condition summary2.
+Earlier replay stays frozen. See [scope, sources and validation](CONDITION_TRANSFER_REVIEW.md).
+
+Continue Phase 1 automated analysis after the next normal work-machine return;
+no team review is requested. Git transport stays manual and the listener remains disabled.
+
+## Historical save repair checkpoint
+
+Historical checkpoint (2026-10-15): **condition report save repair**.
 Returned `e0b6b0c` tested clean `effa48f`: 870 application cases passed (one
 expected skip), plus 139 helpers, but returned `save_error` and no analysis
 summaries. The private failure cause remains unconfirmed. Review9 now reserves

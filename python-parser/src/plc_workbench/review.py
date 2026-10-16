@@ -34,6 +34,8 @@ MAX_REVIEW_V3_BYTES = 128 * 1024 * 1024
 # Review9 adds a separately bounded 32 MiB condition companion. Reserve that
 # allowance alongside the established report; review1-8 keep their old limits.
 MAX_REVIEW_V9_BYTES = 160 * 1024 * 1024
+# Review10 changes transfer semantics without increasing the companion budget.
+MAX_REVIEW_V10_BYTES = 160 * 1024 * 1024
 MAX_REVIEW_FINDINGS = 500_000
 MAX_REVIEW_PATTERNS = 100_000
 _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
@@ -90,7 +92,8 @@ def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     """Count UTF-8 bytes without retaining millions of small encoder chunks."""
     rendered = io.StringIO() if retain else None
     version = (data.get('schema_version'), data.get('report_version'))
-    limit = (MAX_REVIEW_V9_BYTES if version == (9, 'engineering-review-9') else
+    limit = (MAX_REVIEW_V10_BYTES if version == (10, 'engineering-review-10') else
+             MAX_REVIEW_V9_BYTES if version == (9, 'engineering-review-9') else
              MAX_REVIEW_V3_BYTES if version
              in ((3, 'engineering-review-3'), (4, 'engineering-review-4'),
                  (5, 'engineering-review-5'), (6, 'engineering-review-6'),
@@ -237,7 +240,7 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                     _fail()
         if conditions is not None:
             if (type(conditions) is not ConditionResult or type(conditions.schema_version) is not int
-                    or conditions.schema_version != 1 or type(relationships) is not RelationshipResult):
+                    or conditions.schema_version not in (1, 2) or type(relationships) is not RelationshipResult):
                 _fail()
         canonical_inventory = analyze_snapshot(snapshot)
         if not _strict_equal(canonical_inventory, inventory):
@@ -306,7 +309,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         if conditions is not None:
             canonical_conditions = analyze_conditions(
                 snapshot, canonical_inventory, canonical_references, canonical_access,
-                canonical_calculations, canonical_rungs, canonical_relationships)
+                canonical_calculations, canonical_rungs, canonical_relationships,
+                schema_version=conditions.schema_version)
             if not _strict_equal(canonical_conditions, conditions):
                 _fail()
         patterns = _patterns(canonical_inventory)
@@ -389,8 +393,9 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             if canonical_relationships.status == 'partial':
                 data['status'] = 'partial'
         if canonical_conditions is not None:
+            review_version = 9 if canonical_conditions.schema_version == 1 else 10
             data.update({
-                'schema_version': 9, 'report_version': 'engineering-review-9',
+                'schema_version': review_version, 'report_version': f'engineering-review-{review_version}',
                 'analysis_scope': 'source_evidence_with_exact_addresses_and_local_boolean_conditions',
                 'conditions': canonical_conditions.to_dict(),
             })

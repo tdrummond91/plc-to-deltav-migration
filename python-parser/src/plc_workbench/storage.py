@@ -368,7 +368,7 @@ def save_run(
             })
         if conditions is not None:
             manifest.update({
-                "schema_version": 12,
+                "schema_version": 12 if condition_payload["schema_version"] == 1 else 13,
                 "artifact_kind": "source_reference_sfc_access_tag_data_pid_member_calculation_rung_relationship_condition_review_run",
                 "status": "partial" if "partial" in (manifest["status"], condition_payload["status"]) else "complete",
                 "analysis_scope": review_data["analysis_scope"],

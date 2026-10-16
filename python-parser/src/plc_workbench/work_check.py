@@ -76,7 +76,8 @@ _V21_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 21, "workflow_version": 
 _V22_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 22, "workflow_version": "work-check-22"}
 _V23_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 23, "workflow_version": "work-check-23"}
 _V24_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 24, "workflow_version": "work-check-24"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 25, "workflow_version": "work-check-25"}
+_V25_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 25, "workflow_version": "work-check-25"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 26, "workflow_version": "work-check-26"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _SAVE_FAILURE_CODES = frozenset({
     "review_size_limit", "review_validation_error", "review_render_error",
@@ -156,7 +157,7 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _V25_CONSTANTS, 26: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = {"diagnostic_sample"} if version >= 2 else set()
@@ -193,14 +194,14 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12, 26: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2, 26: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
@@ -482,19 +483,23 @@ def validate_work_check_report(report: Any) -> None:
         if version >= 24:
             conditions = analysis["condition_summary"]
             validate_condition_summary(conditions)
+            if conditions["schema_version"] != (2 if version >= 26 else 1):
+                _invalid()
             condition_coverage = conditions["coverage"]
             access_coverage = analysis["access_summary"]["coverage"]
             rung_coverage = analysis["rung_analysis_summary"]["coverage"]
             relationship_coverage = analysis["relationship_summary"]["coverage"]
             source_opcodes = nested["source_summary"]["instructions"]["counts"]
-            # Output rows include unsupported signatures; predicate rows require
-            # recognized signatures. Case variants consume the same withheld
-            # population, never a separate allowance for each opcode family.
+            # Output rows include unsupported signatures; predicate and pass
+            # rows require recognized signatures. Case variants consume the
+            # same withheld population, never one allowance per opcode family.
             opcode_counts = (condition_coverage["output_opcodes"]
-                             | condition_coverage["predicate_opcodes"])
+                             | condition_coverage["predicate_opcodes"]
+                             | (condition_coverage["passthrough_opcodes"] if version >= 26 else {}))
+            pass_count = condition_coverage["node_kinds"]["pass_through"] if version >= 26 else 0
             withheld_needed = sum(max(0, count - source_opcodes.get(opcode, 0))
                                   for opcode, count in opcode_counts.items())
-            if (conditions["schema_version"] != 1 or conditions["tool_revision"] != revision
+            if (conditions["tool_revision"] != revision
                     or condition_coverage["source_rungs"] != access_coverage["source_rungs"]
                     or condition_coverage["source_instructions"] != access_coverage["instructions_total"]
                     or condition_coverage["source_operands"] != access_coverage["operands_total"]
@@ -504,7 +509,7 @@ def validate_work_check_report(report: Any) -> None:
                     or condition_coverage["branch_legs"] != rung_coverage["branch_legs"]
                     or condition_coverage["node_kinds"]["predicate"] > rung_coverage["block_families"]["boolean_condition"]
                     or condition_coverage["outputs_total"] > rung_coverage["block_families"]["boolean_output"]
-                    or condition_coverage["node_kinds"]["predicate"] + condition_coverage["action_statuses"]["recognized"]
+                    or condition_coverage["node_kinds"]["predicate"] + pass_count + condition_coverage["action_statuses"]["recognized"]
                         > access_coverage["instructions_by_status"]["classified"]
                     or any(count < source_opcodes.get(opcode, 0)
                            for opcode, count in condition_coverage["output_opcodes"].items())
@@ -576,7 +581,7 @@ def validate_work_check_report(report: Any) -> None:
             if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
                 # This fallback needs dedicated rack evidence. Historical v2
                 # reports retain their original malformed-only sample contract.
-                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12), (15, 12), (16, 12), (17, 12), (18, 12), (19, 12), (20, 12), (21, 12), (22, 12), (23, 12), (24, 12), (25, 12)}
+                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12), (15, 12), (16, 12), (17, 12), (18, 12), (19, 12), (20, 12), (21, 12), (22, 12), (23, 12), (24, 12), (25, 12), (26, 12)}
                         or nested["rack_candidates"]["matches"]["direct_operands"]
                         ["by_status"]["no_candidate_match"] == 0):
                     _invalid()
@@ -608,7 +613,7 @@ def validate_work_check_report(report: Any) -> None:
 def _report_size(report: dict[str, Any]) -> None:
     """Keep historical envelopes bounded while adding fixed analysis counts."""
     rendered = json.dumps(report, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
-    limit = MAX_REPORT_V22_BYTES if report["schema_version"] in (22, 23, 24, 25) else MAX_REPORT_BYTES
+    limit = MAX_REPORT_V22_BYTES if report["schema_version"] in (22, 23, 24, 25, 26) else MAX_REPORT_BYTES
     if len(rendered.encode("utf-8")) > limit:
         raise WorkCheckError("Work-machine report exceeds its publication size limit.")
 
@@ -616,7 +621,7 @@ def _report_size(report: dict[str, Any]) -> None:
 def render_work_check_report(report: Any) -> str:
     validate_work_check_report(report)
     rendered = json.dumps(report, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
-    if len(rendered.encode("utf-8")) > (MAX_REPORT_V22_BYTES if report["schema_version"] in (22, 23, 24, 25) else MAX_REPORT_BYTES):
+    if len(rendered.encode("utf-8")) > (MAX_REPORT_V22_BYTES if report["schema_version"] in (22, 23, 24, 25, 26) else MAX_REPORT_BYTES):
         raise WorkCheckError("Work-machine report exceeds its publication size limit.")
     return rendered
 
@@ -807,7 +812,8 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         result["failure_code"] = "relationship_error"
         relationships = analyze_relationships(snapshot, inventory, references, access, calculations, rung_analysis)
         result["failure_code"] = "condition_error"
-        conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships)
+        conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
+                                        schema_version=2)
         result["failure_code"] = "tag_data_error"
         tag_data = analyze_tag_data(snapshot, inventory)
         result["failure_code"] = "pid_error"

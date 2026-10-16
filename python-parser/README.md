@@ -11,7 +11,9 @@ find families, unresolved blocks, empty bypasses and missing comments/metadata.
 Address relationships separates exact member/index spellings, possible local
 calculation links and operand-reuse patterns. Root-only access and opcode-shape
 patterns remain separate views. Existing tag, PID, calculation and source views
-provide deeper evidence links. Conditional outputs links OTE/OTL/OTU records to
+provide deeper evidence links. Instruction conditions exposes incoming contexts for noncoil blocks, including
+17 documented pass-through spellings. False evaluations can still change state;
+condition transfer is separate from action/data validity. Conditional outputs links OTE/OTL/OTU records to
 their incoming series/parallel condition graphs. Each source read stays a separate
 occurrence; unknown transfers, binding gaps and malformed actions remain visible.
 No PLC execution or final output value is inferred.
@@ -22,11 +24,14 @@ hints are separate. Internal Boolean outputs do not imply physical DOs; no
 known local result does not prove dead code. CPT expression reads retain their
 own population, node/span links and repeated occurrences.
 
-The latest automated return (`f7d91f0`) confirms 7,591 exact addresses and 1,489
-operand-reuse patterns covering 4,286 rungs. The next run measures Boolean
-conditions and output actions. Continue the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)
+The latest automated return (`b31392a`) saved successfully and accounts for
+4,163 coil outputs: 3,920 modeled guards, 181 with condition binding gaps and
+62 with opaque transfers. Earlier summaries remain unchanged, including
+7,591 exact addresses and 1,489 operand-reuse patterns covering 4,286 rungs.
+The next run measures documented instruction condition transfer.
+Continue the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)
 before requesting team feedback. No manual engineering/UI review is needed now.
-See [condition scope and contracts](../public/docs/reviews/CONDITION_REVIEW.md).
+See [condition transfer scope and contracts](../public/docs/reviews/CONDITION_TRANSFER_REVIEW.md).
 
 ```bash
 uv run --project python-parser --locked plc review \
@@ -36,7 +41,7 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-review9/manifest12 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+review10/manifest13 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
 references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json, rung-analysis.json, relationships.json, boolean-conditions.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
@@ -52,10 +57,10 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work25 retains condition summary1 beside relationship1, rung-analysis1,
+manual. Current work26 uses condition summary2 beside relationship1, rung-analysis1,
 access4, calculation2, PID member1, PID1, Tag Data1, reference12/source4 and SFC2.
-Work22-25 permit 48 KiB for the complete public report; work1-21 retain 32 KiB.
-Work25 adds fixed save-failure categories; review9 allows 160 MiB JSON / 192 MiB
+Work22-26 permit 48 KiB for the complete public report; work1-21 retain 32 KiB.
+Work25 adds fixed save-failure categories; review9/10 allow 160 MiB JSON / 192 MiB
 HTML while earlier report versions keep their original budgets. See the
 [save failure checkpoint](../public/docs/reviews/SAVE_FAILURE_REVIEW.md).
 Earlier work17 added count-only

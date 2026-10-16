@@ -1,4 +1,4 @@
-"""Exercise optional coil-condition dossiers against independently invented source."""
+"""Exercise optional condition dossiers against independently invented source."""
 from __future__ import annotations
 
 import json
@@ -12,7 +12,7 @@ from plc_workbench.pid import analyze_pid
 from plc_workbench.pid_members import analyze_pid_members
 from plc_workbench.relationships import analyze_relationships
 from plc_workbench.review import build_review_data
-from plc_workbench.review_html import render_review_html
+from plc_workbench.review_html import ReviewHtmlError, render_review_html
 from plc_workbench.rung_analysis import analyze_rungs
 from plc_workbench.tag_data import analyze_tag_data
 from test_access_review_ui import _NODE
@@ -26,7 +26,7 @@ def review(texts: tuple[str, ...] = (
     'MYSTERY(A)OTE(Out);',
     'XIC(Missing)OTE(Out);',
     'XIC(A)OTE(Bad.Child)OTE(123)OTE(A,B);',
-), *, legacy: bool = False, tags: str = '') -> dict:
+), *, legacy: bool = False, tags: str = '', schema_version: int = 1) -> dict:
     args = fixture(texts, tags=(
         '<Tag Name="Out" TagType="Base" DataType="BOOL"/>'
         '<Tag Name="Latch" TagType="Base" DataType="BOOL"/>'
@@ -39,7 +39,8 @@ def review(texts: tuple[str, ...] = (
     members = analyze_pid_members(*args[:3], tag_data, pid)
     rungs = analyze_rungs(*args[:3], access, calculations)
     relationships = analyze_relationships(*args[:3], access, calculations, rungs)
-    conditions = analyze_conditions(*args[:3], access, calculations, rungs, relationships)
+    conditions = analyze_conditions(*args[:3], access, calculations, rungs, relationships,
+                                    schema_version=schema_version)
     return build_review_data(*args, access=access, tag_data=tag_data, pid=pid,
                              pid_members=members, calculations=calculations,
                              rung_analysis=rungs, relationships=relationships,
@@ -255,6 +256,155 @@ String.prototype.toLocaleLowerCase=function(...args){indexedCharacters+=this.len
         navigate('relationships');rows(tableNamed('Exact address groups'))[0].querySelector('button').click();
         assert.ok(!content.textContent.includes('Conditional coil outputs targeting this address'));
         """)
+
+    def test_no_output_rung_has_instruction_context_and_separate_false_state_note(self) -> None:
+        data = review(('XIC(A)MOV(A,B)TON(T,?,?)OSF(A,B);',), schema_version=2,
+                      tags='<Tag Name="T" TagType="Base" DataType="TIMER"/>')
+        self.assertEqual(data['schema_version'], 10)
+        self.run_ui(data, r"""
+        navigate('engineering');clickText(content,'Explore instruction conditions');
+        assert.equal(rows(tableNamed('Instruction condition transfers')).length,3);
+        assert.ok(content.textContent.includes('false condition can still change instruction state'));
+        assert.ok(content.textContent.includes('OSF output bit is distinct'));
+        const ton=rows(tableNamed('Instruction condition transfers')).find(r=>texts(r)[0]==='TON');
+        assert.equal(texts(ton)[1],'Passes incoming condition');
+        ton.childNodes[0].querySelector('button').click();
+        assert.ok(heading.textContent.includes('INSTRUCTION CONDITION TRANSFER'));
+        assert.ok(content.textContent.includes('Incoming condition evidenceModeled condition structure'));
+        assert.equal(rows(tableNamed('Instruction transfer operand access')).length,3);
+        assert.ok(tableNamed('Instruction condition nodes').textContent.includes('Pass through TON'));
+        content.querySelectorAll('button').find(b=>b.textContent.startsWith('Rung 0')).click();
+        assert.equal(rows(tableNamed('Rung instruction condition transfers')).length,3);
+        assert.ok(content.textContent.includes('No conditional outputs in this selection'));
+        """)
+
+    def test_pass_transfer_does_not_hide_data_binding_gaps_or_taint_boolean_condition(self) -> None:
+        self.run_ui(review(('XIC(A)MOV(Missing,B)OTE(Out);',), schema_version=2), r"""
+        navigate('conditions');
+        assert.equal(texts(rows(tableNamed('Conditional output occurrences'))[0])[3],'Modeled condition structure');
+        rows(tableNamed('Conditional output occurrences'))[0].querySelector('button').click();
+        const pass=rows(tableNamed('Output condition nodes')).find(r=>texts(r)[1].includes('Pass through MOV'));
+        pass.childNodes[0].querySelector('button').click();
+        clickText(content,'Inspect instruction condition transfer');
+        assert.ok(content.textContent.includes('Data binding gaps do not alter this transfer rule'));
+        const missing=rows(tableNamed('Instruction transfer operand access')).find(r=>texts(r)[0]==='Missing');
+        assert.ok(texts(missing)[3].includes('unresolved'));
+        assert.ok(content.textContent.includes('Outgoing condition evidenceModeled condition structure'));
+        """)
+
+    def test_invalid_signature_and_unknown_ancestry_are_visible_on_no_output_rungs(self) -> None:
+        self.run_ui(review(('MOV(A);','MYSTERY(B)MOV(A,B);'), schema_version=2), r"""
+        navigate('transfers');
+        const initial=rows(tableNamed('Instruction condition transfers'));
+        assert.equal(initial.length,3);
+        assert.equal(texts(initial[0])[1],'Unknown condition transfer');
+        assert.equal(texts(initial[2])[1],'Passes incoming condition');
+        assert.equal(texts(initial[2])[2],'Contains unknown transfer');
+        initial[0].childNodes[0].querySelector('button').click();
+        assert.ok(content.textContent.includes('signature unresolved'));
+        assert.ok(content.textContent.includes('Outgoing condition behavior remains unmodeled'));
+        heading.querySelector('button').click();
+        rows(tableNamed('Instruction condition transfers'))[2].querySelector('button').click();
+        assert.ok(content.textContent.includes('Outgoing condition evidenceContains unknown transfer'));
+        assert.ok(tableNamed('Instruction condition nodes').textContent.includes('Unknown transfer through MYSTERY'));
+        """)
+
+    def test_transfer_graph_preserves_reads_around_writes(self) -> None:
+        self.run_ui(review(('XIC(A)MOV(B,A)XIC(A)MOV(A,B);',), schema_version=2), r"""
+        navigate('transfers');
+        rows(tableNamed('Instruction condition transfers'))[1].querySelector('button').click();
+        const graph=rows(tableNamed('Instruction condition nodes'));
+        const predicates=graph.filter(r=>texts(r)[1].includes('Test XIC'));
+        assert.equal(predicates.length,2);
+        assert.notEqual(texts(predicates[0])[0],texts(predicates[1])[0]);
+        assert.equal(graph.filter(r=>texts(r)[1].includes('Pass through MOV')).length,2);
+        predicates[1].childNodes[0].querySelector('button').click();
+        assert.equal(rows(tableNamed('Selected condition operands')).length,1);
+        assert.ok(content.textContent.includes(input.data.references.operands[3].id));
+        """)
+
+    def test_transfer_filters_search_pagination_and_back_restore(self) -> None:
+        self.run_ui(review(tuple('MOV(A,B);' for _ in range(53)) + ('MYSTERY(B);',),
+                           schema_version=2), r"""
+        navigate('transfers');
+        const filter=document.getElementById('toolbar').querySelector('select');
+        filter.value='pass_through';filter.events.change();
+        assert.equal(rows(tableNamed('Instruction condition transfers')).length,50);
+        content.querySelectorAll('button').find(b=>b.attributes['aria-label']==='Next page: Instruction condition transfers').click();
+        assert.equal(rows(tableNamed('Instruction condition transfers')).length,3);
+        rows(tableNamed('Instruction condition transfers'))[0].querySelector('button').click();
+        heading.querySelector('button').click();
+        assert.equal(rows(tableNamed('Instruction condition transfers')).length,3);
+        const search=document.getElementById('review-search');search.value='Rung 52';search.events.input();
+        assert.equal(rows(tableNamed('Instruction condition transfers')).length,1);
+        search.value='';search.events.input();
+        const restored=document.getElementById('toolbar').querySelector('select');
+        restored.value='opaque_transfer';restored.events.change();
+        assert.equal(texts(rows(tableNamed('Instruction condition transfers'))[0])[0],'MYSTERY');
+        """)
+
+    def test_transfer_graph_visits_shared_ancestors_once(self) -> None:
+        data = review((''.join('[XIC(A),XIO(B)]MOV(A,B)' for _ in range(55)) + ';',),
+                      schema_version=2)
+        self.run_ui(data, r"""
+        navigate('transfers');
+        content.querySelectorAll('button').find(b=>b.attributes['aria-label']==='Next page: Instruction condition transfers').click();
+        rows(tableNamed('Instruction condition transfers')).at(-1).querySelector('button').click();
+        const labels=[];
+        while(true){
+          labels.push(...rows(tableNamed('Instruction condition nodes')).map(r=>texts(r)[0]));
+          const next=content.querySelectorAll('button').find(b=>b.attributes['aria-label']==='Next page: Instruction condition nodes');
+          if(next.disabled)break;next.click();
+        }
+        assert.equal(labels.length,input.data.conditions.nodes.length);
+        assert.equal(new Set(labels).size,labels.length);
+        assert.ok(content.textContent.length<25000);
+        """)
+
+    def test_transfer_source_text_stays_inert(self) -> None:
+        self.run_ui(review(('MYSTERY("<img src=x onerror=evil()>")MOV(A,B);',),
+                           schema_version=2), r"""
+        navigate('transfers');
+        assert.ok(tableNamed('Instruction condition transfers').textContent.includes('<img src=x onerror=evil()>'));
+        assert.equal(content.querySelectorAll('img').length,0);
+        rows(tableNamed('Instruction condition transfers'))[0].querySelector('button').click();
+        assert.ok(tableNamed('Instruction transfer operand access').textContent.includes('<img src=x onerror=evil()>'));
+        assert.equal(content.querySelectorAll('img').length,0);
+        """)
+
+    def test_transfer_search_does_not_expand_long_alias_roots_per_occurrence(self) -> None:
+        name = 'TransferRoot' + 'N' * 59_988
+        data = review(tuple(f'MOV(A,LongAlias[{i}]);' for i in range(200)), schema_version=2,
+                      tags=f'<Tag Name="{name}" TagType="Base" DataType="DINT"/>'
+                           f'<Tag Name="LongAlias" TagType="Alias" AliasFor="{name}"/>')
+        self.run_ui(data, r"""
+        assert.ok(indexedCharacters<2000000,'Search index amplification: '+indexedCharacters);
+        navigate('transfers');
+        for(const row of rows(tableNamed('Instruction condition transfers'))){
+          assert.ok(texts(row)[0].length<100);assert.ok(texts(row)[3].length<400);
+        }
+        const search=document.getElementById('review-search');search.value='[199]';search.events.input();
+        assert.equal(rows(tableNamed('Instruction condition transfers')).length,1);
+        assert.ok(texts(rows(tableNamed('Instruction condition transfers'))[0])[3].includes('LongAlias[199]'));
+        """, count_search_characters=True)
+
+    def test_condition_one_report_retains_opaque_mov_and_has_no_transfer_view(self) -> None:
+        data = review(('MOV(A,B)OTE(Out);',))
+        self.assertEqual(data['schema_version'], 9)
+        self.run_ui(data, r"""
+        assert.ok(!document.getElementById('navigation').querySelectorAll('button').some(b=>b.dataset.view==='transfers'));
+        navigate('conditions');rows(tableNamed('Conditional output occurrences'))[0].querySelector('button').click();
+        assert.ok(tableNamed('Output condition nodes').textContent.includes('Unknown transfer through MOV'));
+        assert.ok(!content.textContent.includes('Pass through MOV'));
+        """)
+
+    def test_render_gate_rejects_condition_version_mismatch(self) -> None:
+        for schema_version in (1, 2):
+            with self.subTest(schema_version=schema_version):
+                data = review(('MOV(A,B);',), schema_version=schema_version)
+                data['conditions']['schema_version'] = 3 - schema_version
+                with self.assertRaises(ReviewHtmlError):
+                    render_review_html(data)
 
 
 if __name__ == '__main__':

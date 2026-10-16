@@ -27,9 +27,10 @@ from test_unmatched_sample_report import REVISION
 SOURCE = ladder('XIC(A)[XIO(A),EQU(A,937291)]OTE(A)OTL(A)OTU(A);')
 
 
-def captured(data: bytes = SOURCE) -> tuple:
+def captured(data: bytes = SOURCE, *, schema_version: int = 1) -> tuple:
     parts = old_captured(data)
-    return (*parts, analyze_conditions(*parts[:3], parts[4], parts[8], parts[9], parts[10]))
+    return (*parts, analyze_conditions(*parts[:3], parts[4], parts[8], parts[9], parts[10],
+                                      schema_version=schema_version))
 
 
 def options(parts: tuple) -> dict:
@@ -40,11 +41,11 @@ def arguments(parts: tuple) -> dict:
     return old_arguments(parts) | {'conditions': parts[11]}
 
 
-def report(data: bytes = SOURCE) -> dict:
+def report(data: bytes = SOURCE, *, schema_version: int = 24) -> dict:
     payload = old_report(data)
-    parts = captured(data)
+    parts = captured(data, schema_version=2 if schema_version >= 26 else 1)
     summary = build_condition_summary(*parts[:3], parts[4], parts[8], parts[9], parts[10], parts[11], revision=REVISION)
-    payload.update(schema_version=24, workflow_version='work-check-24')
+    payload.update(schema_version=schema_version, workflow_version=f'work-check-{schema_version}')
     payload['analysis']['condition_summary'] = summary
     if summary['status'] == 'partial':
         payload['analysis']['status'] = payload['status'] = 'partial'
@@ -166,7 +167,7 @@ class ConditionWorkflowTests(unittest.TestCase):
             self.assertFalse((saved / 'manifest.json').exists())
 
     def test_cli_and_runner_save_identical_conditions_and_fixed_safe_failures(self) -> None:
-        parts = captured()
+        parts = captured(schema_version=2)
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve()
             source = root / 'invented.L5X'
@@ -181,7 +182,7 @@ class ConditionWorkflowTests(unittest.TestCase):
             self.assertIsNone(outcome['failure_code'])
             self.assertEqual(save.call_args.kwargs['conditions'].to_dict(), parts[-1].to_dict())
             outcome.pop('diagnostic_sample')
-            self.assertEqual(outcome, report()['analysis'])
+            self.assertEqual(outcome, report(schema_version=26)['analysis'])
             with patch('plc_workbench.conditions.analyze_conditions', side_effect=ConditionError('PRIVATE_FAILURE')):
                 code, output, error = invoke(['review', str(source), '--workspace', str(root / 'failed')])
             self.assertEqual((code, output), (1, ''))
@@ -316,6 +317,121 @@ class ConditionWorkReportTests(unittest.TestCase):
                 with self.assertRaises(SummaryOutputError):
                     publish_summary(destination, value, input_path=root / 'source.L5X')
                 self.assertFalse(destination.exists())
+
+
+class ConditionTransferWorkflowTests(unittest.TestCase):
+    """New transfers use a separate contract without rewriting older evidence."""
+
+    SOURCE = ladder('XIC(A)[MOV(A,A),ADD(A,1,A)]OTE(A)CPT(A,A+1)ONS(A)OTL(A);')
+
+    def test_review10_manifest13_keep_sixteen_artifacts_and_prior_companions(self) -> None:
+        previous_parts = captured(self.SOURCE)
+        parts = captured(self.SOURCE, schema_version=2)
+        data = build_review_data(*parts[:4], **options(parts))
+        self.assertEqual((data['schema_version'], data['report_version']), (10, 'engineering-review-10'))
+        self.assertEqual(data['conditions']['schema_version'], 2)
+        self.assertEqual(data['conditions']['coverage']['node_kinds']['pass_through'], 3)
+        self.assertEqual(data['conditions']['coverage']['nodes_total'], previous_parts[-1].coverage['nodes_total'])
+        validate_review_data(*parts[:4], data, **options(parts))
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            previous = save_run(root, *previous_parts[:2], **arguments(previous_parts))
+            before = {path.name: path.read_bytes() for path in previous.iterdir()}
+            current = save_run(root, *parts[:2], **arguments(parts))
+            manifest = json.loads((current / 'manifest.json').read_bytes())
+            self.assertEqual((manifest['schema_version'], len(manifest['artifacts'])), (13, 16))
+            self.assertEqual((manifest['review_schema_version'], manifest['review_version']), (10, 'engineering-review-10'))
+            self.assertEqual((manifest['condition_schema_version'], manifest['condition_analyzer_version']),
+                             (2, 'condition-analysis-2'))
+            self.assertEqual((current / 'boolean-conditions.json').read_bytes(), render_conditions_json(parts[-1]).encode())
+            for name, details in manifest['artifacts'].items():
+                value = (current / name).read_bytes()
+                self.assertEqual(details, {'size_bytes': len(value), 'sha256': hashlib.sha256(value).hexdigest()})
+                if name not in {'boolean-conditions.json', 'review.html'}:
+                    self.assertEqual(value, before[name])
+            self.assertEqual(before, {path.name: path.read_bytes() for path in previous.iterdir()})
+
+    def test_wrong_version_or_mutated_transfer_cannot_allocate_storage(self) -> None:
+        parts = captured(self.SOURCE, schema_version=2)
+        for version in (1, 3, True, 2.0):
+            forged = deepcopy(parts[-1])
+            object.__setattr__(forged, 'schema_version', version)
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as folder:
+                destination = Path(folder) / 'unallocated'
+                with self.assertRaises(StorageError):
+                    save_run(destination, *parts[:2], **dict(arguments(parts), conditions=forged))
+                self.assertFalse(destination.exists())
+        forged = deepcopy(parts[-1])
+        transfer = next(node for node in forged.nodes if node['kind'] == 'pass_through')
+        transfer['child_ids'] = []
+        with tempfile.TemporaryDirectory() as folder:
+            destination = Path(folder) / 'unallocated'
+            with self.assertRaises(StorageError):
+                save_run(destination, *parts[:2], **dict(arguments(parts), conditions=forged))
+            self.assertFalse(destination.exists())
+
+    def test_review10_limit_is_independent_of_frozen_review9(self) -> None:
+        from plc_workbench import review
+        old_parts, parts = captured(self.SOURCE), captured(self.SOURCE, schema_version=2)
+        previous = build_review_data(*old_parts[:4], **options(old_parts))
+        current = build_review_data(*parts[:4], **options(parts))
+        self.assertEqual(review.MAX_REVIEW_V10_BYTES, 160 * 1024 * 1024)
+        for restricted, accepted, rejected in (('MAX_REVIEW_V10_BYTES', previous, current),
+                                              ('MAX_REVIEW_V9_BYTES', current, previous)):
+            with patch.object(review, restricted, 1):
+                review.render_review_json(accepted)
+                with self.assertRaises(review.ReviewSizeLimitError):
+                    review.render_review_json(rejected)
+        with tempfile.TemporaryDirectory() as folder:
+            destination = Path(folder) / 'unallocated'
+            with patch.object(review, 'MAX_REVIEW_V10_BYTES', 1), self.assertRaises(StorageError) as caught:
+                save_run(destination, *parts[:2], **arguments(parts))
+            self.assertEqual(caught.exception.code, 'review_size_limit')
+            self.assertFalse(destination.exists())
+
+    def test_work26_explicitly_requires_condition2_and_older_versions_require_condition1(self) -> None:
+        current = report(self.SOURCE, schema_version=26)
+        old24 = report(self.SOURCE)
+        old25 = report(self.SOURCE, schema_version=25)
+        for payload in (current, old24, old25):
+            self.assertEqual(json.loads(work_check.render_work_check_report(payload)), payload)
+        for original, donor in ((current, old24), (old24, current), (old25, current)):
+            bad = deepcopy(original)
+            bad['analysis']['condition_summary'] = donor['analysis']['condition_summary']
+            with self.assertRaises(work_check.WorkCheckError):
+                work_check.validate_work_check_report(bad)
+        for key in old24['analysis']:
+            if key not in {'condition_summary', 'status'}:
+                self.assertEqual(current['analysis'][key], old24['analysis'][key])
+
+    def test_pass_opcodes_share_withheld_allowance_with_predicates_and_coils(self) -> None:
+        for target, donor in (('MOV(A,A)XIC(A)OTE(A);', 'ABS(A,A)XIC(A)OTE(A);'),
+                              ('mov(A,A)XIC(A)OTE(A);', 'MOV(A,A)xio(A)OTE(A);'),
+                              ('mov(A,A)XIC(A)OTE(A);', 'MOV(A,A)XIC(A)otl(A);')):
+            bad = report(ladder(target), schema_version=26)
+            summary = report(ladder(donor), schema_version=26)['analysis']['condition_summary']
+            validate_condition_summary(summary)
+            bad['analysis']['condition_summary'] = summary
+            with self.subTest(target=target, donor=donor), self.assertRaises(work_check.WorkCheckError):
+                work_check.validate_work_check_report(bad)
+        # One withheld case variant may legitimately cover one recognized pass.
+        work_check.validate_work_check_report(report(ladder('mov(A,A)XIC(A)OTE(A);'), schema_version=26))
+
+    def test_work26_publication_is_aggregate_only_and_uses_bounded_larger_envelope(self) -> None:
+        payload = report(self.SOURCE, schema_version=26)
+        rendered = work_check.render_work_check_report(payload)
+        self.assertIn('passthrough_opcodes', rendered)
+        for private in ('child_ids', 'instruction_id', 'target_id', 'operand_ids', 'snapshot', 'A+1'):
+            self.assertNotIn(private, rendered)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            with patch('subprocess.Popen', side_effect=AssertionError('No external processes.')):
+                padded = rendered + ' ' * max(0, 33 * 1024 - len(rendered))
+                publish_summary(root / 'accepted.json', padded, input_path=root / 'source.L5X')
+            self.assertEqual((root / 'accepted.json').read_bytes(), rendered.encode())
+            with self.assertRaises(SummaryOutputError):
+                publish_summary(root / 'oversized.json', rendered + ' ' * (49 * 1024), input_path=root / 'source.L5X')
+            self.assertFalse((root / 'oversized.json').exists())
 
 
 if __name__ == '__main__':

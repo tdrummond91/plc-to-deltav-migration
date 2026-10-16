@@ -26,6 +26,10 @@ MAX_RECORDS = 250_000
 MAX_EVIDENCE_IDS = 2_000_000
 PREDICATE_OPCODES = frozenset('XIC XIO EQU NEQ LES LEQ GRT GEQ LIM'.split())
 OUTPUT_ACTIONS = {'OTE': 'assign_condition', 'OTL': 'set_if_true', 'OTU': 'clear_if_true'}
+# Instruction-specific normal-scan LD execution tables, cited in
+# CONDITION_TRANSFER_REVIEW.md. Operand access alone is never sufficient to
+# admit an opcode. Stateful effects and faults are outside this transfer model.
+PASSTHROUGH_OPCODES = frozenset('ABS ADD CLR COP CPS CPT CTU DIV LN MOV MUL OSF RES RTO SQR SUB TON'.split())
 CONDITION_CONSTANTS = {
     'schema_version': 1, 'analyzer_version': 'condition-analysis-1',
     'analysis_scope': 'local_rung_boolean_conditions', 'execution_analysis': 'not_implemented',
@@ -45,6 +49,25 @@ COVERAGE_KEYS = frozenset(COUNT_MAPS) | {
     'nodes_total', 'outputs_total', 'rungs_with_outputs', 'output_addresses',
     'branch_joins', 'branch_legs', 'binding_gap_predicates', 'outputs_with_branches',
 }
+
+
+def condition_constants(schema_version: int) -> dict[str, Any]:
+    if type(schema_version) is not int or schema_version not in (1, 2):
+        _invalid()
+    return {**CONDITION_CONSTANTS, 'schema_version': schema_version,
+            'analyzer_version': f'condition-analysis-{schema_version}'}
+
+
+def count_maps(schema_version: int) -> dict[str, frozenset[str]]:
+    condition_constants(schema_version)
+    if schema_version == 1:
+        return dict(COUNT_MAPS)
+    return {**COUNT_MAPS, 'node_kinds': COUNT_MAPS['node_kinds'] | {'pass_through'},
+            'passthrough_opcodes': PASSTHROUGH_OPCODES}
+
+
+def coverage_keys(schema_version: int) -> frozenset[str]:
+    return frozenset(COVERAGE_KEYS | count_maps(schema_version).keys())
 
 
 class ConditionError(ValueError):
@@ -101,7 +124,8 @@ def _identifier(prefix: str, *parts: str) -> str:
 
 
 def _derive(inventory: InventoryResult, access: AccessResult,
-            relationships: RelationshipResult) -> ConditionResult:
+            relationships: RelationshipResult, *, schema_version: int = 1) -> ConditionResult:
+    constants = condition_constants(schema_version)
     if max(len(inventory.rungs), len(access.instructions), len(access.operands),
            len(access.expression_uses)) > MAX_RECORDS:
         _limit()
@@ -112,8 +136,9 @@ def _derive(inventory: InventoryResult, access: AccessResult,
                  for role in ('read', 'write', 'read_write', 'unknown')
                  for identifier in address[f'{role}_operand_ids']}
     identity_gaps = {row['id'] for row in relationships.identity_gaps if row['kind'] == 'operand'}
-    coverage = {key: dict.fromkeys(sorted(vocabulary), 0) for key, vocabulary in COUNT_MAPS.items()}
-    coverage.update(dict.fromkeys(sorted(COVERAGE_KEYS - COUNT_MAPS.keys()), 0))
+    maps = count_maps(schema_version)
+    coverage = {key: dict.fromkeys(sorted(vocabulary), 0) for key, vocabulary in maps.items()}
+    coverage.update(dict.fromkeys(sorted(coverage_keys(schema_version) - maps.keys()), 0))
     coverage.update(source_rungs=len(inventory.rungs), source_instructions=len(access.instructions),
                     source_operands=len(access.operands), expression_uses=len(access.expression_uses))
     nodes: list[dict[str, Any]] = []
@@ -188,7 +213,15 @@ def _derive(inventory: InventoryResult, access: AccessResult,
             # incoming condition through. Their destination actions differ.
             if classified:
                 return incoming
+        if schema_version == 2 and opcode in PASSTHROUGH_OPCODES and classified:
+            coverage['passthrough_opcodes'][opcode] += 1
+            # Keep the occurrence even though the Boolean transfer is identity.
+            # Data binding gaps do not change that documented transfer. These
+            # slots still retain their independent access/binding evidence.
+            return node(rung_id, 'pass_through', [incoming], instruction_id=instruction_id,
+                        operand_ids=operand_ids, reason='documented_normal_scan_passthrough')
         reason = ('signature_unresolved' if opcode in PREDICATE_OPCODES or opcode in OUTPUT_ACTIONS
+                  or (schema_version == 2 and opcode in PASSTHROUGH_OPCODES)
                   else 'unsupported_condition_behavior')
         return node(rung_id, 'opaque_transfer', [incoming], instruction_id=instruction_id,
                     operand_ids=operand_ids, reason=reason)
@@ -243,16 +276,17 @@ def _derive(inventory: InventoryResult, access: AccessResult,
                    or coverage['binding_gap_predicates']
                    or len(outputs) != coverage['target_statuses']['exact_address'])
     return ConditionResult(deepcopy(inventory.snapshot), 'partial' if partial else 'complete',
-                           nodes, outputs, rungs, coverage)
+                           nodes, outputs, rungs, coverage, **constants)
 
 
 def analyze_conditions(snapshot: SourceSnapshot, inventory: InventoryResult, references: ReferenceResult,
                        access: AccessResult, calculations: CalculationResult,
-                       rung_analysis: RungAnalysisResult, relationships: RelationshipResult) -> ConditionResult:
+                       rung_analysis: RungAnalysisResult, relationships: RelationshipResult,
+                       *, schema_version: int = 1) -> ConditionResult:
     """Authenticate every prior companion before deriving bounded conditions."""
     try:
         validate_relationships(snapshot, inventory, references, access, calculations, rung_analysis, relationships)
-        result = _derive(inventory, access, relationships)
+        result = _derive(inventory, access, relationships, schema_version=schema_version)
         render_conditions_json(result)
         return result
     except ConditionError:
@@ -269,7 +303,8 @@ def validate_conditions(snapshot: SourceSnapshot, inventory: InventoryResult, re
         if type(result) is not ConditionResult:
             _invalid()
         render_conditions_json(result)
-        expected = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships)
+        expected = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis,
+                                      relationships, schema_version=result.schema_version)
         if not _strict_record_match(vars(expected), vars(result)):
             _invalid()
     except ConditionError:

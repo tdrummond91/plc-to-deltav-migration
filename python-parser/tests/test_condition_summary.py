@@ -10,7 +10,7 @@ from unittest.mock import patch
 from plc_workbench.condition_summary import (
     ConditionSummaryError, build_condition_summary, render_condition_summary, validate_condition_summary,
 )
-from test_conditions import capture
+from test_conditions import PASS_EXAMPLES, capture
 from test_relationships import tag
 
 
@@ -19,6 +19,50 @@ def summary(texts=('XIC(A)OTE(B);',), **kwargs):
 
 
 class ConditionSummaryTests(unittest.TestCase):
+    def test_version2_pass_population_and_legacy_summary_are_separate(self) -> None:
+        texts = tuple(f'{block}OTE(D);' for block in PASS_EXAMPLES)
+        old = summary(texts)
+        current = summary(texts, schema_version=2)
+        self.assertEqual(current['schema_version'], 2)
+        self.assertEqual(current['exporter_version'], 'condition-summary-2')
+        self.assertEqual(current['coverage']['node_kinds']['pass_through'], 17)
+        self.assertEqual(sum(current['coverage']['passthrough_opcodes'].values()), 17)
+        self.assertEqual(current['status'], 'complete')
+        self.assertEqual(old['status'], 'partial')
+        self.assertNotIn('passthrough_opcodes', old['coverage'])
+        self.assertLessEqual(len(render_condition_summary(current)), 4096)
+        self.assertEqual(render_condition_summary(old), render_condition_summary(summary(texts)))
+
+    def test_version2_fixed_maps_conservation_and_hybrids_reject(self) -> None:
+        mutations = (
+            lambda r: r['coverage']['passthrough_opcodes'].update(MOV=0),
+            lambda r: r['coverage']['passthrough_opcodes'].update(PrivateOpcode=0),
+            lambda r: r['coverage']['node_kinds'].update(pass_through=0),
+            lambda r: r['coverage'].pop('passthrough_opcodes'),
+            lambda r: r.update(schema_version=1, analyzer_version='condition-analysis-1', exporter_version='condition-summary-1'),
+            lambda r: r.update(analyzer_version='condition-analysis-1'),
+            lambda r: r.update(exporter_version='condition-summary-1'),
+        )
+        base = summary(('MOV(A,B)OTE(D);',), schema_version=2)
+        for mutate in mutations:
+            candidate = deepcopy(base)
+            mutate(candidate)
+            with self.subTest(mutate=mutate), self.assertRaises(ConditionSummaryError):
+                render_condition_summary(candidate)
+        old = summary()
+        old.update(schema_version=2, analyzer_version='condition-analysis-2', exporter_version='condition-summary-2')
+        with self.assertRaises(ConditionSummaryError):
+            validate_condition_summary(old)
+
+    def test_version2_data_gaps_and_unknown_ancestry_keep_scope_explicit(self) -> None:
+        report = summary(('CPT(Missing,Other+1)OTE(D);',), schema_version=2)
+        self.assertEqual(report['status'], 'complete')
+        self.assertEqual(report['execution_analysis'], 'not_implemented')
+        report = summary(('MYSTERY(A)MOV(A,B)OTE(D);',), schema_version=2)
+        self.assertEqual(report['status'], 'partial')
+        self.assertEqual(report['coverage']['guard_statuses']['opaque'], 1)
+        self.assertEqual(report['coverage']['node_kinds']['pass_through'], 1)
+
     def test_closed_counts_are_small_deterministic_and_source_free(self) -> None:
         report = summary()
         rendered = render_condition_summary(report)
