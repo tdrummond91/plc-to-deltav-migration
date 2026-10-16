@@ -100,7 +100,7 @@ class SfcWorkReportTests(unittest.TestCase):
             self.assertTrue(result['private_run_saved'])
             saved, = (root / 'confidential/workspaces/work-check').glob('run-*')
             manifest = json.loads((saved / 'manifest.json').read_bytes())
-            self.assertEqual(manifest['schema_version'], 13)
+            self.assertEqual(manifest['schema_version'], 14)
             self.assertEqual(manifest['artifact_kind'], 'source_reference_sfc_access_tag_data_pid_member_calculation_rung_relationship_condition_review_run')
             self.assertEqual(set(manifest['artifacts']), {'snapshot.L5X', 'inventory.json', 'overview.txt',
                 'references.json', 'references.txt', 'sfc-structure.json', 'sfc-structure.txt', 'review.html', 'access.json', 'tag-data.json', 'pid.json', 'pid-members.json', 'calculations.json', 'rung-analysis.json', 'relationships.json', 'boolean-conditions.json'})
@@ -125,12 +125,12 @@ class SfcWorkReportTests(unittest.TestCase):
             self.assertIsNone(result['reference_summary'])
             payload = report()
             result.pop('diagnostic_sample')
-            payload.update(schema_version=24, workflow_version='work-check-24',
+            payload.update(schema_version=27, workflow_version='work-check-27',
                            analysis=result, status='failed', diagnostic_sample=None)
             rendered = work_check.render_work_check_report(payload)
             self.assertNotIn('PRIVATE_FAILURE_VALUE', rendered)
             old = json.loads(PREVIOUS.read_bytes())
-            old.update(analysis={k: v for k, v in result.items() if k not in ('sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary', 'pid_member_summary', 'calculation_summary', 'rung_analysis_summary', 'relationship_summary', 'condition_summary')},
+            old.update(analysis={k: v for k, v in result.items() if k not in ('sfc_structure_summary', 'access_summary', 'tag_data_summary', 'pid_summary', 'pid_member_summary', 'calculation_summary', 'rung_analysis_summary', 'relationship_summary', 'condition_summary', 'binding_context_summary')},
                        status='failed')
             with self.assertRaises(ValueError):
                 work_check.validate_work_check_report(old)

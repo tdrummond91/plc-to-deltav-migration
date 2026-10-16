@@ -182,6 +182,8 @@ class ConditionWorkflowTests(unittest.TestCase):
             self.assertIsNone(outcome['failure_code'])
             self.assertEqual(save.call_args.kwargs['conditions'].to_dict(), parts[-1].to_dict())
             outcome.pop('diagnostic_sample')
+            # Current reports add context without changing this frozen layer.
+            outcome.pop('binding_context_summary')
             self.assertEqual(outcome, report(schema_version=26)['analysis'])
             with patch('plc_workbench.conditions.analyze_conditions', side_effect=ConditionError('PRIVATE_FAILURE')):
                 code, output, error = invoke(['review', str(source), '--workspace', str(root / 'failed')])

@@ -237,6 +237,7 @@ def _review(args: argparse.Namespace) -> int:
     from .rung_analysis import RungAnalysisError, analyze_rungs
     from .relationships import RelationshipError, analyze_relationships
     from .conditions import ConditionError, analyze_conditions
+    from .binding_context import BindingContextError, analyze_binding_context
     from .references import ReferenceError, analyze_references
     from .sfc_structure import SfcStructureError, analyze_sfc_structure
     from .source import SourceError, analyze_snapshot, capture_snapshot
@@ -255,15 +256,19 @@ def _review(args: argparse.Namespace) -> int:
         relationships = analyze_relationships(snapshot, inventory, references, access, calculations, rung_analysis)
         conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
                                         schema_version=2)
+        binding_context = analyze_binding_context(
+            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
         tag_data = analyze_tag_data(snapshot, inventory)
         pid = analyze_pid(snapshot, inventory, references, tag_data)
         pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
         saved = save_run(args.workspace, snapshot, inventory, references=references,
                          sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data, pid=pid,
-                         pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis, relationships=relationships, conditions=conditions)
+                         pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis, relationships=relationships,
+                         conditions=conditions, binding_context=binding_context)
         print(f"Private review report: {saved / 'review.html'}")
         return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status,
-                                tag_data.status, pid.status, pid_members.status, calculations.status, rung_analysis.status, relationships.status, conditions.status) else 0
+                                tag_data.status, pid.status, pid_members.status, calculations.status, rung_analysis.status,
+                                relationships.status, conditions.status, binding_context.status) else 0
     except SourceError:
         print("plc: Cannot read or analyze source; no review report was produced.", file=sys.stderr)
         return 1
@@ -281,6 +286,9 @@ def _review(args: argparse.Namespace) -> int:
         return 1
     except ConditionError:
         print("plc: Cannot analyze local boolean conditions; no review report was produced.", file=sys.stderr)
+        return 1
+    except BindingContextError:
+        print("plc: Cannot analyze binding context; no review report was produced.", file=sys.stderr)
         return 1
     except RelationshipError:
         print("plc: Cannot analyze address relationships; no review report was produced.", file=sys.stderr)

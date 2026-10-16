@@ -1,6 +1,25 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-15): **normal-scan instruction condition transfer**.
+Current checkpoint (2026-10-15): **binding gaps and logical rack context**.
+Returned `248b12a` tested clean `ef4ba8d`: 907 application cases passed (one
+expected skip), plus 139 helpers, with a saved private run. Nine earlier summaries
+are unchanged. Condition2 explains 2,718 instruction transfers; 459 remain opaque.
+Coil guards comprise 3,923 modeled, 181 with predicate gaps and 59 opaque.
+There remain 303 gap-bearing predicates and 16 unbound coil targets.
+
+Review11 adds a bounded binding-context index linking unresolved occurrences to
+source, alias chains, existing rack candidates and separate logical-address groups.
+All existing bindings and condition statuses remain unchanged; physical backing
+and member validity remain unverified. Manifest14 still has sixteen artifacts.
+Work27 adds a count-only context summary. See [scope and validation](BINDING_CONTEXT_REVIEW.md).
+
+The next normal work-machine run measures those per-occurrence associations.
+Continue Phase 1 automated analysis; no engineering/team review is requested yet.
+Git transport remains manual and the listener remains disabled.
+
+## Historical condition-transfer checkpoint
+
+Historical checkpoint (2026-10-15): **normal-scan instruction condition transfer**.
 Returned `b31392a` tested clean `78cf221`: 889 application cases passed (one
 expected skip), plus 139 helpers, and the private report saved successfully.
 All nine preceding summaries are unchanged after tool revision normalization.

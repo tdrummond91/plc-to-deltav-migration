@@ -1,5 +1,16 @@
 # Data contracts, traceability, and checkpoints
 
+## Binding context revision (2026-10-15)
+
+BindingContext1 is an 8 MiB bounded index of existing unresolved-use evidence,
+embedded in review11 with no additional artifact. Candidate logical addresses
+use a separate namespace and never replace existing bindings or exact addresses.
+Manifest14 retains 16 artifacts. Review11 allows 168 MiB JSON / 200 MiB HTML;
+all earlier caps/contracts remain frozen. Work27 requires the closed 4 KiB
+binding-context summary1, preserves its ten earlier summaries, and admits the
+fixed binding_context_error code within the unchanged 48 KiB outer envelope.
+See [context contract and source evidence](../reviews/BINDING_CONTEXT_REVIEW.md).
+
 ## Condition transfer revision (2026-10-15)
 
 Private condition2 keeps condition1's dataclass shape and 32 MiB cap, adds

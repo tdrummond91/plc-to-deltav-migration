@@ -22,6 +22,7 @@ from .calculations import CalculationResult, analyze_calculations
 from .rung_analysis import RungAnalysisResult, analyze_rungs
 from .relationships import RelationshipResult, analyze_relationships
 from .conditions import ConditionResult, analyze_conditions
+from .binding_context import BindingContextResult, analyze_binding_context
 from .references import ReferenceResult, analyze_references
 from .sfc_structure import SfcStructureResult, analyze_sfc_structure
 from .source import analyze_snapshot
@@ -36,6 +37,7 @@ MAX_REVIEW_V3_BYTES = 128 * 1024 * 1024
 MAX_REVIEW_V9_BYTES = 160 * 1024 * 1024
 # Review10 changes transfer semantics without increasing the companion budget.
 MAX_REVIEW_V10_BYTES = 160 * 1024 * 1024
+MAX_REVIEW_V11_BYTES = 168 * 1024 * 1024
 MAX_REVIEW_FINDINGS = 500_000
 MAX_REVIEW_PATTERNS = 100_000
 _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
@@ -92,7 +94,8 @@ def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     """Count UTF-8 bytes without retaining millions of small encoder chunks."""
     rendered = io.StringIO() if retain else None
     version = (data.get('schema_version'), data.get('report_version'))
-    limit = (MAX_REVIEW_V10_BYTES if version == (10, 'engineering-review-10') else
+    limit = (MAX_REVIEW_V11_BYTES if version == (11, 'engineering-review-11') else
+             MAX_REVIEW_V10_BYTES if version == (10, 'engineering-review-10') else
              MAX_REVIEW_V9_BYTES if version == (9, 'engineering-review-9') else
              MAX_REVIEW_V3_BYTES if version
              in ((3, 'engineering-review-3'), (4, 'engineering-review-4'),
@@ -206,7 +209,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       calculations: CalculationResult | None = None,
                       rung_analysis: RungAnalysisResult | None = None,
                       relationships: RelationshipResult | None = None,
-                      conditions: ConditionResult | None = None) -> dict[str, Any]:
+                      conditions: ConditionResult | None = None,
+                      binding_context: BindingContextResult | None = None) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -241,6 +245,11 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         if conditions is not None:
             if (type(conditions) is not ConditionResult or type(conditions.schema_version) is not int
                     or conditions.schema_version not in (1, 2) or type(relationships) is not RelationshipResult):
+                _fail()
+        if binding_context is not None:
+            if (type(binding_context) is not BindingContextResult or type(binding_context.schema_version) is not int
+                    or binding_context.schema_version != 1 or type(conditions) is not ConditionResult
+                    or conditions.schema_version != 2):
                 _fail()
         canonical_inventory = analyze_snapshot(snapshot)
         if not _strict_equal(canonical_inventory, inventory):
@@ -312,6 +321,13 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                 canonical_calculations, canonical_rungs, canonical_relationships,
                 schema_version=conditions.schema_version)
             if not _strict_equal(canonical_conditions, conditions):
+                _fail()
+        canonical_binding_context = None
+        if binding_context is not None:
+            canonical_binding_context = analyze_binding_context(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_calculations, canonical_rungs, canonical_relationships, canonical_conditions)
+            if not _strict_equal(canonical_binding_context, binding_context):
                 _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)
@@ -401,6 +417,13 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             })
             if canonical_conditions.status == 'partial':
                 data['status'] = 'partial'
+        if canonical_binding_context is not None:
+            data.update({
+                'schema_version': 11, 'report_version': 'engineering-review-11',
+                'binding_context': canonical_binding_context.to_dict(),
+            })
+            if canonical_binding_context.status == 'partial':
+                data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
     except ReviewSizeLimitError:
@@ -418,14 +441,15 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          calculations: CalculationResult | None = None,
                          rung_analysis: RungAnalysisResult | None = None,
                          relationships: RelationshipResult | None = None,
-                         conditions: ConditionResult | None = None) -> None:
+                         conditions: ConditionResult | None = None,
+                         binding_context: BindingContextResult | None = None) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
         if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
                                           access=access, tag_data=tag_data, pid=pid,
                                           pid_members=pid_members, calculations=calculations,
                                           rung_analysis=rung_analysis, relationships=relationships,
-                                          conditions=conditions), data):
+                                          conditions=conditions, binding_context=binding_context), data):
             return
     except ReviewSizeLimitError:
         raise

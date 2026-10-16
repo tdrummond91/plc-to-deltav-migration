@@ -182,6 +182,7 @@ class RelationshipWorkflowTests(unittest.TestCase):
             self.assertEqual(save.call_args.kwargs['relationships'].to_dict(), parts[-1].to_dict())
             outcome.pop('diagnostic_sample')
             self.assertIsNotNone(outcome.pop('condition_summary'))
+            self.assertIsNotNone(outcome.pop('binding_context_summary'))
             self.assertEqual(outcome, report()['analysis'])
             with patch('plc_workbench.relationships.analyze_relationships', side_effect=RelationshipError('PRIVATE_FAILURE')):
                 code, output, error = invoke(['review', str(source), '--workspace', str(root / 'failed')])

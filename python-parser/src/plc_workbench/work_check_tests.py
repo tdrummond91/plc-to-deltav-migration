@@ -63,6 +63,7 @@ WORK_MACHINE_MODULES = {
         "test_relationships", "test_relationship_summary", "test_relationship_workflow",
         "test_conditions", "test_condition_summary", "test_condition_workflow",
         "test_save_diagnostics", "test_review_save_failures",
+        "test_binding_context", "test_binding_context_summary", "test_binding_context_workflow",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

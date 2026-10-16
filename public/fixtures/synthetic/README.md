@@ -1,6 +1,18 @@
 # Independently synthetic L5X fixture
 
-## Current instruction condition-transfer demonstration
+## Current binding-context demonstration
+
+`binding_context_review_demo.L5X` extends the condition-transfer fixture with
+69 invented rungs (260 total). Cases include two-hop aliases, unique and
+ambiguous rack candidates, missing rack roots, read/write roles independent of
+I/O direction, expression gaps and non-address output slots. Sixty groups
+exercise candidate-address pagination. All source text and connections are
+invented; no plant source was used. These are analyzer cases, not controller-ready logic.
+
+The [HTML demo](../../examples/engineering-review-demo.html) uses review11 and
+adds Binding context. Earlier fixture bytes remain unchanged.
+
+## Historical instruction condition-transfer demonstration
 
 `condition_transfer_review_demo.L5X` extends the previous condition fixture
 with 71 invented rungs (191 total). It exercises all 17 documented transfer
@@ -8,8 +20,8 @@ spellings, noncoil contexts, false-state explanations, data and signature gaps,
 unknown ancestry, repeated reads around writes, branches and empty bypasses.
 Sixty additional move occurrences exercise pagination. Markup-like source text
 tests inert rendering. No private source was used to construct this fixture.
-The [HTML demo](../../examples/engineering-review-demo.html) now uses review10
-and includes Instruction conditions. Earlier fixtures remain unchanged.
+The HTML demo previously used review10 and added Instruction conditions.
+Earlier fixtures remain unchanged.
 
 ## Historical condition demonstration
 
@@ -32,8 +44,8 @@ whole-object/member barriers, branches, conditions, unknown effects, copy ranges
 invalid composed alias suffixes, distinct index spellings and operand-reuse versus
 literal differences. These are analyzer cases, not validated controller logic.
 
-The generated [HTML demo](../../examples/engineering-review-demo.html) uses
-review8 and includes Address relationships. Existing fixture files are retained.
+The HTML demo previously used review8 and added Address relationships.
+Existing fixture files are retained.
 
 ## Historical rung-analysis demonstration
 
@@ -42,7 +54,7 @@ independently invented CPT access fixture with module input/output roots,
 conditional outputs, branching outputs, empty bypasses, an unsupported block,
 empty/unparsed rungs, ambiguous comments, missing metadata and weak PID/alarm/
 equipment hints. All names, values and connections are invented. The
-[current HTML demo](../../examples/engineering-review-demo.html) uses this fixture.
+HTML demo previously used this fixture.
 These deliberately mixed cases are parser examples, not controller-ready logic.
 Earlier fixtures remain unchanged. See
 [rung-analysis review](../../docs/reviews/RUNG_ANALYSIS_REVIEW.md).

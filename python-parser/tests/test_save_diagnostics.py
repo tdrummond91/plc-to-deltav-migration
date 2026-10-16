@@ -24,7 +24,8 @@ SAVE_CODES = (
 
 
 def current_report() -> dict:
-    return condition_report(schema_version=26)
+    from test_binding_context_workflow import report
+    return report(SOURCE)
 
 
 def failed_report(version: int = 25, code: str = 'save_error') -> dict:
@@ -33,7 +34,7 @@ def failed_report(version: int = 25, code: str = 'save_error') -> dict:
         'reference_summary': 1, 'sfc_structure_summary': 11, 'access_summary': 13,
         'tag_data_summary': 15, 'pid_summary': 16, 'pid_member_summary': 17,
         'calculation_summary': 18, 'rung_analysis_summary': 22,
-        'relationship_summary': 23, 'condition_summary': 24,
+        'relationship_summary': 23, 'condition_summary': 24, 'binding_context_summary': 27,
     }
     test_result = {
         'schema_version': 1, 'status': 'passed',
@@ -68,7 +69,7 @@ class SaveFailureDiagnosticsTests(unittest.TestCase):
         self.assertIsNone(result['diagnostic_sample'])
         self.assertTrue(all(value is None for key, value in result.items() if key.endswith('_summary')))
         self.assertNotIn('PRIVATE_SENTINEL', json.dumps(result))
-        payload = failed_report()
+        payload = failed_report(27)
         payload['analysis'] = {key: value for key, value in result.items() if key != 'diagnostic_sample'}
         work_check.validate_work_check_report(payload)
 
@@ -172,14 +173,14 @@ class SaveFailureDiagnosticsTests(unittest.TestCase):
                 self.assertTrue(result['private_run_saved'])
                 saved, = (root / 'confidential/workspaces/work-check').iterdir()
                 manifest = json.loads((saved / 'manifest.json').read_bytes())
-                self.assertEqual((manifest['schema_version'], len(manifest['artifacts'])), (13, 16))
+                self.assertEqual((manifest['schema_version'], len(manifest['artifacts'])), (14, 16))
                 result.pop('diagnostic_sample')
                 self.assertEqual(result, current_report()['analysis'])
 
 
 class SaveFailureReportTests(unittest.TestCase):
     def test_new_codes_require_work25_or_later_older_contracts_stay_closed(self) -> None:
-        for version in range(1, 27):
+        for version in range(1, 28):
             work_check.validate_work_check_report(failed_report(version))
             for code in SAVE_CODES:
                 payload = failed_report(version, code)
@@ -188,7 +189,7 @@ class SaveFailureReportTests(unittest.TestCase):
                 else:
                     with self.subTest(version=version, code=code), self.assertRaises(work_check.WorkCheckError):
                         work_check.validate_work_check_report(payload)
-        for version in (0, 27, True, 25.0, '25'):
+        for version in (0, 28, True, 25.0, '25'):
             payload = failed_report()
             payload['schema_version'] = version
             with self.subTest(version=version), self.assertRaises(work_check.WorkCheckError):
@@ -225,7 +226,8 @@ class SaveFailureReportTests(unittest.TestCase):
     def test_success_contract_and_native_shapes_remain_strict(self) -> None:
         original = current_report()
         work_check.validate_work_check_report(original)
-        self.assertEqual(original['analysis'], condition_report(schema_version=26)['analysis'])
+        self.assertEqual({key: value for key, value in original['analysis'].items() if key != 'binding_context_summary'},
+                         condition_report(schema_version=26)['analysis'])
         for mutate in (lambda p: p['analysis'].pop('condition_summary'),
                        lambda p: p['analysis']['condition_summary'].update(schema_version=True),
                        lambda p: p['analysis']['reference_summary'].update(schema_version=11),
