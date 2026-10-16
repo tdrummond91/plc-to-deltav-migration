@@ -1,5 +1,24 @@
 # PID connections and observed member uses
 
+## Confirmed work-machine return
+
+Return `693e419` tested clean `f4f704d`. All 1,216 application cases passed
+(two expected Windows symlink skips), as did 139 helpers. The private run saved
+without a failure code. All 39 historical reports validate; fifteen preceding
+summaries and the frozen diagnostic record are unchanged.
+
+All 46 PID controls link, all 322 slots are accounted for (184 exact addresses,
+138 literals), and all occurrences retain incoming condition context. The 515
+address records include 333 direct members, 136 slot addresses and 46 whole
+owners. Direct-member groups contain 46 setpoint, 139 mode, 88 scaling, 48 tuning,
+eight limit and four process-value addresses. No member spelling, namespace or
+binding gap was recorded in this companion's scope.
+
+All 46 master operands are literals, so there are no explicit master candidates.
+Zero alarm/status member accesses does not establish absence of process alarms.
+The next analysis extends math/move records into branch legs; see
+[calculation inputs and destinations](CALCULATION_PATHS_REVIEW.md).
+
 ## Returned evidence
 
 Return `4018156` tested clean `4b04e28`. The work31 report passed 1,183

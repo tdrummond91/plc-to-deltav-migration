@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from .pid_members import PidMemberResult
     from .pid_connections import PidConnectionResult
     from .calculations import CalculationResult
+    from .calculation_paths import CalculationPathResult
     from .rung_analysis import RungAnalysisResult
     from .relationships import RelationshipResult
     from .conditions import ConditionResult
@@ -107,6 +108,7 @@ def save_run(
     sfr_context: SfrContextResult | None = None,
     aoi_body_context: AoiBodyContextResult | None = None,
     pid_connections: PidConnectionResult | None = None,
+    calculation_paths: CalculationPathResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -146,6 +148,8 @@ def save_run(
             raise StorageError("AOI body context requires a complete engineering review with SFR context.")
         if pid_connections is not None and (aoi_body_context is None or pid_members is None or not include_review):
             raise StorageError("PID connections require a complete engineering review with PID member evidence.")
+        if calculation_paths is not None and (pid_connections is None or not include_review):
+            raise StorageError("Calculation paths require a complete engineering review with PID connection evidence.")
         payload = result.to_dict()
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
@@ -189,7 +193,7 @@ def save_run(
                                                 conditions=conditions, binding_context=binding_context,
                                                 custom_instruction_context=custom_instruction_context,
                                                 indexed_access=indexed_access, sfr_context=sfr_context, aoi_body_context=aoi_body_context,
-                                                pid_connections=pid_connections)
+                                                pid_connections=pid_connections, calculation_paths=calculation_paths)
                 review_html = render_review_html(review_data).encode("utf-8")
             except (ReviewSizeLimitError, ReviewHtmlSizeLimitError) as exc:
                 raise StorageError("Private engineering review exceeds its report size limit.", code='review_size_limit') from exc
@@ -438,6 +442,12 @@ def save_run(
             manifest.update({"schema_version": 18,
                              "pid_connections_schema_version": companion["schema_version"],
                              "pid_connections_analyzer_version": companion["analyzer_version"],
+                             "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete"})
+        if calculation_paths is not None:
+            companion = review_data["calculation_paths"]
+            manifest.update({"schema_version": 19,
+                             "calculation_paths_schema_version": companion["schema_version"],
+                             "calculation_paths_analyzer_version": companion["analyzer_version"],
                              "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete"})
         _write_artifact(
             destination, run_dir, ".manifest.pending",

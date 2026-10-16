@@ -186,6 +186,7 @@ class TargetedSampleWorkflowTests(unittest.TestCase):
             result.pop('sfr_summary')
             result.pop('aoi_body_summary')
             result.pop('pid_connection_summary')
+            result.pop('calculation_path_summary')
             self.assertEqual(result.pop('condition_summary')['schema_version'], 3)
             self.assertEqual(result, {k: v for k, v in report()['analysis'].items() if k != 'condition_summary'})
 

@@ -36,7 +36,7 @@ hints are separate. Internal Boolean outputs do not imply physical DOs; no
 known local result does not prove dead code. CPT expression reads retain their
 own population, node/span links and repeated occurrences.
 
-The latest automated return (`4018156`) saved successfully and accounts for
+The latest automated return (`693e419`) saved successfully and accounts for
 4,163 coil outputs: 3,966 modeled guards, 196 with condition binding gaps and
 one with an opaque transfer. There are 2,718 pass-through and 133 stored-state
 transfers; 326 remain opaque. Earlier summaries remain unchanged, including
@@ -48,9 +48,11 @@ unknown block has a unique AOI declaration candidate, while one indexed operand
 with an unknown role stays deferred. All six targeted rung examples replay unchanged.
 SFR matched 139 of 140 calls to captured steps; its unmatched address occurs
 in another chart in the same program. AOI body context has no recorded gaps.
-The next run measures PID slot connections, member uses and explicit master
-candidates, linked from the existing PID evidence pages.
-See [the current scope](../public/docs/reviews/PID_CONNECTIONS_REVIEW.md),
+PID connections account for all 46 controls and 322 slots, including 333 direct
+member addresses. Every master slot is literal. The next run measures math/move
+inputs and destinations inside branch segments, with incoming-condition links
+and possible local reuse. Branch boundaries and unsupported blocks stop links.
+See [the current scope](../public/docs/reviews/CALCULATION_PATHS_REVIEW.md),
 [the context contract](../public/docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md)
 and [sampling boundaries](../public/docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
 Continue the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)
@@ -65,7 +67,7 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-review15/manifest18 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+review16/manifest19 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
 references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json, rung-analysis.json, relationships.json, boolean-conditions.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
@@ -81,17 +83,18 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work32 adds PID connection counts. It retains AOI body1 and SFR2,
+manual. Current work33 adds calculation-path counts. It retains PID connections1, AOI body1 and SFR2,
 condition3, custom-instruction/indexed-access summaries, the fixed
 targeted-sample record and unchanged
 binding-context summary1, relationship1, rung-analysis1,
 access4, calculation2, PID member1, PID1, Tag Data1, reference12/source4 and SFC2.
-Work32 permits 80 KiB for its additional fixed counters. Work28-31 permit
+Work32-33 permit 80 KiB for its additional fixed counters. Work28-31 permit
 64 KiB; the targeted-evidence cap remains 16 KiB for all these versions. Work22-27
 retain 48 KiB; work1-21 retain 32 KiB. New legacy single-operand samples are
 disabled so they cannot rotate outside the targeted request's budget.
-Work31 and work32 use compact JSON whitespace; earlier feedback formats are unchanged.
-Work25 adds fixed save-failure categories. Review15 allows 208 MiB JSON / 240 MiB
+Work31-33 use compact JSON whitespace; earlier feedback formats are unchanged.
+Work25 adds fixed save-failure categories. Review16 allows 216 MiB JSON / 248 MiB
+HTML for calculation paths. Review15 retains 208 MiB JSON / 240 MiB
 HTML, reserving 8 MiB for PID connections. Review14 retains 200 MiB JSON / 232 MiB
 HTML, reserving 8 MiB for AOI body context. Review13 retains 192 MiB JSON / 224 MiB
 HTML, reserving 8 MiB for SFR context. Review12 retains 184 MiB JSON / 216 MiB
@@ -101,7 +104,7 @@ HTML for custom-instruction and index context. Review11 retains 168 MiB JSON /
 [save failure checkpoint](../public/docs/reviews/SAVE_FAILURE_REVIEW.md).
 See [stored-state conditions and SFC targets](../public/docs/reviews/STATEFUL_SEQUENCE_REVIEW.md)
 for that checkpoint's semantics and validation, and
-[PID connections](../public/docs/reviews/PID_CONNECTIONS_REVIEW.md) for current work.
+[calculation paths](../public/docs/reviews/CALCULATION_PATHS_REVIEW.md) for current work.
 Earlier work17 added count-only
 PID member summary1 while preserving
 PID1, Tag Data1/reference12/source4/SFC2/access2 summaries. Documented member

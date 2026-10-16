@@ -410,6 +410,7 @@ class AccessWorkReportTests(unittest.TestCase):
             self.assertIsNone(result.pop('sfr_summary'))
             self.assertIsNone(result.pop('aoi_body_summary'))
             self.assertIsNone(result.pop('pid_connection_summary'))
+            self.assertIsNone(result.pop('calculation_path_summary'))
             payload = report(COMPLETE)
             payload.update(schema_version=27, workflow_version='work-check-27', analysis=result, status='failed')
             self.assertNotIn('PRIVATE_SUMMARY', work_check.render_work_check_report(payload))

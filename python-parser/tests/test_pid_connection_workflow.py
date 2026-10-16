@@ -141,7 +141,7 @@ class PidConnectionWorkflowTests(unittest.TestCase):
         for path in (ROOT / 'public/inspection').glob('work-check-*.json'):
             before = path.read_bytes()
             historical = json.loads(before)
-            self.assertLessEqual(historical['schema_version'], 31)
+            self.assertLessEqual(historical['schema_version'], 32)
             self.assertEqual(json.loads(work_check.render_work_check_report(historical)), historical)
             self.assertEqual(path.read_bytes(), before)
         self.assertEqual(work_check.render_work_check_report(old), json.dumps(
@@ -204,7 +204,7 @@ class PidConnectionWorkflowTests(unittest.TestCase):
             envelope = first.pop('targeted_samples')
             first.pop('diagnostic_sample')
             payload = report()
-            payload.update(analysis=first, targeted_samples=envelope)
+            payload.update(schema_version=33, workflow_version='work-check-33', analysis=first, targeted_samples=envelope)
             work_check.validate_work_check_report(payload)
             path.write_bytes(source('NOP();'))
             with patch.object(work_check, 'build_targeted_samples', side_effect=AssertionError('No new disclosure.')), \
@@ -226,7 +226,7 @@ class PidConnectionWorkflowTests(unittest.TestCase):
                     result = work_check._analyze(root, path, root, REVISION)
                 self.assertEqual((result['failure_code'], result['private_run_saved']), (code, saved))
                 self.assertTrue(all(value is None for key, value in result.items() if key.endswith('_summary')))
-                payload = failed_report(32, code)
+                payload = failed_report(33, code)
                 payload['analysis'] = {k: v for k, v in result.items() if k not in {'diagnostic_sample', 'targeted_samples'}}
                 self.assertNotIn('PRIVATE_SENTINEL', work_check.render_work_check_report(payload))
                 self.assertIn('PRIVATE_SENTINEL', (root / 'analysis.log').read_text())

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Independently invented for calculation-report checks. Not controller-ready logic. -->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.00" TargetName="CalculationPathsDemo" TargetType="Controller" ContainsContext="true">
+<Controller Name="CalculationPathsDemo"><Tags>
+<Tag Name="Source" TagType="Base" DataType="REAL"/>
+<Tag Name="Alternate" TagType="Base" DataType="REAL"/>
+<Tag Name="Buffer" TagType="Base" DataType="REAL"/>
+<Tag Name="Output" TagType="Base" DataType="REAL"/>
+<Tag Name="Spare" TagType="Base" DataType="REAL"/>
+<Tag Name="Result" TagType="Base" DataType="REAL"/>
+<Tag Name="Enable" TagType="Base" DataType="BOOL"/>
+<Tag Name="Index" TagType="Base" DataType="DINT"/>
+<Tag Name="Array" TagType="Base" DataType="REAL" Dimensions="8"/>
+<Tag Name="Record" TagType="Base" DataType="InventedRecord"/>
+<Tag Name="Delay" TagType="Base" DataType="TIMER"/>
+<Tag Name="IntermediateAlias" TagType="Alias" AliasFor="Buffer"/>
+</Tags><Programs><Program Name="Demonstration" MainRoutineName="Examples"><Routines><Routine Name="Examples" Type="RLL"><RLLContent>
+<Rung Number="0" Type="N"><Comment>Straight calculation chain</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="1" Type="N"><Comment>Independent sibling segments</Comment><Text>[MOV(Source,Buffer)MUL(Buffer,2,Output),MOV(Alternate,Buffer)DIV(Buffer,2,Spare)];</Text></Rung>
+<Rung Number="2" Type="N"><Comment>Fork and join stop prior-writer links</Comment><Text>MOV(Source,Buffer)[ADD(Buffer,1,Output),ADD(Buffer,2,Spare)]SUB(Buffer,1,Result);</Text></Rung>
+<Rung Number="3" Type="N"><Comment>A predicate changes the incoming condition</Comment><Text>MOV(Source,Buffer)XIC(Enable)CPT(Output,Buffer+Buffer);</Text></Rung>
+<Rung Number="4" Type="N"><Comment>Different members invalidate the remembered root writer</Comment><Text>MOV(Source,Record.A)MOV(Alternate,Record.B)ADD(Record.A,1,Output);</Text></Rung>
+<Rung Number="5" Type="N"><Comment>A timer separates calculation segments</Comment><Text>MOV(Source,Buffer)TON(Delay,100,0)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="6" Type="N"><Comment>An unknown block is a boundary</Comment><Text>MOV(Source,Buffer)INVENTED_BLOCK(Record)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="7" Type="N"><Comment>Nested branches retain separate segments</Comment><Text>[MOV(Source,Buffer)[ADD(Buffer,1,Output),MUL(Buffer,2,Spare)]MOV(Output,Result),MOV(Alternate,Buffer)MOV(Buffer,Output)];</Text></Rung>
+<Rung Number="8" Type="N"><Comment>An alias resolves to the exact intermediate address</Comment><Text>MOV(Source,Buffer)MOV(IntermediateAlias,Output);</Text></Rung>
+<Rung Number="9" Type="N"><Comment>Read before write and repeated expression leaves</Comment><Text>MOV(Source,Buffer)CPT(Buffer,Buffer+Buffer)MOV(Buffer,Output);</Text></Rung>
+<Rung Number="10" Type="N"><Comment>Clear has a destination without a data input</Comment><Text>CLR(Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="11" Type="N"><Comment>Dynamic selectors remain unresolved for exact reuse</Comment><Text>MOV(Source,Array[Index])ADD(Array[Index],1,Output);</Text></Rung>
+<Rung Number="12" Type="N"><Comment>Malformed and unresolved inputs remain visible</Comment><Text>ADD(Source)MOV(Missing,Output)CPT(Spare,InventedFunction(Source));</Text></Rung>
+<Rung Number="13" Type="N"><Comment>Exact member spelling is preserved</Comment><Text>MOV(Source,Record.SP)MOV(Record.sp,Output);</Text></Rung>
+<Rung Number="14" Type="N"><Comment>An empty bypass does not merge candidate writers</Comment><Text>MOV(Source,Buffer)[,MOV(Alternate,Buffer)]MOV(Buffer,Output);</Text></Rung>
+<Rung Number="15" Type="N"><Comment>All supported calculation spellings</Comment><Text>ABS(Source,Buffer)LN(Buffer,Output)SQR(Output,Spare)SUB(Spare,1,Result);</Text></Rung>
+<Rung Number="16" Type="N"><Comment>Markup is source text: &lt;script&gt;window.fixtureLeak=true&lt;/script&gt;</Comment><Text>MOV(Source,Buffer)MOV(Buffer,Output);</Text></Rung>
+<Rung Number="17" Type="N"><Comment>Invented paging case 1</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="18" Type="N"><Comment>Invented paging case 2</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="19" Type="N"><Comment>Invented paging case 3</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="20" Type="N"><Comment>Invented paging case 4</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="21" Type="N"><Comment>Invented paging case 5</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="22" Type="N"><Comment>Invented paging case 6</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="23" Type="N"><Comment>Invented paging case 7</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="24" Type="N"><Comment>Invented paging case 8</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="25" Type="N"><Comment>Invented paging case 9</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="26" Type="N"><Comment>Invented paging case 10</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="27" Type="N"><Comment>Invented paging case 11</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="28" Type="N"><Comment>Invented paging case 12</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="29" Type="N"><Comment>Invented paging case 13</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="30" Type="N"><Comment>Invented paging case 14</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="31" Type="N"><Comment>Invented paging case 15</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="32" Type="N"><Comment>Invented paging case 16</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="33" Type="N"><Comment>Invented paging case 17</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="34" Type="N"><Comment>Invented paging case 18</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="35" Type="N"><Comment>Invented paging case 19</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="36" Type="N"><Comment>Invented paging case 20</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="37" Type="N"><Comment>Invented paging case 21</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="38" Type="N"><Comment>Invented paging case 22</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="39" Type="N"><Comment>Invented paging case 23</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="40" Type="N"><Comment>Invented paging case 24</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="41" Type="N"><Comment>Invented paging case 25</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="42" Type="N"><Comment>Invented paging case 26</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="43" Type="N"><Comment>Invented paging case 27</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="44" Type="N"><Comment>Invented paging case 28</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="45" Type="N"><Comment>Invented paging case 29</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="46" Type="N"><Comment>Invented paging case 30</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="47" Type="N"><Comment>Invented paging case 31</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="48" Type="N"><Comment>Invented paging case 32</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="49" Type="N"><Comment>Invented paging case 33</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="50" Type="N"><Comment>Invented paging case 34</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="51" Type="N"><Comment>Invented paging case 35</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="52" Type="N"><Comment>Invented paging case 36</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="53" Type="N"><Comment>Invented paging case 37</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="54" Type="N"><Comment>Invented paging case 38</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="55" Type="N"><Comment>Invented paging case 39</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="56" Type="N"><Comment>Invented paging case 40</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="57" Type="N"><Comment>Invented paging case 41</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="58" Type="N"><Comment>Invented paging case 42</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="59" Type="N"><Comment>Invented paging case 43</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="60" Type="N"><Comment>Invented paging case 44</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="61" Type="N"><Comment>Invented paging case 45</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="62" Type="N"><Comment>Invented paging case 46</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="63" Type="N"><Comment>Invented paging case 47</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="64" Type="N"><Comment>Invented paging case 48</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="65" Type="N"><Comment>Invented paging case 49</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="66" Type="N"><Comment>Invented paging case 50</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="67" Type="N"><Comment>Invented paging case 51</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="68" Type="N"><Comment>Invented paging case 52</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="69" Type="N"><Comment>Invented paging case 53</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="70" Type="N"><Comment>Invented paging case 54</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+<Rung Number="71" Type="N"><Comment>Invented paging case 55</Comment><Text>MOV(Source,Buffer)ADD(Buffer,1,Output);</Text></Rung>
+</RLLContent></Routine></Routines></Program></Programs></Controller></RSLogix5000Content>

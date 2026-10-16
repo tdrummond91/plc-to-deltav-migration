@@ -258,3 +258,14 @@ Fifty-five extra setpoint writes exercise pagination. Source markup in a comment
 must render as text. This fixture is not controller-ready logic.
 See the [checkpoint](../../docs/reviews/PID_CONNECTIONS_REVIEW.md) and
 [generated report](../../examples/pid-connections-demo.html).
+
+## Calculation segment demonstration
+
+`calculation_paths_demo.L5X` is independently invented. Its 72 rungs exercise
+straight math/move chains, independent and nested branch legs, fork/join stops,
+predicate changes, root/member overlap, aliases, repeated CPT leaves, read-before-
+write ordering, CLR, dynamic selectors, malformed inputs and unknown/stateful
+barriers. Fifty-five repeated cases exercise paging, and a comment includes
+markup that must display as text. It is not controller-ready logic.
+See [scope](../../docs/reviews/CALCULATION_PATHS_REVIEW.md) and the
+[generated report](../../examples/calculation-paths-demo.html).

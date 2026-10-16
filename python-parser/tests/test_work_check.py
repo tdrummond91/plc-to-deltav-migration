@@ -556,6 +556,12 @@ class GitAndWorkflowTests(unittest.TestCase):
             analysis_payload["pid_connection_summary"] = build_pid_connection_summary(
                 *connection_inputs, analyze_pid_connections(*connection_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.calculation_paths import analyze_calculation_paths
+            from plc_workbench.calculation_path_summary import build_calculation_path_summary
+            path_inputs = (snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
+            analysis_payload["calculation_path_summary"] = build_calculation_path_summary(
+                *path_inputs, analyze_calculation_paths(*path_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))
             stack.enter_context(redirect_stdout(io.StringIO()))

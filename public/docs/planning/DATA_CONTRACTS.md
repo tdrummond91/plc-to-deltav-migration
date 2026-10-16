@@ -1,5 +1,15 @@
 # Data contracts, traceability, and checkpoints
 
+## Calculation path revision (2026-10-16)
+
+Calculation paths1 links selected math/move occurrences to existing input,
+destination, condition and exact-address evidence. Regions follow source AST
+segments; possible reuse never crosses branches or unsupported operations.
+Review16 embeds the 8 MiB companion with 216 MiB JSON / 248 MiB HTML limits.
+Manifest19 still hashes sixteen artifacts. Work33 adds its closed 4 KiB summary
+within the existing 80 KiB envelope. Earlier contracts, analysis payloads and
+sample selection remain unchanged. See [scope and verification](../reviews/CALCULATION_PATHS_REVIEW.md).
+
 ## PID connection revision (2026-10-16)
 
 PID connections1 links existing PID slots, exact-address uses, direct member

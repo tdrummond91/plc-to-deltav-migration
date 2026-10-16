@@ -1,6 +1,26 @@
 # Next development checkpoint
 
-Current checkpoint (2026-10-16): **PID connections and observed member uses**.
+Current checkpoint (2026-10-16): **Calculation inputs and destinations**.
+Return `693e419` tested clean `f4f704d`: 1,216 application cases passed (two
+expected Windows skips), plus 139 helpers. All 46 PID controls and 322 slots
+are accounted for; 515 exact addresses include 333 referenced direct members.
+All master operands are literals, so no explicit master-reference candidates
+were found. Fifteen earlier summaries and the frozen six examples are unchanged;
+all 39 historical reports validate.
+
+Review16/manifest19 adds source-linked math/move records inside straight
+segments and branch legs, with incoming conditions and possible local result
+reuse. Forks, joins, unsupported blocks and stateful operations stop links.
+Work33 returns closed counts while retaining the sixteen saved artifacts and
+all earlier analysis semantics. See [scope and validation](CALCULATION_PATHS_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new plant
+samples or manual engineering/team review are requested. Git transport stays
+manual and the listener stays disabled.
+
+## Historical PID connection checkpoint
+
+Historical checkpoint (2026-10-16): **PID connections and observed member uses**.
 Return `4018156` passed 1,183 application cases (two expected Windows skips) and
 139 helpers. The AOI body has two rungs and three classified calculation blocks,
 with no recorded context gaps. The single unmatched SFR address has one exact

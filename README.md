@@ -1,11 +1,12 @@
 # PLC analysis workbench
 
-Latest checkpoint: returned `4018156` passed 1,183 application cases (two expected
-Windows skips) and 139 helpers. The AOI body has no recorded context gaps; the
-unmatched SFR address occurs in a different chart of the same program.
-Work32 adds PID slot connections, observed member uses and explicit master
-candidates to the private report. Earlier analysis and the six-example
-reservation remain unchanged. See [scope and validation](public/docs/reviews/PID_CONNECTIONS_REVIEW.md).
+Latest checkpoint: return `693e419` passed 1,216 application cases (two expected
+Windows skips) and 139 helpers. PID connection coverage accounts for all 46
+occurrences and 322 slots, with 333 observed direct-member addresses.
+Work33 adds math/move inputs and destinations within branch segments, incoming
+condition links and possible local result reuse. Existing analysis and the
+frozen six diagnostic examples remain unchanged. See
+[scope and validation](public/docs/reviews/CALCULATION_PATHS_REVIEW.md).
 The next step is the normal work-machine run; team review remains deferred.
 
 Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected

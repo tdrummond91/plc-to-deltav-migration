@@ -20,6 +20,7 @@ from .pid import PidResult, analyze_pid
 from .pid_members import PidMemberResult, analyze_pid_members
 from .pid_connections import PidConnectionResult, analyze_pid_connections
 from .calculations import CalculationResult, analyze_calculations
+from .calculation_paths import CalculationPathResult, analyze_calculation_paths
 from .rung_analysis import RungAnalysisResult, analyze_rungs
 from .relationships import RelationshipResult, analyze_relationships
 from .conditions import ConditionResult, analyze_conditions
@@ -47,6 +48,7 @@ MAX_REVIEW_V12_BYTES = 184 * 1024 * 1024
 MAX_REVIEW_V13_BYTES = 192 * 1024 * 1024
 MAX_REVIEW_V14_BYTES = 200 * 1024 * 1024
 MAX_REVIEW_V15_BYTES = 208 * 1024 * 1024
+MAX_REVIEW_V16_BYTES = 216 * 1024 * 1024
 MAX_REVIEW_FINDINGS = 500_000
 MAX_REVIEW_PATTERNS = 100_000
 _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
@@ -103,7 +105,8 @@ def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     """Count UTF-8 bytes without retaining millions of small encoder chunks."""
     rendered = io.StringIO() if retain else None
     version = (data.get('schema_version'), data.get('report_version'))
-    limit = (MAX_REVIEW_V15_BYTES if version == (15, 'engineering-review-15') else
+    limit = (MAX_REVIEW_V16_BYTES if version == (16, 'engineering-review-16') else
+             MAX_REVIEW_V15_BYTES if version == (15, 'engineering-review-15') else
              MAX_REVIEW_V14_BYTES if version == (14, 'engineering-review-14') else
              MAX_REVIEW_V13_BYTES if version == (13, 'engineering-review-13') else
              MAX_REVIEW_V12_BYTES if version == (12, 'engineering-review-12') else
@@ -228,7 +231,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       indexed_access: IndexedAccessResult | None = None,
                       sfr_context: SfrContextResult | None = None,
                       aoi_body_context: AoiBodyContextResult | None = None,
-                      pid_connections: PidConnectionResult | None = None) -> dict[str, Any]:
+                      pid_connections: PidConnectionResult | None = None,
+                      calculation_paths: CalculationPathResult | None = None) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -282,6 +286,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                     or sfr_context.schema_version != 2):
                 _fail()
         if pid_connections is not None and (aoi_body_context is None or pid_members is None):
+            _fail()
+        if calculation_paths is not None and pid_connections is None:
             _fail()
         canonical_inventory = analyze_snapshot(snapshot)
         if not _strict_equal(canonical_inventory, inventory):
@@ -390,6 +396,13 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                 canonical_calculations, canonical_rungs, canonical_relationships,
                 canonical_conditions, canonical_tag_data, canonical_pid, canonical_pid_members)
             if not _strict_equal(canonical_pid_connections, pid_connections):
+                _fail()
+        canonical_calculation_paths = None
+        if calculation_paths is not None:
+            canonical_calculation_paths = analyze_calculation_paths(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_calculations, canonical_rungs, canonical_relationships, canonical_conditions)
+            if not _strict_equal(canonical_calculation_paths, calculation_paths):
                 _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)
@@ -509,6 +522,11 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          'pid_connections': canonical_pid_connections.to_dict()})
             if canonical_pid_connections.status == 'partial':
                 data['status'] = 'partial'
+        if canonical_calculation_paths is not None:
+            data.update({'schema_version': 16, 'report_version': 'engineering-review-16',
+                         'calculation_paths': canonical_calculation_paths.to_dict()})
+            if canonical_calculation_paths.status == 'partial':
+                data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
     except ReviewSizeLimitError:
@@ -532,7 +550,8 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          indexed_access: IndexedAccessResult | None = None,
                          sfr_context: SfrContextResult | None = None,
                          aoi_body_context: AoiBodyContextResult | None = None,
-                         pid_connections: PidConnectionResult | None = None) -> None:
+                         pid_connections: PidConnectionResult | None = None,
+                         calculation_paths: CalculationPathResult | None = None) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
         if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
@@ -543,7 +562,8 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                                           custom_instruction_context=custom_instruction_context,
                                           indexed_access=indexed_access, sfr_context=sfr_context,
                                           aoi_body_context=aoi_body_context,
-                                          pid_connections=pid_connections), data):
+                                          pid_connections=pid_connections,
+                                          calculation_paths=calculation_paths), data):
             return
     except ReviewSizeLimitError:
         raise

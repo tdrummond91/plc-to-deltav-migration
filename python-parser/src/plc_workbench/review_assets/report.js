@@ -79,6 +79,10 @@
   const byPidConnectionSlot = new Map((pidConnections?.slots || []).map(x=>[x.id,x]));
   const byPidConnectionAddress = new Map((pidConnections?.addresses || []).map(x=>[x.id,x]));
   const calculations = data.calculations || null, calculationOccurrences = calculations?.occurrences || [];
+  const calculationPaths=data.calculation_paths||null, calculationPathOccurrences=calculationPaths?.occurrences||[];
+  const byCalculationPath=new Map(calculationPathOccurrences.map(x=>[x.id,x]));
+  const byCalculationRegion=new Map((calculationPaths?.regions||[]).map(x=>[x.id,x]));
+  const calculationPathLinks=calculationPaths?.links||[];
   const rungAnalysis = data.rung_analysis || null, analyzedRungs = rungAnalysis?.rungs || [];
   const relationships = data.relationships || null, addresses = relationships?.addresses || [];
   const conditions = data.conditions || null, conditionalOutputs = conditions?.outputs || [];
@@ -235,6 +239,7 @@
   headings.tagdata=['Stored tag data','Search values and member names retained in this export, then follow their declaration and ladder occurrences.'];
   headings.pid=['PID instruction evidence','Inspect captured PID operand functions, source declarations and stored data. Each row is an instruction occurrence.'];
   headings.calculations=['Calculations','Read captured CPT expressions, their syntax grouping and source references. Expressions are not evaluated.'];
+  headings.calculationpaths=['Calculation inputs and destinations','Inspect captured block inputs, destinations, branch segments and possible local reuse, with unresolved evidence kept visible.'];
   headings.engineering=['Engineering analysis','Explore recognized instruction functions and possible purpose, with every rung accounted for and gaps kept in context.'];
   headings.relationships=['Address relationships','Follow exact expanded address spelling, its captured uses, and possible source-order calculation reuse.'];
   headings.conditions=['Conditional outputs','Trace captured conditions leading to OTE, OTL and OTU instructions, with branch paths and unknown transfers kept visible.'];
@@ -255,6 +260,7 @@
   if(tagData){labels.tagdata='Stored tag data';navCounts.tagdata=tagContents.length;}
   if(pid){labels.pid='PID evidence';navCounts.pid=pidOccurrences.length;}
   if(calculations){labels.calculations='Calculations';navCounts.calculations=calculationOccurrences.length;}
+  if(calculationPaths){labels.calculationpaths='Calculation inputs and destinations';navCounts.calculationpaths=calculationPathOccurrences.length;}
   let state = {view:'overview',query:'',filter:'all',detail:null,contentId:null,listPages:{}};
   const backStack = [];
   const heading = document.getElementById('page-heading');
@@ -415,6 +421,7 @@
   tagElements.forEach(e=>searchable(e,[short(entityName(e.owner_id)),e.xml_name,e.kind,e.direct_text,...Object.values(e.attributes||{})]));
   pidOccurrences.forEach(p=>searchable(p,[p.signature_status,p.storage_status,sourceName(p.rung_id),entityPath(byRung.get(p.rung_id)?.parent_id),...p.operand_ids.map(id=>byOperand.get(id)?.raw_text)]));
   calculationOccurrences.forEach(c=>searchable(c,[c.signature_status,c.syntax_status,c.error_code,sourceName(c.rung_id),entityPath(byRung.get(c.rung_id)?.parent_id),byOperand.get(c.destination_operand_id)?.raw_text,byOperand.get(c.expression_operand_id)?.raw_text]));
+  calculationPathOccurrences.forEach(c=>searchable(c,[c.opcode,c.status,c.gap_reason,c.condition_quality,sourceName(c.rung_id),entityPath(byRung.get(c.rung_id)?.parent_id),byOperand.get(c.destination_operand_id)?.raw_text,...c.input_operand_ids.map(id=>byOperand.get(id)?.raw_text)]));
   // Index a member once even when several PID occurrences share its structure.
   (pidMembers?.members || []).forEach(m=>searchable(m,[m.field,pidMemberLabel(m.field),m.group,m.status,byTagElement.get(m.element_id)?.attributes?.Name]));
   const sfcSearch = new Map();elements.forEach(e=>add(sfcSearch,e.routine_id,[e.kind,e.direct_text,...Object.values(e.attributes||{})].join(' ')));
@@ -444,6 +451,7 @@
     if(pidMembers){const row=node('div','status-row');row.append(node('span','','PID documented member headers'),badge(pidMembers.status));capture.append(row);}
     if(pidConnections){const row=node('div','status-row');row.append(node('span','','PID source connections'),badge(pidConnections.status));capture.append(row);}
     if(calculations){const row=node('div','status-row');row.append(node('span','','CPT expression syntax and references'),badge(calculations.status));capture.append(row);}
+    if(calculationPaths){const row=node('div','status-row');row.append(node('span','','Calculation inputs and destinations'),badge(calculationPaths.status));capture.append(row);}
     if(customContext){const row=node('div','status-row');row.append(node('span','','Custom-instruction declaration context'),badge(customContext.status));capture.append(row);}
     if(indexedAccess){const row=node('div','status-row');row.append(node('span','','Symbolic array selector context'),badge(indexedAccess.status));capture.append(row);}
     if(aoiBody){const row=node('div','status-row');row.append(node('span','','AOI body and instance context'),badge(aoiBody.status));capture.append(row);}
@@ -457,6 +465,7 @@
     if(tagData)content.append(button('Explore stored tag data',()=>go('tagdata')));
     if(pid)content.append(button('Explore PID instruction evidence',()=>go('pid')));
     if(calculations)content.append(button('Explore calculations',()=>go('calculations')));
+    if(calculationPaths)content.append(button('Explore calculation inputs and destinations',()=>go('calculationpaths')));
     const meta=panel('Snapshot details','This report is read-only. IDs belong to this byte snapshot and are not persistent equipment or correction identities.');
     meta.append(values({'Source size':fmt(data.snapshot.size_bytes)+' bytes','SHA-256':data.snapshot.sha256,'Report format':data.report_version,'Inventory parser':inv.parser_version,'Reference analyzer':refs.analyzer_version,'SFC analyzer':sfc.analyzer_version}));content.append(meta);
   }
@@ -796,6 +805,7 @@
     rungs.append(table(['Rung'],a.rung_ids,id=>[sourceCell(id)],'Exact address rungs'));content.append(rungs);
     const local=linksByAddress.get(a.id)||[];
     if(local.length){const p=section('Possible local calculation reuse');p.append(localLinkNotice(),relationshipLinkTable(local,'Exact address local links'));content.append(p);}
+    if(calculationPaths){const paths=calculationPathOccurrences.filter(c=>c.destination_address_id===a.id||c.input_operand_ids.some(id=>byUseAddress.get(id)?.id===a.id)||c.expression_use_ids.some(id=>byUseAddress.get(id)?.id===a.id));if(paths.length){const p=section('Calculation inputs and destinations using this address');p.append(calculationPathTable(paths,'Exact address calculation blocks'));content.append(p);}}
     const outputs=outputsByAddress.get(a.id)||[];
     if(outputs.length){const p=section('Conditional coil outputs targeting this address','These are captured OTE, OTL or OTU occurrences, not proof of a physical output or process effect.');p.append(conditionalOutputTable(outputs,'Exact address conditional outputs'));content.append(p);}
     content.append(technical({'Address group ID':a.id,'Resolved declaration ID':a.target_id,'Identity rule':'Exact expanded spelling'}));
@@ -1127,6 +1137,7 @@
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
     if(rungPids.has(r.id)){const p=section('PID evidence on this rung');p.append(pidTable(rungPids.get(r.id),'Rung PID occurrences'));content.append(p);}
     if(rungCalculations.has(r.id)){const p=section('Calculations on this rung');p.append(calculationTable(rungCalculations.get(r.id),'Rung calculation occurrences'));content.append(p);}
+    if(calculationPaths){const paths=calculationPathOccurrences.filter(c=>c.rung_id===r.id);if(paths.length){const p=section('Calculation inputs and destinations on this rung');p.append(calculationPathTable(paths,'Rung calculation blocks'));content.append(p);}}
     const ops=section(access?.schema_version>=3?'Original reference bindings':'Operand bindings','Root resolution is source evidence only. A binding does not validate a member, array bound, data type or instruction effect.'+(access?.schema_version>=3?' These rows retain the original reference analysis; additional instruction access bindings appear separately below.':''));
     if((rungOperands.get(r.id)||[]).some(o=>byOperandAccess.get(o.id)?.reason==='timer_pseudo_operand'))ops.append(node('p','row-note','Timer preset and accumulator fields describe initialization, not separate runtime reads. A question mark supplies no value here. Timer values, units and configuration are not validated.'));
     ops.append(table(['Operand','Instruction / argument','Binding','Declared / resolved root',...(access?['Operand role']:[])],rungOperands.get(r.id)||[],o=>[node('span','mono',o.raw_text || '(blank)'),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),primary(badge(o.status),o.reason?human(o.reason):''),bindingRoots(o,o.reason),...(access?[accessCell(o)]:[])],'Rung operand bindings'));content.append(ops);
@@ -1581,6 +1592,39 @@
     }
     content.append(technical({'Instruction ID':p.id,'Rung ID':p.rung_id,'Storage association':p.storage_status}));
   }
+  function calculationPathStatus(status){return status==='eligible'?'Eligible for local links':'Unresolved block';}
+  function calculationPathName(c){return c.opcode+' · '+short(byOperand.get(c.destination_operand_id)?.raw_text||'(destination unresolved)',100);}
+  function calculationPathLink(id){const c=byCalculationPath.get(id);return c?button(calculationPathName(c),()=>openDetail('calculationpath',id),'text-link'):sourceCell(id);}
+  function calculationPathDestination(c){const address=byAddress.get(c.destination_address_id);return address?button('Address: '+addressName(address),()=>openDetail('address',address.id),'text-link'):node('span','muted','No accepted destination address'+(c.gap_reason?' · '+human(c.gap_reason):''));}
+  function calculationPathNotice(){return notice('Source blocks and possible local reuse','Inputs and destinations describe captured operand roles. A reuse link connects an earlier exact destination spelling to a later input only within one branch segment. Links stop at forks, joins, other instructions and unresolved blocks; they never cross rungs. Intervening predicates can change the condition between linked blocks. These links do not establish execution, a write guard, numeric results or confirmed data flow. Missing links do not establish dead ends.');}
+  function calculationPathTable(rows,caption){return table(['Calculation block','Input slots / expression reads','Destination evidence','Branch depth','Incoming condition','Recognition / gap','Rung'],rows,c=>[
+    calculationPathLink(c.id),fmt(c.input_operand_ids.length)+' / '+fmt(c.expression_use_ids.length),calculationPathDestination(c),c.branch_depth,human(c.condition_quality),primary(badge(calculationPathStatus(c.status)),c.gap_reason?human(c.gap_reason):'No block eligibility gap'),sourceCell(c.rung_id)
+  ],caption,{emptyTitle:'No calculation blocks in this selection',emptyDetail:'This view covers MOV, CLR, ADD, SUB, MUL, DIV, ABS, LN, SQR and CPT occurrences in captured ladder.'});}
+  function calculationPathReuseTable(rows,caption){return table(['Earlier destination block','Exact address','Later input block','Input occurrence','Condition context'],rows,l=>[
+    calculationPathLink(l.producer_instruction_id),byAddress.has(l.address_id)?button(addressName(byAddress.get(l.address_id)),()=>openDetail('address',l.address_id),'text-link'):node('span','muted','Unavailable'),calculationPathLink(l.consumer_instruction_id),engineeringEvidence(l.read_id),l.producer_condition_id===l.consumer_condition_id?'Same captured condition node':'Condition nodes differ; inspect both blocks'
+  ],caption,{emptyTitle:'No possible local reuse links',emptyDetail:'No eligible earlier exact destination was retained in this segment. This does not establish a dead end or unused result.'});}
+  function calculationPathList(){
+    content.append(calculationPathNotice());
+    const summary=panel('Captured calculation blocks','Every selected occurrence stays visible, including unrecognized signatures and unresolved inputs or destinations.');
+    summary.append(values({'Blocks':calculationPathOccurrences.length,'Branch segments':byCalculationRegion.size,'Possible local reuse links':calculationPathLinks.length,'Blocks with gaps':calculationPathOccurrences.filter(c=>c.status==='gap').length}));content.append(summary);
+    content.append(calculationPathTable(calculationPathOccurrences.filter(c=>matches(c)&&(state.filter==='all'||c.status===state.filter)),'Calculation block occurrences'));
+  }
+  function calculationPathDetail(c){
+    setDetailHeading('CALCULATION INPUTS AND DESTINATIONS',calculationPathName(c),sourceName(c.rung_id));
+    content.append(calculationPathNotice());
+    const region=byCalculationRegion.get(c.region_id),rungRegions=(calculationPaths?.regions||[]).filter(r=>r.rung_id===c.rung_id),segmentNumber=region?rungRegions.findIndex(r=>r.id===region.id)+1:0,summary=panel('Captured block and branch segment');
+    summary.append(values({'Opcode':c.opcode,'Eligibility':calculationPathStatus(c.status),'Gap':c.gap_reason?human(c.gap_reason):'No block eligibility gap','Branch depth':c.branch_depth,'Source segment on this rung':segmentNumber?'Segment '+segmentNumber+' of '+rungRegions.length:'Unavailable','Segment begins at':region?human(region.start_reason):'Unavailable','Segment ends at':region?human(region.end_reason):'Unavailable','Blocks in this segment':region?.blocks_count??0,'Incoming condition quality':human(c.condition_quality)}));
+    const links=node('div','inline-links');links.append(sourceCell(c.id),sourceCell(c.rung_id));if(byCalculation.has(c.id))links.append(button('Inspect CPT expression',()=>openDetail('calculation',c.id),'text-link'));const transfer=transferByInstruction.get(c.id);if(transfer)links.append(button('Inspect instruction condition transfer',()=>openDetail('transfer',transfer.id),'text-link'));summary.append(links);content.append(summary);
+    if(region){const segment=section('Blocks in this branch segment','Segment numbers follow retained source order within this rung. Separate sibling segments never share local reuse links; open the rung for its complete branch outline.');segment.append(calculationPathTable(calculationPathOccurrences.filter(other=>other.region_id===region.id),'Branch segment blocks'));content.append(segment);}
+    const inputs=section('Operand inputs','Literal operands remain source evidence. CPT expression containers are separate from their individual reference reads.');inputs.append(accessBindingTable(c.input_operand_ids.map(id=>byOperandAccess.get(id)).filter(Boolean),'Calculation input slots'));content.append(inputs);
+    if(c.expression_use_ids.length){const reads=section('CPT expression reads','Repeated reference leaves remain separate source occurrences.');reads.append(expressionUseTable(c.expression_use_ids.map(id=>byExpressionUse.get(id)).filter(Boolean),'Calculation expression reads'));content.append(reads);}
+    const destination=section('Destination operand','A captured destination role does not validate a writable member or confirm a final value.');if(c.destination_operand_id){const destinationLinks=node('div','inline-links');destinationLinks.append(sourceCell(c.destination_operand_id),calculationPathDestination(c));destination.append(destinationLinks);}else destination.append(node('p','muted','Destination role or exact address is unresolved; inspect the captured arguments.'));content.append(destination);
+    if(c.status==='gap'){const argumentsPanel=section('Captured arguments for this block','The eligibility gap above is explicit; original operand binding evidence remains available.');argumentsPanel.append(table(['Source operand','Binding / role'],(rungOperands.get(c.rung_id)||[]).filter(o=>o.instruction_id===c.id),o=>[sourceCell(o.id),accessCell(o)],'Calculation block arguments'));content.append(argumentsPanel);}
+    const reuse=section('Possible local reuse','Both endpoints are in the same branch segment. Condition changes remain visible and do not establish that either block executes.');reuse.append(calculationPathReuseTable(calculationPathLinks.filter(l=>l.producer_instruction_id===c.id||l.consumer_instruction_id===c.id),'Calculation block local reuse'));content.append(reuse);
+    if(c.incoming_condition_id)conditionGraph(c.incoming_condition_id,'Calculation incoming condition nodes','Incoming condition evidence');
+    else content.append(notice('Incoming condition unavailable','No supported condition context was attached to this occurrence.'));
+    content.append(technical({'Instruction ID':c.id,'Branch segment ID':c.region_id,'Incoming condition ID':c.incoming_condition_id}));
+  }
   function calculationName(c){return 'CPT · '+short(byOperand.get(c.destination_operand_id)?.raw_text || '(destination not assigned)',100);}
   function calculationNotice(){return notice('Expression syntax and source evidence','Grouping and reference links describe the captured CPT expression. No value is calculated, and no execution, scan order, data type, member validity or control dependency is inferred. Unsupported expressions retain their source without a partial syntax tree or partial reference bindings.');}
   function calculationTable(rows,caption='Calculation occurrences'){
@@ -1643,6 +1687,7 @@
   }
   function calculationSpan(n){return '['+n.start+', '+n.end+')';}
   function calculationDetail(c){
+    if(byCalculationPath.has(c.id))content.append(button('Inspect calculation inputs and destinations',()=>openDetail('calculationpath',c.id),'text-link'));
     setDetailHeading('CALCULATION SOURCE EVIDENCE',calculationName(c),sourceName(c.rung_id));
     content.append(calculationNotice());
     const meta=node('div','detail-meta');meta.append(badge(c.signature_status),badge(c.syntax_status),sourceCell(c.rung_id));content.append(meta);
@@ -1769,6 +1814,7 @@
     else if(state.view==='tagdata')tagDataList();
     else if(state.view==='pid')pidList();
     else if(state.view==='calculations')calculationList();
+    else if(state.view==='calculationpaths')calculationPathList();
   }
   function render(focus=false){
     heading.replaceChildren();toolbar.replaceChildren();content.replaceChildren();
@@ -1801,6 +1847,7 @@
       else if(d.type==='pid')pidDetail(byPid.get(d.id));
       else if(d.type==='pidaddress')pidConnectionAddressDetail(byPidConnectionAddress.get(d.id));
       else if(d.type==='calculation')calculationDetail(byCalculation.get(d.id));
+      else if(d.type==='calculationpath')calculationPathDetail(byCalculationPath.get(d.id));
     }else{
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));
       if(state.view==='engineering')engineeringToolbar();
@@ -1819,6 +1866,7 @@
       else if(state.view==='tagdata')toolbarFor('Search declarations, members, saved values or data text',countsFilter(tagContents,'format_kind'));
       else if(state.view==='pid')toolbarFor(pidMembers?'Search PID operands, member labels, groups or source context':'Search PID operands, rung context or association status',countsFilter(pidOccurrences,'storage_status'));
       else if(state.view==='calculations')toolbarFor('Search CPT destinations, expressions, rung context or syntax status',countsFilter(calculationOccurrences,'syntax_status'));
+      else if(state.view==='calculationpaths')toolbarFor('Search opcodes, inputs, destinations, rung context or gaps',[['all','All calculation blocks'],['eligible','Eligible for local links'],['gap','Unresolved blocks']]);
       renderList();
     }
     if(focus){document.getElementById('main').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}

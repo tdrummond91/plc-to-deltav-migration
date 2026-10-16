@@ -171,6 +171,7 @@ class RungAnalysisWorkflowTests(unittest.TestCase):
             self.assertIsNotNone(outcome.pop('sfr_summary'))
             self.assertIsNotNone(outcome.pop('aoi_body_summary'))
             self.assertIsNotNone(outcome.pop('pid_connection_summary'))
+            self.assertIsNotNone(outcome.pop('calculation_path_summary'))
             self.assertIsNotNone(outcome.pop('relationship_summary'))
             self.assertIsNotNone(outcome.pop('condition_summary'))
             self.assertIsNotNone(outcome.pop('binding_context_summary'))
