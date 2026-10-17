@@ -242,6 +242,7 @@ def _review(args: argparse.Namespace) -> int:
     from .sfc_context import SfcContextError, analyze_sfc_context
     from .execution_context import ExecutionContextError, analyze_execution_context
     from .signal_context import SignalContextError, analyze_signal_context
+    from .file_operations import FileOperationError, analyze_file_operations
     from .rung_analysis import RungAnalysisError, analyze_rungs
     from .relationships import RelationshipError, analyze_relationships
     from .conditions import ConditionError, analyze_conditions
@@ -297,6 +298,8 @@ def _review(args: argparse.Namespace) -> int:
         signal_context = analyze_signal_context(
             snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions,
             tag_data, output_context, stateful_objects, execution_context)
+        file_operations = analyze_file_operations(
+            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions, tag_data)
         saved = save_run(args.workspace, snapshot, inventory, references=references,
                          sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data, pid=pid,
                          pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis, relationships=relationships,
@@ -304,13 +307,14 @@ def _review(args: argparse.Namespace) -> int:
                          custom_instruction_context=custom_context, indexed_access=indexed_access, sfr_context=sfr_context, aoi_body_context=aoi_body,
                          pid_connections=pid_connections, calculation_paths=calculation_paths,
                          output_context=output_context, stateful_objects=stateful_objects, sfc_conditions=sfc_conditions, sfc_context=sfc_context,
-                         execution_context=execution_context, signal_context=signal_context)
+                         execution_context=execution_context, signal_context=signal_context,
+                         file_operations=file_operations)
         print(f"Private review report: {saved / 'review.html'}")
         return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status,
                                 tag_data.status, pid.status, pid_members.status, calculations.status, rung_analysis.status,
                                 relationships.status, conditions.status, binding_context.status,
                                 custom_context.status, indexed_access.status, sfr_context.status, aoi_body.status,
-                                pid_connections.status, calculation_paths.status, output_context.status, stateful_objects.status, sfc_conditions.status, sfc_context.status, execution_context.status, signal_context.status) else 0
+                                pid_connections.status, calculation_paths.status, output_context.status, stateful_objects.status, sfc_conditions.status, sfc_context.status, execution_context.status, signal_context.status, file_operations.status) else 0
     except SourceError:
         print("plc: Cannot read or analyze source; no review report was produced.", file=sys.stderr)
         return 1
@@ -322,6 +326,9 @@ def _review(args: argparse.Namespace) -> int:
         return 1
     except PidError:
         print("plc: Cannot analyze PID evidence; no review report was produced.", file=sys.stderr)
+        return 1
+    except FileOperationError:
+        print("plc: Cannot analyze file operations; no review report was produced.", file=sys.stderr)
         return 1
     except SignalContextError:
         print("plc: Cannot analyze signal context; no review report was produced.", file=sys.stderr)

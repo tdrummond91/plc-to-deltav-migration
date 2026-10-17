@@ -118,6 +118,17 @@
   const bySignalRead=new Map(signalReads.map(r=>[r.id,r])),bySignalRung=new Map((signalContext?.rung_contexts||[]).map(r=>[r.id,r]));
   const signalReadsByNode=new Map();signalReads.forEach(r=>add(signalReadsByNode,r.condition_node_id,r));
   const SIGNAL_NODE_LIMIT=5000,SIGNAL_EDGE_LIMIT=10000;
+  const fileOperations=data.file_operations||null,fileOccurrences=fileOperations?.occurrences||[];
+  const byFileOperation=new Map(fileOccurrences.map(o=>[o.id,o]));
+  const byFileSlot=new Map((fileOperations?.slots||[]).map(s=>[s.id,s]));
+  const fileNodesByInstruction=new Map(),fileIndexesByInstruction=new Map(),fileOperationsByRung=new Map();
+  (fileOperations?.expression_nodes||[]).forEach(n=>add(fileNodesByInstruction,n.instruction_id,n));
+  const byFileNode=new Map((fileOperations?.expression_nodes||[]).map(n=>[n.id,n]));
+  (fileOperations?.index_uses||[]).forEach(u=>add(fileIndexesByInstruction,(u.source_kind==='slot'?byFileSlot.get(u.source_id):byFileNode.get(u.source_id))?.instruction_id,u));
+  const fileControlsByInstruction=new Map(),fileStoredByControl=new Map(),fileControlGaps=new Set();
+  (fileOperations?.stored_data||[]).forEach(d=>{add(fileStoredByControl,d.control_id,d);if(d.status!=='qualified'||d.type_status==='mismatch')fileControlGaps.add(d.control_id);});
+  (fileOperations?.controls||[]).forEach(c=>{c.occurrence_ids.forEach(id=>add(fileControlsByInstruction,id,c));if(c.declaration_kind!=='control'||['unresolved','static_out_of_bounds'].includes(c.bounds_status))fileControlGaps.add(c.id);});
+  fileOccurrences.forEach(o=>add(fileOperationsByRung,o.rung_id,o));
   const statefulObjects=data.stateful_objects||null,statefulOccurrences=statefulObjects?.occurrences||[],statefulGroups=statefulObjects?.objects||[];
   const byStatefulOccurrence=new Map(statefulOccurrences.map(o=>[o.id,o])),byStatefulGroup=new Map(statefulGroups.map(o=>[o.id,o]));
   const statefulUsesByObject=new Map(),statefulStoredByObject=new Map(),statefulOccurrencesByRung=new Map();
@@ -301,10 +312,12 @@
   headings.sequenceconditions=['Sequence conditions','Inspect captured transition expressions, their source grouping, reference leaves and unresolved evidence.'];
   headings.executioncontext=['Execution context','Inspect source-declared tasks, program entries, routine call candidates and control boundaries with unresolved evidence kept visible.'];
   headings.signalcontext=['Signal relationships','Follow exact addresses through captured output guards, comparison operands, stored-state boundaries and source occurrences.'];
+  headings.fileoperations=['File and array operations','Inspect copies, averages, file arithmetic and sequencer writes, with operand roles, symbolic ranges and unresolved evidence.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(executionContext){labels.executioncontext='Execution context';navCounts.executioncontext=executionContext.calls.length;}
   if(signalContext){labels.signalcontext='Signal relationships';navCounts.signalcontext=signalAddresses.length;}
+  if(fileOperations){labels.fileoperations='File and array operations';navCounts.fileoperations=fileOccurrences.length;}
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
   if(relationships){labels.relationships='Address relationships';navCounts.relationships=addresses.length;}
   if(statefulObjects){labels.statefulobjects='Timers, counters & resets';navCounts.statefulobjects=statefulOccurrences.length;}
@@ -499,6 +512,7 @@
   signalAddresses.forEach(a=>searchable(a,[addressName(byAddress.get(a.id)),human(a.profile),human(a.endpoint_kind),entityPath(a.target_id)]));
   signalOutputs.forEach(o=>searchable(o,[o.opcode,byOperand.get(o.target_operand_id)?.raw_text,sourceName(o.rung_id),entityPath(o.routine_id),human(o.guard_quality),human(o.target_status)]));
   signalReads.forEach(r=>searchable(r,[byOperand.get(r.id)?.raw_text,r.kind,r.status,sourceName(r.rung_id),entityPath(byRung.get(r.rung_id)?.parent_id)]));
+  fileOccurrences.forEach(o=>searchable(o,[o.opcode,human(o.signature_status),human(o.context_status),human(o.expression_status),sourceName(o.rung_id),byRung.get(o.rung_id)?.comment,entityPath(o.routine_id),...o.slot_ids.map(id=>byFileSlot.get(id)?.raw_text)]));
   function matches(row) { return !state.query || (searchIndex.get(row)||'').includes(state.query.toLocaleLowerCase()); }
   function toolbarFor(placeholder, filterOptions=[]) {
     const box=node('div','toolbar'), search=node('div','search-wrap'), input=node('input');
@@ -1375,6 +1389,7 @@
     return box;
   }
   function engineeringList(){
+    if(fileOperations){const p=panel('Inspect file and array operations','Detailed slot and range evidence supplements the base access catalogue, including AVE, FAL and SQO.');p.append(button('Explore file and array operations',()=>go('fileoperations'),'text-link'));content.append(p);}
     if(sfrContext){const reset=panel('Inspect sequence reset candidates','Follow SFR routine and step evidence separately for every exported chart content version.');reset.append(button('Explore sequence reset context',()=>go('sfrcontext'),'text-link'));content.append(reset);}
     if(customContext&&indexedAccess){const context=panel('Inspect custom instructions and dynamic indexes','Follow declaration candidates and symbolic selectors without hiding unresolved block roles or exact-element gaps.');context.append(button('Explore instruction & index context',()=>go('instructioncontext'),'text-link'));content.append(context);}
     if(conditions){const conditional=panel('Follow conditions to coil outputs','Inspect the incoming conditions at OTE, OTL and OTU occurrences, with branch joins, bypasses and unmodeled transfers retained.');conditional.append(button('Explore conditional outputs',()=>go('conditions'),'text-link'));content.append(conditional);}
@@ -1402,8 +1417,9 @@
     selection.append(table(['Rung / source comment','Function clues','Evidence group / layout','Result / gaps'],rows,a=>{
       const r=byRung.get(a.id),gaps=[];
       if(a.structure==='unparsed')gaps.push('Rung structure could not be parsed');
-      if(a.unknown_block_ids.length)gaps.push(fmt(a.unknown_block_ids.length)+' unresolved block functions');
-      if(a.operand_ids_by_role.unknown.length)gaps.push(fmt(a.operand_ids_by_role.unknown.length)+' unresolved operand roles');
+      if(a.unknown_block_ids.length)gaps.push(fmt(a.unknown_block_ids.length)+' base-catalogue block gaps');
+      if(a.operand_ids_by_role.unknown.length)gaps.push(fmt(a.operand_ids_by_role.unknown.length)+' base-catalogue operand role gaps');
+      if(fileOperationsByRung.has(a.id))gaps.push('Detailed file operation evidence available');
       if(a.access_gap_operand_ids.length+a.expression_gap_use_ids.length)gaps.push(fmt(a.access_gap_operand_ids.length+a.expression_gap_use_ids.length)+' binding / expression gaps');
       if((a.operand_ids_by_role.expression_read || []).some(id=>byOperandAccess.get(id)?.binding_status==='unsupported_expression'))gaps.push('Unsupported calculation expression');
       if(a.empty_legs)gaps.push(fmt(a.empty_legs)+' empty branch legs');
@@ -1415,6 +1431,7 @@
     content.append(notice('Local results and branch shape','An internal Boolean write is not automatically a physical output. Series syntax does not prove a single runtime data path; branch paths are structural. No known local result is a lead to investigate, not proof of dead or unreachable logic.'));
   }
   function engineeringEvidence(id){
+    if(byFileOperation.has(id))return fileOperationLink(id);
     if(byCalculationNode.has(id)){const n=byCalculationNode.get(id);return button(n.raw_text || 'Expression node',()=>openDetail('calculation',n.instruction_id,{focusCalculationNode:id}),'text-link');}
     if(byPid.has(id))return button(pidName(byPid.get(id)),()=>openDetail('pid',id),'text-link');
     if(byCalculation.has(id))return button(calculationName(byCalculation.get(id)),()=>openDetail('calculation',id),'text-link');
@@ -1453,7 +1470,7 @@
       const rule=node('details','technical');rule.append(node('summary','','Analysis rule'),values({'Rule':c.rule_id,'Version':c.rule_version,'Review status':human(c.review_status)}));missing.append(rule);
       return [primary(ENGINEERING_FAMILIES[c.category] || human(c.category),engineeringBasis(c)),proof,missing];
     },'Rung function candidates',{emptyTitle:'No function candidate yet',emptyDetail:'The rung remains in the unclassified group. Its captured source and any parsed blocks remain below.'}));content.append(summary);
-    const blocks=section('Ordered block functions','Every parsed instruction appears in source order. A known mnemonic can still have unresolved operand functions.');
+    const blocks=section('Ordered block functions','Every parsed instruction appears in source order. These evidence levels belong to the base access catalogue. Specialized instruction views can supply additional roles and context.');
     blocks.append(table(['Order / instruction','Function family','Evidence level','Operand roles',...(customContext?['Declaration context']:[])],a.block_ids.map(id=>byRungBlock.get(id)),(b,n)=>[
       primary(link(b.opcode,b.id),'Block '+(n+1)),human(b.family),human(b.identification),
       b.operand_ids.map(id=>human(byOperandAccess.get(id)?.role)).join(' · ') || 'No operands',
@@ -1529,9 +1546,11 @@
     if(state.focusInstruction && byInstruction.get(state.focusInstruction)?.rung.id===r.id)content.append(notice('Selected instruction',byInstruction.get(state.focusInstruction).instruction.opcode));
     if(byExecutionInstruction.has(state.focusInstruction))content.append(button('Inspect execution context',()=>openDetail('executioncontext',byExecutionInstruction.get(state.focusInstruction))));
     if(byCustomCall.has(state.focusInstruction))content.append(customCallLink(byCustomCall.get(state.focusInstruction)));
+    if(byFileOperation.has(state.focusInstruction))content.append(fileOperationLink(state.focusInstruction));
     const text=panel('Rung text','Exact captured ladder source. No execution behavior is inferred.');text.append(sourceText(r.text));content.append(text);
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
     if(byRungAnalysis.has(r.id))engineeringRungDetail(r,byRungAnalysis.get(r.id));
+    if(fileOperationsByRung.has(r.id)){const p=section('File and array operations on this rung','Open an occurrence for its documented slots, starting addresses and range limitations.');p.append(fileOperationTable(fileOperationsByRung.get(r.id),'Rung file operations'));content.append(p);}
     if(sfrCallsByRung.has(r.id)){const reset=section('SFR target context on this rung','Candidate matches do not establish reset execution or outgoing condition.');reset.append(sfrCallTable(sfrCallsByRung.get(r.id),'Rung SFR target contexts'));content.append(reset);}
     if(indexedByRung.has(r.id)){const indexed=section('Indexed source context on this rung','Array roots and possible selector reads stay separate from exact-address relationships.');indexed.append(indexedUseTable(indexedByRung.get(r.id),'Rung indexed source context'));content.append(indexed);}
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
@@ -2060,6 +2079,75 @@
     }
     content.append(technical({'Instruction ID':p.id,'Rung ID':p.rung_id,'Storage association':p.storage_status}));
   }
+  const FILE_PURPOSES={COP:'Copy a span of data',CPS:'Synchronous copy of a span',AVE:'Average an array region',FAL:'Apply an expression across iterations',SQO:'Select and mask a sequence output'};
+  const FILE_RANGES={
+    COP:'The length describes destination elements. Starting addresses alone do not identify every affected source or destination member.',
+    CPS:'The length describes destination elements. This source record does not simulate copy synchronization or identify every affected member.',
+    AVE:'The array start, dimension and control fields describe the selected region. The parser does not compute the average or expand its bounds.',
+    FAL:'Mode, control position, expression and destination selectors describe the iteration. Symbolic selectors remain symbolic; no iteration is executed.',
+    SQO:'The control position selects array data. The mask selects replacement bits; other destination bits are retained. No mask or output value is evaluated.'
+  };
+  function fileOperationName(o){return o.opcode+' · '+short(byFileSlot.get(o.destination_slot_id)?.raw_text||'(destination unresolved)',100);}
+  function fileOperationLink(id){const o=byFileOperation.get(id);return o?button(fileOperationName(o),()=>openDetail('fileoperation',id),'text-link'):sourceCell(id);}
+  function fileOperationGap(o){return o.signature_status!=='recognized'||o.qualification!=='qualified'||o.context_status!=='modeled'||['unsupported','signature_unresolved','namespace_gap'].includes(o.expression_status)||o.slot_ids.some(id=>!['exact_address','literal','non_data','parsed_expression','symbolic_address'].includes(byFileSlot.get(id)?.status))||(fileNodesByInstruction.get(o.id)||[]).some(n=>n.kind==='reference'&&!['exact_address','symbolic_address','literal'].includes(n.status))||(fileIndexesByInstruction.get(o.id)||[]).some(u=>u.status!=='parsed'||['unbound','invalid_identity','namespace_gap'].includes(u.root_status)||u.index_reads.some(r=>!['exact_address','literal'].includes(r.status)))||(fileControlsByInstruction.get(o.id)||[]).some(c=>fileControlGaps.has(c.id));}
+  function fileOperationTable(rows,caption){return table(['Operation / destination','Purpose','Signature / qualification','Source rung'],rows,o=>[
+    fileOperationLink(o.id),FILE_PURPOSES[o.opcode]||human(o.span_kind),primary(human(o.signature_status),human(o.qualification)),sourceCell(o.rung_id)
+  ],caption,{emptyTitle:'No file operations match',emptyDetail:'This view covers COP, CPS, AVE, FAL and SQO. Search or filter by operation, source text or evidence gaps.'});}
+  function fileOperationList(){
+    const p=panel('File operation evidence','Each source occurrence remains separate, including invalid signatures and unresolved slots. Array ranges and current values remain unevaluated.');
+    p.append(values({'Operations':fileOccurrences.length,'Source slots':byFileSlot.size,'Expression nodes':fileOperations.expression_nodes.length,'Control addresses':fileOperations.controls.length}),node('p','row-note','The base access catalogue remains available. Detailed roles here supplement its unknown slots.'));
+    content.append(p,fileOperationTable(fileOccurrences.filter(o=>matches(o)&&(state.filter==='all'||state.filter===o.opcode||(state.filter==='gaps'&&fileOperationGap(o)))),'File operation occurrences'));
+  }
+  function fileBindingCell(binding,status){
+    const box=node('div');box.append(node('span','',human(status||binding?.status||'unavailable')));
+    if(binding?.target_id&&['exact_address','root_bound'].includes(status))box.append(node('span','',' · '),sourceCell(binding.target_id),node('span','muted',binding.suffix||' (root)'));
+    return box;
+  }
+  function fileOperationDetail(o){
+    setDetailHeading('FILE AND ARRAY OPERATION',fileOperationName(o),sourceName(o.rung_id));
+    const p=panel(FILE_PURPOSES[o.opcode]||o.opcode,FILE_RANGES[o.opcode]||'Captured file operation context.');
+    p.append(values({'Signature':human(o.signature_status),'Source qualification':human(o.qualification),'Incoming condition':human(o.context_status),'Expression':human(o.expression_status)}));
+    const links=node('div','inline-links');links.append(sourceCell(o.id),sourceCell(o.rung_id));if(o.routine_id)links.append(sourceCell(o.routine_id));p.append(links);content.append(p);
+    const provenance=panel('Source content and edit context','Each exported content container stays separate; no active edit is selected.');
+    provenance.append(values({'Content location':o.content_locator,'Rung location':o.rung_locator}));
+    if(o.content_attributes)provenance.append(table(['Source attribute','Captured value'],Object.entries(o.content_attributes),([key,value])=>[key,String(value)],'File operation content attributes'));
+    content.append(provenance);
+    const slots=section('Documented operand slots','Length and position pseudo-fields belong to stored control initialization. They are not ordinary runtime input reads. A starting address does not establish the full accessed range.');
+    slots.append(table(['Slot / source','Meaning','Possible role','Binding / qualification','Selector form'],o.slot_ids.map(id=>byFileSlot.get(id)),s=>[
+      primary(sourceCell(s.id),'Argument '+(s.position+1)),human(s.kind),human(s.role),fileBindingCell(s.binding,s.status),human(s.selector_kind)
+    ],'File operation slots'));content.append(slots);
+    const nodes=fileNodesByInstruction.get(o.id)||[];
+    if(o.opcode==='FAL'){
+      const expression=section('File arithmetic expression','Expression structure and reference leaves are retained without evaluating values or expanding iterations. Unsupported expressions expose a gap instead of a partial result.');
+      if(o.error_code)expression.append(values({'Expression gap':human(o.error_code),'Character offset':o.error_offset}));
+      const labels=new Map(nodes.map((n,i)=>[n.id,'E'+(i+1)]));
+      expression.append(table(['Node','Kind / operator','Source value or reference','Binding','Inputs'],nodes,n=>[
+        labels.get(n.id),human(n.kind)+(n.operator?' · '+n.operator:''),n.raw_text?sourceText(n.raw_text):'—',n.binding?fileBindingCell(n.binding,n.status):'Not a reference',(n.child_ids||[]).map(id=>labels.get(id)||'Unavailable').join(', ')||'Leaf'
+      ],'File arithmetic expression nodes',{emptyTitle:'No parsed expression nodes',emptyDetail:o.expression_status==='parsed'?'The parsed expression has no retained nodes.':'Inspect the expression slot and its recorded gap.'}));content.append(expression);
+    }
+    const indexes=fileIndexesByInstruction.get(o.id)||[];
+    if(indexes.length){const p=section('Symbolic index selectors','Index references identify inputs used to choose an element. The root is kept separate from the unresolved exact element; no current index is substituted.');
+      for(const u of indexes){const source=u.source_kind==='slot'?byFileSlot.get(u.source_id):byFileNode.get(u.source_id),raw=source?.raw_text||'',box=panel(short(raw,160));
+        box.append(values({'Selector parsing':human(u.status),'Possible role':human(u.role)}),fileBindingCell(u.root_binding,u.root_status));
+        if(u.selectors.length)box.append(table(['Selector source','Kind'],u.selectors,s=>[sourceText(raw.slice(s.start,s.end)),s.dynamic?'Symbolic':'Static'],'File index selectors '+u.id));
+        if(u.index_reads.length)box.append(table(['Index input','Binding / qualification'],u.index_reads,r=>[sourceText(raw.slice(r.start,r.end)),fileBindingCell(r.binding,r.status)],'File index reads '+u.id));
+        p.append(box);
+      }content.append(p);
+    }
+    const controls=fileControlsByInstruction.get(o.id)||[];
+    if(controls.length){const control=section('Control declaration and stored representations','Stored data is source evidence. Multiple exported representations remain separate; no runtime or effective value is selected.');
+      for(const c of controls){const box=panel(entityName(c.target_id)+(c.suffix||''));box.append(values({'Declaration':human(c.declaration_kind),'Bounds evidence':human(c.bounds_status)}),sourceCell(c.target_id));
+        if(c.content_ids.length)box.append(table(['Stored representation'],c.content_ids,id=>[button('Inspect '+human(byTagContent.get(id)?.format_kind||'stored data'),()=>openDetail('tagcontent',id),'text-link')],'File control stored data '+c.id));
+        else box.append(node('p','muted','No stored representation is attached to this control.'));
+        const members=fileStoredByControl.get(c.id)||[];
+        if(members.length)box.append(table(['Stored member','Capture qualification','Type evidence','Source data'],members,m=>[m.member||'Control structure',human(m.status),human(m.type_status),button('Inspect stored element',()=>openDetail('tagelement',m.element_id),'text-link')],'File control members '+c.id));
+        control.append(box);
+      }content.append(control);
+    }
+    if(o.guard_id)conditionGraph(o.guard_id,'File operation incoming condition nodes','Incoming source conditions');
+    content.append(notice('Range and execution remain unresolved','The parser does not expand memory spans, prove bounds or overlaps, select a live control position, or establish execution and physical output effects. These records supplement exact-address uses; a missing exact-address link does not prove unused data.'));
+    content.append(technical({'Instruction ID':o.id,'Incoming condition ID':o.guard_id,'Expression root ID':o.expression_root_id}));
+  }
   function calculationPathStatus(status){return status==='eligible'?'Eligible for local links':'Unresolved block';}
   function calculationPathName(c){return c.opcode+' · '+short(byOperand.get(c.destination_operand_id)?.raw_text||'(destination unresolved)',100);}
   function calculationPathLink(id){const c=byCalculationPath.get(id);return c?button(calculationPathName(c),()=>openDetail('calculationpath',id),'text-link'):sourceCell(id);}
@@ -2287,6 +2375,7 @@
     else if(state.view==='pid')pidList();
     else if(state.view==='calculations')calculationList();
     else if(state.view==='calculationpaths')calculationPathList();
+    else if(state.view==='fileoperations')fileOperationList();
   }
   function render(focus=false){
     heading.replaceChildren();toolbar.replaceChildren();content.replaceChildren();
@@ -2331,6 +2420,7 @@
       else if(d.type==='pidaddress')pidConnectionAddressDetail(byPidConnectionAddress.get(d.id));
       else if(d.type==='calculation')calculationDetail(byCalculation.get(d.id));
       else if(d.type==='calculationpath')calculationPathDetail(byCalculationPath.get(d.id));
+      else if(d.type==='fileoperation')fileOperationDetail(byFileOperation.get(d.id));
     }else{
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));
       if(state.view==='engineering')engineeringToolbar();
@@ -2354,6 +2444,7 @@
       else if(state.view==='pid')toolbarFor(pidMembers?'Search PID operands, member labels, groups or source context':'Search PID operands, rung context or association status',countsFilter(pidOccurrences,'storage_status'));
       else if(state.view==='calculations')toolbarFor('Search CPT destinations, expressions, rung context or syntax status',countsFilter(calculationOccurrences,'syntax_status'));
       else if(state.view==='calculationpaths')toolbarFor('Search opcodes, inputs, destinations, rung context or gaps',[['all','All calculation blocks'],['eligible','Eligible for local links'],['gap','Unresolved blocks']]);
+      else if(state.view==='fileoperations')toolbarFor('Search operations, operands, rung comments or evidence gaps',[['all','All file operations'],['gaps','Unresolved evidence'],...Object.keys(FILE_PURPOSES).map(op=>[op,op+' · '+FILE_PURPOSES[op]])]);
       renderList();
     }
     if(focus){document.getElementById('main').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}

@@ -234,7 +234,7 @@ class SfcContextWorkflowTests(unittest.TestCase):
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), data)
             # The CLI always emits the newest review; this historical test still
             # checks that its SFC companion and captured source remain unchanged.
-            from test_signal_context_workflow import captured as latest_captured, options as latest_options
+            from test_file_operation_workflow import captured as latest_captured, options as latest_options
             latest = latest_captured(data)
             expected = review.build_review_data(*latest[:4], **latest_options(latest))
             self.assertEqual((saved / 'review.html').read_bytes(), review_html.render_review_html(expected).encode())

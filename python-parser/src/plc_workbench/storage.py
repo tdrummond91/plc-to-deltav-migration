@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from .sfc_context import SfcContextResult
     from .execution_context import ExecutionContextResult
     from .signal_context import SignalContextResult
+    from .file_operations import FileOperationResult
     from .rung_analysis import RungAnalysisResult
     from .relationships import RelationshipResult
     from .conditions import ConditionResult
@@ -121,6 +122,7 @@ def save_run(
     sfc_context: SfcContextResult | None = None,
     execution_context: ExecutionContextResult | None = None,
     signal_context: SignalContextResult | None = None,
+    file_operations: FileOperationResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -166,6 +168,8 @@ def save_run(
             raise StorageError("Boolean output context requires a complete engineering review with calculation paths.")
         if execution_context is not None and (sfc_context is None or not include_review):
             raise StorageError("Execution context requires the complete private review evidence.")
+        if file_operations is not None and (signal_context is None or not include_review):
+            raise StorageError("File operations require a complete engineering review with signal context.")
         if signal_context is not None and (execution_context is None or not include_review):
             raise StorageError("Signal context requires a complete engineering review with execution context.")
         if sfc_context is not None and (sfc_conditions is None or not include_review):
@@ -219,7 +223,8 @@ def save_run(
                                                 indexed_access=indexed_access, sfr_context=sfr_context, aoi_body_context=aoi_body_context,
                                                 pid_connections=pid_connections, calculation_paths=calculation_paths,
                                                 output_context=output_context, stateful_objects=stateful_objects, sfc_conditions=sfc_conditions, sfc_context=sfc_context,
-                                                execution_context=execution_context, signal_context=signal_context)
+                                                execution_context=execution_context, signal_context=signal_context,
+                                                file_operations=file_operations)
                 review_html = render_review_html(review_data).encode("utf-8")
             except (ReviewSizeLimitError, ReviewHtmlSizeLimitError) as exc:
                 raise StorageError("Private engineering review exceeds its report size limit.", code='review_size_limit') from exc
@@ -510,6 +515,12 @@ def save_run(
             manifest.update({"schema_version": 25,
                              "signal_context_schema_version": companion["schema_version"],
                              "signal_context_analyzer_version": companion["analyzer_version"],
+                             "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete"})
+        if file_operations is not None:
+            companion = review_data["file_operations"]
+            manifest.update({"schema_version": 26,
+                             "file_operation_schema_version": companion["schema_version"],
+                             "file_operation_analyzer_version": companion["analyzer_version"],
                              "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete"})
         _write_artifact(
             destination, run_dir, ".manifest.pending",

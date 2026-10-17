@@ -91,7 +91,7 @@ class RungAnalysisReviewUiTests(unittest.TestCase):
         const partial=rows(tableNamed('Engineering rung analysis')).find(r=>r.textContent.includes('Rung 2'));
         assert.ok(partial.textContent.includes('Boolean outputs'));
         assert.ok(partial.textContent.includes('Possible / partial functions'));
-        assert.ok(partial.textContent.includes('1 unresolved block functions'));
+        assert.ok(partial.textContent.includes('1 base-catalogue block gaps'));
         partial.childNodes[0].querySelector('button').click();
         const blocks=tableNamed('Rung ordered block functions');
         assert.deepEqual(rows(blocks).map(r=>r.childNodes[0].querySelector('button').textContent),['XIC','MYSTERY','OTE']);
@@ -197,7 +197,7 @@ class RungAnalysisReviewUiTests(unittest.TestCase):
         navigate('engineering');
         const table=tableNamed('Engineering rung analysis');
         assert.ok(rows(table)[0].textContent.includes('Program control flowMnemonic only'));
-        assert.ok(rows(table)[1].textContent.includes('7 unresolved operand roles'));
+        assert.ok(rows(table)[1].textContent.includes('7 base-catalogue operand role gaps'));
         assert.ok(content.textContent.includes('Instruction roles or signatures recognized; purpose remains unconfirmed'));
         rows(table)[1].querySelector('button').click();
         const candidates=tableNamed('Rung function candidates');

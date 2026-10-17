@@ -1,5 +1,19 @@
 # Data contracts, traceability, and checkpoints
 
+## File and array operation revision (2026-10-17)
+
+File operations1 authenticates the condition/source chain and tag data. Private
+records retain source operations, documented slots, FAL expression nodes,
+symbolic index uses, control associations and separate stored-data links.
+Access4 and condition3 are unchanged; roles in this companion supplement the
+base catalogue. Ranges, current values and runtime effects remain uncomputed.
+
+An 8 MiB companion is embedded in review23 (336 MiB JSON / 368 MiB HTML).
+Manifest26 retains sixteen artifacts. Work41 adds a closed 8 KiB summary under
+a 104 KiB outer limit. Work40 retains 96 KiB, work39 retains 88 KiB, and earlier
+limits remain unchanged. Timing1 and the frozen six-example/eight-unit sample
+envelope keep their prior behavior. See [review](../reviews/FILE_OPERATIONS_REVIEW.md).
+
 ## Cross-rung signal context revision (2026-10-17)
 
 Signal context1 canonically authenticates conditions3, output context1,

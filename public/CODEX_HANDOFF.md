@@ -1,6 +1,33 @@
 # Codex handoff: PLC analysis workbench
 
-Current checkpoint (2026-10-17): **Cross-rung signal context**.
+Current checkpoint (2026-10-17): **File and array operation evidence**.
+Return `f2165d5` tested clean `fb49ecf`: 1,532 application cases passed (two
+expected Windows skips), plus 139 helpers. All 48 historical reports validate.
+All 22 preceding summaries and the frozen six examples are unchanged.
+Signal analysis captured the predicted 12,741 condition slots, 5,064 exact
+signal addresses and 4,163 output occurrences. The private run saved; total
+work-check time was 11:50, about a minute longer than the previous run.
+
+Review23/manifest26 adds COP/CPS, AVE, FAL and SQO source operations, their
+slots, symbolic selectors, arithmetic expressions and separate stored control
+data. Work41 returns closed counts; sixteen private artifacts remain.
+Expected private-source intake is 95 operations and 294 slots, including
+three previously mnemonic-only blocks. See [scope and validation](docs/reviews/FILE_OPERATIONS_REVIEW.md).
+
+This bundle passed 1,569 application cases (two expected Windows skips),
+139 helpers and 76 development workflow cases. All 37 new cases passed under
+process/socket guards. Artifact and prior-summary comparisons passed; the
+invented report reproduces exactly through the CLI. DOM navigation checks passed;
+visual browser QA remains pending because no browser was available.
+
+The next ordinary work-machine run measures this bundle. No new plant samples
+or manual team review are requested. Git transport stays manual and the listener
+stays disabled. This remains Phase 1; stronger Boolean patterns and precisely
+attributed alarm/equipment interpretations follow the returned evidence.
+
+## Historical signal context checkpoint
+
+Historical checkpoint (2026-10-17): **Cross-rung signal context**.
 Return `2eb51d2` tested clean `cf6f785`: 1,500 application cases passed (two
 expected Windows skips), plus 139 helpers. All 47 historical reports validate.
 All 21 preceding summaries and the frozen six examples are unchanged.

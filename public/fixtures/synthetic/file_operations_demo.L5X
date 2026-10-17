@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Entirely invented file/array analysis examples; no plant source or values. -->
+<RSLogix5000Content SoftwareRevision="35.00">
+<Controller Name="InventedFileOperations">
+<Tags>
+<Tag Name="Permit" DataType="BOOL"/>
+<Tag Name="Source" DataType="DINT" Dimensions="64"/>
+<Tag Name="Destination" DataType="DINT" Dimensions="64"/>
+<Tag Name="Samples" DataType="REAL" Dimensions="8 8"/>
+<Tag Name="Average" DataType="REAL"/>
+<Tag Name="Result" DataType="REAL"/>
+<Tag Name="Index" DataType="DINT"/>
+<Tag Name="Mask" DataType="DINT"/>
+<Tag Name="Word" DataType="DINT"/>
+<Tag Name="AliasStart" TagType="Alias" AliasFor="Source[2]"/>
+<Tag Name="AverageControl" DataType="CONTROL">
+<Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="4"/><DataValueMember Name="POS" DataType="DINT" Value="0"/><DataValueMember Name="EN" DataType="BOOL" Value="0"/><DataValueMember Name="DN" DataType="BOOL" Value="0"/><DataValueMember Name="ER" DataType="BOOL" Value="0"/></Structure></Data>
+</Tag>
+<Tag Name="ArithmeticControl" DataType="CONTROL">
+<Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="4"/><DataValueMember Name="POS" DataType="DINT" Value="0"/><DataValueMember Name="EN" DataType="BOOL" Value="0"/><DataValueMember Name="DN" DataType="BOOL" Value="0"/><DataValueMember Name="ER" DataType="BOOL" Value="0"/></Structure></Data>
+</Tag>
+<Tag Name="SequenceControl" DataType="CONTROL">
+<Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="4"/><DataValueMember Name="POS" DataType="DINT" Value="0"/><DataValueMember Name="EN" DataType="BOOL" Value="0"/><DataValueMember Name="DN" DataType="BOOL" Value="0"/><DataValueMember Name="ER" DataType="BOOL" Value="0"/></Structure></Data>
+</Tag>
+</Tags><Tasks><Task Name="Task" Type="CONTINUOUS"><ScheduledPrograms><ScheduledProgram Name="Demo"/></ScheduledPrograms></Task></Tasks>
+<Programs><Program Name="Demo" Type="Normal" MainRoutineName="Main"><Routines><Routine Name="Main" Type="RLL"><RLLContent OnlineEditType="Original">
+<Rung Number="0" Type="N"><Comment>Qualified array copy</Comment><Text><![CDATA[XIC(Permit)COP(Source[0],Destination[0],4);]]></Text></Rung>
+<Rung Number="1" Type="N"><Comment>Synchronous copy</Comment><Text><![CDATA[CPS(AliasStart,Destination[4],2);]]></Text></Rung>
+<Rung Number="2" Type="N"><Comment>File average dimension selector</Comment><Text><![CDATA[AVE(Samples[0,0],1,Average,AverageControl,?,?);]]></Text></Rung>
+<Rung Number="3" Type="N"><Comment>FAL symbolic destination and expression</Comment><Text><![CDATA[FAL(ArithmeticControl,?,?,ALL,Destination[ArithmeticControl.POS],Source[ArithmeticControl.POS]+Index);]]></Text></Rung>
+<Rung Number="4" Type="N"><Comment>Sequencer masked destination</Comment><Text><![CDATA[SQO(Source[0],Mask,Word,SequenceControl,?,?);]]></Text></Rung>
+<Rung Number="5" Type="N"><Comment>Unknown declaration</Comment><Text><![CDATA[COP(Missing[0],Destination[0],4);]]></Text></Rung>
+<Rung Number="6" Type="N"><Comment>Invalid dimension remains visible</Comment><Text><![CDATA[AVE(Samples[0,0],7,Average,AverageControl,?,?);]]></Text></Rung>
+<Rung Number="7" Type="N"><Comment>Invalid file arithmetic signature</Comment><Text><![CDATA[FAL(ArithmeticControl,?,?,ALL,Result);]]></Text></Rung>
+<Rung Number="8" Type="N"><Comment>Unsupported expression retains full source</Comment><Text><![CDATA[FAL(ArithmeticControl,?,?,INC,Result,ATAN2(Index,2));]]></Text></Rung>
+<Rung Number="9" Type="N"><Comment>Branch operations stay separate</Comment><Text><![CDATA[XIC(Permit)[COP(Source[1],Destination[2],2),CPS(Source[3],Destination[8],1)];]]></Text></Rung>
+<Rung Number="10" Type="N"><Comment>Dynamic copy starts</Comment><Text><![CDATA[COP(Source[Index],Destination[Index],4);]]></Text></Rung>
+<Rung Number="11" Type="N"><Comment>Negative or changing span is not evaluated</Comment><Text><![CDATA[COP(Source[0],Destination[0],Index);]]></Text></Rung>
+<Rung Number="12" Type="N"><Comment>Comment is literal &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[COP(Source[0],Destination[1],1);]]></Text></Rung>
+<Rung Number="13" Type="N"><Comment>Pagination example 00</Comment><Text><![CDATA[COP(Source[0],Destination[0],1);]]></Text></Rung>
+<Rung Number="14" Type="N"><Comment>Pagination example 01</Comment><Text><![CDATA[COP(Source[1],Destination[1],1);]]></Text></Rung>
+<Rung Number="15" Type="N"><Comment>Pagination example 02</Comment><Text><![CDATA[COP(Source[2],Destination[2],1);]]></Text></Rung>
+<Rung Number="16" Type="N"><Comment>Pagination example 03</Comment><Text><![CDATA[COP(Source[3],Destination[3],1);]]></Text></Rung>
+<Rung Number="17" Type="N"><Comment>Pagination example 04</Comment><Text><![CDATA[COP(Source[4],Destination[4],1);]]></Text></Rung>
+<Rung Number="18" Type="N"><Comment>Pagination example 05</Comment><Text><![CDATA[COP(Source[5],Destination[5],1);]]></Text></Rung>
+<Rung Number="19" Type="N"><Comment>Pagination example 06</Comment><Text><![CDATA[COP(Source[6],Destination[6],1);]]></Text></Rung>
+<Rung Number="20" Type="N"><Comment>Pagination example 07</Comment><Text><![CDATA[COP(Source[7],Destination[7],1);]]></Text></Rung>
+<Rung Number="21" Type="N"><Comment>Pagination example 08</Comment><Text><![CDATA[COP(Source[8],Destination[8],1);]]></Text></Rung>
+<Rung Number="22" Type="N"><Comment>Pagination example 09</Comment><Text><![CDATA[COP(Source[9],Destination[9],1);]]></Text></Rung>
+<Rung Number="23" Type="N"><Comment>Pagination example 10</Comment><Text><![CDATA[COP(Source[10],Destination[10],1);]]></Text></Rung>
+<Rung Number="24" Type="N"><Comment>Pagination example 11</Comment><Text><![CDATA[COP(Source[11],Destination[11],1);]]></Text></Rung>
+<Rung Number="25" Type="N"><Comment>Pagination example 12</Comment><Text><![CDATA[COP(Source[12],Destination[12],1);]]></Text></Rung>
+<Rung Number="26" Type="N"><Comment>Pagination example 13</Comment><Text><![CDATA[COP(Source[13],Destination[13],1);]]></Text></Rung>
+<Rung Number="27" Type="N"><Comment>Pagination example 14</Comment><Text><![CDATA[COP(Source[14],Destination[14],1);]]></Text></Rung>
+<Rung Number="28" Type="N"><Comment>Pagination example 15</Comment><Text><![CDATA[COP(Source[15],Destination[15],1);]]></Text></Rung>
+<Rung Number="29" Type="N"><Comment>Pagination example 16</Comment><Text><![CDATA[COP(Source[16],Destination[16],1);]]></Text></Rung>
+<Rung Number="30" Type="N"><Comment>Pagination example 17</Comment><Text><![CDATA[COP(Source[17],Destination[17],1);]]></Text></Rung>
+<Rung Number="31" Type="N"><Comment>Pagination example 18</Comment><Text><![CDATA[COP(Source[18],Destination[18],1);]]></Text></Rung>
+<Rung Number="32" Type="N"><Comment>Pagination example 19</Comment><Text><![CDATA[COP(Source[19],Destination[19],1);]]></Text></Rung>
+<Rung Number="33" Type="N"><Comment>Pagination example 20</Comment><Text><![CDATA[COP(Source[20],Destination[20],1);]]></Text></Rung>
+<Rung Number="34" Type="N"><Comment>Pagination example 21</Comment><Text><![CDATA[COP(Source[21],Destination[21],1);]]></Text></Rung>
+<Rung Number="35" Type="N"><Comment>Pagination example 22</Comment><Text><![CDATA[COP(Source[22],Destination[22],1);]]></Text></Rung>
+<Rung Number="36" Type="N"><Comment>Pagination example 23</Comment><Text><![CDATA[COP(Source[23],Destination[23],1);]]></Text></Rung>
+<Rung Number="37" Type="N"><Comment>Pagination example 24</Comment><Text><![CDATA[COP(Source[24],Destination[24],1);]]></Text></Rung>
+<Rung Number="38" Type="N"><Comment>Pagination example 25</Comment><Text><![CDATA[COP(Source[25],Destination[25],1);]]></Text></Rung>
+<Rung Number="39" Type="N"><Comment>Pagination example 26</Comment><Text><![CDATA[COP(Source[26],Destination[26],1);]]></Text></Rung>
+<Rung Number="40" Type="N"><Comment>Pagination example 27</Comment><Text><![CDATA[COP(Source[27],Destination[27],1);]]></Text></Rung>
+<Rung Number="41" Type="N"><Comment>Pagination example 28</Comment><Text><![CDATA[COP(Source[28],Destination[28],1);]]></Text></Rung>
+<Rung Number="42" Type="N"><Comment>Pagination example 29</Comment><Text><![CDATA[COP(Source[29],Destination[29],1);]]></Text></Rung>
+<Rung Number="43" Type="N"><Comment>Pagination example 30</Comment><Text><![CDATA[COP(Source[30],Destination[30],1);]]></Text></Rung>
+<Rung Number="44" Type="N"><Comment>Pagination example 31</Comment><Text><![CDATA[COP(Source[31],Destination[31],1);]]></Text></Rung>
+<Rung Number="45" Type="N"><Comment>Pagination example 32</Comment><Text><![CDATA[COP(Source[32],Destination[32],1);]]></Text></Rung>
+<Rung Number="46" Type="N"><Comment>Pagination example 33</Comment><Text><![CDATA[COP(Source[33],Destination[33],1);]]></Text></Rung>
+<Rung Number="47" Type="N"><Comment>Pagination example 34</Comment><Text><![CDATA[COP(Source[34],Destination[34],1);]]></Text></Rung>
+<Rung Number="48" Type="N"><Comment>Pagination example 35</Comment><Text><![CDATA[COP(Source[35],Destination[35],1);]]></Text></Rung>
+<Rung Number="49" Type="N"><Comment>Pagination example 36</Comment><Text><![CDATA[COP(Source[36],Destination[36],1);]]></Text></Rung>
+<Rung Number="50" Type="N"><Comment>Pagination example 37</Comment><Text><![CDATA[COP(Source[37],Destination[37],1);]]></Text></Rung>
+<Rung Number="51" Type="N"><Comment>Pagination example 38</Comment><Text><![CDATA[COP(Source[38],Destination[38],1);]]></Text></Rung>
+<Rung Number="52" Type="N"><Comment>Pagination example 39</Comment><Text><![CDATA[COP(Source[39],Destination[39],1);]]></Text></Rung>
+<Rung Number="53" Type="N"><Comment>Pagination example 40</Comment><Text><![CDATA[COP(Source[40],Destination[40],1);]]></Text></Rung>
+<Rung Number="54" Type="N"><Comment>Pagination example 41</Comment><Text><![CDATA[COP(Source[41],Destination[41],1);]]></Text></Rung>
+<Rung Number="55" Type="N"><Comment>Pagination example 42</Comment><Text><![CDATA[COP(Source[42],Destination[42],1);]]></Text></Rung>
+<Rung Number="56" Type="N"><Comment>Pagination example 43</Comment><Text><![CDATA[COP(Source[43],Destination[43],1);]]></Text></Rung>
+<Rung Number="57" Type="N"><Comment>Pagination example 44</Comment><Text><![CDATA[COP(Source[44],Destination[44],1);]]></Text></Rung>
+<Rung Number="58" Type="N"><Comment>Pagination example 45</Comment><Text><![CDATA[COP(Source[45],Destination[45],1);]]></Text></Rung>
+<Rung Number="59" Type="N"><Comment>Pagination example 46</Comment><Text><![CDATA[COP(Source[46],Destination[46],1);]]></Text></Rung>
+<Rung Number="60" Type="N"><Comment>Pagination example 47</Comment><Text><![CDATA[COP(Source[47],Destination[47],1);]]></Text></Rung>
+<Rung Number="61" Type="N"><Comment>Pagination example 48</Comment><Text><![CDATA[COP(Source[48],Destination[48],1);]]></Text></Rung>
+<Rung Number="62" Type="N"><Comment>Pagination example 49</Comment><Text><![CDATA[COP(Source[49],Destination[49],1);]]></Text></Rung>
+</RLLContent><RLLContent OnlineEditType="Pending"><Rung Number="0" Type="N"><Text><![CDATA[SQO(Source[1],16#0F,Word,SequenceControl,4,0);]]></Text></Rung></RLLContent></Routine></Routines></Program></Programs></Controller></RSLogix5000Content>

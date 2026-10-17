@@ -645,11 +645,18 @@ class GitAndWorkflowTests(unittest.TestCase):
             analysis_payload['signal_context_summary'] = build_signal_context_summary(
                 *signal_inputs, analyze_signal_context(*signal_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.file_operations import analyze_file_operations
+            from plc_workbench.file_operation_summary import build_file_operation_summary
+            file_inputs = (*execution_inputs, tag_data)
+            analysis_payload["file_operation_summary"] = build_file_operation_summary(
+                *file_inputs, analyze_file_operations(*file_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
             def timed_analysis(*args, timings, sfc_context_schema_version, include_execution_context,
-                               include_signal_context):
+                               include_signal_context, include_file_operations):
                 self.assertEqual(sfc_context_schema_version, 2)
                 self.assertTrue(include_execution_context)
                 self.assertTrue(include_signal_context)
+                self.assertTrue(include_file_operations)
                 for name in ("analysis_build", "private_save", "summary_build", "sample_replay"):
                     with timings.phase(name):
                         pass
@@ -683,7 +690,7 @@ class GitAndWorkflowTests(unittest.TestCase):
             outcome, calls, published, analysis = self._workflow(
                 Path(folder).resolve(), [test_result(), test_result()])
         self.assertEqual(outcome, 0)
-        self.assertEqual(published[0]['schema_version'], 40)
+        self.assertEqual(published[0]['schema_version'], 41)
         self.assertEqual(published[0]['timings']['total_ms'], 0)
         self.assertEqual(published[0]['timings']['phases_ms'], dict.fromkeys(PHASES, 0))
         self.assertFalse(any(call[0] in {'fetch', 'pull', 'push'} for call in calls))

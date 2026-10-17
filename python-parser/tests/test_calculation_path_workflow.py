@@ -245,7 +245,7 @@ class CalculationPathWorkflowTests(unittest.TestCase):
             self.assertEqual((code, error), (3, ''))
             saved, = (root / 'runs').iterdir()
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), data)
-            from test_signal_context_workflow import captured as latest_captured, options as latest_options
+            from test_file_operation_workflow import captured as latest_captured, options as latest_options
             expected = review.build_review_data(*latest_captured(data)[:4], **latest_options(latest_captured(data)))
             self.assertEqual((saved / 'review.html').read_bytes(), review_html.render_review_html(expected).encode())
             path.write_bytes(data)

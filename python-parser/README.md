@@ -1,6 +1,13 @@
 # L5X engineering review, calculations and source structure
 
-Latest bundle: **Cross-rung signal context** adds predicate inputs, exact-address
+Latest bundle: **File and array operations** explains COP/CPS, AVE, FAL and
+SQO slots, starting addresses, symbolic indices and stored control context.
+FAL expression references and SQO destination preservation remain distinct from
+unevaluated ranges and execution. Review23 embeds private evidence; work41
+returns closed counts. See [scope and validation](../public/docs/reviews/FILE_OPERATIONS_REVIEW.md)
+and the [invented report](../public/examples/file-operations-review-demo.html).
+
+Prior bundle: **Cross-rung signal context** adds predicate inputs, exact-address
 dossiers and bounded source-condition navigation to individual outputs.
 It preserves comparison operands, one-shot storage and timer member associations
 as distinct evidence. Review22 embeds private records; work40 returns closed

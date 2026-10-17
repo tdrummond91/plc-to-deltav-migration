@@ -222,8 +222,9 @@ class SignalContextWorkflowTests(unittest.TestCase):
             saved, = (root / 'runs').iterdir()
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), data)
             manifest = json.loads((saved / 'manifest.json').read_bytes())
-            self.assertEqual((manifest['schema_version'], manifest['status']), (25, 'partial'))
-            expected = review.build_review_data(*captured(data)[:4], **options(captured(data)))
+            self.assertEqual((manifest['schema_version'], manifest['status']), (26, 'partial'))
+            from test_file_operation_workflow import captured as latest_captured, options as latest_options
+            expected = review.build_review_data(*latest_captured(data)[:4], **latest_options(latest_captured(data)))
             self.assertEqual((saved / 'review.html').read_bytes(), review_html.render_review_html(expected).encode())
 
     def test_cli_signal_failure_is_source_free_and_allocates_nothing(self) -> None:

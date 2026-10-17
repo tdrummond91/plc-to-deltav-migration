@@ -42,6 +42,8 @@ MAX_REVIEW_V21_HTML_BYTES = 328 * 1024 * 1024
 MAX_REVIEW_V21_PAYLOAD_BYTES = 296 * 1024 * 1024
 MAX_REVIEW_V22_HTML_BYTES = 360 * 1024 * 1024
 MAX_REVIEW_V22_PAYLOAD_BYTES = 328 * 1024 * 1024
+MAX_REVIEW_V23_HTML_BYTES = 368 * 1024 * 1024
+MAX_REVIEW_V23_PAYLOAD_BYTES = 336 * 1024 * 1024
 
 
 class ReviewHtmlError(ValueError):
@@ -53,6 +55,8 @@ class ReviewHtmlSizeLimitError(ReviewHtmlError):
 
 
 def _limits(version: int) -> tuple[int, int]:
+    if version == 23:
+        return MAX_REVIEW_V23_PAYLOAD_BYTES, MAX_REVIEW_V23_HTML_BYTES
     if version == 22:
         return MAX_REVIEW_V22_PAYLOAD_BYTES, MAX_REVIEW_V22_HTML_BYTES
     if version == 21:
@@ -92,89 +96,94 @@ def _payload(data: dict[str, Any]) -> str:
                 (5, 'engineering-review-5'), (6, 'engineering-review-6'),
                 (7, 'engineering-review-7'), (8, 'engineering-review-8'),
                 (9, 'engineering-review-9'), (10, 'engineering-review-10'),
-                (11, 'engineering-review-11'), (12, 'engineering-review-12'), (13, 'engineering-review-13'), (14, 'engineering-review-14'), (15, 'engineering-review-15'), (16, 'engineering-review-16'), (17, 'engineering-review-17'), (18, 'engineering-review-18'), (19, 'engineering-review-19'), (20, 'engineering-review-20'), (21, 'engineering-review-21'), (22, 'engineering-review-22'))
+                (11, 'engineering-review-11'), (12, 'engineering-review-12'), (13, 'engineering-review-13'), (14, 'engineering-review-14'), (15, 'engineering-review-15'), (16, 'engineering-review-16'), (17, 'engineering-review-17'), (18, 'engineering-review-18'), (19, 'engineering-review-19'), (20, 'engineering-review-20'), (21, 'engineering-review-21'), (22, 'engineering-review-22'), (23, 'engineering-review-23'))
             or (data.get('schema_version') == 1 and 'access' in data)
-            or (data.get('schema_version') in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and type(data.get('access')) is not dict)
+            or (data.get('schema_version') in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and type(data.get('access')) is not dict)
             or (data.get('schema_version') in (1, 2) and 'tag_data' in data)
-            or (data.get('schema_version') in (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and type(data.get('tag_data')) is not dict)
+            or (data.get('schema_version') in (3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and type(data.get('tag_data')) is not dict)
             or (data.get('schema_version') in (1, 2, 3) and 'pid' in data)
-            or (data.get('schema_version') in (4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and type(data.get('pid')) is not dict)
+            or (data.get('schema_version') in (4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and type(data.get('pid')) is not dict)
             or (data.get('schema_version') in (1, 2, 3, 4) and 'pid_members' in data)
-            or (data.get('schema_version') in (5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and type(data.get('pid_members')) is not dict)
+            or (data.get('schema_version') in (5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and type(data.get('pid_members')) is not dict)
             or (data.get('schema_version') in (1, 2, 3, 4, 5) and 'calculations' in data)
-            or (data.get('schema_version') in (6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and type(data.get('calculations')) is not dict)
-            or (data.get('schema_version') not in (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and 'rung_analysis' in data)
-            or (data.get('schema_version') in (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and type(data.get('rung_analysis')) is not dict)
-            or (data.get('schema_version') not in (8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and 'relationships' in data)
-            or (data.get('schema_version') in (8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and type(data.get('relationships')) is not dict)
-            or (data.get('schema_version') not in (9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and 'conditions' in data)
-            or (data.get('schema_version') in (9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and type(data.get('conditions')) is not dict)
-            or (data.get('schema_version') in (9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22)
+            or (data.get('schema_version') in (6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and type(data.get('calculations')) is not dict)
+            or (data.get('schema_version') not in (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and 'rung_analysis' in data)
+            or (data.get('schema_version') in (7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and type(data.get('rung_analysis')) is not dict)
+            or (data.get('schema_version') not in (8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and 'relationships' in data)
+            or (data.get('schema_version') in (8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and type(data.get('relationships')) is not dict)
+            or (data.get('schema_version') not in (9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and 'conditions' in data)
+            or (data.get('schema_version') in (9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and type(data.get('conditions')) is not dict)
+            or (data.get('schema_version') in (9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23)
                 and (type(data['conditions'].get('schema_version')) is not int
-                     or data['conditions'].get('schema_version') != (1 if data['schema_version'] == 9 else 3 if data['schema_version'] in (13, 14, 15, 16, 17, 18, 19, 20, 21, 22) else 2)))
-            or (data.get('schema_version') not in (11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and 'binding_context' in data)
-            or (data.get('schema_version') in (11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22)
+                     or data['conditions'].get('schema_version') != (1 if data['schema_version'] == 9 else 3 if data['schema_version'] in (13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) else 2)))
+            or (data.get('schema_version') not in (11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and 'binding_context' in data)
+            or (data.get('schema_version') in (11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23)
                 and (type(data.get('binding_context')) is not dict
                      or type(data['binding_context'].get('schema_version')) is not int
                      or data['binding_context'].get('schema_version') != 1
                      or data['binding_context'].get('analyzer_version') != 'binding-context-1'))
-            or (data['schema_version'] not in (12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and any(key in data for key in ('custom_instruction_context', 'indexed_access')))
-            or (data['schema_version'] in (12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and any(
+            or (data['schema_version'] not in (12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and any(key in data for key in ('custom_instruction_context', 'indexed_access')))
+            or (data['schema_version'] in (12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and any(
                 type(data.get(key)) is not dict
                 or type(data[key].get('schema_version')) is not int or data[key]['schema_version'] != 1
                 or data[key].get('analyzer_version') != version
                 for key, version in (('custom_instruction_context', 'custom-instruction-context-1'),
                                      ('indexed_access', 'indexed-access-1'))))
-            or (data['schema_version'] not in (13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and 'sfr_context' in data)
-            or (data['schema_version'] in (13, 14, 15, 16, 17, 18, 19, 20, 21, 22) and (type(data.get('sfr_context')) is not dict
+            or (data['schema_version'] not in (13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and 'sfr_context' in data)
+            or (data['schema_version'] in (13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and (type(data.get('sfr_context')) is not dict
                 or type(data['sfr_context'].get('schema_version')) is not int
-                or data['sfr_context']['schema_version'] != (2 if data['schema_version'] in (14, 15, 16, 17, 18, 19, 20, 21, 22) else 1)
-                or data['sfr_context'].get('analyzer_version') != ('sfr-context-2' if data['schema_version'] in (14, 15, 16, 17, 18, 19, 20, 21, 22) else 'sfr-context-1')))
-            or (data['schema_version'] not in (14, 15, 16, 17, 18, 19, 20, 21, 22) and 'aoi_body_context' in data)
-            or (data['schema_version'] in (14, 15, 16, 17, 18, 19, 20, 21, 22) and (type(data.get('aoi_body_context')) is not dict
+                or data['sfr_context']['schema_version'] != (2 if data['schema_version'] in (14, 15, 16, 17, 18, 19, 20, 21, 22, 23) else 1)
+                or data['sfr_context'].get('analyzer_version') != ('sfr-context-2' if data['schema_version'] in (14, 15, 16, 17, 18, 19, 20, 21, 22, 23) else 'sfr-context-1')))
+            or (data['schema_version'] not in (14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and 'aoi_body_context' in data)
+            or (data['schema_version'] in (14, 15, 16, 17, 18, 19, 20, 21, 22, 23) and (type(data.get('aoi_body_context')) is not dict
                 or type(data['aoi_body_context'].get('schema_version')) is not int
                 or data['aoi_body_context']['schema_version'] != 1
                 or data['aoi_body_context'].get('analyzer_version') != 'aoi-body-context-1'))
-            or (data['schema_version'] not in (15, 16, 17, 18, 19, 20, 21, 22) and 'pid_connections' in data)
-            or (data['schema_version'] in (15, 16, 17, 18, 19, 20, 21, 22) and (type(data.get('pid_connections')) is not dict
+            or (data['schema_version'] not in (15, 16, 17, 18, 19, 20, 21, 22, 23) and 'pid_connections' in data)
+            or (data['schema_version'] in (15, 16, 17, 18, 19, 20, 21, 22, 23) and (type(data.get('pid_connections')) is not dict
                 or type(data['pid_connections'].get('schema_version')) is not int
                 or data['pid_connections']['schema_version'] != 1
                 or data['pid_connections'].get('analyzer_version') != 'pid-connections-1'))
-            or (data['schema_version'] not in (16, 17, 18, 19, 20, 21, 22) and 'calculation_paths' in data)
-            or (data['schema_version'] in (16, 17, 18, 19, 20, 21, 22) and (type(data.get('calculation_paths')) is not dict
+            or (data['schema_version'] not in (16, 17, 18, 19, 20, 21, 22, 23) and 'calculation_paths' in data)
+            or (data['schema_version'] in (16, 17, 18, 19, 20, 21, 22, 23) and (type(data.get('calculation_paths')) is not dict
                 or type(data['calculation_paths'].get('schema_version')) is not int
                 or data['calculation_paths']['schema_version'] != 1
                 or data['calculation_paths'].get('analyzer_version') != 'calculation-paths-1'))
-            or (data['schema_version'] not in (17, 18, 19, 20, 21, 22) and 'output_context' in data)
-            or (data['schema_version'] in (17, 18, 19, 20, 21, 22) and (type(data.get('output_context')) is not dict
+            or (data['schema_version'] not in (17, 18, 19, 20, 21, 22, 23) and 'output_context' in data)
+            or (data['schema_version'] in (17, 18, 19, 20, 21, 22, 23) and (type(data.get('output_context')) is not dict
                 or type(data['output_context'].get('schema_version')) is not int
                 or data['output_context']['schema_version'] != 1
                 or data['output_context'].get('analyzer_version') != 'output-context-1'))
-            or (data['schema_version'] not in (18, 19, 20, 21, 22) and 'stateful_objects' in data)
-            or (data['schema_version'] in (18, 19, 20, 21, 22) and (type(data.get('stateful_objects')) is not dict
+            or (data['schema_version'] not in (18, 19, 20, 21, 22, 23) and 'stateful_objects' in data)
+            or (data['schema_version'] in (18, 19, 20, 21, 22, 23) and (type(data.get('stateful_objects')) is not dict
                 or type(data['stateful_objects'].get('schema_version')) is not int
                 or data['stateful_objects']['schema_version'] != 1
                 or data['stateful_objects'].get('analyzer_version') != 'stateful-objects-1'))
-            or (data['schema_version'] not in (19, 20, 21, 22) and 'sfc_conditions' in data)
-            or (data['schema_version'] in (19, 20, 21, 22) and (type(data.get('sfc_conditions')) is not dict
+            or (data['schema_version'] not in (19, 20, 21, 22, 23) and 'sfc_conditions' in data)
+            or (data['schema_version'] in (19, 20, 21, 22, 23) and (type(data.get('sfc_conditions')) is not dict
                 or type(data['sfc_conditions'].get('schema_version')) is not int
                 or data['sfc_conditions']['schema_version'] != 1
                 or data['sfc_conditions'].get('analyzer_version') != 'sfc-conditions-1'))
-            or (data['schema_version'] not in (20, 21, 22) and 'sfc_context' in data)
-            or (data['schema_version'] in (20, 21, 22) and (type(data.get('sfc_context')) is not dict
+            or (data['schema_version'] not in (20, 21, 22, 23) and 'sfc_context' in data)
+            or (data['schema_version'] in (20, 21, 22, 23) and (type(data.get('sfc_context')) is not dict
                 or type(data['sfc_context'].get('schema_version')) is not int
                 or data['sfc_context']['schema_version'] != 1
                 or data['sfc_context'].get('analyzer_version') != 'sfc-context-1'))
-            or (data['schema_version'] not in (21, 22) and 'execution_context' in data)
-            or (data['schema_version'] in (21, 22) and (type(data.get('execution_context')) is not dict
+            or (data['schema_version'] not in (21, 22, 23) and 'execution_context' in data)
+            or (data['schema_version'] in (21, 22, 23) and (type(data.get('execution_context')) is not dict
                 or type(data['execution_context'].get('schema_version')) is not int
                 or data['execution_context']['schema_version'] != 1
                 or data['execution_context'].get('analyzer_version') != 'execution-context-1'))
-            or (data['schema_version'] != 22 and 'signal_context' in data)
-            or (data['schema_version'] == 22 and (type(data.get('signal_context')) is not dict
+            or (data['schema_version'] not in (22, 23) and 'signal_context' in data)
+            or (data['schema_version'] in (22, 23) and (type(data.get('signal_context')) is not dict
                 or type(data['signal_context'].get('schema_version')) is not int
                 or data['signal_context']['schema_version'] != 1
                 or data['signal_context'].get('analyzer_version') != 'signal-context-1'))
+            or (data['schema_version'] != 23 and 'file_operations' in data)
+            or (data['schema_version'] == 23 and (type(data.get('file_operations')) is not dict
+                or type(data['file_operations'].get('schema_version')) is not int
+                or data['file_operations']['schema_version'] != 1
+                or data['file_operations'].get('analyzer_version') != 'file-operations-1'))
             or any(type(data.get(key)) is not dict
                    for key in ('snapshot', 'inventory', 'references', 'sfc', 'statistics'))
             or any(type(data.get(key)) is not list for key in ('patterns', 'findings'))):
