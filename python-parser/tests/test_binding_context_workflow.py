@@ -163,7 +163,7 @@ class BindingContextWorkflowTests(unittest.TestCase):
                 self.assertEqual((code, error), (3, ''))
                 saved, = (root / 'runs').iterdir()
                 self.assertIn(str(saved / 'review.html'), output)
-                from test_calculation_path_workflow import captured as latest_captured, options as latest_options
+                from test_output_context_workflow import captured as latest_captured, options as latest_options
                 latest = latest_captured(SOURCE)
                 data = build_review_data(*latest[:4], **latest_options(latest))
                 self.assertEqual((saved / 'review.html').read_bytes(), render_review_html(data).encode())
@@ -179,6 +179,7 @@ class BindingContextWorkflowTests(unittest.TestCase):
                 outcome.pop('aoi_body_summary')
                 outcome.pop('pid_connection_summary')
                 outcome.pop('calculation_path_summary')
+                outcome.pop('output_context_summary')
                 self.assertEqual(outcome.pop('condition_summary')['schema_version'], 3)
                 self.assertEqual(outcome, {k: v for k, v in report()['analysis'].items() if k != 'condition_summary'})
 

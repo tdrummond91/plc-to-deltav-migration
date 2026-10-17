@@ -236,6 +236,7 @@ def _review(args: argparse.Namespace) -> int:
     from .pid_connections import PidConnectionError, analyze_pid_connections
     from .calculations import CalculationError, analyze_calculations
     from .calculation_paths import CalculationPathError, analyze_calculation_paths
+    from .output_context import OutputContextError, analyze_output_context
     from .rung_analysis import RungAnalysisError, analyze_rungs
     from .relationships import RelationshipError, analyze_relationships
     from .conditions import ConditionError, analyze_conditions
@@ -278,18 +279,21 @@ def _review(args: argparse.Namespace) -> int:
             conditions, tag_data, pid, pid_members)
         calculation_paths = analyze_calculation_paths(
             snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
+        output_context = analyze_output_context(
+            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
         saved = save_run(args.workspace, snapshot, inventory, references=references,
                          sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data, pid=pid,
                          pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis, relationships=relationships,
                          conditions=conditions, binding_context=binding_context,
                          custom_instruction_context=custom_context, indexed_access=indexed_access, sfr_context=sfr_context, aoi_body_context=aoi_body,
-                         pid_connections=pid_connections, calculation_paths=calculation_paths)
+                         pid_connections=pid_connections, calculation_paths=calculation_paths,
+                         output_context=output_context)
         print(f"Private review report: {saved / 'review.html'}")
         return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status,
                                 tag_data.status, pid.status, pid_members.status, calculations.status, rung_analysis.status,
                                 relationships.status, conditions.status, binding_context.status,
                                 custom_context.status, indexed_access.status, sfr_context.status, aoi_body.status,
-                                pid_connections.status, calculation_paths.status) else 0
+                                pid_connections.status, calculation_paths.status, output_context.status) else 0
     except SourceError:
         print("plc: Cannot read or analyze source; no review report was produced.", file=sys.stderr)
         return 1
@@ -301,6 +305,9 @@ def _review(args: argparse.Namespace) -> int:
         return 1
     except PidError:
         print("plc: Cannot analyze PID evidence; no review report was produced.", file=sys.stderr)
+        return 1
+    except OutputContextError:
+        print("plc: Cannot analyze Boolean output context; no review report was produced.", file=sys.stderr)
         return 1
     except CalculationPathError:
         print("plc: Cannot analyze calculation paths; no review report was produced.", file=sys.stderr)

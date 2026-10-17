@@ -1,5 +1,18 @@
 # Independently synthetic L5X fixture
 
+## Boolean output context fixture
+
+[output_context_demo.L5X](output_context_demo.L5X) contains 88 independently
+invented rungs. It covers competing coil and noncoil writes, alias targets,
+module directions, repeated predicate reads, ONS storage, self-feedback, separate
+branch contexts, unknown/unbound/dynamic uses and namespace gaps. Fifty-five
+extra cases exercise consumer and output pagination. Source markup stays literal.
+
+The [offline report](../../examples/output-context-demo.html) extends Conditional
+outputs with target-use evidence. See [scope and checks](../../docs/reviews/OUTPUT_CONTEXT_REVIEW.md).
+Use isolated checkouts for work-check QA; this input must not establish the
+production sample reservation. It is not controller-ready logic.
+
 ## AOI body and SFR gap fixture
 
 [aoi_body_demo.L5X](aoi_body_demo.L5X) is an independently invented 75-rung input.

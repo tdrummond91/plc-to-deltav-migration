@@ -1,5 +1,16 @@
 # Data contracts, traceability, and checkpoints
 
+## Boolean output context revision (2026-10-16)
+
+Output context1 links coil occurrences, shared exact-target uses, predicate/ONS
+read occurrences and rung-scoped authored hints. The existing condition graph
+provides consumer associations without expanding writer/consumer pairs.
+Review17 embeds the 16 MiB companion under 232 MiB JSON / 264 MiB HTML limits.
+Manifest20 retains sixteen hashed artifacts. Work34 adds its closed 4 KiB summary
+under the unchanged 80 KiB envelope. Older versions, earlier analysis semantics
+and frozen sample selection remain unchanged. See
+[scope and verification](../reviews/OUTPUT_CONTEXT_REVIEW.md).
+
 ## Calculation path revision (2026-10-16)
 
 Calculation paths1 links selected math/move occurrences to existing input,

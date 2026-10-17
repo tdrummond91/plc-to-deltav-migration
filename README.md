@@ -1,12 +1,11 @@
 # PLC analysis workbench
 
-Latest checkpoint: return `693e419` passed 1,216 application cases (two expected
-Windows skips) and 139 helpers. PID connection coverage accounts for all 46
-occurrences and 322 slots, with 333 observed direct-member addresses.
-Work33 adds math/move inputs and destinations within branch segments, incoming
-condition links and possible local result reuse. Existing analysis and the
-frozen six diagnostic examples remain unchanged. See
-[scope and validation](public/docs/reviews/CALCULATION_PATHS_REVIEW.md).
+Latest checkpoint: return `48dcd22` passed 1,254 application cases (two expected
+Windows skips) and 139 helpers. It accounts for all 2,138 selected calculation
+blocks, with two unresolved destinations. Work34 adds Boolean output target-use
+context, condition readers, declaration direction and rung-scoped authored hints.
+Earlier analysis and the frozen six examples remain unchanged. See
+[scope and validation](public/docs/reviews/OUTPUT_CONTEXT_REVIEW.md).
 The next step is the normal work-machine run; team review remains deferred.
 
 Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected

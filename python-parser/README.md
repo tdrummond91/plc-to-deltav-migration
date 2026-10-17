@@ -36,7 +36,7 @@ hints are separate. Internal Boolean outputs do not imply physical DOs; no
 known local result does not prove dead code. CPT expression reads retain their
 own population, node/span links and repeated occurrences.
 
-The latest automated return (`693e419`) saved successfully and accounts for
+The latest automated return (`48dcd22`) saved successfully and accounts for
 4,163 coil outputs: 3,966 modeled guards, 196 with condition binding gaps and
 one with an opaque transfer. There are 2,718 pass-through and 133 stored-state
 transfers; 326 remain opaque. Earlier summaries remain unchanged, including
@@ -49,10 +49,13 @@ with an unknown role stays deferred. All six targeted rung examples replay uncha
 SFR matched 139 of 140 calls to captured steps; its unmatched address occurs
 in another chart in the same program. AOI body context has no recorded gaps.
 PID connections account for all 46 controls and 322 slots, including 333 direct
-member addresses. Every master slot is literal. The next run measures math/move
-inputs and destinations inside branch segments, with incoming-condition links
-and possible local reuse. Branch boundaries and unsupported blocks stop links.
-See [the current scope](../public/docs/reviews/CALCULATION_PATHS_REVIEW.md),
+member addresses. Every master slot is literal. Calculation paths now account
+for 2,138 selected blocks, including 1,294 in branched rungs; two destinations
+remain unresolved and one local reuse link is present. The next run measures
+shared Boolean target uses, condition readers, declaration direction and authored
+rung hints in the existing Conditional outputs view. No shutdown or physical
+channel identity is inferred.
+See [the current scope](../public/docs/reviews/OUTPUT_CONTEXT_REVIEW.md),
 [the context contract](../public/docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md)
 and [sampling boundaries](../public/docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
 Continue the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)

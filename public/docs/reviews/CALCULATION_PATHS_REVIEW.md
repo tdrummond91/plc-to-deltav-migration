@@ -1,5 +1,18 @@
 # Calculation inputs and destinations
 
+## Confirmed work-machine return
+
+Return `48dcd22` tested clean `2105ce3`: 1,254 application cases passed with two
+expected Windows skips and all 139 helpers. The private analysis saved. All
+2,138 selected blocks are retained; 2,136 are eligible and two have unresolved
+destinations. There are 2,137 segments, including 1,294 blocks in branched rungs,
+2,990 input operands and 132 CPT reads. One CPT local reuse link was found.
+Incoming contexts are 2,021 modeled, 85 with binding gaps and 32 stateful.
+All sixteen preceding summaries and the frozen six examples are unchanged;
+all 40 historical reports validate. Next is
+[Boolean output context](OUTPUT_CONTEXT_REVIEW.md), not a relaxation of branch
+boundaries or an assumption that unmatched inputs/results are unused.
+
 ## Returned evidence and scope
 
 Return `693e419` tested clean `f4f704d`: 1,216 application cases passed with

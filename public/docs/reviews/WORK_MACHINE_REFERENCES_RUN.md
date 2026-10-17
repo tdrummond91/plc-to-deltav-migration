@@ -1,6 +1,26 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-16): **Calculation inputs and destinations**.
+Current checkpoint (2026-10-16): **Boolean output context**.
+Return `48dcd22` tested clean `2105ce3`: 1,254 application cases passed (two
+expected Windows skips), plus 139 helpers. All 2,138 selected calculation blocks
+are accounted for, including 1,294 in branched rungs; two destinations remain
+unresolved. One possible local reuse link was found. All sixteen preceding
+summaries and the frozen six examples are unchanged; all 40 reports validate.
+
+Review17/manifest20 adds shared target-use evidence for the 4,163 coil
+occurrences, declaration direction, competing writers, condition readers and
+rung-scoped authored hints. The report follows actual condition-graph links,
+without inferring execution, physical channels or shutdown behavior. Work34
+returns closed counts while retaining sixteen saved artifacts.
+See [scope and validation](OUTPUT_CONTEXT_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new plant
+samples or manual engineering/team review are requested. Git transport stays
+manual and the listener stays disabled.
+
+## Historical calculation-path checkpoint
+
+Historical checkpoint (2026-10-16): **Calculation inputs and destinations**.
 Return `693e419` tested clean `f4f704d`: 1,216 application cases passed (two
 expected Windows skips), plus 139 helpers. All 46 PID controls and 322 slots
 are accounted for; 515 exact addresses include 333 referenced direct members.

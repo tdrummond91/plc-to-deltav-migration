@@ -86,6 +86,12 @@
   const rungAnalysis = data.rung_analysis || null, analyzedRungs = rungAnalysis?.rungs || [];
   const relationships = data.relationships || null, addresses = relationships?.addresses || [];
   const conditions = data.conditions || null, conditionalOutputs = conditions?.outputs || [];
+  const outputContext=data.output_context||null, contextOutputs=outputContext?.outputs||[], contextAddresses=outputContext?.addresses||[];
+  const byOutputContext=new Map(contextOutputs.map(o=>[o.id,o])),byConditionOutputContext=new Map(contextOutputs.map(o=>[o.condition_output_id,o]));
+  const byOutputAddress=new Map(contextAddresses.map(a=>[a.id,a]));
+  const byOutputRungContext=new Map((outputContext?.rung_contexts||[]).map(r=>[r.id,r]));
+  const outputConditionReads=outputContext?.condition_reads||[];
+  let outputConditionParents=null;
   const conditionNodes = conditions?.nodes || [], byConditionNode = new Map(conditionNodes.map(n=>[n.id,n]));
   const conditionNodeOrder = new Map(conditionNodes.map((n,i)=>[n.id,i]));
   const byConditionalOutput = new Map(conditionalOutputs.map(o=>[o.id,o]));
@@ -243,6 +249,7 @@
   headings.engineering=['Engineering analysis','Explore recognized instruction functions and possible purpose, with every rung accounted for and gaps kept in context.'];
   headings.relationships=['Address relationships','Follow exact expanded address spelling, its captured uses, and possible source-order calculation reuse.'];
   headings.conditions=['Conditional outputs','Trace captured conditions leading to OTE, OTL and OTU instructions, with branch paths and unknown transfers kept visible.'];
+  if(outputContext)headings.conditions=['Boolean output context','Inspect coil actions, exact target uses, captured condition readers and authored rung hints with unresolved evidence kept visible.'];
   headings.transfers=['Instruction conditions','Inspect incoming rung conditions and normal-scan condition transfer at other instruction occurrences, including rungs without a coil output.'];
   headings.bindingcontext=['Binding gaps & context','Follow unresolved source occurrences through their alias chains and available rack-name candidates. Candidate addresses remain separate from confirmed root bindings.'];
   headings.instructioncontext=['Instruction & index context','Inspect custom-instruction declaration candidates and symbolic array selectors while unresolved roles and exact-element gaps remain visible.'];
@@ -251,7 +258,7 @@
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
   if(relationships){labels.relationships='Address relationships';navCounts.relationships=addresses.length;}
-  if(conditions){labels.conditions='Conditional outputs';navCounts.conditions=conditionalOutputs.length;}
+  if(conditions){labels.conditions=outputContext?'Boolean output context':'Conditional outputs';navCounts.conditions=conditionalOutputs.length;}
   if(instructionConditions){labels.transfers='Instruction conditions';navCounts.transfers=conditionTransfers.length;}
   if(bindingContext){labels.bindingcontext='Binding gaps & context';navCounts.bindingcontext=bindingContextGaps.length;}
   if(customContext&&indexedAccess){labels.instructioncontext='Instruction & index context';navCounts.instructioncontext=customCalls.length+indexedUses.length;}
@@ -400,6 +407,8 @@
   // One bounded label per output; never copy ancestor conditions or complete
   // rung source into every coil's search record.
   conditionalOutputs.forEach(o=>searchable(o,[o.opcode,conditionTargetName(o),sourceName(o.rung_id),conditionGuardLabel(o.guard_status),conditionActionLabel(o.action),human(o.target_status)]));
+  contextOutputs.forEach(o=>searchable(o,[o.opcode,outputContextName(o),sourceName(o.rung_id),human(o.target_status),human(o.context_status),...outputRungHintCategories(o.rung_id)]));
+  contextAddresses.forEach(a=>searchable(a,[addressName(byAddress.get(a.id)),human(a.endpoint_kind),human(a.profile)]));
   conditionTransfers.forEach(n=>searchable(n,[transferOpcode(n),short(sourceName(n.rung_id),240),transferLabel(n),conditionGuardLabel(conditionQuality(n)),...n.operand_ids.slice(0,4).map(id=>short(byOperand.get(id)?.raw_text || '',80))]));
   // Index bounded previews once per occurrence/group. Alias chains, expanded
   // source text and ancestor graphs are inspected only in the selected dossier.
@@ -452,6 +461,7 @@
     if(pidConnections){const row=node('div','status-row');row.append(node('span','','PID source connections'),badge(pidConnections.status));capture.append(row);}
     if(calculations){const row=node('div','status-row');row.append(node('span','','CPT expression syntax and references'),badge(calculations.status));capture.append(row);}
     if(calculationPaths){const row=node('div','status-row');row.append(node('span','','Calculation inputs and destinations'),badge(calculationPaths.status));capture.append(row);}
+    if(outputContext){const row=node('div','status-row');row.append(node('span','','Boolean output context'),badge(outputContext.status));capture.append(row);}
     if(customContext){const row=node('div','status-row');row.append(node('span','','Custom-instruction declaration context'),badge(customContext.status));capture.append(row);}
     if(indexedAccess){const row=node('div','status-row');row.append(node('span','','Symbolic array selector context'),badge(indexedAccess.status));capture.append(row);}
     if(aoiBody){const row=node('div','status-row');row.append(node('span','','AOI body and instance context'),badge(aoiBody.status));capture.append(row);}
@@ -806,9 +816,83 @@
     const local=linksByAddress.get(a.id)||[];
     if(local.length){const p=section('Possible local calculation reuse');p.append(localLinkNotice(),relationshipLinkTable(local,'Exact address local links'));content.append(p);}
     if(calculationPaths){const paths=calculationPathOccurrences.filter(c=>c.destination_address_id===a.id||c.input_operand_ids.some(id=>byUseAddress.get(id)?.id===a.id)||c.expression_use_ids.some(id=>byUseAddress.get(id)?.id===a.id));if(paths.length){const p=section('Calculation inputs and destinations using this address');p.append(calculationPathTable(paths,'Exact address calculation blocks'));content.append(p);}}
-    const outputs=outputsByAddress.get(a.id)||[];
+    const outputs=outputContext?(byOutputAddress.get(a.id)?.output_ids||[]).map(id=>byConditionalOutput.get(byOutputContext.get(id)?.condition_output_id)).filter(Boolean):outputsByAddress.get(a.id)||[];
     if(outputs.length){const p=section('Conditional coil outputs targeting this address','These are captured OTE, OTL or OTU occurrences, not proof of a physical output or process effect.');p.append(conditionalOutputTable(outputs,'Exact address conditional outputs'));content.append(p);}
+    if(byOutputAddress.has(a.id))content.append(button('Inspect qualified Boolean output address context',()=>openDetail('outputaddress',a.id),'text-link'));
     content.append(technical({'Address group ID':a.id,'Resolved declaration ID':a.target_id,'Identity rule':'Exact expanded spelling'}));
+  }
+  function outputContextName(o){const a=byAddress.get(o.target_address_id);return a?addressName(a):short(byOperand.get(o.target_operand_id)?.raw_text||'(target unresolved)',160);}
+  function outputContextLink(o){return button(o.opcode+' · '+outputContextName(o),()=>openDetail('condition',o.condition_output_id),'text-link');}
+  function outputContextStatus(status){return ({modeled:'Modeled condition structure',binding_gaps:'Condition binding gaps',opaque:'Contains unknown transfer',stateful:'Contains stored-state condition',namespace_gap:'Namespace context unavailable'})[status]||human(status);}
+  function outputEndpoint(kind){return ({module_output:'Module output root',module_input:'Module input root',module_config:'Module configuration root',tag:'Tag declaration',other:'Other declaration'})[kind]||'No accepted target';}
+  function outputRungHintCategories(rungId){const r=byOutputRungContext.get(rungId);return r?Object.entries(r.candidate_ids_by_category).filter(([,ids])=>ids.length).map(([category])=>category):[];}
+  function outputContextTarget(o){const a=byOutputAddress.get(o.target_address_id);return a?button('Address: '+addressName(byAddress.get(a.id)),()=>openDetail('outputaddress',a.id),'text-link'):primary(sourceCell(o.target_operand_id),'No accepted target address · '+human(o.target_status));}
+  function outputContextNotice(){return notice('Captured uses and condition context','Coil actions describe OTE, OTL and OTU normal execution. Exact-address readers and other writers remain separate source occurrences; their order, final state and execution are not inferred. Condition consumers follow existing condition-graph edges, including stored-state and unknown-transfer context. An association does not establish polarity, shutdown behavior or a physical channel. Missing readers do not establish unused or dead logic.');}
+  function outputContextTable(rows,caption){return table(['Coil occurrence','Qualified target','Normal-execution action','Condition context','Rung-wide authored hints','Rung'],rows,o=>[
+    outputContextLink(o),outputContextTarget(o),conditionActionLabel(o.action),primary(outputContextStatus(o.context_status),o.has_stateful?'Includes stored-state context':''),outputRungHintCategories(o.rung_id).map(human).join(' · ')||'None captured',sourceCell(o.rung_id)
+  ],caption,{emptyTitle:'No coil occurrences in this selection',emptyDetail:'Change the target, condition or opcode filter. Unresolved OTE, OTL and OTU targets remain in the occurrence view.'});}
+  function outputAddressTable(rows,caption){return table(['Exact target address','Declared endpoint root','Coil occurrences','Read / read-write / expression uses','Other writers / unknown-role uses'],rows,a=>[
+    button(addressName(byAddress.get(a.id)),()=>openDetail('outputaddress',a.id),'text-link'),outputEndpoint(a.endpoint_kind),a.output_ids.length,a.read_operand_ids.length+' / '+a.read_write_operand_ids.length+' / '+a.expression_use_ids.length,a.noncoil_writer_operand_ids.length+' / '+a.unknown_operand_ids.length
+  ],caption,{emptyTitle:'No qualified output targets in this selection',emptyDetail:'Unbound, malformed and namespace-confounded targets remain visible in the coil occurrence view.'});}
+  function outputContextToolbar(){
+    const targets=state.outputContextMode==='targets';
+    toolbarFor(targets?'Search exact targets, declaration kinds or use profiles':'Search coil targets, opcodes, rung context or authored hints',targets?[['all','All target profiles'],['read_and_write','Targets with captured readers'],['write_only','Targets without captured readers']]:[['all','All coil opcodes'],['OTE','OTE'],['OTL','OTL'],['OTU','OTU']]);
+    const addSelect=(labelText,items,current,change)=>{const label=node('label','filter-wrap',labelText),select=node('select');select.setAttribute('aria-label',labelText);items.forEach(([value,text])=>{const option=node('option','',text);option.value=value;select.append(option);});select.value=current;select.addEventListener('change',()=>change(select.value));label.append(select);toolbar.querySelector('.toolbar').append(label);};
+    addSelect('Output view',[['occurrences','Coil occurrences'],['targets','Exact target addresses']],state.outputContextMode||'occurrences',value=>{state.outputContextMode=value;state.filter='all';state.listPages={};render();});
+    if(!targets){
+      addSelect('Target evidence',[['all','All targets'],['exact_address','Qualified exact addresses'],['gaps','Unresolved target addresses']],state.outputTargetFilter||'all',value=>{state.outputTargetFilter=value;state.listPages={};renderList();});
+      addSelect('Condition context',[['all','All condition contexts'],['modeled','Modeled'],['binding_gaps','Binding gaps'],['opaque','Unknown transfer'],['stateful','Stored-state context'],['namespace_gap','Namespace unavailable']],state.outputContextFilter||'all',value=>{state.outputContextFilter=value;state.listPages={};renderList();});
+      addSelect('Authored rung hints',[['all','All authored hint contexts'],['present','With accepted rung hints'],['absent','Without accepted rung hints']],state.outputHintFilter||'all',value=>{state.outputHintFilter=value;state.listPages={};renderList();});
+    }
+  }
+  function outputContextList(){
+    content.append(outputContextNotice());
+    const c=outputContext.coverage,summary=panel('Boolean output context coverage','Counts describe source occurrences and shared exact addresses. Authored hints remain rung-wide leads for review.');
+    summary.append(values({'Coil occurrences':c.outputs_total,'Qualified target addresses':c.addresses_total,'Unresolved target occurrences':c.outputs_total-c.targets_by_status.exact_address,'Targets with multiple coils':c.addresses_with_multiple_coils,'Targets with other writers':c.addresses_with_noncoil_writers,'Targets with unknown-role uses':c.addresses_with_unknown_roles,'Rungs with authored hints':c.rungs_with_hints}));content.append(summary);
+    if(state.outputContextMode==='targets')content.append(outputAddressTable(contextAddresses.filter(a=>matches(a)&&(state.filter==='all'||a.profile===state.filter)),'Boolean output target addresses'));
+    else content.append(outputContextTable(contextOutputs.filter(o=>matches(o)&&(state.filter==='all'||o.opcode===state.filter)&&(!state.outputTargetFilter||state.outputTargetFilter==='all'||(state.outputTargetFilter==='gaps'?o.target_status!=='exact_address':o.target_status==='exact_address'))&&(!state.outputContextFilter||state.outputContextFilter==='all'||o.context_status===state.outputContextFilter)&&(!state.outputHintFilter||state.outputHintFilter==='all'||(state.outputHintFilter==='present')===Boolean(outputRungHintCategories(o.rung_id).length))),'Boolean output occurrences'));
+  }
+  function outputAddressConsumers(a){
+    // Build one reverse DAG index lazily. Each selection visits each relevant
+    // node once; no writer-by-reader pairs or flattened guard trees are cached.
+    if(outputConditionParents===null){outputConditionParents=new Map();conditionNodes.forEach(n=>n.child_ids.forEach(id=>add(outputConditionParents,id,n.id)));}
+    const reads=outputConditionReads.filter(r=>r.status==='accepted'&&r.source_address_id===a.id),seen=new Set(),pending=reads.map(r=>r.condition_node_id);
+    while(pending.length){const id=pending.pop();if(seen.has(id))continue;seen.add(id);for(const parent of outputConditionParents.get(id)||[])if(!seen.has(parent))pending.push(parent);}
+    return {reads,outputs:contextOutputs.filter(o=>o.context_status!=='namespace_gap'&&seen.has(o.guard_id))};
+  }
+  function outputAuthoredHints(rungId){
+    const r=byOutputRungContext.get(rungId);if(!r)return;
+    for(const [field,title,description] of [['candidate_ids_by_category','Authored wording on this rung','These existing name, description and comment hints belong to the entire rung. They do not classify a particular coil as an alarm, equipment command or shutdown.'],['unqualified_candidate_ids_by_category','Authored wording with unsupported namespace context','These original hints remain separate because their source namespace context is unqualified. They do not establish an output purpose.']]){
+      const ids=Object.values(r[field]).flat();if(!ids.length)continue;
+      const sectionNode=section(title,description);sectionNode.append(table(['Rung-wide category','Original supporting evidence'],ids.map(id=>byRungCandidate.get(id)).filter(Boolean),candidate=>{const proof=node('details','technical');proof.append(node('summary','',fmt(candidate.evidence_ids.length)+' source references'),engineeringIdTable(candidate.evidence_ids,'Authored output context '+candidate.id));return[human(candidate.category),proof];},title));content.append(sectionNode);
+    }
+  }
+  function outputContextAddressSections(a){
+    const original=byAddress.get(a.id),summary=panel('Qualified target address uses','Every accepted use shares this exact expanded spelling. Other writes may occur; the final state and writer order remain unmodeled.');
+    summary.append(values({'Address':addressName(original),'Declared endpoint root':outputEndpoint(a.endpoint_kind),'Coil occurrences':a.output_ids.length,'Operand readers':a.read_operand_ids.length,'Operand writers':a.write_operand_ids.length,'Read/write uses':a.read_write_operand_ids.length,'Expression readers':a.expression_use_ids.length,'Other writer operands':a.noncoil_writer_operand_ids.length,'Unknown-role uses':a.unknown_operand_ids.length}));
+    const links=node('div','inline-links');links.append(sourceCell(a.target_id),button('Open original relationship evidence',()=>openDetail('address',a.id),'text-link'));summary.append(links);content.append(summary);
+    const coils=section('Coils targeting this exact address','OTE assigns its incoming condition; OTL and OTU set or clear only when true. These source actions do not determine the final target state.');coils.append(outputContextTable(a.output_ids.map(id=>byOutputContext.get(id)).filter(Boolean),'Coils sharing a qualified target'));content.append(coils);
+    for(const [field,title,description] of [['read_operand_ids','Accepted operand readers','Explicit operand reads retain their source instruction and binding.'],['read_write_operand_ids','Accepted read/write uses','Stored-state operands remain separate from read-only predicates.'],['noncoil_writer_operand_ids','Other captured writer operands','These accepted writer or read/write operands are separate from the selected coil instructions. No writer order or final state is assigned.'],['unknown_operand_ids','Uses with unknown operand roles','A referenced address with an unresolved role is not promoted to a reader or writer.'],['rejected_operand_ids','Uses with unsupported namespace context','Original source evidence remains available, but these uses do not participate in qualified reader or writer associations.']]){
+      if(!a[field].length)continue;const useSection=section(title,description);useSection.append(accessBindingTable(a[field].map(id=>byOperandAccess.get(id)).filter(Boolean),title));content.append(useSection);
+    }
+    for(const [field,title,description] of [['expression_use_ids','Accepted expression readers','Each CPT reference leaf remains a separate occurrence; a data read is not automatically a Boolean condition dependency.'],['rejected_expression_use_ids','Expression reads with unsupported namespace context','These original references remain outside qualified associations.']]){if(!a[field].length)continue;const useSection=section(title,description);useSection.append(expressionUseTable(a[field].map(id=>byExpressionUse.get(id)).filter(Boolean),title));content.append(useSection);}
+    const consumers=outputAddressConsumers(a),readerSection=section('Direct condition-read occurrences','Predicate operands and ONS stored-state reads are retained separately. Repeated reads remain visible; no output-to-output pairs are constructed.');
+    readerSection.append(table(['Source read','Condition-read kind','Instruction','Rung'],consumers.reads,r=>[sourceCell(r.id),r.kind==='ons_storage'?'ONS stored-state read':'Predicate operand read',sourceCell(byOperand.get(r.id)?.instruction_id),sourceCell(byConditionNode.get(r.condition_node_id)?.rung_id)],'Qualified condition reads of output target'));content.append(readerSection);
+    const outputSection=section('Outputs whose captured condition context reads this address','These outputs are reached through actual condition-graph edges from the accepted predicate or ONS reads above. Sibling-rung proximity is not used. Stored-state and unknown-transfer flags remain visible. An association does not establish polarity, an active interlock or shutdown behavior.');
+    outputSection.append(outputContextTable(consumers.outputs,'Outputs with matching condition ancestry'));content.append(outputSection);
+    const rejected=outputConditionReads.filter(r=>r.source_address_id===a.id&&r.status!=='accepted');if(rejected.length){const gaps=section('Condition-read associations withheld','The original references have unsupported namespace context and do not contribute to the qualifying output list.');gaps.append(table(['Original read','Rung','Context gap'],rejected,r=>[sourceCell(r.id),sourceCell(byConditionNode.get(r.condition_node_id)?.rung_id),human(r.status)],'Unqualified condition-read occurrences'));content.append(gaps);}
+  }
+  function outputContextAddressDetail(a){setDetailHeading('BOOLEAN OUTPUT ADDRESS CONTEXT',addressName(byAddress.get(a.id)),outputEndpoint(a.endpoint_kind));content.append(outputContextNotice());outputContextAddressSections(a);}
+  function outputContextDetail(o){
+    setDetailHeading('BOOLEAN OUTPUT CONTEXT',o.opcode+' · '+outputContextName(o),sourceName(o.rung_id));content.append(outputContextNotice());
+    const summary=panel('Captured coil action and condition','The recognized action and incoming source condition remain separate from the target uses and authored wording below.');summary.append(values({'Opcode':o.opcode,'Normal-execution action':conditionActionLabel(o.action),'Qualified target status':human(o.target_status),'Incoming condition context':outputContextStatus(o.context_status),'Contains a completed branch join':o.has_branch?'Yes':'No','Contains stored-state context':o.has_stateful?'Yes':'No'}));const links=node('div','inline-links');links.append(outputContextTarget(o));if(o.target_address_id)links.append(sourceCell(o.target_operand_id));links.append(sourceCell(o.instruction_id),sourceCell(o.rung_id));summary.append(links);content.append(summary);
+    outputAuthoredHints(o.rung_id);
+    if(o.context_status==='namespace_gap')content.append(notice('Original condition structure has unsupported namespace context','The graph below preserves earlier source evidence. This occurrence is excluded from qualified condition-consumer associations.'));
+    if(o.guard_id)conditionGraph(o.guard_id,o.context_status==='namespace_gap'?'Original unqualified output condition nodes':'Qualified output condition nodes',o.context_status==='namespace_gap'?'Original source condition':'Incoming condition evidence');
+    if(o.has_stateful)content.append(statefulNotice());
+    const a=byOutputAddress.get(o.target_address_id);if(a)outputContextAddressSections(a);
+    else content.append(notice('Target uses remain unresolved','No qualified target address is available for this occurrence. Inspect the source operand and existing binding context; no other output group is substituted.'));
+    content.append(technical({'Output context ID':o.id,'Original output ID':o.condition_output_id,'Condition node ID':o.guard_id}));
   }
   function conditionTargetName(o){
     const address=byAddress.get(o.target_address_id);
@@ -822,16 +906,18 @@
     const evidence=primary(sourceCell(o.target_operand_id),human(o.target_status));if(byBindingContext.has(o.target_operand_id))evidence.append(bindingContextLink(o.target_operand_id));return evidence;
   }
   function conditionNotice(){return notice('Source condition structure for normal execution','Incoming rung context is retained as a symbolic input, not assumed to be true. Contacts and comparisons remain separate source occurrences; intervening writes can change later reads. This is not PLC simulation, scan-order proof, or an assessment of alarms, shutdowns or physical outputs. Prescan and postscan behavior are not modeled.');}
-  function conditionalOutputTable(rows,caption){return table(['Output occurrence','Target evidence','Normal-execution action','Condition evidence','Rung'],rows,o=>[
+  function conditionalOutputTable(rows,caption){if(outputContext)return outputContextTable(rows.map(o=>byConditionOutputContext.get(o.id)).filter(Boolean),caption);return table(['Output occurrence','Target evidence','Normal-execution action','Condition evidence','Rung'],rows,o=>[
     button(o.opcode+' · '+conditionTargetName(o),()=>openDetail('condition',o.id),'text-link'),conditionTarget(o),conditionActionLabel(o.action),primary(conditionGuardLabel(o.guard_status),o.has_stateful?'Contains stored-state condition':''),sourceCell(o.rung_id)
   ],caption,{emptyTitle:'No conditional outputs in this selection',emptyDetail:'This layer covers captured OTE, OTL and OTU occurrences. Other instruction effects remain in their source and access views.'});}
   function conditionsToolbar(){
+    if(outputContext){outputContextToolbar();return;}
     toolbarFor('Search output targets, opcodes, rung context or condition quality',[['all','All output opcodes'],['OTE','OTE'],['OTL','OTL'],['OTU','OTU']]);
     const label=node('label','filter-wrap','Condition quality'),select=node('select');select.setAttribute('aria-label','Condition quality');
     [['all','All condition qualities'],['modeled','Modeled condition structure'],['binding_gaps','Condition binding gaps'],['opaque','Contains unknown transfer']].forEach(([v,t])=>{const option=node('option','',t);option.value=v;select.append(option);});
     select.value=state.conditionQuality || 'all';select.addEventListener('change',()=>{state.conditionQuality=select.value;state.listPages={};renderList();});label.append(select);toolbar.querySelector('.toolbar').append(label);
   }
   function conditionsList(){
+    if(outputContext){outputContextList();return;}
     content.append(conditionNotice());
     const summary=panel('Captured coil occurrences','Each row is one output instruction. A modeled guard describes syntax, not an approved engineering function.');
     summary.append(values({'OTE / OTL / OTU occurrences':conditionalOutputs.length,'Modeled condition structure':conditionalOutputs.filter(o=>o.guard_status==='modeled').length,'Condition binding gaps':conditionalOutputs.filter(o=>o.guard_status==='binding_gaps').length,'Contains unknown transfer':conditionalOutputs.filter(o=>o.guard_status==='opaque').length,'Guards containing a branch join':conditions.coverage.outputs_with_branches,...(conditions.schema_version>=3?{'Guards containing stored-state conditions':conditions.coverage.outputs_with_stateful_conditions}:{})}));content.append(summary);
@@ -888,6 +974,7 @@
     return n.kind==='predicate'?'Test '+opcode:'Unknown transfer through '+short(opcode,80);
   }
   function conditionDetail(o){
+    if(byConditionOutputContext.has(o.id)){outputContextDetail(byConditionOutputContext.get(o.id));return;}
     setDetailHeading('CONDITIONAL OUTPUT EVIDENCE',o.opcode+' · '+conditionTargetName(o),sourceName(o.rung_id));
     content.append(conditionNotice());
     const summary=panel('Output action',({assign_condition:'During normal execution, OTE writes 1 when its incoming condition is true and writes 0 when false.',set_if_true:'During normal execution, OTL sets its target when its incoming condition is true; a false condition leaves the target unchanged.',clear_if_true:'During normal execution, OTU clears its target when its incoming condition is true; a false condition leaves the target unchanged.',unresolved:'The captured output signature is unresolved. No target action is assigned.'})[o.action]);
@@ -1830,6 +1917,7 @@
       else if(d.type==='access')accessDetail(byRootAccess.get(d.id));
       else if(d.type==='address')addressDetail(byAddress.get(d.id));
       else if(d.type==='condition')conditionDetail(byConditionalOutput.get(d.id));
+      else if(d.type==='outputaddress')outputContextAddressDetail(byOutputAddress.get(d.id));
       else if(d.type==='transfer')transferDetail(byConditionNode.get(d.id));
       else if(d.type==='bindingcontext')bindingContextDetail(byBindingContext.get(d.id));
       else if(d.type==='customcall')customCallDetail(byCustomCall.get(d.id));

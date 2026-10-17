@@ -61,3 +61,6 @@ and its [invented report](examples/pid-connections-demo.html).
 
 See [calculation inputs and destinations](docs/reviews/CALCULATION_PATHS_REVIEW.md)
 for the current checkpoint and [invented report](examples/calculation-paths-demo.html).
+
+- [Boolean output context](docs/reviews/OUTPUT_CONTEXT_REVIEW.md) and
+  [invented output-context report](examples/output-context-demo.html).
