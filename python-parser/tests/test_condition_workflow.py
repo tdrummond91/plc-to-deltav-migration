@@ -191,6 +191,7 @@ class ConditionWorkflowTests(unittest.TestCase):
             self.assertIsNotNone(outcome.pop('calculation_path_summary'))
             self.assertIsNotNone(outcome.pop('output_context_summary'))
             self.assertIsNotNone(outcome.pop('stateful_object_summary'))
+            self.assertIsNotNone(outcome.pop('sfc_condition_summary'))
             # Current reports add context without changing this frozen layer.
             outcome.pop('binding_context_summary')
             self.assertEqual(outcome.pop('condition_summary')['schema_version'], 3)

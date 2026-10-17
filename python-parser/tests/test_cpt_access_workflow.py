@@ -110,6 +110,7 @@ class CptAccessWorkflowTests(unittest.TestCase):
             self.assertIsNotNone(outcome.pop('calculation_path_summary'))
             self.assertIsNotNone(outcome.pop('output_context_summary'))
             self.assertIsNotNone(outcome.pop('stateful_object_summary'))
+            self.assertIsNotNone(outcome.pop('sfc_condition_summary'))
             self.assertIsNotNone(outcome.pop('rung_analysis_summary'))
             self.assertIsNotNone(outcome.pop('relationship_summary'))
             self.assertIsNotNone(outcome.pop('condition_summary'))

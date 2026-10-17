@@ -573,6 +573,12 @@ class GitAndWorkflowTests(unittest.TestCase):
             analysis_payload["stateful_object_summary"] = build_stateful_object_summary(
                 *stateful_inputs, analyze_stateful_objects(*stateful_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.sfc_conditions import analyze_sfc_conditions
+            from plc_workbench.sfc_condition_summary import build_sfc_condition_summary
+            sequence_inputs = (snapshot, inventory, references, sfc_structure)
+            analysis_payload["sfc_condition_summary"] = build_sfc_condition_summary(
+                *sequence_inputs, analyze_sfc_conditions(*sequence_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))
             stack.enter_context(redirect_stdout(io.StringIO()))

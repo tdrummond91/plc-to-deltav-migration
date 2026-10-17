@@ -189,6 +189,7 @@ class TargetedSampleWorkflowTests(unittest.TestCase):
             result.pop('calculation_path_summary')
             result.pop('output_context_summary')
             result.pop('stateful_object_summary')
+            result.pop('sfc_condition_summary')
             self.assertEqual(result.pop('condition_summary')['schema_version'], 3)
             self.assertEqual(result, {k: v for k, v in report()['analysis'].items() if k != 'condition_summary'})
 

@@ -1,5 +1,16 @@
 # Timers, counters and reset relationships
 
+## Confirmed timer/counter return
+
+Return `3547344` tested clean `a6840f4` with 1,338 application cases (two expected
+Windows skips) and 139 helpers passing. All 485 selected occurrences have exact
+qualified targets; all 48 resets match producer objects. The 436 objects comprise
+433 timers and three counters, with one multiple-producer object. All have
+stored data, and all 2,622 linked elements match their control's declared type.
+Eighteen earlier summaries and the frozen examples are unchanged. All 42
+historical reports validate. See the
+[next sequence checkpoint](SFC_CONDITIONS_REVIEW.md) for remaining context.
+
 ## Confirmed return
 
 Return `19ccaee` tested clean `5ae8b6d`: 1,295 application cases passed with two

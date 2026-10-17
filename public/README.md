@@ -66,3 +66,5 @@ for the current checkpoint and [invented report](examples/calculation-paths-demo
   [invented output-context report](examples/output-context-demo.html).
 
 Timer/counter/reset relationships: [scope and validation](docs/reviews/STATEFUL_OBJECTS_REVIEW.md), with an [invented demonstration](examples/stateful-objects-demo.html).
+
+Sequence transition expressions: [scope and validation](docs/reviews/SFC_CONDITIONS_REVIEW.md), with an [invented demonstration](examples/sfc-conditions-demo.html).

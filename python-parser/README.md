@@ -1,6 +1,12 @@
 # L5X engineering review, calculations and source structure
 
-Latest bundle: **Timers, counters & resets** connects exact control uses,
+Latest bundle: **Sequence transition expressions** adds comments, source spans,
+operator trees and qualified reference roots to the private report. Unsupported
+forms and binding gaps remain explicit. It does not execute or type-check
+controller logic. See [scope and validation](../public/docs/reviews/SFC_CONDITIONS_REVIEW.md)
+and the [invented report](../public/examples/sfc-conditions-demo.html).
+
+**Timers, counters & resets** connects exact control uses,
 producer/reset occurrences, incoming source conditions, member reads/writes and
 exported stored settings. Multiple representations, uncertain bindings and
 mixed-family uses remain explicit. It does not select runtime state or an

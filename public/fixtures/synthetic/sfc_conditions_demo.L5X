@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Independently invented diagnostics. Deliberate invalid cases; not controller-ready code. -->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.00" TargetName="SEQUENCE_DEMO" TargetType="Controller">
+  <Controller Name="SEQUENCE_DEMO"><Tags>
+    <Tag Name="Ready" TagType="Base" DataType="BOOL"/>
+    <Tag Name="Hold" TagType="Base" DataType="BOOL"/>
+    <Tag Name="Temperature" TagType="Base" DataType="REAL"/>
+    <Tag Name="Limit" TagType="Base" DataType="REAL"/>
+    <Tag Name="Offset" TagType="Base" DataType="REAL"/>
+    <Tag Name="Timer" TagType="Base" DataType="TIMER"/>
+    <Tag Name="Counter" TagType="Base" DataType="COUNTER"/>
+    <Tag Name="Index" TagType="Base" DataType="DINT"/>
+    <Tag Name="Mode" TagType="Base" DataType="DINT"/>
+    <Tag Name="Signals" TagType="Base" DataType="BOOL" Dimensions="8"/>
+    <Tag Name="AliasReady" TagType="Alias" AliasFor="Ready"/>
+  </Tags><Programs><Program Name="DemoProgram" MainRoutineName="Main"><Tags>
+    <Tag Name="Ready" TagType="Base" DataType="BOOL"/>
+  </Tags><Routines>
+    <Routine Name="Main" Type="RLL"><RLLContent><Rung Number="0" Type="N"><Text><![CDATA[XIC(Ready)OTE(Hold);]]></Text></Rung></RLLContent></Routine>
+    <Routine Name="InspectReady" Type="RLL"><RLLContent><Rung Number="0" Type="N"><Text><![CDATA[XIC(Ready)EOT(Ready);]]></Text></Rung></RLLContent></Routine>
+    <Routine Name="Sequence" Type="SFC"><SFCContent OnlineEditType="Original">
+      <Step ID="1" Operand="DemoStep" InitialStep="true"/>
+      <Transition ID="100" Operand="ReadyOnly"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="100"/>
+      <Transition ID="101" Operand="TemperatureCheck"><Condition><STContent>
+        <Line Number="0"><![CDATA[Temperature >= Limit]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="101"/>
+      <Transition ID="102" Operand="CombinedCondition"><Condition><STContent>
+        <Line Number="0"><![CDATA[(Ready AND NOT Hold) OR Counter.ACC >= 3]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="102"/>
+      <Transition ID="103" Operand="ArithmeticCondition"><Condition><STContent>
+        <Line Number="0"><![CDATA[Temperature + Offset * 2.5 >= Limit]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="103"/>
+      <Transition ID="104" Operand="FunctionCondition"><Condition><STContent>
+        <Line Number="0"><![CDATA[ABS(Offset) <= 5.0]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="104"/>
+      <Transition ID="105" Operand="MultilineCondition"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND]]></Line>
+        <Line Number="1"><![CDATA[(* retained explanation across]]></Line>
+        <Line Number="2"><![CDATA[two source lines *) NOT Hold]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="105"/>
+      <Transition ID="106" Operand="SlashComment"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready // comment-looking operator OR is only text]]></Line>
+        <Line Number="1"><![CDATA[AND NOT Hold]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="106"/>
+      <Transition ID="107" Operand="CComment"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready /* comparison >= 2 is only a comment */ AND Timer.dn]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="107"/>
+      <Transition ID="108" Operand="IdentifierSpellings"><Condition><STContent>
+        <Line Number="0"><![CDATA[TRUE OR FALSE]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="108"/>
+      <Transition ID="109" Operand="StaticElement"><Condition><STContent>
+        <Line Number="0"><![CDATA[Signals[0] AND Ready]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="109"/>
+      <Transition ID="110" Operand="DynamicElement"><Condition><STContent>
+        <Line Number="0"><![CDATA[Signals[Index] AND Ready]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="110"/>
+      <Transition ID="111" Operand="UnboundReference"><Condition><STContent>
+        <Line Number="0"><![CDATA[MissingFlag OR Ready]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="111"/>
+      <Transition ID="112" Operand="UnsupportedFunction"><Condition><STContent>
+        <Line Number="0"><![CDATA[Mystery(Ready)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="112"/>
+      <Transition ID="113" Operand="AssignmentGap"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready := FALSE;]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="113"/>
+      <Transition ID="114" Operand="CallGap"><Condition><STContent>
+        <Line Number="0"><![CDATA[JSR(InspectReady,0);]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="114"/>
+      <Transition ID="115" Operand="BitReference"><Condition><STContent>
+        <Line Number="0"><![CDATA[Mode.0 AND Ready]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="115"/>
+      <Transition ID="116" Operand="AliasReference"><Condition><STContent>
+        <Line Number="0"><![CDATA[AliasReady AND Ready]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="116"/>
+      <Transition ID="117" Operand="MalformedCondition"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="117"/>
+      <Transition ID="118" Operand="UnterminatedComment"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready (* unfinished comment]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="118"/>
+      <Transition ID="119" Operand="EscapedComment"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready // <script>window.sequenceFixtureLeak=true</script>]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="119"/>
+      <Transition ID="120" Operand="RepeatedReference"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready XOR Ready OR Hold]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="120"/>
+      <Transition ID="121" Operand="OrderEvidence"><Condition><STContent>
+        <Line Number="10"><![CDATA[Ready AND]]></Line>
+        <Line Number="9"><![CDATA[NOT Hold]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="121"/>
+      <Transition ID="122" Operand="PageTransition00"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 40 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="122"/>
+      <Transition ID="123" Operand="PageTransition01"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 41 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="123"/>
+      <Transition ID="124" Operand="PageTransition02"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 42 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="124"/>
+      <Transition ID="125" Operand="PageTransition03"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 43 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="125"/>
+      <Transition ID="126" Operand="PageTransition04"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 44 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="126"/>
+      <Transition ID="127" Operand="PageTransition05"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 45 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="127"/>
+      <Transition ID="128" Operand="PageTransition06"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 46 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="128"/>
+      <Transition ID="129" Operand="PageTransition07"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 47 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="129"/>
+      <Transition ID="130" Operand="PageTransition08"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 48 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="130"/>
+      <Transition ID="131" Operand="PageTransition09"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 49 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="131"/>
+      <Transition ID="132" Operand="PageTransition10"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 50 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="132"/>
+      <Transition ID="133" Operand="PageTransition11"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 51 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="133"/>
+      <Transition ID="134" Operand="PageTransition12"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 52 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="134"/>
+      <Transition ID="135" Operand="PageTransition13"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 53 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="135"/>
+      <Transition ID="136" Operand="PageTransition14"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 54 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="136"/>
+      <Transition ID="137" Operand="PageTransition15"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 55 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="137"/>
+      <Transition ID="138" Operand="PageTransition16"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 56 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="138"/>
+      <Transition ID="139" Operand="PageTransition17"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 57 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="139"/>
+      <Transition ID="140" Operand="PageTransition18"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 58 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="140"/>
+      <Transition ID="141" Operand="PageTransition19"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 59 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="141"/>
+      <Transition ID="142" Operand="PageTransition20"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 60 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="142"/>
+      <Transition ID="143" Operand="PageTransition21"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 61 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="143"/>
+      <Transition ID="144" Operand="PageTransition22"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 62 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="144"/>
+      <Transition ID="145" Operand="PageTransition23"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 63 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="145"/>
+      <Transition ID="146" Operand="PageTransition24"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 64 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="146"/>
+      <Transition ID="147" Operand="PageTransition25"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 65 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="147"/>
+      <Transition ID="148" Operand="PageTransition26"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 66 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="148"/>
+      <Transition ID="149" Operand="PageTransition27"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 67 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="149"/>
+      <Transition ID="150" Operand="PageTransition28"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 68 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="150"/>
+      <Transition ID="151" Operand="PageTransition29"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 69 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="151"/>
+      <Transition ID="152" Operand="PageTransition30"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 70 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="152"/>
+      <Transition ID="153" Operand="PageTransition31"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 71 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="153"/>
+      <Transition ID="154" Operand="PageTransition32"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 72 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="154"/>
+      <Transition ID="155" Operand="PageTransition33"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 73 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="155"/>
+      <Transition ID="156" Operand="PageTransition34"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 74 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="156"/>
+      <Transition ID="157" Operand="PageTransition35"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 75 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="157"/>
+      <Transition ID="158" Operand="PageTransition36"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 76 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="158"/>
+      <Transition ID="159" Operand="PageTransition37"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 77 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="159"/>
+      <Transition ID="160" Operand="PageTransition38"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 78 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="160"/>
+      <Transition ID="161" Operand="PageTransition39"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 79 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="161"/>
+      <Transition ID="162" Operand="PageTransition40"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 80 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="162"/>
+      <Transition ID="163" Operand="PageTransition41"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 81 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="163"/>
+      <Transition ID="164" Operand="PageTransition42"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 82 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="164"/>
+      <Transition ID="165" Operand="PageTransition43"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 83 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="165"/>
+      <Transition ID="166" Operand="PageTransition44"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 84 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="166"/>
+      <Transition ID="167" Operand="PageTransition45"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 85 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="167"/>
+      <Transition ID="168" Operand="PageTransition46"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 86 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="168"/>
+      <Transition ID="169" Operand="PageTransition47"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 87 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="169"/>
+      <Transition ID="170" Operand="PageTransition48"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 88 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="170"/>
+      <Transition ID="171" Operand="PageTransition49"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 89 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="171"/>
+      <Transition ID="172" Operand="PageTransition50"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 90 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="172"/>
+      <Transition ID="173" Operand="PageTransition51"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 91 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="173"/>
+      <Transition ID="174" Operand="PageTransition52"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 92 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="174"/>
+      <Transition ID="175" Operand="PageTransition53"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 93 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="175"/>
+      <Transition ID="176" Operand="PageTransition54"><Condition><STContent>
+        <Line Number="0"><![CDATA[Ready AND (Temperature >= 94 OR NOT Hold)]]></Line>
+      </STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="176"/>
+      <Transition ID="900" Operand="MissingCondition"/>
+      <Transition ID="901" Operand="EmptyCondition"><Condition><STContent/></Condition></Transition>
+      <Transition ID="902" Operand="DuplicateCondition"><Condition><STContent><Line Number="0">Ready</Line></STContent></Condition><Condition><STContent><Line Number="0">Hold</Line></STContent></Condition></Transition>
+      <Transition ID="903" Operand="MixedText"><Condition>Ready<STContent><Line Number="0">AND Hold</Line></STContent></Condition></Transition>
+      <Transition ID="904" Operand="NumberMetadata"><Condition><STContent><Line>Ready</Line><Line Number="0">AND Hold</Line><Line Number="0">OR FALSE</Line></STContent></Condition></Transition>
+      <Step ID="950" Operand="ActionStep"><ActionList><Action ID="951" Operand="ActionEvidence"><Body><STContent><Line Number="0">Mode := 1;</Line></STContent></Body></Action></ActionList></Step>
+    </SFCContent><SFCContent OnlineEditType="PendingEdits">
+      <Step ID="1" Operand="DemoStep" InitialStep="true"/>
+      <Transition ID="100" Operand="ReadyOnly"><Condition><STContent><Line Number="0">Ready OR Hold</Line></STContent></Condition></Transition>
+      <DirectedLink FromID="1" ToID="100"/>
+    </SFCContent></Routine>
+  </Routines></Program></Programs></Controller>
+</RSLogix5000Content>

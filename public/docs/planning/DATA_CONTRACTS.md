@@ -1,5 +1,15 @@
 # Data contracts, traceability, and checkpoints
 
+SFC conditions1 retains one source-linked record per captured transition,
+with original line order, comments, expression nodes and reference evidence.
+Unsupported syntax and source shapes remain explicit; no partial parsed prefix
+is published. Review19 embeds the 16 MiB companion under 264 MiB JSON / 296 MiB
+HTML limits. Manifest22 retains sixteen hashed artifacts. Work36 adds a closed
+4 KiB summary under the unchanged 80 KiB outer allowance. Earlier companions,
+historical readers and the frozen diagnostic sample budget stay unchanged.
+See [scope and validation](../reviews/SFC_CONDITIONS_REVIEW.md).
+
+
 ## Timer/counter/reset context revision (2026-10-16)
 
 Stateful objects1 connects instruction occurrences, exact control addresses,

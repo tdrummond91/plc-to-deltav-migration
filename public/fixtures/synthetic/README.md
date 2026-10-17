@@ -297,3 +297,14 @@ barriers. Fifty-five repeated cases exercise paging, and a comment includes
 markup that must display as text. It is not controller-ready logic.
 See [scope](../../docs/reviews/CALCULATION_PATHS_REVIEW.md) and the
 [generated report](../../examples/calculation-paths-demo.html).
+
+## Sequence condition demonstration
+
+`sfc_conditions_demo.L5X` is independently invented. It exercises multiline
+conditions and comments, operator grouping, aliases and local shadowing,
+unknown identifiers, unsupported calls and statements, malformed expressions,
+missing/duplicate wrappers, line-number metadata and separate chart edits.
+Fifty-five additional conditions exercise pagination. Script-like source text
+must display literally. Deliberate inconsistencies make this diagnostic source,
+not controller-ready logic. See [scope](../../docs/reviews/SFC_CONDITIONS_REVIEW.md)
+and the [generated report](../../examples/sfc-conditions-demo.html).

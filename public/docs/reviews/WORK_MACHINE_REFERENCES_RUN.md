@@ -1,6 +1,25 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-16): **Timers, counters and resets**.
+Current checkpoint (2026-10-16): **Sequence transition expressions**.
+Return `3547344` tested clean `a6840f4`: 1,338 application cases passed (two
+expected Windows skips), plus 139 helpers. All 485 timer/counter/reset targets
+bind, all 48 resets match producers, and all 436 control objects have stored
+data. Eighteen earlier summaries and the frozen six samples are unchanged;
+all 42 historical feedback reports validate.
+
+Review19/manifest22 adds source-linked transition expressions, comments and
+reference bindings, with explicit unsupported and missing-condition cases.
+Work36 returns closed counts while retaining sixteen saved artifacts.
+See [scope and validation](SFC_CONDITIONS_REVIEW.md).
+
+The next ordinary work-machine run measures coverage of 155 transition
+conditions across 14 charts. No new plant samples or manual engineering/team
+review are requested. Git transport stays manual and the listener stays
+disabled. The returned syntax and binding gaps guide further sequence analysis.
+
+## Historical timer/counter checkpoint
+
+Historical checkpoint (2026-10-16): **Timers, counters and resets**.
 Return `19ccaee` tested clean `5ae8b6d`: 1,295 application cases passed (two
 expected Windows skips), plus 139 helpers. Boolean output context accounts for
 all 4,163 coil occurrences and 2,978 qualified exact targets, with 6,071 predicate

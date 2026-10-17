@@ -1,11 +1,11 @@
 # PLC analysis workbench
 
-Latest checkpoint: return `19ccaee` passed 1,295 application cases (two expected
-Windows skips) and 139 helpers. Boolean output context accounts for 4,163 coil
-occurrences and 2,978 qualified exact targets. Work35 adds timer/counter/reset
-relationships, incoming source conditions, member uses and stored-data context.
-Earlier analysis and the frozen six examples remain unchanged. See
-[scope and validation](public/docs/reviews/STATEFUL_OBJECTS_REVIEW.md).
+Latest checkpoint: return `3547344` passed 1,338 application cases (two expected
+Windows skips) and 139 helpers. All 485 timer/counter/reset targets bind, all
+48 resets match producers, and all 436 control objects have stored data.
+Work36 adds sequence-transition expressions, comments and tag-reference
+evidence. Earlier analysis and the frozen six examples remain unchanged.
+See [scope and validation](public/docs/reviews/SFC_CONDITIONS_REVIEW.md).
 The next step is the normal work-machine run; team review remains deferred.
 
 Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected
