@@ -1,5 +1,22 @@
 # Data contracts, traceability, and checkpoints
 
+## Work timing and alias diagnostic revision (2026-10-16)
+
+Work38 adds top-level timing1: bounded integer milliseconds for six fixed stages,
+with null for a stage not attempted. Total time stops before feedback rendering,
+publication and the local commit; it excludes the uv bootstrap. Successful runs
+require all stages; failed runs retain the attempted failing stage's duration.
+No source names, paths or arbitrary timing labels enter this payload.
+
+SFC context summary2 preserves context1 coverage and adds closed alias-failure
+reasons, distinct terminal-alias counts and existing rack-match hints. These
+reuse the legacy lexical rack policy; module/port namespace provenance is not
+requalified and a match never resolves a source binding. Its cap is 5 KiB;
+summary1 retains its 4 KiB cap. The outer report remains bounded at 80 KiB.
+Review20, manifest23, sixteen private artifacts, historical readers and the
+frozen sample envelope remain unchanged. See
+[scope and validation](../reviews/WORK_CHECK_TIMING_REVIEW.md).
+
 ## Sequence reference relationship revision (2026-10-16)
 
 SFC context1 retains one record per parsed reference, shared exact address-use

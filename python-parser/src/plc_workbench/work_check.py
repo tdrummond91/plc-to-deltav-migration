@@ -8,6 +8,7 @@ This workflow never fetches, pulls or pushes.
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
 from datetime import datetime, timezone
 import json
 import os
@@ -67,6 +68,7 @@ from .storage import StorageError, save_run
 from .tag_data import analyze_tag_data
 from .tag_data_summary import build_tag_data_summary, validate_tag_data_summary
 from .work_check_tests import unavailable_result, validate_test_result
+from .work_check_timing import PHASES, WorkCheckTiming, validate_timings
 from .targeted_samples import build_targeted_samples
 from .targeted_sample_history import resolve_targeted_samples, sample_envelope, validate_sample_envelope
 
@@ -115,7 +117,8 @@ _V33_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 33, "workflow_version": 
 _V34_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 34, "workflow_version": "work-check-34"}
 _V35_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 35, "workflow_version": "work-check-35"}
 _V36_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 36, "workflow_version": "work-check-36"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 37, "workflow_version": "work-check-37"}
+_V37_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 37, "workflow_version": "work-check-37"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 38, "workflow_version": "work-check-38"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _SAVE_FAILURE_CODES = frozenset({
     "review_size_limit", "review_validation_error", "review_render_error",
@@ -195,11 +198,12 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _V25_CONSTANTS, 26: _V26_CONSTANTS, 27: _V27_CONSTANTS, 28: _V28_CONSTANTS, 29: _V29_CONSTANTS, 30: _V30_CONSTANTS, 31: _V31_CONSTANTS, 32: _V32_CONSTANTS, 33: _V33_CONSTANTS, 34: _V34_CONSTANTS, 35: _V35_CONSTANTS, 36: _V36_CONSTANTS, 37: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _V25_CONSTANTS, 26: _V26_CONSTANTS, 27: _V27_CONSTANTS, 28: _V28_CONSTANTS, 29: _V29_CONSTANTS, 30: _V30_CONSTANTS, 31: _V31_CONSTANTS, 32: _V32_CONSTANTS, 33: _V33_CONSTANTS, 34: _V34_CONSTANTS, 35: _V35_CONSTANTS, 36: _V36_CONSTANTS, 37: _V37_CONSTANTS, 38: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = ({"diagnostic_sample"} if version >= 2 else set()) | ({"targeted_samples"} if version >= 28 else set())
-    _keys(report, set(constants) | {"run_id", "tool_revision", "tests", "analysis", "status"} | extra)
+    _keys(report, set(constants) | {"run_id", "tool_revision", "tests", "analysis", "status"} | extra
+          | ({"timings"} if version >= 38 else set()))
     for key, fixed in constants.items():
         if type(report[key]) is not type(fixed) or report[key] != fixed:
             _invalid()
@@ -242,14 +246,14 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12, 26: 12, 27: 12, 28: 12, 29: 12, 30: 12, 31: 12, 32: 12, 33: 12, 34: 12, 35: 12, 36: 12, 37: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12, 26: 12, 27: 12, 28: 12, 29: 12, 30: 12, 31: 12, 32: 12, 33: 12, 34: 12, 35: 12, 36: 12, 37: 12, 38: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2, 26: 2, 27: 2, 28: 2, 29: 2, 30: 2, 31: 2, 32: 2, 33: 2, 34: 2, 35: 2, 36: 2, 37: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2, 26: 2, 27: 2, 28: 2, 29: 2, 30: 2, 31: 2, 32: 2, 33: 2, 34: 2, 35: 2, 36: 2, 37: 2, 38: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
@@ -866,7 +870,7 @@ def validate_work_check_report(report: Any) -> None:
             # Interned exact addresses prevent multiplication of RLL uses by
             # repeated transition leaves. Step links remain candidates, with
             # lexical hints and namespace gaps separate from bound identities.
-            if (context["schema_version"] != 1 or context["tool_revision"] != revision
+            if (context["schema_version"] != (2 if version >= 38 else 1) or context["tool_revision"] != revision
                     or c["source_transitions"] != sequence["transitions_total"]
                     or c["source_references"] != sequence["references_total"]
                     or c["source_steps"] != steps["steps_total"]
@@ -961,6 +965,18 @@ def validate_work_check_report(report: Any) -> None:
     )
     if report["status"] != expected:
         _invalid()
+    if version >= 38:
+        validate_timings(report["timings"])
+        phases = report["timings"]["phases_ms"]
+        attempted = [phases[name] is not None for name in PHASES[2:]]
+        if (phases["application_tests"] is None or phases["helpers_tests"] is None
+                or analysis["status"] == "not_run" and any(attempted)
+                or analysis["status"] in ("complete", "partial") and not all(attempted)
+                or analysis["status"] == "failed" and not attempted[0]
+                or analysis["private_run_saved"] and not attempted[1]
+                or attempted[2] and not analysis["private_run_saved"]
+                or any(attempted[index] and not attempted[index - 1] for index in range(1, 4))):
+            _invalid()
     if version >= 28:
         envelope = report["targeted_samples"]
         validate_sample_envelope(envelope)
@@ -1050,7 +1066,7 @@ def validate_work_check_report(report: Any) -> None:
 
 
 def _report_limit(version: int) -> int:
-    if version in (32, 33, 34, 35, 36, 37):
+    if version in (32, 33, 34, 35, 36, 37, 38):
         return MAX_REPORT_V32_BYTES
     if version in (28, 29, 30, 31):
         return MAX_REPORT_V28_BYTES
@@ -1060,7 +1076,7 @@ def _report_limit(version: int) -> int:
 def _serialize_report(report: dict[str, Any]) -> str:
     # New companions need room for the complete frozen sample reservation.
     # Work31 and later use compact whitespace; all historical render bytes stay stable.
-    layout = {"separators": (",", ":")} if report["schema_version"] in (31, 32, 33, 34, 35, 36, 37) else {"indent": 2}
+    layout = {"separators": (",", ":")} if report["schema_version"] in (31, 32, 33, 34, 35, 36, 37, 38) else {"indent": 2}
     return json.dumps(report, sort_keys=True, ensure_ascii=True, **layout) + "\n"
 
 
@@ -1241,7 +1257,17 @@ def _run_suite(root: Path, logs: Path, suite: str) -> dict[str, Any]:
         return unavailable_result("runner_error")
 
 
-def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> dict[str, Any]:
+def _phase_elapsed(name: str, milliseconds: int) -> None:
+    # A closed terminal must not replace the underlying analysis failure.
+    try:
+        print(f"{name.replace('_', ' ').capitalize()}: {milliseconds / 1000:.3f} s elapsed.", flush=True)
+    except (OSError, ValueError):
+        pass
+
+
+def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str], *,
+             timings: WorkCheckTiming | None = None,
+             sfc_context_schema_version: int = 1) -> dict[str, Any]:
     result: dict[str, Any] = {"status": "failed", "failure_code": "read_error", "private_run_saved": False,
                               "reference_summary": None, "sfc_structure_summary": None,
                               "access_summary": None, "tag_data_summary": None, "pid_summary": None,
@@ -1249,116 +1275,119 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
                               "binding_context_summary": None, "custom_instruction_summary": None, "indexed_access_summary": None, "sfr_summary": None, "aoi_body_summary": None, "pid_connection_summary": None, "calculation_path_summary": None, "output_context_summary": None, "stateful_object_summary": None, "sfc_condition_summary": None, "sfc_context_summary": None,
                               "diagnostic_sample": None, "targeted_samples": sample_envelope()}
     try:
-        snapshot = capture_snapshot(source)
-        inventory = analyze_snapshot(snapshot)
-        result["failure_code"] = "reference_error"
-        references = analyze_references(inventory)
-        from .sfc_structure import analyze_sfc_structure
-        from .sfc_summary import build_sfc_summary
-        result["failure_code"] = "sfc_structure_error"
-        sfc_structure = analyze_sfc_structure(snapshot, inventory)
-        result["failure_code"] = "calculation_error"
-        calculations = analyze_calculations(snapshot, inventory, references)
-        result["failure_code"] = "access_error"
-        access = analyze_access(inventory, references, schema_version=4,
-                                snapshot=snapshot, calculations=calculations)
-        result["failure_code"] = "rung_analysis_error"
-        rung_analysis = analyze_rungs(snapshot, inventory, references, access, calculations)
-        result["failure_code"] = "relationship_error"
-        relationships = analyze_relationships(snapshot, inventory, references, access, calculations, rung_analysis)
-        result["failure_code"] = "condition_error"
-        conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
-                                        schema_version=3)
-        result["failure_code"] = "binding_context_error"
-        binding_context = analyze_binding_context(
-            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
-        companion_inputs = (snapshot, inventory, references, access, calculations,
-                            rung_analysis, relationships, conditions, binding_context)
-        result["failure_code"] = "custom_instruction_context_error"
-        custom_context = analyze_custom_instruction_context(*companion_inputs)
-        result["failure_code"] = "indexed_access_error"
-        indexed_access = analyze_indexed_access(*companion_inputs)
-        result["failure_code"] = "sfr_context_error"
-        sfr_inputs = (snapshot, inventory, references, access, calculations, sfc_structure)
-        sfr_context = analyze_sfr_context(*sfr_inputs, schema_version=2)
-        result["failure_code"] = "aoi_body_context_error"
-        aoi_body = analyze_aoi_body_context(*companion_inputs, custom_context)
-        result["failure_code"] = "tag_data_error"
-        tag_data = analyze_tag_data(snapshot, inventory)
-        result["failure_code"] = "pid_error"
-        pid = analyze_pid(snapshot, inventory, references, tag_data)
-        result["failure_code"] = "pid_member_error"
-        pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
-        result["failure_code"] = "pid_connection_error"
-        pid_connection_inputs = (snapshot, inventory, references, access, calculations,
-                                 rung_analysis, relationships, conditions, tag_data, pid, pid_members)
-        pid_connections = analyze_pid_connections(*pid_connection_inputs)
-        result["failure_code"] = "calculation_path_error"
-        calculation_path_inputs = (snapshot, inventory, references, access, calculations,
-                                   rung_analysis, relationships, conditions)
-        calculation_paths = analyze_calculation_paths(*calculation_path_inputs)
-        result["failure_code"] = "output_context_error"
-        output_context = analyze_output_context(*calculation_path_inputs)
-        result["failure_code"] = "stateful_object_error"
-        stateful_inputs = (*calculation_path_inputs, tag_data)
-        stateful_objects = analyze_stateful_objects(*stateful_inputs)
-        result["failure_code"] = "sfc_condition_error"
-        sfc_condition_inputs = (snapshot, inventory, references, sfc_structure)
-        sfc_conditions = analyze_sfc_conditions(*sfc_condition_inputs)
-        result["failure_code"] = "sfc_context_error"
-        sfc_context_inputs = (snapshot, inventory, references, access, calculations,
-                              rung_analysis, relationships, sfc_structure, sfr_context, sfc_conditions)
-        sfc_context = analyze_sfc_context(*sfc_context_inputs)
-        result["failure_code"] = "save_error"
-        workspace = root / "confidential" / "workspaces" / "work-check"
-        if workspace.resolve() != workspace:
-            raise StorageError("Private workspace must remain inside this checkout.",
-                               code="save_workspace_error")
-        saved_run = save_run(workspace, snapshot, inventory, references=references,
-                             sfc_structure=sfc_structure, include_review=True, access=access, tag_data=tag_data, pid=pid,
-                             pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis, relationships=relationships,
-                             conditions=conditions, binding_context=binding_context,
-                             custom_instruction_context=custom_context, indexed_access=indexed_access, sfr_context=sfr_context, aoi_body_context=aoi_body,
-                             pid_connections=pid_connections, calculation_paths=calculation_paths, output_context=output_context, stateful_objects=stateful_objects, sfc_conditions=sfc_conditions, sfc_context=sfc_context)
-        # save_run returns only after finalizing the manifest. A console failure
-        # afterwards must not misreport a successfully saved private run.
-        result["private_run_saved"] = True
+        with timings.phase("analysis_build") if timings is not None else nullcontext():
+            snapshot = capture_snapshot(source)
+            inventory = analyze_snapshot(snapshot)
+            result["failure_code"] = "reference_error"
+            references = analyze_references(inventory)
+            from .sfc_structure import analyze_sfc_structure
+            from .sfc_summary import build_sfc_summary
+            result["failure_code"] = "sfc_structure_error"
+            sfc_structure = analyze_sfc_structure(snapshot, inventory)
+            result["failure_code"] = "calculation_error"
+            calculations = analyze_calculations(snapshot, inventory, references)
+            result["failure_code"] = "access_error"
+            access = analyze_access(inventory, references, schema_version=4,
+                                    snapshot=snapshot, calculations=calculations)
+            result["failure_code"] = "rung_analysis_error"
+            rung_analysis = analyze_rungs(snapshot, inventory, references, access, calculations)
+            result["failure_code"] = "relationship_error"
+            relationships = analyze_relationships(snapshot, inventory, references, access, calculations, rung_analysis)
+            result["failure_code"] = "condition_error"
+            conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
+                                            schema_version=3)
+            result["failure_code"] = "binding_context_error"
+            binding_context = analyze_binding_context(
+                snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
+            companion_inputs = (snapshot, inventory, references, access, calculations,
+                                rung_analysis, relationships, conditions, binding_context)
+            result["failure_code"] = "custom_instruction_context_error"
+            custom_context = analyze_custom_instruction_context(*companion_inputs)
+            result["failure_code"] = "indexed_access_error"
+            indexed_access = analyze_indexed_access(*companion_inputs)
+            result["failure_code"] = "sfr_context_error"
+            sfr_inputs = (snapshot, inventory, references, access, calculations, sfc_structure)
+            sfr_context = analyze_sfr_context(*sfr_inputs, schema_version=2)
+            result["failure_code"] = "aoi_body_context_error"
+            aoi_body = analyze_aoi_body_context(*companion_inputs, custom_context)
+            result["failure_code"] = "tag_data_error"
+            tag_data = analyze_tag_data(snapshot, inventory)
+            result["failure_code"] = "pid_error"
+            pid = analyze_pid(snapshot, inventory, references, tag_data)
+            result["failure_code"] = "pid_member_error"
+            pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
+            result["failure_code"] = "pid_connection_error"
+            pid_connection_inputs = (snapshot, inventory, references, access, calculations,
+                                     rung_analysis, relationships, conditions, tag_data, pid, pid_members)
+            pid_connections = analyze_pid_connections(*pid_connection_inputs)
+            result["failure_code"] = "calculation_path_error"
+            calculation_path_inputs = (snapshot, inventory, references, access, calculations,
+                                       rung_analysis, relationships, conditions)
+            calculation_paths = analyze_calculation_paths(*calculation_path_inputs)
+            result["failure_code"] = "output_context_error"
+            output_context = analyze_output_context(*calculation_path_inputs)
+            result["failure_code"] = "stateful_object_error"
+            stateful_inputs = (*calculation_path_inputs, tag_data)
+            stateful_objects = analyze_stateful_objects(*stateful_inputs)
+            result["failure_code"] = "sfc_condition_error"
+            sfc_condition_inputs = (snapshot, inventory, references, sfc_structure)
+            sfc_conditions = analyze_sfc_conditions(*sfc_condition_inputs)
+            result["failure_code"] = "sfc_context_error"
+            sfc_context_inputs = (snapshot, inventory, references, access, calculations,
+                                  rung_analysis, relationships, sfc_structure, sfr_context, sfc_conditions)
+            sfc_context = analyze_sfc_context(*sfc_context_inputs)
+        with timings.phase("private_save") if timings is not None else nullcontext():
+            result["failure_code"] = "save_error"
+            workspace = root / "confidential" / "workspaces" / "work-check"
+            if workspace.resolve() != workspace:
+                raise StorageError("Private workspace must remain inside this checkout.",
+                                   code="save_workspace_error")
+            saved_run = save_run(workspace, snapshot, inventory, references=references,
+                                 sfc_structure=sfc_structure, include_review=True, access=access, tag_data=tag_data, pid=pid,
+                                 pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis, relationships=relationships,
+                                 conditions=conditions, binding_context=binding_context,
+                                 custom_instruction_context=custom_context, indexed_access=indexed_access, sfr_context=sfr_context, aoi_body_context=aoi_body,
+                                 pid_connections=pid_connections, calculation_paths=calculation_paths, output_context=output_context, stateful_objects=stateful_objects, sfc_conditions=sfc_conditions, sfc_context=sfc_context)
+            # save_run returns only after finalizing the manifest. A console failure
+            # afterwards must not misreport a successfully saved private run.
+            result["private_run_saved"] = True
         result["failure_code"] = "unexpected_error"
         print(f"Private review report: {saved_run / 'review.html'}", flush=True)
-        result["failure_code"] = "summary_error"
-        summary = build_reference_summary(inventory, references, revision=revision)
-        sfc_summary = build_sfc_summary(snapshot, inventory, sfc_structure, revision=revision)
-        access_summary = build_access_summary(inventory, references, access, revision=revision,
-                                              snapshot=snapshot, calculations=calculations)
-        tag_data_summary = build_tag_data_summary(snapshot, inventory, tag_data, revision=revision)
-        pid_summary = build_pid_summary(snapshot, inventory, references, tag_data, pid, revision=revision)
-        pid_member_summary = build_pid_member_summary(
-            snapshot, inventory, references, tag_data, pid, pid_members, revision=revision)
-        calculation_summary = build_calculation_summary(snapshot, inventory, references, calculations, revision=revision)
-        rung_summary = build_rung_summary(snapshot, inventory, references, access, calculations, rung_analysis, revision=revision)
-        relationship_summary = build_relationship_summary(
-            snapshot, inventory, references, access, calculations, rung_analysis, relationships, revision=revision)
-        condition_summary = build_condition_summary(
-            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions, revision=revision)
-        context_summary = build_binding_context_summary(
-            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions,
-            binding_context, revision=revision)
-        custom_summary = build_custom_instruction_summary(*companion_inputs, custom_context, revision=revision)
-        indexed_summary = build_indexed_access_summary(*companion_inputs, indexed_access, revision=revision)
-        sfr_summary = build_sfr_summary(*sfr_inputs, sfr_context, revision=revision)
-        aoi_summary = build_aoi_body_summary(*companion_inputs, custom_context, aoi_body, revision=revision)
-        pid_connection_summary = build_pid_connection_summary(
-            *pid_connection_inputs, pid_connections, revision=revision)
-        calculation_path_summary = build_calculation_path_summary(
-            *calculation_path_inputs, calculation_paths, revision=revision)
-        output_summary = build_output_context_summary(
-            *calculation_path_inputs, output_context, revision=revision)
-        stateful_summary = build_stateful_object_summary(
-            *stateful_inputs, stateful_objects, revision=revision)
-        sfc_condition_summary = build_sfc_condition_summary(
-            *sfc_condition_inputs, sfc_conditions, revision=revision)
-        sfc_context_summary = build_sfc_context_summary(
-            *sfc_context_inputs, sfc_context, revision=revision)
+        with timings.phase("summary_build") if timings is not None else nullcontext():
+            result["failure_code"] = "summary_error"
+            summary = build_reference_summary(inventory, references, revision=revision)
+            sfc_summary = build_sfc_summary(snapshot, inventory, sfc_structure, revision=revision)
+            access_summary = build_access_summary(inventory, references, access, revision=revision,
+                                                  snapshot=snapshot, calculations=calculations)
+            tag_data_summary = build_tag_data_summary(snapshot, inventory, tag_data, revision=revision)
+            pid_summary = build_pid_summary(snapshot, inventory, references, tag_data, pid, revision=revision)
+            pid_member_summary = build_pid_member_summary(
+                snapshot, inventory, references, tag_data, pid, pid_members, revision=revision)
+            calculation_summary = build_calculation_summary(snapshot, inventory, references, calculations, revision=revision)
+            rung_summary = build_rung_summary(snapshot, inventory, references, access, calculations, rung_analysis, revision=revision)
+            relationship_summary = build_relationship_summary(
+                snapshot, inventory, references, access, calculations, rung_analysis, relationships, revision=revision)
+            condition_summary = build_condition_summary(
+                snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions, revision=revision)
+            context_summary = build_binding_context_summary(
+                snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions,
+                binding_context, revision=revision)
+            custom_summary = build_custom_instruction_summary(*companion_inputs, custom_context, revision=revision)
+            indexed_summary = build_indexed_access_summary(*companion_inputs, indexed_access, revision=revision)
+            sfr_summary = build_sfr_summary(*sfr_inputs, sfr_context, revision=revision)
+            aoi_summary = build_aoi_body_summary(*companion_inputs, custom_context, aoi_body, revision=revision)
+            pid_connection_summary = build_pid_connection_summary(
+                *pid_connection_inputs, pid_connections, revision=revision)
+            calculation_path_summary = build_calculation_path_summary(
+                *calculation_path_inputs, calculation_paths, revision=revision)
+            output_summary = build_output_context_summary(
+                *calculation_path_inputs, output_context, revision=revision)
+            stateful_summary = build_stateful_object_summary(
+                *stateful_inputs, stateful_objects, revision=revision)
+            sfc_condition_summary = build_sfc_condition_summary(
+                *sfc_condition_inputs, sfc_conditions, revision=revision)
+            sfc_context_summary = build_sfc_context_summary(
+                *sfc_context_inputs, sfc_context, revision=revision, schema_version=sfc_context_schema_version)
         # Current releases use the durable targeted reservation. Retain the
         # legacy field as null; its source-order raw sampler must not rotate
         # additional examples outside the new cumulative disclosure budget.
@@ -1398,7 +1427,8 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
                 rung_analysis, relationships, sample_conditions)
             return build_targeted_samples(snapshot, inventory, references, access, calculations,
                                           rung_analysis, relationships, sample_conditions, sample_context)
-        result["targeted_samples"] = resolve_targeted_samples(root, frozen_sample_request)
+        with timings.phase("sample_replay") if timings is not None else nullcontext():
+            result["targeted_samples"] = resolve_targeted_samples(root, frozen_sample_request)
     except Exception as exc:
         # Only our exact storage exception may refine the save stage. Do not
         # inspect arbitrary exception attributes, messages, causes or tracebacks:
@@ -1415,6 +1445,7 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
 
 def run_check(root: Path, supplied_source: str | None) -> int:
     """Commit only the validated feedback report, without contacting a remote."""
+    timings = WorkCheckTiming(announce=_phase_elapsed)
     branch = _branch(root)
     commit = _git(root, "rev-parse", "HEAD")
     _check_pinned(root, branch, commit)
@@ -1428,14 +1459,15 @@ def run_check(root: Path, supplied_source: str | None) -> int:
     results: dict[str, Any] = {}
     for suite in ("application", "helpers"):
         print(f"Running {suite} parser tests (work-machine selection)...", flush=True)
-        results[suite] = _run_suite(root, logs, suite)
+        with timings.phase(f"{suite}_tests"):
+            results[suite] = _run_suite(root, logs, suite)
         result = results[suite]
         count = result["counts"]["tests_run"] if result["counts"] is not None else 0
         print(f"{suite} tests: {result['status']} ({count} run).", flush=True)
     revision = {"commit": commit, "worktree": "clean"}
     if all(result["status"] == "passed" for result in results.values()):
         print("Analyzing source and saving private results...", flush=True)
-        analysis = _analyze(root, source, logs, revision)
+        analysis = _analyze(root, source, logs, revision, timings=timings, sfc_context_schema_version=2)
     else:
         analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False,
                     "reference_summary": None, "sfc_structure_summary": None, "access_summary": None,
@@ -1455,7 +1487,8 @@ def run_check(root: Path, supplied_source: str | None) -> int:
                                    else 'unavailable', reason=None if analysis['status'] in ('not_run', 'failed')
                                    else 'selection_error')
     report = dict(_CONSTANTS, run_id=run_id, tool_revision=revision, tests=results,
-                  analysis=analysis, status=status, diagnostic_sample=sample, targeted_samples=targeted)
+                  analysis=analysis, status=status, diagnostic_sample=sample, targeted_samples=targeted,
+                  timings=timings.snapshot())
     rendered = render_work_check_report(report)
     _check_pinned(root, branch, commit)
     relative_report = f"public/inspection/work-check-{run_id}.json"

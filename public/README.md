@@ -70,3 +70,5 @@ Timer/counter/reset relationships: [scope and validation](docs/reviews/STATEFUL_
 Sequence transition expressions: [scope and validation](docs/reviews/SFC_CONDITIONS_REVIEW.md), with an [invented demonstration](examples/sfc-conditions-demo.html).
 
 Sequence reference relationships: [scope and validation](docs/reviews/SFC_CONTEXT_REVIEW.md), with an [invented demonstration](examples/sfc-context-demo.html).
+
+Work-check timing and alias diagnostics: [scope and validation](docs/reviews/WORK_CHECK_TIMING_REVIEW.md).

@@ -1,6 +1,12 @@
 # L5X engineering review, calculations and source structure
 
-Latest bundle: **Sequence reference relationships** connects parsed transition
+Latest bundle: **Work-check timing and sequence alias diagnostics** adds six
+stage durations to the console and work38 feedback report. SFC context summary2
+counts existing alias failure reasons and lexical rack hints without exporting
+additional source examples or changing private analysis. See
+[scope and validation](../public/docs/reviews/WORK_CHECK_TIMING_REVIEW.md).
+
+Previous bundle: **Sequence reference relationships** connects parsed transition
 references to qualified exact ladder readers/writers and chart-step candidates.
 It preserves edit versions, lexical hints and unresolved declarations without
 assigning runtime sequence behavior. See [scope and validation](../public/docs/reviews/SFC_CONTEXT_REVIEW.md)

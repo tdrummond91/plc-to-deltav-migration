@@ -1,6 +1,15 @@
 # PLC analysis workbench
 
-Latest checkpoint: return `e8a328e` passed 1,386 application cases (two expected
+Latest checkpoint: return `d9df280` passed 1,426 application cases (two expected
+Windows skips) and 139 helpers. Four sequence references remain unresolved
+through alias chains; 267 have qualified address context and 39 chart-step
+candidate links were found. Work38 adds stage timings and closed alias/rack
+hint diagnostics. See [scope and validation](public/docs/reviews/WORK_CHECK_TIMING_REVIEW.md).
+The next step is the normal work-machine run; team review remains deferred.
+
+Historical sequence relationship checkpoint:
+
+Earlier checkpoint: return `e8a328e` passed 1,386 application cases (two expected
 Windows skips) and 139 helpers. All 155 sequence transition conditions parsed;
 267 of 271 reference occurrences bind, leaving four unresolved.
 Work37 connects those references to qualified ladder uses and chart-step

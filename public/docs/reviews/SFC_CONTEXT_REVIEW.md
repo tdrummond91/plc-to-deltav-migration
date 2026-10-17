@@ -152,3 +152,21 @@ cases with two expected skips; the guard's nested rerun is not counted twice.
 Listener tests were excluded before import. The independent code review has
 no outstanding findings. Staged files match the working files byte for byte,
 and `git diff --check` passes.
+
+## Confirmed work37 return
+
+Return `d9df280` tested clean `0ee009a`: 1,426 application cases passed with two
+expected skips, as did all 139 helpers. The private analysis saved successfully.
+All twenty earlier summaries agree after revision normalization, the frozen
+sample envelope is identical, and all 44 historical reports validate.
+
+The 271 references comprise 267 exact-address uses and four alias-chain gaps.
+There are 167 distinct addresses: 93 with captured RLL evidence, 74 with readers,
+54 with writers and six with unknown-role uses. Accepted occurrences total 319
+reads, 84 writes and six unknown roles, with no rejected or expression uses.
+All 39 step links are bound base-member candidates: 32 same-content and seven
+peer-chart. There are no Boolean spelling hints, outside-scope declarations or
+lexical step hints for the gaps. These observations do not establish execution.
+
+The next [timing and alias diagnostic checkpoint](WORK_CHECK_TIMING_REVIEW.md)
+measures the runtime question and narrows the four unresolved aliases.

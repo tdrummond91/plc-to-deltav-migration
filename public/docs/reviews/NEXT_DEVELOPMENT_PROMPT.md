@@ -1,6 +1,26 @@
 # Next development checkpoint
 
-Current checkpoint (2026-10-16): **Sequence reference relationships**.
+Current checkpoint (2026-10-16): **Work-check timing and sequence alias diagnostics**.
+Return `d9df280` tested clean `0ee009a`: 1,426 application cases passed (two
+expected Windows skips), plus 139 helpers. All 267 bound transition references
+have qualified exact-address context; four unresolved references are alias-chain
+gaps. There are 167 distinct addresses and 39 bound step candidates (32 in the
+same chart content and seven in peer charts). All twenty preceding summaries
+and the frozen six examples are unchanged; all 44 historical reports validate.
+
+Work38 measures six workflow stages and adds closed alias-failure/rack-hint
+counts to SFC context summary2. The private evidence and review20/manifest23
+stay unchanged, with sixteen saved artifacts. See [scope and validation](WORK_CHECK_TIMING_REVIEW.md).
+
+The next ordinary work-machine run identifies the expensive stages and narrows
+the four alias gaps. No additional source examples or manual team review are
+requested. Git transport stays manual and the listener stays disabled. This
+remains Phase 1; equipment, alarm and execution-context analysis continues
+after the returned evidence is checked.
+
+## Historical sequence relationship checkpoint
+
+Historical checkpoint (2026-10-16): **Sequence reference relationships**.
 Return `e8a328e` tested clean `57e9bf6`: 1,386 application cases passed (two
 expected Windows skips), plus 139 helpers. All 155 transition conditions parsed;
 267 of 271 reference occurrences bind and four remain unresolved. There were no

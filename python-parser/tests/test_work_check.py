@@ -586,8 +586,14 @@ class GitAndWorkflowTests(unittest.TestCase):
                               analyze_sfc_conditions(*sequence_inputs))
             analysis_payload["sfc_context_summary"] = build_sfc_context_summary(
                 *context_inputs, analyze_sfc_context(*context_inputs),
-                revision={"commit": COMMIT, "worktree": "clean"})
-            analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
+                revision={"commit": COMMIT, "worktree": "clean"}, schema_version=2)
+            def timed_analysis(*args, timings, sfc_context_schema_version):
+                self.assertEqual(sfc_context_schema_version, 2)
+                for name in ("analysis_build", "private_save", "summary_build", "sample_replay"):
+                    with timings.phase(name):
+                        pass
+                return analysis_payload
+            analysis = stack.enter_context(patch.object(work_check, "_analyze", side_effect=timed_analysis))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))
             stack.enter_context(redirect_stdout(io.StringIO()))
             try:
@@ -595,6 +601,32 @@ class GitAndWorkflowTests(unittest.TestCase):
             except work_check.WorkCheckError as exc:
                 outcome = exc
         return outcome, calls, published, analysis
+
+    def test_run_check_freezes_total_before_rendering_publication_and_local_commit(self) -> None:
+        from plc_workbench.work_check_timing import PHASES, WorkCheckTiming
+        class Clock:
+            value = 0
+
+            def __call__(self) -> int:
+                return self.value
+
+        clock = Clock()
+        render = work_check.render_work_check_report
+        def render_then_advance(payload):
+            text = render(payload)
+            clock.value += 600_000_000_000
+            return text
+        with tempfile.TemporaryDirectory() as folder, \
+                patch.object(work_check, 'WorkCheckTiming', side_effect=lambda **kwargs: WorkCheckTiming(clock=clock, **kwargs)), \
+                patch.object(work_check, 'render_work_check_report', side_effect=render_then_advance):
+            outcome, calls, published, analysis = self._workflow(
+                Path(folder).resolve(), [test_result(), test_result()])
+        self.assertEqual(outcome, 0)
+        self.assertEqual(published[0]['schema_version'], 38)
+        self.assertEqual(published[0]['timings']['total_ms'], 0)
+        self.assertEqual(published[0]['timings']['phases_ms'], dict.fromkeys(PHASES, 0))
+        self.assertFalse(any(call[0] in {'fetch', 'pull', 'push'} for call in calls))
+        self.assertEqual(analysis.call_args.kwargs['sfc_context_schema_version'], 2)
 
     def test_failed_suite_commits_only_local_report_without_analysis_or_remote_access(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
