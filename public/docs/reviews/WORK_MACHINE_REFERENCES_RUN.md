@@ -1,6 +1,32 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-17): **Source-declared execution context**.
+Current checkpoint (2026-10-17): **Cross-rung signal context**.
+Return `2eb51d2` tested clean `cf6f785`: 1,500 application cases passed (two
+expected Windows skips), plus 139 helpers. All 47 historical reports validate.
+All 21 preceding summaries and the frozen six examples are unchanged.
+All 76 JSR calls have unique target candidates; three program schedule/main
+links resolve. Eleven call/control guards contain stored-state conditions.
+Total work-check time was 10:47, about seven seconds longer than the prior run.
+
+Review22/manifest25 adds all predicate-input occurrences, exact-address dossiers
+and bounded navigation between source conditions and individual output guards.
+Timer/counter members and rung-wide hints remain typed contextual evidence.
+Work40 adds closed counts; sixteen private artifacts remain.
+See [scope and validation](SIGNAL_CONTEXT_REVIEW.md).
+
+This bundle passed 1,532 application cases (two expected Windows skips),
+139 helpers and 76 development workflow cases. All 32 new cases passed with
+subprocess/socket creation blocked. Browser checks, canonical capacity testing,
+artifact comparisons and all 22 preceding summary comparisons passed.
+
+The next ordinary work-machine run measures the expanded signal population.
+No new plant samples or manual team review are requested. Git transport stays
+manual and the listener stays disabled. This remains Phase 1; further equipment,
+alarm and unresolved-path analysis follows the returned evidence.
+
+## Historical execution context checkpoint
+
+Historical checkpoint (2026-10-17): **Source-declared execution context**.
 Return `4eca393` tested clean `d3a5ec6`: 1,469 application cases passed (two
 expected Windows skips), plus 139 helpers. All 46 historical reports validate.
 All 21 analysis summaries and the frozen six examples are unchanged.

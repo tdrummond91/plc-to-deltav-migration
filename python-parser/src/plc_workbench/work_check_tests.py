@@ -65,6 +65,8 @@ WORK_MACHINE_MODULES = {
         "test_sfc_context", "test_sfc_context_summary", "test_sfc_context_workflow", "test_work_check_timing",
         "test_execution_context", "test_execution_context_summary",
         "test_execution_context_workflow", "test_execution_context_work_report",
+        "test_signal_context", "test_signal_context_summary",
+        "test_signal_context_workflow", "test_signal_context_work_report",
         "test_calculations", "test_calculation_summary", "test_calculation_workflow",
         "test_cpt_access", "test_cpt_access_summary", "test_cpt_access_workflow",
         "test_rung_analysis", "test_rung_analysis_summary", "test_rung_analysis_workflow",

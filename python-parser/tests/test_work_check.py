@@ -638,9 +638,18 @@ class GitAndWorkflowTests(unittest.TestCase):
             analysis_payload['execution_context_summary'] = build_execution_context_summary(
                 *execution_inputs, analyze_execution_context(*execution_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"})
-            def timed_analysis(*args, timings, sfc_context_schema_version, include_execution_context):
+            from plc_workbench.signal_context import analyze_signal_context
+            from plc_workbench.signal_context_summary import build_signal_context_summary
+            signal_inputs = (*execution_inputs, tag_data, analyze_output_context(*path_inputs),
+                             analyze_stateful_objects(*stateful_inputs), analyze_execution_context(*execution_inputs))
+            analysis_payload['signal_context_summary'] = build_signal_context_summary(
+                *signal_inputs, analyze_signal_context(*signal_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            def timed_analysis(*args, timings, sfc_context_schema_version, include_execution_context,
+                               include_signal_context):
                 self.assertEqual(sfc_context_schema_version, 2)
                 self.assertTrue(include_execution_context)
+                self.assertTrue(include_signal_context)
                 for name in ("analysis_build", "private_save", "summary_build", "sample_replay"):
                     with timings.phase(name):
                         pass
@@ -674,7 +683,7 @@ class GitAndWorkflowTests(unittest.TestCase):
             outcome, calls, published, analysis = self._workflow(
                 Path(folder).resolve(), [test_result(), test_result()])
         self.assertEqual(outcome, 0)
-        self.assertEqual(published[0]['schema_version'], 39)
+        self.assertEqual(published[0]['schema_version'], 40)
         self.assertEqual(published[0]['timings']['total_ms'], 0)
         self.assertEqual(published[0]['timings']['phases_ms'], dict.fromkeys(PHASES, 0))
         self.assertFalse(any(call[0] in {'fetch', 'pull', 'push'} for call in calls))

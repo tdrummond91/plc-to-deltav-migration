@@ -31,6 +31,8 @@ from .sfc_context import analyze_sfc_context
 from .sfc_context_summary import build_sfc_context_summary, validate_sfc_context_summary
 from .execution_context import analyze_execution_context
 from .execution_context_summary import build_execution_context_summary, validate_execution_context_summary
+from .signal_context import analyze_signal_context
+from .signal_context_summary import build_signal_context_summary, validate_signal_context_summary
 from .sfc_condition_summary import build_sfc_condition_summary, validate_sfc_condition_summary
 from .stateful_object_summary import build_stateful_object_summary, validate_stateful_object_summary
 from .output_context_summary import build_output_context_summary, validate_output_context_summary
@@ -81,6 +83,7 @@ MAX_REPORT_V28_BYTES = 64 * 1024
 # Work32 reserves the new closed summary plus the unchanged full sample envelope.
 MAX_REPORT_V32_BYTES = 80 * 1024
 MAX_REPORT_V39_BYTES = 88 * 1024
+MAX_REPORT_V40_BYTES = 96 * 1024
 _LEGACY_CONSTANTS = {
     "schema_version": 1,
     "report_kind": "l5x_work_machine_check",
@@ -123,7 +126,8 @@ _V35_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 35, "workflow_version": 
 _V36_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 36, "workflow_version": "work-check-36"}
 _V37_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 37, "workflow_version": "work-check-37"}
 _V38_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 38, "workflow_version": "work-check-38"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 39, "workflow_version": "work-check-39"}
+_V39_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 39, "workflow_version": "work-check-39"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 40, "workflow_version": "work-check-40"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _SAVE_FAILURE_CODES = frozenset({
     "review_size_limit", "review_validation_error", "review_render_error",
@@ -203,7 +207,7 @@ def validate_work_check_report(report: Any) -> None:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _V25_CONSTANTS, 26: _V26_CONSTANTS, 27: _V27_CONSTANTS, 28: _V28_CONSTANTS, 29: _V29_CONSTANTS, 30: _V30_CONSTANTS, 31: _V31_CONSTANTS, 32: _V32_CONSTANTS, 33: _V33_CONSTANTS, 34: _V34_CONSTANTS, 35: _V35_CONSTANTS, 36: _V36_CONSTANTS, 37: _V37_CONSTANTS, 38: _V38_CONSTANTS, 39: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _V21_CONSTANTS, 22: _V22_CONSTANTS, 23: _V23_CONSTANTS, 24: _V24_CONSTANTS, 25: _V25_CONSTANTS, 26: _V26_CONSTANTS, 27: _V27_CONSTANTS, 28: _V28_CONSTANTS, 29: _V29_CONSTANTS, 30: _V30_CONSTANTS, 31: _V31_CONSTANTS, 32: _V32_CONSTANTS, 33: _V33_CONSTANTS, 34: _V34_CONSTANTS, 35: _V35_CONSTANTS, 36: _V36_CONSTANTS, 37: _V37_CONSTANTS, 38: _V38_CONSTANTS, 39: _V39_CONSTANTS, 40: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = ({"diagnostic_sample"} if version >= 2 else set()) | ({"targeted_samples"} if version >= 28 else set())
@@ -244,7 +248,8 @@ def validate_work_check_report(report: Any) -> None:
           | ({"stateful_object_summary"} if version >= 35 else set())
           | ({"sfc_condition_summary"} if version >= 36 else set())
           | ({"sfc_context_summary"} if version >= 37 else set())
-          | ({"execution_context_summary"} if version >= 39 else set()))
+          | ({"execution_context_summary"} if version >= 39 else set())
+          | ({"signal_context_summary"} if version >= 40 else set()))
     if type(analysis["private_run_saved"]) is not bool or type(analysis["status"]) is not str:
         _invalid()
     if analysis["status"] in ("complete", "partial"):
@@ -252,14 +257,14 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12, 26: 12, 27: 12, 28: 12, 29: 12, 30: 12, 31: 12, 32: 12, 33: 12, 34: 12, 35: 12, 36: 12, 37: 12, 38: 12, 39: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12, 22: 12, 23: 12, 24: 12, 25: 12, 26: 12, 27: 12, 28: 12, 29: 12, 30: 12, 31: 12, 32: 12, 33: 12, 34: 12, 35: 12, 36: 12, 37: 12, 38: 12, 39: 12, 40: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2, 26: 2, 27: 2, 28: 2, 29: 2, 30: 2, 31: 2, 32: 2, 33: 2, 34: 2, 35: 2, 36: 2, 37: 2, 38: 2, 39: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2, 22: 2, 23: 2, 24: 2, 25: 2, 26: 2, 27: 2, 28: 2, 29: 2, 30: 2, 31: 2, 32: 2, 33: 2, 34: 2, 35: 2, 36: 2, 37: 2, 38: 2, 39: 2, 40: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
@@ -923,6 +928,49 @@ def validate_work_check_report(report: Any) -> None:
                            for opcode in c["source_control_opcodes"]) > opcodes.get("withheld", 0)):
                 _invalid()
             expected_analysis = "partial" if "partial" in (expected_analysis, execution["status"]) else "complete"
+        if version >= 40:
+            signal = analysis["signal_context_summary"]
+            validate_signal_context_summary(signal)
+            c = signal["coverage"]
+            source = nested["source_summary"]["counts"]
+            access_counts = analysis["access_summary"]["coverage"]
+            condition_counts = analysis["condition_summary"]["coverage"]
+            output_counts = analysis["output_context_summary"]["coverage"]
+            relationship_counts = analysis["relationship_summary"]["coverage"]
+            stateful_counts = analysis["stateful_object_summary"]["coverage"]
+            predicates = condition_counts["predicate_opcodes"]
+            expected_reads = {
+                "xic": predicates["XIC"], "xio": predicates["XIO"],
+                "comparison": sum(count * (3 if opcode == "LIM" else 2)
+                                  for opcode, count in predicates.items()
+                                  if opcode not in {"XIC", "XIO"}),
+                "ons_storage": condition_counts["stateful_opcodes"]["ONS"],
+            }
+            if (signal["schema_version"] != 1 or signal["tool_revision"] != revision
+                    or c["source_rungs"] != source["rungs"]
+                    or c["source_routines"] != source["routines"]
+                    or c["source_instructions"] != source["instructions"]
+                    or c["source_operands"] != access_counts["operands_total"]
+                    or c["source_expression_uses"] != access_counts["expression_uses_total"]
+                    or c["source_condition_nodes"] != condition_counts["nodes_total"]
+                    or c["unparsed_rungs"] != access_counts["unparsed_rungs"]
+                    or c["source_outputs"] != output_counts["outputs_total"]
+                    or c["outputs_by_opcode"] != output_counts["outputs_by_opcode"]
+                    or c["source_addresses"] != relationship_counts["addresses_total"]
+                    or c["source_stateful_objects"] != stateful_counts["objects_total"]
+                    or c["source_stateful_address_uses"] != stateful_counts["address_uses_total"]
+                    or c["reads_by_kind"] != expected_reads
+                    or c["source_predicate_operands"] != sum(expected_reads[key] for key in ("xic", "xio", "comparison"))
+                    or c["source_ons_storage_operands"] != expected_reads["ons_storage"]
+                    or c["outputs_with_branches"] != output_counts["outputs_with_branches"]
+                    or c["outputs_with_stateful_conditions"] != output_counts["outputs_with_stateful_conditions"]
+                    or any(c["accepted_operands_by_role"][role] + c["rejected_operands_by_role"][role]
+                           > relationship_counts["indexed_operands_by_role"][role]
+                           for role in ("read", "write", "read_write", "unknown"))
+                    or c["accepted_expression_uses"] + c["rejected_expression_uses"]
+                       > relationship_counts["indexed_expression_uses"]):
+                _invalid()
+            expected_analysis = "partial" if "partial" in (expected_analysis, signal["status"]) else "complete"
         if expected_analysis != analysis["status"] or nested["source_summary"]["tool_revision"] != revision:
             _invalid()
     elif analysis["status"] == "failed":
@@ -948,6 +996,7 @@ def validate_work_check_report(report: Any) -> None:
                     | ({"sfc_condition_error"} if version >= 36 else set())
                     | ({"sfc_context_error"} if version >= 37 else set())
                     | ({"execution_context_error"} if version >= 39 else set())
+                    | ({"signal_context_error"} if version >= 40 else set())
                     | (_SAVE_FAILURE_CODES if version >= 25 else set())) or analysis["reference_summary"] is not None):
             _invalid()
         if analysis["private_run_saved"] and analysis["failure_code"] not in ("summary_error", "unexpected_error"):
@@ -997,6 +1046,8 @@ def validate_work_check_report(report: Any) -> None:
     if version >= 37 and analysis["status"] in ("failed", "not_run") and analysis["sfc_context_summary"] is not None:
         _invalid()
     if version >= 39 and analysis["status"] in ("failed", "not_run") and analysis["execution_context_summary"] is not None:
+        _invalid()
+    if version >= 40 and analysis["status"] in ("failed", "not_run") and analysis["signal_context_summary"] is not None:
         _invalid()
     expected = "failed" if not tests_passed or analysis["status"] == "failed" else (
         "partial" if analysis["status"] == "partial" else "passed"
@@ -1104,6 +1155,8 @@ def validate_work_check_report(report: Any) -> None:
 
 
 def _report_limit(version: int) -> int:
+    if version == 40:
+        return MAX_REPORT_V40_BYTES
     if version == 39:
         return MAX_REPORT_V39_BYTES
     if version in (32, 33, 34, 35, 36, 37, 38):
@@ -1116,7 +1169,7 @@ def _report_limit(version: int) -> int:
 def _serialize_report(report: dict[str, Any]) -> str:
     # New companions need room for the complete frozen sample reservation.
     # Work31 and later use compact whitespace; all historical render bytes stay stable.
-    layout = {"separators": (",", ":")} if report["schema_version"] in (31, 32, 33, 34, 35, 36, 37, 38, 39) else {"indent": 2}
+    layout = {"separators": (",", ":")} if report["schema_version"] in (31, 32, 33, 34, 35, 36, 37, 38, 39, 40) else {"indent": 2}
     return json.dumps(report, sort_keys=True, ensure_ascii=True, **layout) + "\n"
 
 
@@ -1308,19 +1361,22 @@ def _phase_elapsed(name: str, milliseconds: int) -> None:
 def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str], *,
              timings: WorkCheckTiming | None = None,
              sfc_context_schema_version: int = 1,
-             include_execution_context: bool = False) -> dict[str, Any]:
+             include_execution_context: bool = False,
+             include_signal_context: bool = False) -> dict[str, Any]:
     # Reuse only protected source templates during this invocation. Derived
     # models still pass their ordinary canonical comparisons before publication.
     with source_reuse_scope():
         return _analyze_source(root, source, logs, revision, timings=timings,
                                sfc_context_schema_version=sfc_context_schema_version,
-                               include_execution_context=include_execution_context)
+                               include_execution_context=include_execution_context,
+                               include_signal_context=include_signal_context)
 
 
 def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, str], *,
                     timings: WorkCheckTiming | None = None,
                     sfc_context_schema_version: int = 1,
-                    include_execution_context: bool = False) -> dict[str, Any]:
+                    include_execution_context: bool = False,
+             include_signal_context: bool = False) -> dict[str, Any]:
     result: dict[str, Any] = {"status": "failed", "failure_code": "read_error", "private_run_saved": False,
                               "reference_summary": None, "sfc_structure_summary": None,
                               "access_summary": None, "tag_data_summary": None, "pid_summary": None,
@@ -1329,6 +1385,8 @@ def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, st
                               "diagnostic_sample": None, "targeted_samples": sample_envelope()}
     if include_execution_context:
         result["execution_context_summary"] = None
+    if include_signal_context:
+        result["signal_context_summary"] = None
     try:
         with timings.phase("analysis_build") if timings is not None else nullcontext():
             snapshot = capture_snapshot(source)
@@ -1395,6 +1453,11 @@ def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, st
             if include_execution_context:
                 result["failure_code"] = "execution_context_error"
                 execution_context = analyze_execution_context(*calculation_path_inputs)
+            signal_context = None
+            if include_signal_context:
+                result["failure_code"] = "signal_context_error"
+                signal_inputs = (*calculation_path_inputs, tag_data, output_context, stateful_objects, execution_context)
+                signal_context = analyze_signal_context(*signal_inputs)
         with timings.phase("private_save") if timings is not None else nullcontext():
             result["failure_code"] = "save_error"
             workspace = root / "confidential" / "workspaces" / "work-check"
@@ -1406,7 +1469,7 @@ def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, st
                                  pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis, relationships=relationships,
                                  conditions=conditions, binding_context=binding_context,
                                  custom_instruction_context=custom_context, indexed_access=indexed_access, sfr_context=sfr_context, aoi_body_context=aoi_body,
-                                 pid_connections=pid_connections, calculation_paths=calculation_paths, output_context=output_context, stateful_objects=stateful_objects, sfc_conditions=sfc_conditions, sfc_context=sfc_context, execution_context=execution_context)
+                                 pid_connections=pid_connections, calculation_paths=calculation_paths, output_context=output_context, stateful_objects=stateful_objects, sfc_conditions=sfc_conditions, sfc_context=sfc_context, execution_context=execution_context, signal_context=signal_context)
             # save_run returns only after finalizing the manifest. A console failure
             # afterwards must not misreport a successfully saved private run.
             result["private_run_saved"] = True
@@ -1450,6 +1513,8 @@ def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, st
             execution_summary = (build_execution_context_summary(
                 *calculation_path_inputs, execution_context, revision=revision)
                 if execution_context is not None else None)
+            signal_summary = (build_signal_context_summary(*signal_inputs, signal_context, revision=revision)
+                              if signal_context is not None else None)
         # Current releases use the durable targeted reservation. Retain the
         # legacy field as null; its source-order raw sampler must not rotate
         # additional examples outside the new cumulative disclosure budget.
@@ -1480,6 +1545,10 @@ def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, st
         if include_execution_context:
             result["execution_context_summary"] = execution_summary
             if execution_context.status == "partial":
+                result["status"] = "partial"
+        if include_signal_context:
+            result["signal_context_summary"] = signal_summary
+            if signal_context.status == "partial":
                 result["status"] = "partial"
         def frozen_sample_request() -> dict[str, Any]:
             # Request rung-cases-1 is permanently tied to condition2 eligibility.
@@ -1534,12 +1603,12 @@ def run_check(root: Path, supplied_source: str | None) -> int:
     if all(result["status"] == "passed" for result in results.values()):
         print("Analyzing source and saving private results...", flush=True)
         analysis = _analyze(root, source, logs, revision, timings=timings, sfc_context_schema_version=2,
-                            include_execution_context=True)
+                            include_execution_context=True, include_signal_context=True)
     else:
         analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False,
                     "reference_summary": None, "sfc_structure_summary": None, "access_summary": None,
                     "tag_data_summary": None, "pid_summary": None, "pid_member_summary": None, "calculation_summary": None, "rung_analysis_summary": None, "relationship_summary": None, "condition_summary": None,
-                    "binding_context_summary": None, "custom_instruction_summary": None, "indexed_access_summary": None, "sfr_summary": None, "aoi_body_summary": None, "pid_connection_summary": None, "calculation_path_summary": None, "output_context_summary": None, "stateful_object_summary": None, "sfc_condition_summary": None, "sfc_context_summary": None, "execution_context_summary": None}
+                    "binding_context_summary": None, "custom_instruction_summary": None, "indexed_access_summary": None, "sfr_summary": None, "aoi_body_summary": None, "pid_connection_summary": None, "calculation_path_summary": None, "output_context_summary": None, "stateful_object_summary": None, "sfc_condition_summary": None, "sfc_context_summary": None, "execution_context_summary": None, "signal_context_summary": None}
     status = "failed" if analysis["status"] in ("not_run", "failed") else (
         "partial" if analysis["status"] == "partial" else "passed"
     )

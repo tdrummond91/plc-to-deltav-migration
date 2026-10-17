@@ -57,15 +57,16 @@ def publish_summary(output: Path, rendered: str, *, input_path: Path) -> None:
         # bounded and immutable targeted sample request.
         # Bound parsing first, then retain the original cap for every other
         # contract; a caller cannot obtain the larger allowance via a flag.
-        from .work_check import MAX_REPORT_V22_BYTES, MAX_REPORT_V28_BYTES, MAX_REPORT_V32_BYTES, MAX_REPORT_V39_BYTES
+        from .work_check import MAX_REPORT_V22_BYTES, MAX_REPORT_V28_BYTES, MAX_REPORT_V32_BYTES, MAX_REPORT_V39_BYTES, MAX_REPORT_V40_BYTES
         supplied_bytes = len(rendered.encode('utf-8'))
-        if supplied_bytes > max(MAX_REPORT_BYTES, MAX_REPORT_V22_BYTES, MAX_REPORT_V28_BYTES, MAX_REPORT_V32_BYTES, MAX_REPORT_V39_BYTES):
+        if supplied_bytes > max(MAX_REPORT_BYTES, MAX_REPORT_V22_BYTES, MAX_REPORT_V28_BYTES, MAX_REPORT_V32_BYTES, MAX_REPORT_V39_BYTES, MAX_REPORT_V40_BYTES):
             raise SummaryOutputError('Summary exceeds its publication size limit.')
         try:
             payload = json.loads(rendered)
             current_work = (type(payload) is dict and payload.get('report_kind') == 'l5x_work_machine_check'
-                            and type(payload.get('schema_version')) is int and payload['schema_version'] in (22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39))
-            limit = (MAX_REPORT_V39_BYTES if current_work and payload["schema_version"] == 39
+                            and type(payload.get('schema_version')) is int and payload['schema_version'] in (22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40))
+            limit = (MAX_REPORT_V40_BYTES if current_work and payload["schema_version"] == 40
+                     else MAX_REPORT_V39_BYTES if current_work and payload["schema_version"] == 39
                      else MAX_REPORT_V32_BYTES if current_work and payload["schema_version"] in (32, 33, 34, 35, 36, 37, 38)
                      else MAX_REPORT_V28_BYTES if current_work and payload["schema_version"] in (28, 29, 30, 31)
                      else MAX_REPORT_V22_BYTES if current_work else MAX_REPORT_BYTES)

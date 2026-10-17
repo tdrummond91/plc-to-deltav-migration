@@ -1,6 +1,13 @@
 # L5X engineering review, calculations and source structure
 
-Latest bundle: **Source-declared execution context** connects task/program
+Latest bundle: **Cross-rung signal context** adds predicate inputs, exact-address
+dossiers and bounded source-condition navigation to individual outputs.
+It preserves comparison operands, one-shot storage and timer member associations
+as distinct evidence. Review22 embeds private records; work40 returns closed
+counts. See the [scope and validation](../public/docs/reviews/SIGNAL_CONTEXT_REVIEW.md)
+and [invented report](../public/examples/signal-context-review-demo.html).
+
+Prior bundle: **Source-declared execution context** connects task/program
 metadata and schedule candidates to main/fault designations, call-site guards,
 and SBR/RET/JMP/LBL source boundaries. Review21 embeds private evidence; work39
 returns closed counts. Runtime scheduling and parameter roles remain unmodeled.

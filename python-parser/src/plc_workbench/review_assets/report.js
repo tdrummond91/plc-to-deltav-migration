@@ -113,6 +113,11 @@
   const byOutputRungContext=new Map((outputContext?.rung_contexts||[]).map(r=>[r.id,r]));
   const outputConditionReads=outputContext?.condition_reads||[];
   let outputConditionParents=null;
+  const signalContext=data.signal_context||null,signalOutputs=signalContext?.outputs||[],signalAddresses=signalContext?.addresses||[],signalReads=signalContext?.condition_reads||[];
+  const bySignalOutput=new Map(signalOutputs.map(o=>[o.id,o])),bySignalAddress=new Map(signalAddresses.map(a=>[a.id,a]));
+  const bySignalRead=new Map(signalReads.map(r=>[r.id,r])),bySignalRung=new Map((signalContext?.rung_contexts||[]).map(r=>[r.id,r]));
+  const signalReadsByNode=new Map();signalReads.forEach(r=>add(signalReadsByNode,r.condition_node_id,r));
+  const SIGNAL_NODE_LIMIT=5000,SIGNAL_EDGE_LIMIT=10000;
   const statefulObjects=data.stateful_objects||null,statefulOccurrences=statefulObjects?.occurrences||[],statefulGroups=statefulObjects?.objects||[];
   const byStatefulOccurrence=new Map(statefulOccurrences.map(o=>[o.id,o])),byStatefulGroup=new Map(statefulGroups.map(o=>[o.id,o]));
   const statefulUsesByObject=new Map(),statefulStoredByObject=new Map(),statefulOccurrencesByRung=new Map();
@@ -295,9 +300,11 @@
   headings.statefulobjects=['Timers, counters & resets','Connect captured timer and counter occurrences, reset instructions, exact member uses and separately retained stored values.'];
   headings.sequenceconditions=['Sequence conditions','Inspect captured transition expressions, their source grouping, reference leaves and unresolved evidence.'];
   headings.executioncontext=['Execution context','Inspect source-declared tasks, program entries, routine call candidates and control boundaries with unresolved evidence kept visible.'];
+  headings.signalcontext=['Signal relationships','Follow exact addresses through captured output guards, comparison operands, stored-state boundaries and source occurrences.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(executionContext){labels.executioncontext='Execution context';navCounts.executioncontext=executionContext.calls.length;}
+  if(signalContext){labels.signalcontext='Signal relationships';navCounts.signalcontext=signalAddresses.length;}
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
   if(relationships){labels.relationships='Address relationships';navCounts.relationships=addresses.length;}
   if(statefulObjects){labels.statefulobjects='Timers, counters & resets';navCounts.statefulobjects=statefulOccurrences.length;}
@@ -489,6 +496,9 @@
   ])));
   const sfcSearch = new Map();elements.forEach(e=>add(sfcSearch,e.routine_id,[e.kind,e.direct_text,...Object.values(e.attributes||{})].join(' ')));
   (sfc.routines || []).forEach(r=>searchable(r,[entityPath(r.routine_id),...(sfcSearch.get(r.routine_id)||[])]));
+  signalAddresses.forEach(a=>searchable(a,[addressName(byAddress.get(a.id)),human(a.profile),human(a.endpoint_kind),entityPath(a.target_id)]));
+  signalOutputs.forEach(o=>searchable(o,[o.opcode,byOperand.get(o.target_operand_id)?.raw_text,sourceName(o.rung_id),entityPath(o.routine_id),human(o.guard_quality),human(o.target_status)]));
+  signalReads.forEach(r=>searchable(r,[byOperand.get(r.id)?.raw_text,r.kind,r.status,sourceName(r.rung_id),entityPath(byRung.get(r.rung_id)?.parent_id)]));
   function matches(row) { return !state.query || (searchIndex.get(row)||'').includes(state.query.toLocaleLowerCase()); }
   function toolbarFor(placeholder, filterOptions=[]) {
     const box=node('div','toolbar'), search=node('div','search-wrap'), input=node('input');
@@ -518,6 +528,7 @@
     if(statefulObjects){const row=node('div','status-row');row.append(node('span','','Timer, counter and reset context'),badge(statefulObjects.status));capture.append(row);}
     if(sfcConditions){const row=node('div','status-row');row.append(node('span','','SFC transition expression syntax'),badge(sfcConditions.status));capture.append(row);}
     if(executionContext){const row=node('div','status-row');row.append(node('span','','Execution context'),badge(executionContext.status));capture.append(row);}
+    if(signalContext){const row=node('div','status-row');row.append(node('span','','Signal relationships'),badge(signalContext.status));capture.append(row);}
     if(sequenceContext){const row=node('div','status-row');row.append(node('span','','SFC reference relationships'),badge(sequenceContext.status));capture.append(row);}
     if(outputContext){const row=node('div','status-row');row.append(node('span','','Boolean output context'),badge(outputContext.status));capture.append(row);}
     if(customContext){const row=node('div','status-row');row.append(node('span','','Custom-instruction declaration context'),badge(customContext.status));capture.append(row);}
@@ -1053,6 +1064,74 @@
     if(u.rejected_operand_ids.length){const sectionNode=section('Unqualified namespace operand uses','These retained source occurrences do not participate in the qualified role associations.');sectionNode.append(table(['Source operand','Rung'],u.rejected_operand_ids,id=>[sourceCell(id),sourceCell(byOperandAccess.get(id)?.rung_id)],'Timer and counter namespace operand gaps'));content.append(sectionNode);}
     if(u.rejected_expression_use_ids.length){const sectionNode=section('Unqualified namespace expression uses');sectionNode.append(expressionUseTable(u.rejected_expression_use_ids.map(id=>byExpressionUse.get(id)),'Timer and counter namespace expression gaps'));content.append(sectionNode);}
   }
+  function signalNotice(){return notice('Direct source relationships with visible boundaries','Follow one address or output at a time. Exact spelling and condition ancestry associate captured occurrences; they do not prove execution order, physical wiring, shutdown effects or final state. Comparisons retain every operand and literal. ONS storage is a state boundary. Rung-wide authored hints remain leads, not output classifications.');}
+  function signalAddressLink(id){const a=bySignalAddress.get(id);return a?button(addressName(byAddress.get(id)),()=>openDetail('signaladdress',id),'text-link'):node('span','muted','No qualified exact address');}
+  function signalOutputTable(rows,caption){return table(['Output occurrence','Target address','Captured action','Guard quality','Rung / routine'],rows,o=>[
+    button(o.opcode+' · '+short(byOperand.get(o.target_operand_id)?.raw_text||'(unresolved)',100),()=>openDetail('signaloutput',o.id),'text-link'),signalAddressLink(o.target_address_id),conditionActionLabel(o.action),primary(outputContextStatus(o.guard_quality),[o.has_stateful?'Stored state':'',o.has_opaque?'Unknown transfer':'',o.has_namespace_gap?'Namespace gap':''].filter(Boolean).join(' · ')),primary(sourceCell(o.rung_id),entityPath(o.routine_id))
+  ],caption);}
+  function signalReadTable(rows,caption){return table(['Source operand','Condition role','Qualification','Exact address','Instruction / rung'],rows,r=>[
+    sourceCell(r.id),({xic:'XIC contact',xio:'XIO contact',comparison:'Comparison operand',ons_storage:'ONS stored-state operand'})[r.kind]||human(r.kind),human(r.status),signalAddressLink(r.source_address_id),signalReadSource(r)
+  ],caption);}
+  function signalReadSource(r){const n=node('div','inline-links');n.append(sourceCell(r.instruction_id),button(sourceName(r.rung_id)+' · edit context',()=>openDetail('signalrung',r.rung_id),'text-link'));return n;}
+  function signalAddressTable(rows,caption){return table(['Exact signal address','Captured context','Coil occurrences','Condition operands','Other writers','Unknown-role uses'],rows,a=>[
+    signalAddressLink(a.id),primary(human(a.profile),outputEndpoint(a.endpoint_kind)),fmt(a.output_ids.length),fmt(a.condition_read_ids.length),fmt(a.noncoil_writer_operand_ids.length),fmt(a.unknown_operand_ids.length)
+  ],caption);}
+  function addToolbarSelect(labelText,items,current,change){const label=node('label','filter-wrap',labelText),select=node('select');select.setAttribute('aria-label',labelText);items.forEach(([value,text])=>{const option=node('option','',text);option.value=value;select.append(option);});select.value=current;select.addEventListener('change',()=>change(select.value));label.append(select);toolbar.querySelector('.toolbar').append(label);}
+  function signalToolbar(){
+    toolbarFor('Search exact addresses, operand text, routine names or gaps');
+    addToolbarSelect('Signal view',[['addresses','Exact signal addresses'],['outputs','Output guard dossiers'],['reads','All condition operands']],state.signalMode||'addresses',v=>{state.signalMode=v;state.filter='all';state.listPages={};render();});
+  }
+  function signalList(){
+    content.append(signalNotice());const summary=panel('Signal relationship coverage','All captured condition operands remain visible, including literals and unresolved references. Each output keeps its own guard and source content.');
+    summary.append(values({'Exact signal addresses':signalAddresses.length,'Output occurrences':signalOutputs.length,'Condition operand occurrences':signalReads.length,'Qualified condition operand occurrences':signalReads.filter(r=>r.status==='exact_address').length,'Literal and system operands':signalReads.filter(r=>['literal','system_flag'].includes(r.status)).length,'Unresolved condition operands':signalReads.filter(r=>!['exact_address','literal','system_flag'].includes(r.status)).length,'Source rungs':signalContext.rung_contexts.length}));content.append(summary);
+    if(state.signalMode==='outputs')content.append(signalOutputTable(signalOutputs.filter(matches),'Signal output guard dossiers'));
+    else if(state.signalMode==='reads')content.append(signalReadTable(signalReads.filter(matches),'All signal condition operands'));
+    else content.append(signalAddressTable(signalAddresses.filter(matches),'Exact signal address dossiers'));
+  }
+  function signalWalk(seedIds,reverse=false){
+    // Follow the existing DAG once per selected node, without materializing a
+    // contact-by-coil product or automatically expanding transitive signals.
+    const parents=reverse?conditionParents():null;
+    const queued=new Set(),pending=[],seen=new Set();let edges=0,truncated=false;
+    const enqueue=id=>{if(!id||queued.has(id)||!byConditionNode.has(id))return;if(queued.size>=SIGNAL_NODE_LIMIT){truncated=true;return;}queued.add(id);pending.push(id);};
+    for(const id of seedIds)enqueue(id);
+    while(pending.length){const id=pending.pop();seen.add(id);const next=reverse?(parents.get(id)||[]):byConditionNode.get(id).child_ids;
+      for(const child of next){if(edges>=SIGNAL_EDGE_LIMIT){truncated=true;break;}edges++;enqueue(child);}if(edges>=SIGNAL_EDGE_LIMIT&&pending.length){truncated=true;break;}}
+    return {seen,edges,truncated};
+  }
+  function signalTraversalNotice(walk){return notice(walk.truncated?'Relationship traversal truncated':'Relationship traversal complete for this selection',fmt(walk.seen.size)+' condition nodes and '+fmt(walk.edges)+' dependency links examined. Per-selection limits: '+fmt(SIGNAL_NODE_LIMIT)+' nodes and '+fmt(SIGNAL_EDGE_LIMIT)+' links.'+(walk.truncated?' Displayed associations are a partial subset. An absent result here cannot establish absence of a dependency.':' This is one direct condition relationship, not a transitive equipment chain.'));}
+  function signalDependencyCell(n,labels){
+    const box=node('div');box.append(node('span','',n.child_ids.slice(0,8).map(id=>labels.get(id)||'Outside bounded selection').join(' · ')||'No child nodes'));
+    if(n.child_ids.length>8)box.append(button('Inspect '+fmt(n.child_ids.length)+' dependency inputs',()=>{state.signalConditionNode=n.id;render();},'text-link'));
+    return box;
+  }
+  function signalProvenance(rungId){
+    const r=bySignalRung.get(rungId);if(!r)return;const p=panel('Exact source and edit context','Captured content versions remain separate. No active edit or runtime scan order is selected.');
+    p.append(values({'Routine':entityPath(r.routine_id),'Program':r.program_id?entityName(r.program_id):'No program owner','Namespace qualification':r.qualified?'Qualified':'Unqualified','Content location':r.content_locator,'Raw content / edit attributes':r.content_attributes||{}}));
+    const links=node('div','inline-links');links.append(sourceCell(rungId),sourceCell(r.routine_id));if(r.execution_routine_context_id)links.append(button('Routine scheduling and callers',()=>openDetail('executioncontext',r.execution_routine_context_id),'text-link'));p.append(links);content.append(p);
+    for(const [field,title] of [['candidate_ids_by_category','Rung-wide authored hints'],['unqualified_candidate_ids_by_category','Unqualified rung-wide authored hints']]){const ids=Object.values(r[field]||{}).flat();if(!ids.length)continue;const hints=section(title,'These words belong to the whole rung and do not classify this signal or establish an alarm effect.');hints.append(table(['Candidate category','Supporting source evidence'],ids.map(id=>byRungCandidate.get(id)).filter(Boolean),(c,i)=>[human(c.category),engineeringIdTable(c.evidence_ids,(field==='candidate_ids_by_category'?'Qualified ':'Unqualified ')+human(c.category)+' hint '+(i+1)+' evidence')],title));content.append(hints);}
+  }
+  function signalOutputDetail(o){
+    setDetailHeading('SIGNAL OUTPUT GUARD',o.opcode+' · '+short(byOperand.get(o.target_operand_id)?.raw_text||'(unresolved)',160),sourceName(o.rung_id));content.append(signalNotice());
+    const summary=panel('This output occurrence','The action belongs to this source occurrence; another writer may target the same address.');summary.append(values({'Captured action':conditionActionLabel(o.action),'Target qualification':human(o.target_status),'Guard quality':outputContextStatus(o.guard_quality),'Branch join':o.has_branch?'Present':'Absent','Stored-state context':o.has_stateful?'Present':'Absent','Unknown transfer':o.has_opaque?'Present':'Absent'}),signalAddressLink(o.target_address_id));content.append(summary);signalProvenance(o.rung_id);
+    const walk=signalWalk([o.guard_id]);content.append(signalTraversalNotice(walk));const rows=[...walk.seen].map(id=>byConditionNode.get(id)),reads=rows.flatMap(n=>signalReadsByNode.get(n.id)||[]),labels=new Map(rows.map((n,i)=>[n.id,'C'+(i+1)]));
+    if(o.has_namespace_gap)content.append(notice('Unqualified guard context','The original operands below are retained for inspection. This output does not participate in qualified downstream associations.'));
+    const inputs=section('Condition operands upstream of this output','Every captured predicate operand is included when reached: contacts, comparison values and ONS storage. Click an exact address to inspect its captured writers. No input is selected by proximity.');inputs.append(signalReadTable(reads,'Output upstream condition operands'));content.append(inputs);
+    const graph=section('Direct guard structure','All joins series conditions; Any joins alternate branches. Unknown transfers retain incoming context without proving a Boolean rule. Contact polarity is shown by its opcode; no overall polarity is inferred.');graph.append(table(['Node','Source meaning','Dependency nodes','Source instruction'],rows,n=>[labels.get(n.id),conditionNodeLabel(n),signalDependencyCell(n,labels),sourceCell(n.instruction_id)],'Signal bounded guard nodes'));content.append(graph);
+    const selected=byConditionNode.get(state.signalConditionNode);if(selected&&walk.seen.has(selected.id)){const details=section('Dependency inputs for '+labels.get(selected.id),'Each captured dependency is listed separately. Inputs outside the bounded traversal remain explicitly marked.');details.append(table(['Input','Selected traversal label','Source meaning','Source instruction'],selected.child_ids.slice(0,SIGNAL_EDGE_LIMIT),(id,i)=>[i+1,labels.get(id)||'Outside bounded selection',conditionNodeLabel(byConditionNode.get(id)),sourceCell(byConditionNode.get(id)?.instruction_id)],'Signal selected node dependency inputs'));if(selected.child_ids.length>SIGNAL_EDGE_LIMIT)details.append(notice('Dependency input list truncated','Showing '+fmt(SIGNAL_EDGE_LIMIT)+' of '+fmt(selected.child_ids.length)+' inputs. Inspect the original source for the remaining entries.'));content.append(details);}
+    if(o.has_stateful)content.append(statefulNotice());
+  }
+  function signalRungDetail(r){setDetailHeading('SIGNAL RUNG CONTEXT',sourceName(r.id),entityPath(r.routine_id));content.append(signalNotice());signalProvenance(r.id);content.append(signalReadTable(r.condition_read_ids.map(id=>bySignalRead.get(id)).filter(Boolean),'Signal rung condition operands'),signalOutputTable(r.output_ids.map(id=>bySignalOutput.get(id)).filter(Boolean),'Signal rung output guards'));}
+  function signalAddressDetail(a){
+    setDetailHeading('SIGNAL ADDRESS DOSSIER',addressName(byAddress.get(a.id)),outputEndpoint(a.endpoint_kind));content.append(signalNotice());const p=panel('Captured address uses','Absence of captured readers or writers does not prove unused logic. Alias overlap, indirect addressing, SFC, external communications and runtime order require separate evidence.');
+    p.append(values({'Context':human(a.profile),'Coil writers':a.output_ids.length,'Other writer operands':a.noncoil_writer_operand_ids.length,'Read operands':a.read_operand_ids.length,'Read/write operands':a.read_write_operand_ids.length,'Expression reads':a.expression_use_ids.length,'Unknown-role uses':a.unknown_operand_ids.length}),sourceCell(a.target_id));content.append(p);
+    const writes=section('Upstream captured coil writers','Inspect each writer independently. Set, clear and assign actions remain distinct, including competing writers and alternate source contents.');writes.append(signalOutputTable(a.output_ids.map(id=>bySignalOutput.get(id)).filter(Boolean),'Signal address coil writers'));content.append(writes);
+    const reads=a.condition_read_ids.map(id=>bySignalRead.get(id)).filter(Boolean),readerSection=section('Direct condition operands at this address','ONS storage remains a state boundary; comparisons retain their other operands on the output guard dossier.');readerSection.append(signalReadTable(reads,'Signal address condition operands'));content.append(readerSection);
+    const walk=signalWalk(reads.filter(r=>r.status==='exact_address').map(r=>r.condition_node_id),true);content.append(signalTraversalNotice(walk));const downstream=signalOutputs.filter(o=>!o.has_namespace_gap&&o.guard_quality!=='namespace_gap'&&walk.seen.has(o.guard_id));const consumers=section('Downstream output guard associations','These outputs share a direct condition-DAG path from one of the accepted reads above. This does not establish shutdown behavior, causal influence or final output state.');consumers.append(signalOutputTable(downstream,'Signal downstream output guards'));content.append(consumers);
+    for(const [field,title] of [['read_operand_ids','All accepted explicit readers'],['noncoil_writer_operand_ids','Other captured writer operands'],['read_write_operand_ids','Read/write state uses'],['unknown_operand_ids','Unknown-role uses'],['rejected_operand_ids','Namespace-rejected original uses']]){if(!a[field].length)continue;const uses=section(title);uses.append(accessBindingTable(a[field].map(id=>byOperandAccess.get(id)).filter(Boolean),title));content.append(uses);}
+    for(const [field,title] of [['expression_use_ids','Accepted expression reads'],['rejected_expression_use_ids','Namespace-rejected expression reads']]){if(!a[field].length)continue;const uses=section(title,'Expression reads remain separate from Boolean condition dependencies.');uses.append(expressionUseTable(a[field].map(id=>byExpressionUse.get(id)).filter(Boolean),title));content.append(uses);}
+    if(a.stateful_associations.length){const stateful=section('Timer and counter member associations','These exact member associations retain their qualification. They do not establish elapsed time, an alarm delay or a runtime value.');stateful.append(table(['Control object','Member evidence','Qualification'],a.stateful_associations,r=>[statefulObjectLink(r.object_id),human(r.kind)+(r.member?' · '+r.member:'')+' · '+human(r.member_status),human(r.qualification)],'Signal timer and counter associations'));content.append(stateful);}
+  }
   function outputContextName(o){const a=byAddress.get(o.target_address_id);return a?addressName(a):short(byOperand.get(o.target_operand_id)?.raw_text||'(target unresolved)',160);}
   function outputContextLink(o){return button(o.opcode+' · '+outputContextName(o),()=>openDetail('condition',o.condition_output_id),'text-link');}
   function outputContextStatus(status){return ({modeled:'Modeled condition structure',binding_gaps:'Condition binding gaps',opaque:'Contains unknown transfer',stateful:'Contains stored-state condition',namespace_gap:'Namespace context unavailable'})[status]||human(status);}
@@ -1069,12 +1148,11 @@
   function outputContextToolbar(){
     const targets=state.outputContextMode==='targets';
     toolbarFor(targets?'Search exact targets, declaration kinds or use profiles':'Search coil targets, opcodes, rung context or authored hints',targets?[['all','All target profiles'],['read_and_write','Targets with captured readers'],['write_only','Targets without captured readers']]:[['all','All coil opcodes'],['OTE','OTE'],['OTL','OTL'],['OTU','OTU']]);
-    const addSelect=(labelText,items,current,change)=>{const label=node('label','filter-wrap',labelText),select=node('select');select.setAttribute('aria-label',labelText);items.forEach(([value,text])=>{const option=node('option','',text);option.value=value;select.append(option);});select.value=current;select.addEventListener('change',()=>change(select.value));label.append(select);toolbar.querySelector('.toolbar').append(label);};
-    addSelect('Output view',[['occurrences','Coil occurrences'],['targets','Exact target addresses']],state.outputContextMode||'occurrences',value=>{state.outputContextMode=value;state.filter='all';state.listPages={};render();});
+    addToolbarSelect('Output view',[['occurrences','Coil occurrences'],['targets','Exact target addresses']],state.outputContextMode||'occurrences',value=>{state.outputContextMode=value;state.filter='all';state.listPages={};render();});
     if(!targets){
-      addSelect('Target evidence',[['all','All targets'],['exact_address','Qualified exact addresses'],['gaps','Unresolved target addresses']],state.outputTargetFilter||'all',value=>{state.outputTargetFilter=value;state.listPages={};renderList();});
-      addSelect('Condition context',[['all','All condition contexts'],['modeled','Modeled'],['binding_gaps','Binding gaps'],['opaque','Unknown transfer'],['stateful','Stored-state context'],['namespace_gap','Namespace unavailable']],state.outputContextFilter||'all',value=>{state.outputContextFilter=value;state.listPages={};renderList();});
-      addSelect('Authored rung hints',[['all','All authored hint contexts'],['present','With accepted rung hints'],['absent','Without accepted rung hints']],state.outputHintFilter||'all',value=>{state.outputHintFilter=value;state.listPages={};renderList();});
+      addToolbarSelect('Target evidence',[['all','All targets'],['exact_address','Qualified exact addresses'],['gaps','Unresolved target addresses']],state.outputTargetFilter||'all',value=>{state.outputTargetFilter=value;state.listPages={};renderList();});
+      addToolbarSelect('Condition context',[['all','All condition contexts'],['modeled','Modeled'],['binding_gaps','Binding gaps'],['opaque','Unknown transfer'],['stateful','Stored-state context'],['namespace_gap','Namespace unavailable']],state.outputContextFilter||'all',value=>{state.outputContextFilter=value;state.listPages={};renderList();});
+      addToolbarSelect('Authored rung hints',[['all','All authored hint contexts'],['present','With accepted rung hints'],['absent','Without accepted rung hints']],state.outputHintFilter||'all',value=>{state.outputHintFilter=value;state.listPages={};renderList();});
     }
   }
   function outputContextList(){
@@ -1084,12 +1162,13 @@
     if(state.outputContextMode==='targets')content.append(outputAddressTable(contextAddresses.filter(a=>matches(a)&&(state.filter==='all'||a.profile===state.filter)),'Boolean output target addresses'));
     else content.append(outputContextTable(contextOutputs.filter(o=>matches(o)&&(state.filter==='all'||o.opcode===state.filter)&&(!state.outputTargetFilter||state.outputTargetFilter==='all'||(state.outputTargetFilter==='gaps'?o.target_status!=='exact_address':o.target_status==='exact_address'))&&(!state.outputContextFilter||state.outputContextFilter==='all'||o.context_status===state.outputContextFilter)&&(!state.outputHintFilter||state.outputHintFilter==='all'||(state.outputHintFilter==='present')===Boolean(outputRungHintCategories(o.rung_id).length))),'Boolean output occurrences'));
   }
+  function conditionParents(){if(outputConditionParents===null){outputConditionParents=new Map();conditionNodes.forEach(n=>n.child_ids.forEach(id=>add(outputConditionParents,id,n.id)));}return outputConditionParents;}
   function outputAddressConsumers(a){
     // Build one reverse DAG index lazily. Each selection visits each relevant
     // node once; no writer-by-reader pairs or flattened guard trees are cached.
-    if(outputConditionParents===null){outputConditionParents=new Map();conditionNodes.forEach(n=>n.child_ids.forEach(id=>add(outputConditionParents,id,n.id)));}
+    const parents=conditionParents();
     const reads=outputConditionReads.filter(r=>r.status==='accepted'&&r.source_address_id===a.id),seen=new Set(),pending=reads.map(r=>r.condition_node_id);
-    while(pending.length){const id=pending.pop();if(seen.has(id))continue;seen.add(id);for(const parent of outputConditionParents.get(id)||[])if(!seen.has(parent))pending.push(parent);}
+    while(pending.length){const id=pending.pop();if(seen.has(id))continue;seen.add(id);for(const parent of parents.get(id)||[])if(!seen.has(parent))pending.push(parent);}
     return {reads,outputs:contextOutputs.filter(o=>o.context_status!=='namespace_gap'&&seen.has(o.guard_id))};
   }
   function outputAuthoredHints(rungId){
@@ -2198,6 +2277,7 @@
     else if(state.view==='instructioncontext')instructionContextList();
     else if(state.view==='sfrcontext')sfrContextList();
     else if(state.view==='objects')objectList();
+    else if(state.view==='signalcontext')signalList();
     else if(state.view==='ladder')content.append(rungList());
     else if(state.view==='sfc')sfcList();
     else if(state.view==='patterns')patternList();
@@ -2220,6 +2300,9 @@
       else if(d.type==='sequencecondition')sequenceConditionDetail(bySequenceCondition.get(d.id));
       else if(d.type==='sequencecontext')sequenceContextDetail(bySequenceContext.get(d.id));
       else if(d.type==='executioncontext')executionContextDetail(byExecution.get(d.id));
+      else if(d.type==='signaladdress')signalAddressDetail(bySignalAddress.get(d.id));
+      else if(d.type==='signaloutput')signalOutputDetail(bySignalOutput.get(d.id));
+      else if(d.type==='signalrung')signalRungDetail(bySignalRung.get(d.id));
       else if(d.type==='sequenceaddress')sequenceAddressDetail(bySequenceAddress.get(d.id));
       else if(d.type==='pattern')patternDetail(byPattern.get(d.id));
       else if(d.type==='finding')findingDetail(byFinding.get(d.id));
@@ -2256,6 +2339,7 @@
       else if(state.view==='statefulobjects')statefulObjectsToolbar();
       else if(state.view==='sequenceconditions')toolbarFor('Search transitions, expressions, comments or gaps',[['all','All transition conditions'],['gap','Unresolved evidence'],['modeled','Syntax modeled'],['binding_gaps','Reference binding gaps'],['unsupported','Unmodeled conditions'],...(sequenceContext?[['context_gap','Relationship binding diagnostics']]:[])]);
       else if(state.view==='executioncontext')toolbarFor('Search task, program, routine, target, raw metadata previews or gaps',[['all','All execution context groups'],...Object.entries(executionGroups)]);
+      else if(state.view==='signalcontext')signalToolbar();
       else if(state.view==='transfers')toolbarFor('Search instruction opcodes, operand previews or rung context',[['all','All transfers'],['pass_through','Documented pass-through'],...(conditions?.schema_version>=3?[['stateful_transfer','ONS stored-state transfer']]:[]),['opaque_transfer','Unknown transfer']]);
       else if(state.view==='bindingcontext')bindingContextToolbar();
       else if(state.view==='instructioncontext')toolbarFor('Search instruction names, declarations, index expressions or context status');

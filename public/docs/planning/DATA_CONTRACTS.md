@@ -1,5 +1,20 @@
 # Data contracts, traceability, and checkpoints
 
+## Cross-rung signal context revision (2026-10-17)
+
+Signal context1 canonically authenticates conditions3, output context1,
+stateful objects1 and execution context1. It retains all predicate operand
+occurrences and ONS storage slots, exact-address dossiers, separate output
+occurrences and qualified source-content/routine/rung provenance. Shared
+condition DAGs remain shared; no reader/writer cross product, selected edit,
+combined target equation or runtime/shutdown effect is inferred.
+
+The 32 MiB private companion is embedded only in review22 (328 MiB JSON /
+360 MiB HTML). Manifest25 still lists sixteen artifacts. Work40 adds a closed
+8 KiB signal summary under a 96 KiB outer cap; work39 stays 88 KiB and work32-38
+stay 80 KiB. Timing1, earlier summary bytes and the frozen six-example/eight-unit
+reservation remain unchanged. See [review](../reviews/SIGNAL_CONTEXT_REVIEW.md).
+
 ## Source-declared execution context revision (2026-10-17)
 
 Execution context1 authenticates conditions3 and the preceding source chain.
