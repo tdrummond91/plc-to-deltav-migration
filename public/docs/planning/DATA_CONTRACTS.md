@@ -1,5 +1,17 @@
 # Data contracts, traceability, and checkpoints
 
+## Source-declared execution context revision (2026-10-17)
+
+Execution context1 authenticates conditions3 and the preceding source chain.
+Seven private record groups preserve raw scheduling metadata, lexical candidates,
+incoming condition DAG links, local labels, edit boundaries and explicit gaps.
+A 16 MiB companion is embedded only in review21 (296 MiB JSON / 328 MiB HTML).
+Manifest24 retains sixteen artifacts. Work39 adds an 8 KiB closed summary under
+an 88 KiB outer limit. Work32-38 retain their 80 KiB limit; timing1, historical
+contracts and the frozen six-example/eight-unit reservation remain unchanged.
+No runtime scheduling, parameter types/directions, edit selection or automatic
+Git transport is added. See [scope and validation](../reviews/EXECUTION_CONTEXT_REVIEW.md).
+
 ## Source reuse implementation (2026-10-17)
 
 Work38/timing1, SFC context summary2, review20/manifest23 and all sixteen private

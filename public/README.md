@@ -76,3 +76,6 @@ Work-check timing and alias diagnostics: [scope and validation](docs/reviews/WOR
 Current performance checkpoint: [bounded source reuse](docs/reviews/SOURCE_REUSE_REVIEW.md)
 uses the returned work38 timings to reduce repeated source work while preserving
 validation and saved report contents. The next work-machine run measures its effect.
+
+- [Source-declared execution context](docs/reviews/EXECUTION_CONTEXT_REVIEW.md),
+  with the [invented report](examples/execution-context-demo.html).

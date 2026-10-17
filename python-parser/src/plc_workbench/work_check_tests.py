@@ -63,6 +63,8 @@ WORK_MACHINE_MODULES = {
         "test_stateful_objects", "test_stateful_object_summary", "test_stateful_object_workflow",
         "test_sfc_conditions", "test_sfc_condition_summary", "test_sfc_condition_workflow",
         "test_sfc_context", "test_sfc_context_summary", "test_sfc_context_workflow", "test_work_check_timing",
+        "test_execution_context", "test_execution_context_summary",
+        "test_execution_context_workflow", "test_execution_context_work_report",
         "test_calculations", "test_calculation_summary", "test_calculation_workflow",
         "test_cpt_access", "test_cpt_access_summary", "test_cpt_access_workflow",
         "test_rung_analysis", "test_rung_analysis_summary", "test_rung_analysis_workflow",

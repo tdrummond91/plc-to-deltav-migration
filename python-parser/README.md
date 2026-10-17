@@ -1,6 +1,13 @@
 # L5X engineering review, calculations and source structure
 
-Latest bundle: **Bounded source reuse** gives every caller fresh XML/inventory
+Latest bundle: **Source-declared execution context** connects task/program
+metadata and schedule candidates to main/fault designations, call-site guards,
+and SBR/RET/JMP/LBL source boundaries. Review21 embeds private evidence; work39
+returns closed counts. Runtime scheduling and parameter roles remain unmodeled.
+See [scope and validation](../public/docs/reviews/EXECUTION_CONTEXT_REVIEW.md)
+and the [invented report](../public/examples/execution-context-demo.html).
+
+Previous bundle: **Bounded source reuse** gives every caller fresh XML/inventory
 containers while retaining protected templates inside one work-check analysis.
 The 128 MiB retention limit falls back to ordinary parsing when needed.
 Canonical comparisons, private artifacts and work38 remain unchanged. See

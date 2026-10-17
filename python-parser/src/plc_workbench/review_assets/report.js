@@ -82,6 +82,15 @@
   const bySequenceAddress=new Map((sequenceContext?.addresses||[]).map(x=>[x.id,x]));
   const bySequenceStepLink=new Map((sequenceContext?.step_links||[]).map(x=>[x.id,x]));
   const bySequenceGap=new Map((sequenceContext?.gaps||[]).map(x=>[x.id,x]));
+  const executionContext=data.execution_context||null;
+  const executionGroups={tasks:'Tasks',programs:'Programs',schedules:'Program schedules',designations:'Main and fault entries',calls:'Routine calls',control_occurrences:'Control boundaries',routine_contexts:'Routine bodies and callers'};
+  const byExecution=new Map(),byExecutionSource=new Map(),byExecutionInstruction=new Map();
+  Object.keys(executionGroups).forEach(group=>(executionContext?.[group]||[]).forEach(row=>{
+    byExecution.set(row.id,{group,row});
+    if(row.instruction_id)byExecutionInstruction.set(row.instruction_id,row.id);
+    const sourceId=group==='tasks'?row.task_id:group==='programs'?row.program_id:row.routine_id;
+    if(['tasks','programs','routine_contexts'].includes(group)&&sourceId)byExecutionSource.set(sourceId,row.id);
+  }));
   const access = data.access || null;
   const tagData = data.tag_data || null;
   const pid = data.pid || null, pidOccurrences = pid?.occurrences || [];
@@ -285,8 +294,10 @@
   headings.sfrcontext=['Sequence reset context','Follow captured SFR routine and step candidates across every exported SFC content version. Reset effects and outgoing rung conditions remain unresolved.'];
   headings.statefulobjects=['Timers, counters & resets','Connect captured timer and counter occurrences, reset instructions, exact member uses and separately retained stored values.'];
   headings.sequenceconditions=['Sequence conditions','Inspect captured transition expressions, their source grouping, reference leaves and unresolved evidence.'];
+  headings.executioncontext=['Execution context','Inspect source-declared tasks, program entries, routine call candidates and control boundaries with unresolved evidence kept visible.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
+  if(executionContext){labels.executioncontext='Execution context';navCounts.executioncontext=executionContext.calls.length;}
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
   if(relationships){labels.relationships='Address relationships';navCounts.relationships=addresses.length;}
   if(statefulObjects){labels.statefulobjects='Timers, counters & resets';navCounts.statefulobjects=statefulOccurrences.length;}
@@ -469,6 +480,13 @@
   calculationPathOccurrences.forEach(c=>searchable(c,[c.opcode,c.status,c.gap_reason,c.condition_quality,sourceName(c.rung_id),entityPath(byRung.get(c.rung_id)?.parent_id),byOperand.get(c.destination_operand_id)?.raw_text,...c.input_operand_ids.map(id=>byOperand.get(id)?.raw_text)]));
   // Index a member once even when several PID occurrences share its structure.
   (pidMembers?.members || []).forEach(m=>searchable(m,[m.field,pidMemberLabel(m.field),m.group,m.status,byTagElement.get(m.element_id)?.attributes?.Name]));
+  // Bounded previews per record; no copied caller paths or condition subgraphs.
+  Object.keys(executionGroups).forEach(group=>(executionContext?.[group]||[]).forEach(row=>searchable(row,[
+    executionGroups[group],executionName(group,row),human(row.status),human(row.lexical_status),human(row.body_status),human(row.guard_quality),human(row.argument_shape),executionQualification(row),
+    short(entityPath(row.caller_routine_id||row.routine_id||row.program_id||row.task_id),200),
+    ...Object.values(row.raw_attributes||{}).slice(0,10).map(value=>short(value,120)),
+    ...(row.raw_arguments||[]).slice(0,4).map(value=>short(value,80))
+  ])));
   const sfcSearch = new Map();elements.forEach(e=>add(sfcSearch,e.routine_id,[e.kind,e.direct_text,...Object.values(e.attributes||{})].join(' ')));
   (sfc.routines || []).forEach(r=>searchable(r,[entityPath(r.routine_id),...(sfcSearch.get(r.routine_id)||[])]));
   function matches(row) { return !state.query || (searchIndex.get(row)||'').includes(state.query.toLocaleLowerCase()); }
@@ -499,6 +517,7 @@
     if(calculationPaths){const row=node('div','status-row');row.append(node('span','','Calculation inputs and destinations'),badge(calculationPaths.status));capture.append(row);}
     if(statefulObjects){const row=node('div','status-row');row.append(node('span','','Timer, counter and reset context'),badge(statefulObjects.status));capture.append(row);}
     if(sfcConditions){const row=node('div','status-row');row.append(node('span','','SFC transition expression syntax'),badge(sfcConditions.status));capture.append(row);}
+    if(executionContext){const row=node('div','status-row');row.append(node('span','','Execution context'),badge(executionContext.status));capture.append(row);}
     if(sequenceContext){const row=node('div','status-row');row.append(node('span','','SFC reference relationships'),badge(sequenceContext.status));capture.append(row);}
     if(outputContext){const row=node('div','status-row');row.append(node('span','','Boolean output context'),badge(outputContext.status));capture.append(row);}
     if(customContext){const row=node('div','status-row');row.append(node('span','','Custom-instruction declaration context'),badge(customContext.status));capture.append(row);}
@@ -620,6 +639,115 @@
   }
   function bindingUse(g){return g?.kind==='expression'?byExpressionUse.get(g.source_id):byOperandAccess.get(g?.source_id);}
   function contextNotice(){return notice('Context with explicit limits','A custom-instruction name match identifies a declaration candidate. Its parameter order, operand roles, internal behavior and effects remain unvalidated. Symbolic array selectors identify a root and possible index reads; no index value, selected element, bounds, overlap or execution is inferred. Existing unresolved classifications remain visible.');}
+  function executionQualification(row){return row.qualified?'Source qualified':'Namespace gap';}
+  function executionName(group,row){
+    if(group==='tasks')return short(entityName(row.task_id),160);
+    if(group==='programs')return short(entityName(row.program_id),160);
+    if(group==='routine_contexts')return short(entityName(row.routine_id),160);
+    if(group==='schedules')return row.raw_name===null?'No program name':short(row.raw_name||'(empty program name)',160);
+    if(group==='designations')return human(row.kind)+' entry: '+(row.raw_name===null?'not declared':short(row.raw_name||'(empty name)',120));
+    if(group==='calls')return 'JSR '+short(row.raw_target_name||'(missing target)',140);
+    return row.opcode+(row.raw_label_name!==null?' '+short(row.raw_label_name||'(empty label)',140):' boundary');
+  }
+  function executionLink(group,row){return button(executionName(group,row),()=>openDetail('executioncontext',row.id),'text-link');}
+  function executionRecordLink(id){const found=byExecution.get(id);return found?executionLink(found.group,found.row):node('span','muted','No captured context');}
+  function executionEntityLink(id){const contextId=byExecutionSource.get(id);return contextId?executionRecordLink(contextId):sourceCell(id);}
+  function executionNotice(){return notice('Declared context and lexical candidates','Task ownership, schedule rows and routine names describe captured source. They do not prove execution, scan order, active edits or effective task settings. Incoming condition links reuse the captured condition graph without expanding caller paths. Parameter roles, types, value flow and call validity remain unvalidated.');}
+  function executionTable(group,rows,caption){
+    if(group==='tasks')return table(['Task','Type / rate text','Priority / watchdog text','Schedule rows','Qualification'],rows,r=>[
+      executionLink(group,r),primary(r.raw_attributes.Type??'Not present','Rate: '+(r.raw_attributes.Rate??'Not present')),primary(r.raw_attributes.Priority??'Not present','Watchdog: '+(r.raw_attributes.Watchdog??'Not present')),fmt(r.schedule_ids.length),executionQualification(r)
+    ],caption);
+    if(group==='programs')return table(['Program','Declared type','Unique schedule associations','Entry designations','Qualification'],rows,r=>[
+      executionLink(group,r),r.raw_attributes.Type??'Not present',fmt(r.schedule_ids.length),fmt(r.designation_ids.length),executionQualification(r)
+    ],caption);
+    if(group==='schedules')return table(['Scheduled name','Owning task','Source position','Candidate result','Candidates'],rows,r=>[
+      executionLink(group,r),executionEntityLink(r.task_id),r.ordinal,primary(badge(r.status),executionQualification(r)),fmt(r.candidate_program_ids.length)
+    ],caption);
+    if(group==='designations')return table(['Declared entry','Program','Candidate result','Routine candidates'],rows,r=>[
+      executionLink(group,r),executionEntityLink(r.program_id),primary(badge(r.status),executionQualification(r)),fmt(r.candidate_routine_ids.length)
+    ],caption);
+    if(group==='calls')return table(['Call target','Caller routine','Candidate result','Incoming condition','Argument shape','Source rung'],rows,r=>[
+      executionLink(group,r),executionEntityLink(r.caller_routine_id),primary(badge(r.status),fmt(r.candidate_routine_ids.length)+' declaration candidates'),human(r.guard_quality),primary(human(r.argument_shape),fmt(r.argument_count)+' captured fields'),sourceCell(r.rung_id)
+    ],caption);
+    if(group==='control_occurrences')return table(['Boundary / label','Caller routine','Label candidate result','Incoming condition','Argument shape','Source rung'],rows,r=>[
+      executionLink(group,r),executionEntityLink(r.caller_routine_id),badge(r.status),human(r.guard_quality),human(r.argument_shape),sourceCell(r.rung_id)
+    ],caption);
+    return table(['Routine','Body evidence','Incoming / outgoing calls','Entry designations','Boundaries','Qualification'],rows,r=>[
+      executionLink(group,r),human(r.body_status),fmt(r.incoming_call_ids.length)+' / '+fmt(r.outgoing_call_ids.length),fmt(r.designation_ids.length),fmt(r.control_occurrence_ids.length),executionQualification(r)
+    ],caption);
+  }
+  const executionCaptions={tasks:'Execution tasks',programs:'Execution programs',schedules:'Execution program schedules',designations:'Execution main and fault entries',calls:'Execution routine calls',control_occurrences:'Execution control boundaries',routine_contexts:'Execution routine bodies'};
+  const executionIntros={
+    tasks:'Rate, priority and watchdog retain their exported text. No units, numeric conversion or effective values are inferred.',
+    programs:'Schedule association counts include unique source-qualified candidates. Missing associations do not establish that a program is unused.',
+    schedules:'Repeated, unnamed, missing and ambiguous schedule rows remain separate. Position is source order within its captured container.',
+    designations:'MainRoutineName and FaultRoutineName provide entry candidates only; absent and empty attributes remain distinct.',
+    calls:'Each JSR occurrence retains its own candidate result and incoming condition. Open a call for parameters, source evidence and the shared condition graph.',
+    control_occurrences:'SBR and RET mark captured boundaries. JMP and LBL compare exact routine-and-content label candidates; they do not establish control flow.',
+    routine_contexts:'Caller and entry links are retained once per routine. Unsupported languages, missing body evidence and lexical cycles stay visible.'
+  };
+  function executionContextList(){
+    content.append(executionNotice());
+    const summary=panel('Captured execution context','Choose one group or search across groups. Search uses bounded source previews; open a record for its complete metadata and source links.');
+    const totals={};Object.entries(executionGroups).forEach(([group,label])=>{totals[label]=executionContext[group].length;});summary.append(values(totals));content.append(summary);
+    Object.entries(executionGroups).forEach(([group,label])=>{
+      if(state.filter!=='all'&&state.filter!==group)return;
+      const rows=executionContext[group].filter(matches),sectionNode=section(label,executionIntros[group]);
+      sectionNode.append(executionTable(group,rows,executionCaptions[group]));content.append(sectionNode);
+    });
+  }
+  function executionLinkedSection(title,intro,group,ids,caption){
+    const sectionNode=section(title,intro);sectionNode.append(executionTable(group,ids.map(id=>byExecution.get(id)?.row).filter(Boolean),caption));content.append(sectionNode);
+  }
+  function executionCandidateSection(ids,title,caption){
+    const sectionNode=section(title,'Candidates are retained independently. A name match does not validate invocation or execution.');
+    sectionNode.append(table(['Candidate source','Available context'],ids,id=>[sourceCell(id),executionEntityLink(id)],caption));content.append(sectionNode);
+  }
+  function executionContextDetail(found){
+    if(!found){content.append(empty('No captured execution context'));return;}
+    const {group,row:r}=found;
+    setDetailHeading('EXECUTION CONTEXT',executionName(group,r),executionGroups[group]);content.append(executionNotice());
+    const summary=panel('Captured source context',executionIntros[group]);
+    summary.append(values({'Qualification':executionQualification(r),...(r.status?{'Candidate result':human(r.status),'Lexical result before qualification':human(r.lexical_status)}:{}),...(r.body_status?{'Body evidence':human(r.body_status),'In a lexical call cycle':r.in_lexical_call_cycle?'Yes; execution is unproven':'No captured cycle'}:{})}));
+    const directId=group==='tasks'?r.task_id:group==='programs'?r.program_id:group==='routine_contexts'?r.routine_id:r.instruction_id||r.schedule_id||r.program_id;
+    summary.append(sourceCell(directId));if(r.rung_id)summary.append(sourceCell(r.rung_id));content.append(summary);
+    if(r.raw_attributes){const raw=section('Raw exported attributes','Every value retains its source spelling; missing attributes supply no default.');raw.append(values(r.raw_attributes));content.append(raw);}
+    if(group==='tasks'){
+      executionLinkedSection('Program schedule rows','Source order and repeated declarations remain visible.','schedules',r.schedule_ids,'Task program schedules');
+      const events=section('Event metadata','Event attributes are source text only; event delivery and task behavior are not modeled.');events.append(table(['Source position','Qualification','Raw attributes','Source location'],r.event_info,event=>[event.ordinal,executionQualification(event),values(event.raw_attributes),node('span','mono',event.source_locator)],'Task event metadata'));content.append(events);
+    }else if(group==='programs'){
+      executionLinkedSection('Schedule associations','Only unique qualified candidate associations appear here; unresolved rows remain in Program schedules.','schedules',r.schedule_ids,'Program schedule associations');
+      executionLinkedSection('Main and fault entry candidates','The raw declaration and its candidate result remain separate.','designations',r.designation_ids,'Program entry designations');
+    }else if(group==='schedules'){
+      content.append(executionEntityLink(r.task_id));
+      const raw=section('Scheduled name');raw.append(values({'Raw name':r.raw_name,'Source position within container':r.ordinal}));content.append(raw);
+      executionCandidateSection(r.candidate_program_ids,'Program declaration candidates','Schedule program candidates');
+    }else if(group==='designations'){
+      content.append(executionEntityLink(r.program_id));
+      const raw=section('Entry declaration');raw.append(values({'Attribute':r.attribute,'Raw name':r.raw_name,'Entry kind':human(r.kind)}));content.append(raw);
+      executionCandidateSection(r.candidate_routine_ids,'Routine declaration candidates','Entry routine candidates');
+    }else if(group==='routine_contexts'){
+      if(r.rung_counts){const body=section('Captured body coverage');body.append(values(r.rung_counts));content.append(body);}
+      executionLinkedSection('Incoming routine calls','These calls have a unique qualified lexical candidate. They do not establish when this routine executes.','calls',r.incoming_call_ids,'Routine incoming calls');
+      executionLinkedSection('Outgoing routine calls','Every captured call remains visible, including unresolved targets.','calls',r.outgoing_call_ids,'Routine outgoing calls');
+      executionLinkedSection('Entry associations','Main and fault designations with a unique qualified candidate.','designations',r.designation_ids,'Routine entry associations');
+      executionLinkedSection('Control boundaries','Source instructions retain their incoming condition and label candidates.','control_occurrences',r.control_occurrence_ids,'Routine control boundaries');
+    }else{
+      content.append(executionEntityLink(r.caller_routine_id));
+      if(group==='calls')executionCandidateSection(r.candidate_routine_ids,'Routine declaration candidates','Call routine candidates');
+      else{
+        executionCandidateSection(r.candidate_label_instruction_ids,'Same-content label candidates','Control label candidates');
+        executionCandidateSection(r.other_edit_candidate_ids,'Other captured content labels','Other-content label candidates');
+      }
+      const args=section('Captured arguments and parameter unknowns','These are source argument positions only. All captured fields remain in source order, including the JSR target field. SBR and RET values are not matched to call parameters; roles and types remain unresolved.');
+      args.append(values({'Argument shape':human(r.argument_shape),'Captured fields':r.argument_count,'Empty field count':r.empty_argument_indices.length}));
+      args.append(table(['Source position','Raw field','Evidence'],r.raw_arguments,(raw,index)=>[index+1,node('span','mono',raw||'(empty)'),r.empty_argument_indices.includes(index)?'Empty field':'Unvalidated source text'],'Execution captured arguments'));content.append(args);
+      const guard=section('Incoming condition evidence','This shared condition describes source-local context before the instruction. It does not prove the call or boundary executes.');
+      guard.append(values({'Quality':human(r.guard_quality),'Contains branch join':r.has_branch?'Yes':'No','Contains stored-state condition':r.has_stateful?'Yes':'No','Contains namespace gap':r.has_namespace_gap?'Yes':'No'}));content.append(guard);
+      if(r.guard_id)conditionGraph(r.guard_id,'Execution incoming condition nodes','Incoming condition');
+    }
+    content.append(technical({'Context ID':r.id,'Source location':r.source_locator,'Content location':r.content_locator,'Source start':r.source_start,'Source end':r.source_end}));
+  }
   function sfrNotice(){return notice('Reset candidates preserve each content version','SFR routine names are declaration candidates. A named selector is compared with captured Step Operand root and suffix evidence; an initial selector uses explicit InitialStep markers. Step Name and numeric ID are not substituted for Operand. Each exported edit content remains separate. Candidate identity does not prove an active step, selected edit, reset action, execution or outgoing rung condition.');}
   function sfrCallLink(c){return button('Inspect SFR target context',()=>openDetail('sfrcall',c.instruction_id),'text-link');}
   function sfrCallTable(rows,caption){return table(['SFR occurrence','Routine candidate','Chart context','Selector','Content versions','Source rung'],rows,c=>[
@@ -1278,6 +1406,7 @@
   function rungList(rows=rungs.filter(r=>matches(r)&&(state.filter==='all'||r.parse_status===state.filter))){return table(['Rung','Routine / scope','Source preview','Parse status'],rows,r=>[link(rungNumber(r),r.id),entityPath(r.parent_id),node('div','snippet',short(r.text,180)),badge(r.parse_status)],'Ladder rungs');}
   function objectDetail(e){
     setDetailHeading('SOURCE OBJECT',e.name || '(unnamed '+human(e.kind)+')',entityPath(e.parent_id));
+    if(byExecutionSource.has(e.id))content.append(button('Inspect execution context',()=>openDetail('executioncontext',byExecutionSource.get(e.id))));
     const meta=node('div','detail-meta');meta.append(badge(e.kind));if(e.attributes?.DataType)meta.append(badge(e.attributes.DataType));content.append(meta);
     const description=panel('Source description');description.append(sourceText(e.description,true));content.append(description);
     const attributes=panel('Declaration attributes');attributes.append(values(e.attributes));content.append(attributes);
@@ -1319,6 +1448,7 @@
       if(byIndexedSource.has(o.id))content.append(indexedSourceLink(o.id));
     }
     if(state.focusInstruction && byInstruction.get(state.focusInstruction)?.rung.id===r.id)content.append(notice('Selected instruction',byInstruction.get(state.focusInstruction).instruction.opcode));
+    if(byExecutionInstruction.has(state.focusInstruction))content.append(button('Inspect execution context',()=>openDetail('executioncontext',byExecutionInstruction.get(state.focusInstruction))));
     if(byCustomCall.has(state.focusInstruction))content.append(customCallLink(byCustomCall.get(state.focusInstruction)));
     const text=panel('Rung text','Exact captured ladder source. No execution behavior is inferred.');text.append(sourceText(r.text));content.append(text);
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
@@ -2062,6 +2192,7 @@
     else if(state.view==='conditions')conditionsList();
     else if(state.view==='statefulobjects')statefulObjectsList();
     else if(state.view==='sequenceconditions')sequenceConditionsList();
+    else if(state.view==='executioncontext')executionContextList();
     else if(state.view==='transfers')transfersList();
     else if(state.view==='bindingcontext')bindingContextList();
     else if(state.view==='instructioncontext')instructionContextList();
@@ -2088,6 +2219,7 @@
       else if(d.type==='element')elementDetail(byElement.get(d.id));
       else if(d.type==='sequencecondition')sequenceConditionDetail(bySequenceCondition.get(d.id));
       else if(d.type==='sequencecontext')sequenceContextDetail(bySequenceContext.get(d.id));
+      else if(d.type==='executioncontext')executionContextDetail(byExecution.get(d.id));
       else if(d.type==='sequenceaddress')sequenceAddressDetail(bySequenceAddress.get(d.id));
       else if(d.type==='pattern')patternDetail(byPattern.get(d.id));
       else if(d.type==='finding')findingDetail(byFinding.get(d.id));
@@ -2123,6 +2255,7 @@
       else if(state.view==='conditions')conditionsToolbar();
       else if(state.view==='statefulobjects')statefulObjectsToolbar();
       else if(state.view==='sequenceconditions')toolbarFor('Search transitions, expressions, comments or gaps',[['all','All transition conditions'],['gap','Unresolved evidence'],['modeled','Syntax modeled'],['binding_gaps','Reference binding gaps'],['unsupported','Unmodeled conditions'],...(sequenceContext?[['context_gap','Relationship binding diagnostics']]:[])]);
+      else if(state.view==='executioncontext')toolbarFor('Search task, program, routine, target, raw metadata previews or gaps',[['all','All execution context groups'],...Object.entries(executionGroups)]);
       else if(state.view==='transfers')toolbarFor('Search instruction opcodes, operand previews or rung context',[['all','All transfers'],['pass_through','Documented pass-through'],...(conditions?.schema_version>=3?[['stateful_transfer','ONS stored-state transfer']]:[]),['opaque_transfer','Unknown transfer']]);
       else if(state.view==='bindingcontext')bindingContextToolbar();
       else if(state.view==='instructioncontext')toolbarFor('Search instruction names, declarations, index expressions or context status');

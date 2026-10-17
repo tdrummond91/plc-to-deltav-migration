@@ -1,6 +1,17 @@
 # PLC analysis workbench
 
-Latest checkpoint: return `0b5a9d9` passed 1,448 application cases (two expected
+Latest checkpoint: return `4eca393` passed 1,469 application cases (two expected
+Windows skips) and 139 helpers. All earlier analysis and frozen examples are
+unchanged. Analysis/save/summary time improved 9%; total time stayed near 10:40
+because tests took longer. The next bundle adds source-declared scheduling,
+routine-call conditions and local jump/return boundaries. See
+[scope and validation](public/docs/reviews/EXECUTION_CONTEXT_REVIEW.md) and the
+[invented report](public/examples/execution-context-demo.html).
+The next step is a normal work-machine run; team review remains deferred.
+
+Historical source reuse checkpoint:
+
+Earlier checkpoint: return `0b5a9d9` passed 1,448 application cases (two expected
 Windows skips) and 139 helpers. Its measured 10:44 run prompted bounded reuse
 of protected XML and inventory templates during each work-check analysis.
 Canonical validation and report contracts remain in place. The next ordinary

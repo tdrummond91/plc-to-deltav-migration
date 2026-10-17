@@ -151,9 +151,17 @@ class TagEvidenceStorageTests(unittest.TestCase):
             # PID and report validation replay the captured evidence. None of
             # those checks recaptures the changed live file.
             self.assertTrue(all(call.args[0].data == DATA for call in analyze.call_args_list))
-            self.assertEqual((code, error), (0, ''))
+            # This frozen fixture omits Program Type and MainRoutineName.
+            # The latest execution companion exposes those gaps while Tag Data
+            # remains complete; the CLI must report partial, not successful-complete.
+            self.assertEqual((code, error), (3, ''))
             saved, = workspace.iterdir()
             self.assertIn(str(saved / 'review.html'), output)
+            current = json.loads(ParsedPage((saved / 'review.html').read_text(encoding='utf-8')).scripts[0][1])
+            self.assertEqual(current['execution_context']['status'], 'partial')
+            self.assertEqual(current['execution_context']['coverage']['programs_missing_type'], 1)
+            self.assertEqual(current['execution_context']['coverage']['main_designation_gaps'], 1)
+            self.assertEqual(current['tag_data']['status'], 'complete')
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), DATA)
             self.assertEqual(json.loads((saved / 'tag-data.json').read_bytes()), captured()[-1].to_dict())
             source.write_bytes(DATA)

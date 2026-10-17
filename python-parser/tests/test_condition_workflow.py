@@ -173,9 +173,17 @@ class ConditionWorkflowTests(unittest.TestCase):
             source = root / 'invented.L5X'
             source.write_bytes(SOURCE)
             code, output, error = invoke(['review', str(source), '--workspace', str(root / 'runs')])
-            self.assertEqual((code, error), (0, ''))
+            # This frozen fixture lacks Program Type and MainRoutineName;
+            # current execution context preserves both unresolved metadata gaps.
+            self.assertEqual((code, error), (3, ''))
             saved, = (root / 'runs').iterdir()
             self.assertIn(str(saved / 'review.html'), output)
+            from test_review_html import ParsedPage
+            current = json.loads(ParsedPage((saved / 'review.html').read_text(encoding='utf-8')).scripts[0][1])
+            self.assertEqual(current['execution_context']['status'], 'partial')
+            self.assertEqual(current['execution_context']['coverage']['programs_missing_type'], 1)
+            self.assertEqual(current['execution_context']['coverage']['main_designation_gaps'], 1)
+            self.assertEqual(current['conditions']['status'], 'complete')
             self.assertEqual(json.loads((saved / 'boolean-conditions.json').read_bytes()), parts[-1].to_dict())
             with patch.object(work_check, 'save_run', return_value=root / 'saved') as save:
                 outcome = work_check._analyze(root, source, root, REVISION)
@@ -267,7 +275,8 @@ class ConditionWorkReportTests(unittest.TestCase):
             with patch('subprocess.Popen', side_effect=AssertionError('No external processes.')):
                 payload = report()
                 code, _, error = invoke(['review', str(source), '--workspace', str(root / 'review')])
-                self.assertEqual((code, error), (0, ''))
+                # The frozen fixture omits program type and main-routine metadata.
+                self.assertEqual((code, error), (3, ''))
                 result = work_check._analyze(root, source, root, REVISION)
                 self.assertIsNone(result['failure_code'])
                 publish_summary(root / 'public.json', work_check.render_work_check_report(payload),

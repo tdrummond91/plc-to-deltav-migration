@@ -1,6 +1,29 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-17): **Bounded source reuse during work checks**.
+Current checkpoint (2026-10-17): **Source-declared execution context**.
+Return `4eca393` tested clean `d3a5ec6`: 1,469 application cases passed (two
+expected Windows skips), plus 139 helpers. All 46 historical reports validate.
+All 21 analysis summaries and the frozen six examples are unchanged.
+Analysis, private saving and summary generation together improved by 38.779 s
+(9.1%); tests took 34.904 s longer, leaving total time nearly flat at 10:40.
+
+Review21/manifest24 adds task and program declarations, schedule candidates,
+main/fault designations, routine-call incoming conditions and local control
+boundaries. Work39 returns closed counts; sixteen private artifacts remain.
+See [scope and validation](EXECUTION_CONTEXT_REVIEW.md).
+
+This bundle passed 1,500 application cases (two expected Windows skips),
+139 helpers and 76 development workflow cases. Browser checks and artifact/summary
+comparison against the previous revision passed.
+
+The next ordinary work-machine run measures this context on the private source.
+No new plant samples or manual team review are requested. Git transport stays
+manual and the listener stays disabled. Equipment command/feedback and alarm
+relationships follow after the returned evidence is checked; this remains Phase 1.
+
+## Historical source reuse checkpoint
+
+Historical checkpoint (2026-10-17): **Bounded source reuse during work checks**.
 Return `0b5a9d9` tested clean `51202a8`: 1,448 application cases passed (two
 expected Windows skips), plus 139 helpers. All 45 historical reports validate.
 Twenty earlier summaries, sequence context coverage and the frozen six

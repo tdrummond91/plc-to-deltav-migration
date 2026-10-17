@@ -246,7 +246,9 @@ class SfcConditionWorkflowTests(unittest.TestCase):
             self.assertEqual((code, error), (3, ''))
             saved, = (root / 'runs').iterdir()
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), data)
-            expected = review.build_review_data(*captured(data)[:4], **options(captured(data)), sfc_context=save.call_args.kwargs['sfc_context'])
+            from test_execution_context_workflow import captured as latest_captured, options as latest_options
+            latest = latest_captured(data)
+            expected = review.build_review_data(*latest[:4], **latest_options(latest))
             self.assertEqual((saved / 'review.html').read_bytes(), review_html.render_review_html(expected).encode())
             path.write_bytes(data)
             with patch('plc_workbench.sfc_conditions.analyze_sfc_conditions', side_effect=SfcConditionError('PRIVATE_SENTINEL')):

@@ -631,8 +631,16 @@ class GitAndWorkflowTests(unittest.TestCase):
             analysis_payload["sfc_context_summary"] = build_sfc_context_summary(
                 *context_inputs, analyze_sfc_context(*context_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"}, schema_version=2)
-            def timed_analysis(*args, timings, sfc_context_schema_version):
+            from plc_workbench.execution_context import analyze_execution_context
+            from plc_workbench.execution_context_summary import build_execution_context_summary
+            execution_inputs = (snapshot, inventory, references, access, calculations,
+                                rung_analysis, relationships, conditions)
+            analysis_payload['execution_context_summary'] = build_execution_context_summary(
+                *execution_inputs, analyze_execution_context(*execution_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            def timed_analysis(*args, timings, sfc_context_schema_version, include_execution_context):
                 self.assertEqual(sfc_context_schema_version, 2)
+                self.assertTrue(include_execution_context)
                 for name in ("analysis_build", "private_save", "summary_build", "sample_replay"):
                     with timings.phase(name):
                         pass
@@ -666,7 +674,7 @@ class GitAndWorkflowTests(unittest.TestCase):
             outcome, calls, published, analysis = self._workflow(
                 Path(folder).resolve(), [test_result(), test_result()])
         self.assertEqual(outcome, 0)
-        self.assertEqual(published[0]['schema_version'], 38)
+        self.assertEqual(published[0]['schema_version'], 39)
         self.assertEqual(published[0]['timings']['total_ms'], 0)
         self.assertEqual(published[0]['timings']['phases_ms'], dict.fromkeys(PHASES, 0))
         self.assertFalse(any(call[0] in {'fetch', 'pull', 'push'} for call in calls))
