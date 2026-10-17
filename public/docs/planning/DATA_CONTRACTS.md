@@ -1,5 +1,20 @@
 # Data contracts, traceability, and checkpoints
 
+## Sequence reference relationship revision (2026-10-16)
+
+SFC context1 retains one record per parsed reference, shared exact address-use
+groups, bounded chart-step candidates and private binding diagnostics. It
+authenticates earlier companions and separately qualifies RLL and SFC source
+provenance, including inferred module-name dependencies. Lexical hints never
+become resolved bindings. Review20 embeds the 16 MiB companion under 280 MiB JSON
+/ 312 MiB HTML limits. Manifest23 retains sixteen hashed artifacts. Work37 adds
+a closed 4 KiB summary under the unchanged 80 KiB outer envelope. Source names,
+addresses, IDs and text are absent from that summary. Historical contracts,
+earlier companions and frozen diagnostic samples remain unchanged.
+See [scope and validation](../reviews/SFC_CONTEXT_REVIEW.md).
+
+## Sequence expression revision (2026-10-16)
+
 SFC conditions1 retains one source-linked record per captured transition,
 with original line order, comments, expression nodes and reference evidence.
 Unsupported syntax and source shapes remain explicit; no partial parsed prefix

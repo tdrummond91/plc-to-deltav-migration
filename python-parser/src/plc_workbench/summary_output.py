@@ -64,8 +64,8 @@ def publish_summary(output: Path, rendered: str, *, input_path: Path) -> None:
         try:
             payload = json.loads(rendered)
             current_work = (type(payload) is dict and payload.get('report_kind') == 'l5x_work_machine_check'
-                            and type(payload.get('schema_version')) is int and payload['schema_version'] in (22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36))
-            limit = (MAX_REPORT_V32_BYTES if current_work and payload["schema_version"] in (32, 33, 34, 35, 36)
+                            and type(payload.get('schema_version')) is int and payload['schema_version'] in (22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37))
+            limit = (MAX_REPORT_V32_BYTES if current_work and payload["schema_version"] in (32, 33, 34, 35, 36, 37)
                      else MAX_REPORT_V28_BYTES if current_work and payload["schema_version"] in (28, 29, 30, 31)
                      else MAX_REPORT_V22_BYTES if current_work else MAX_REPORT_BYTES)
             if supplied_bytes > limit:

@@ -308,3 +308,15 @@ Fifty-five additional conditions exercise pagination. Script-like source text
 must display literally. Deliberate inconsistencies make this diagnostic source,
 not controller-ready logic. See [scope](../../docs/reviews/SFC_CONDITIONS_REVIEW.md)
 and the [generated report](../../examples/sfc-conditions-demo.html).
+
+## Sequence reference relationship demonstration
+
+`sfc_context_demo.L5X` is independently invented diagnostic source. It includes
+70 transitions with repeated references for pagination; exact and differently
+spelled array members; alias targets, scope shadowing and outside-scope names;
+bound and diagram-only steps; multiple content edits and peer charts; explicit
+RLL readers, writers, unknown roles and a foreign-namespace Text writer; direct
+chart links, an attached note and literal script-looking comment text.
+The deliberate invalid cases are not controller-ready code. See
+[scope and verification](../../docs/reviews/SFC_CONTEXT_REVIEW.md) and the
+[generated report](../../examples/sfc-context-demo.html).

@@ -1,11 +1,13 @@
 # PLC analysis workbench
 
-Latest checkpoint: return `3547344` passed 1,338 application cases (two expected
-Windows skips) and 139 helpers. All 485 timer/counter/reset targets bind, all
-48 resets match producers, and all 436 control objects have stored data.
-Work36 adds sequence-transition expressions, comments and tag-reference
-evidence. Earlier analysis and the frozen six examples remain unchanged.
-See [scope and validation](public/docs/reviews/SFC_CONDITIONS_REVIEW.md).
+Latest checkpoint: return `e8a328e` passed 1,386 application cases (two expected
+Windows skips) and 139 helpers. All 155 sequence transition conditions parsed;
+267 of 271 reference occurrences bind, leaving four unresolved.
+Work37 connects those references to qualified ladder uses and chart-step
+candidates, with closed diagnostics for the gaps. Earlier analysis and the
+frozen six examples remain unchanged.
+See [scope and validation](public/docs/reviews/SFC_CONTEXT_REVIEW.md) and the
+[invented report](public/examples/sfc-context-demo.html).
 The next step is the normal work-machine run; team review remains deferred.
 
 Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected

@@ -1,6 +1,12 @@
 # L5X engineering review, calculations and source structure
 
-Latest bundle: **Sequence transition expressions** adds comments, source spans,
+Latest bundle: **Sequence reference relationships** connects parsed transition
+references to qualified exact ladder readers/writers and chart-step candidates.
+It preserves edit versions, lexical hints and unresolved declarations without
+assigning runtime sequence behavior. See [scope and validation](../public/docs/reviews/SFC_CONTEXT_REVIEW.md)
+and the [invented report](../public/examples/sfc-context-demo.html).
+
+**Sequence transition expressions** adds comments, source spans,
 operator trees and qualified reference roots to the private report. Unsupported
 forms and binding gaps remain explicit. It does not execute or type-check
 controller logic. See [scope and validation](../public/docs/reviews/SFC_CONDITIONS_REVIEW.md)

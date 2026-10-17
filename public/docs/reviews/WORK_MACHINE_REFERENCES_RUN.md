@@ -1,6 +1,26 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-16): **Sequence transition expressions**.
+Current checkpoint (2026-10-16): **Sequence reference relationships**.
+Return `e8a328e` tested clean `57e9bf6`: 1,386 application cases passed (two
+expected Windows skips), plus 139 helpers. All 155 transition conditions parsed;
+267 of 271 reference occurrences bind and four remain unresolved. There were no
+unsupported expression forms. All nineteen preceding summaries and the frozen
+six examples are unchanged; all 43 historical feedback reports validate.
+
+Review20/manifest23 connects transition reference occurrences to qualified
+exact ladder uses and chart-step candidates, while retaining source-only hints
+for binding gaps. Work37 adds closed diagnostic counts and keeps sixteen saved
+artifacts. See [scope and validation](SFC_CONTEXT_REVIEW.md).
+
+The next ordinary work-machine run measures these relationships and narrows
+the four unresolved reference occurrences. No new plant samples or manual team
+review are requested. Git transport stays manual and the listener stays
+disabled. Further equipment, alarm and execution-context analysis follows the
+returned evidence; this remains Phase 1.
+
+## Historical sequence expression checkpoint
+
+Historical checkpoint (2026-10-16): **Sequence transition expressions**.
 Return `3547344` tested clean `a6840f4`: 1,338 application cases passed (two
 expected Windows skips), plus 139 helpers. All 485 timer/counter/reset targets
 bind, all 48 resets match producers, and all 436 control objects have stored

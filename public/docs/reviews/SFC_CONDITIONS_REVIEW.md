@@ -157,3 +157,17 @@ were unchanged. Nineteen previous summaries matched after normalizing only
 tool revision. All 42 historical feedback reports stayed unchanged and valid;
 the invented report also validated. The 189 final runtime, asset and test files
 matched the tested snapshot, and both isolated repositories remained clean.
+
+## Confirmed work-machine return (2026-10-16)
+
+Return `e8a328e` tested clean `57e9bf6`: 1,386 application cases and 139 helpers
+passed, with two expected Windows skips. The private run saved successfully.
+All 155 transitions parsed (151 modeled, four with binding gaps); 267 of 271
+reference occurrences bind. There are no unsupported forms, function calls,
+dynamic indexes, source comments or capture metadata gaps in these conditions.
+All 329 captured SFC ST lines belong to transitions. The 536 expression nodes
+include 156 binary, 38 group, 40 number, 271 reference and 31 unary nodes.
+Joined text has 5,564 characters, including 174 inserted line separators.
+All nineteen prior summaries are equal after revision normalization; the
+frozen sample envelope is identical and all 43 historical reports validate.
+The next source-relationship slice is recorded in [SFC context](SFC_CONTEXT_REVIEW.md).
