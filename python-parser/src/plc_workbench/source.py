@@ -7,16 +7,19 @@ All returned names, attributes and rung text are PRIVATE source data.
 from __future__ import annotations
 
 from collections import Counter
+from copy import deepcopy
 from dataclasses import dataclass, field
 import hashlib
 from pathlib import Path
 from typing import Any
 from xml.parsers import expat
 
+from .ladder import syntax as ladder_syntax
 from .ladder.syntax import Branch, Instruction, RungSyntaxError, Sequence, measure, parse_rung
 from .models import (
     Diagnostic, EntityRecord, InstructionRecord, InventoryResult, RungRecord, SourceSnapshot,
 )
+from .source_reuse import _reuse_source
 
 MAX_SOURCE_BYTES = 64 * 1024 * 1024
 MAX_ELEMENTS = 500_000
@@ -66,7 +69,24 @@ class _Node:
     expanded_attributes: dict[str, str] = field(default_factory=dict)
 
 
+def _xml_policy() -> tuple[int, ...]:
+    return MAX_SOURCE_BYTES, MAX_ELEMENTS, MAX_ATTRIBUTES, MAX_DEPTH, MAX_DIRECT_TEXT
+
+
+def _copy_nodes(nodes: list[_Node]) -> list[_Node]:
+    """Copy every mutable descendant while sharing only immutable source values."""
+    return [_Node(
+        node.name, dict(node.attributes), node.parent, node.locator, node.path,
+        node.ordinal, list(node.children), node.text, list(node.parts), node.text_size,
+        Counter(node.child_counts), node.expanded_name, dict(node.expanded_attributes),
+    ) for node in nodes]
+
+
 def _read_nodes(data: bytes) -> list[_Node]:
+    return _reuse_source('xml', data, _xml_policy(), lambda: _parse_nodes(data), _copy_nodes)
+
+
+def _parse_nodes(data: bytes) -> list[_Node]:
     """Build a bounded XML evidence tree, rejecting DTDs and lossy namespace joins."""
     nodes: list[_Node] = []
     stack: list[int] = []
@@ -200,6 +220,16 @@ def analyze_snapshot(snapshot: SourceSnapshot) -> InventoryResult:
             or snapshot.sha256 != hashlib.sha256(snapshot.data).hexdigest()
             or snapshot.id != f'sha256:{snapshot.sha256}'):
         raise SourceError('Snapshot identity or byte size does not match its contents.')
+    # Live policy values belong in the key: a changed resource limit must never
+    # inherit an inventory accepted under a different parser configuration.
+    policy = (_xml_policy(), ladder_syntax.MAX_TEXT, ladder_syntax.MAX_DEPTH,
+              ladder_syntax.MAX_NODES, ladder_syntax.MAX_BRANCH_LEGS,
+              ladder_syntax.MAX_ARGUMENT_SLOTS, ladder_syntax.EXPRESSION_OPCODES)
+    return _reuse_source('inventory', snapshot.data, policy,
+                         lambda: _build_inventory(snapshot), deepcopy)
+
+
+def _build_inventory(snapshot: SourceSnapshot) -> InventoryResult:
     nodes = _read_nodes(snapshot.data)
     entities: list[EntityRecord] = []
     by_node: dict[int, EntityRecord] = {}

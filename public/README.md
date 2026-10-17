@@ -72,3 +72,7 @@ Sequence transition expressions: [scope and validation](docs/reviews/SFC_CONDITI
 Sequence reference relationships: [scope and validation](docs/reviews/SFC_CONTEXT_REVIEW.md), with an [invented demonstration](examples/sfc-context-demo.html).
 
 Work-check timing and alias diagnostics: [scope and validation](docs/reviews/WORK_CHECK_TIMING_REVIEW.md).
+
+Current performance checkpoint: [bounded source reuse](docs/reviews/SOURCE_REUSE_REVIEW.md)
+uses the returned work38 timings to reduce repeated source work while preserving
+validation and saved report contents. The next work-machine run measures its effect.

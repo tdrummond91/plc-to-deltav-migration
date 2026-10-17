@@ -64,6 +64,7 @@ from .pid_connection_summary import build_pid_connection_summary, validate_pid_c
 from .reference_summary import build_reference_summary, validate_reference_summary
 from .references import _system_flag, _timer_placeholder, analyze_references
 from .source import analyze_snapshot, capture_snapshot
+from .source_reuse import source_reuse_scope
 from .storage import StorageError, save_run
 from .tag_data import analyze_tag_data
 from .tag_data_summary import build_tag_data_summary, validate_tag_data_summary
@@ -1268,6 +1269,16 @@ def _phase_elapsed(name: str, milliseconds: int) -> None:
 def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str], *,
              timings: WorkCheckTiming | None = None,
              sfc_context_schema_version: int = 1) -> dict[str, Any]:
+    # Reuse only protected source templates during this invocation. Derived
+    # models still pass their ordinary canonical comparisons before publication.
+    with source_reuse_scope():
+        return _analyze_source(root, source, logs, revision, timings=timings,
+                               sfc_context_schema_version=sfc_context_schema_version)
+
+
+def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, str], *,
+                    timings: WorkCheckTiming | None = None,
+                    sfc_context_schema_version: int = 1) -> dict[str, Any]:
     result: dict[str, Any] = {"status": "failed", "failure_code": "read_error", "private_run_saved": False,
                               "reference_summary": None, "sfc_structure_summary": None,
                               "access_summary": None, "tag_data_summary": None, "pid_summary": None,

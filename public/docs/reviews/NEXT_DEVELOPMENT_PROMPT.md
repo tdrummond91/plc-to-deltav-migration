@@ -1,6 +1,26 @@
 # Next development checkpoint
 
-Current checkpoint (2026-10-16): **Work-check timing and sequence alias diagnostics**.
+Current checkpoint (2026-10-17): **Bounded source reuse during work checks**.
+Return `0b5a9d9` tested clean `51202a8`: 1,448 application cases passed (two
+expected Windows skips), plus 139 helpers. All 45 historical reports validate.
+Twenty earlier summaries, sequence context coverage and the frozen six
+examples are unchanged. Four unresolved sequence occurrences trace through
+two aliases with two lexical rack-input candidates; bindings remain unresolved.
+
+Measured total time was 10:44: tests 3:38, analysis 2:09, private saving 2:42,
+and summaries 2:14. Protected XML and inventory templates are now reused only
+inside one work-check analysis, with fresh mutable copies and a 128 MiB
+retention limit. Canonical comparisons remain in place. Work38 and the private
+review20/manifest23 contracts stay unchanged. See [scope and validation](SOURCE_REUSE_REVIEW.md).
+
+The next ordinary work-machine run measures the effect on the private source.
+No new samples or manual team review are needed. Git transport stays manual;
+the listener stays disabled. Source-declared task and routine-call context
+comes next, supporting later equipment/alarm grouping; this remains Phase 1.
+
+## Historical timing and alias diagnostic checkpoint
+
+Historical checkpoint (2026-10-16): **Work-check timing and sequence alias diagnostics**.
 Return `d9df280` tested clean `0ee009a`: 1,426 application cases passed (two
 expected Windows skips), plus 139 helpers. All 267 bound transition references
 have qualified exact-address context; four unresolved references are alias-chain

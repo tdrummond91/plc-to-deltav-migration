@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from plc_workbench import work_check
+from plc_workbench import source as source_module, work_check
 from plc_workbench.source import analyze_snapshot, snapshot_from_bytes
 from plc_workbench.references import analyze_references
 from plc_workbench.reference_summary import build_reference_summary
@@ -310,6 +310,50 @@ class SourceAndAnalysisTests(unittest.TestCase):
             self.assertEqual(outcome["failure_code"], "read_error")
             self.assertNotIn("SECRET_SOURCE_VALUE", json.dumps(outcome))
             self.assertIn("SECRET_SOURCE_VALUE", (root / "analysis.log").read_text(encoding="utf-8"))
+
+    def test_reused_inventory_does_not_authenticate_a_mutated_caller_copy(self) -> None:
+        def altered_inventory(snapshot):
+            inventory = analyze_snapshot(snapshot)
+            inventory.counts["rungs"] += 1
+            return inventory
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            source = root / "invented.L5X"
+            source.write_bytes(SOURCE)
+            with patch.object(work_check, "analyze_snapshot", side_effect=altered_inventory), \
+                    patch.object(work_check, "save_run") as save, redirect_stdout(io.StringIO()):
+                outcome = work_check._analyze(root, source, root, {"commit": COMMIT, "worktree": "clean"})
+            self.assertEqual(outcome["status"], "failed")
+            self.assertFalse(outcome["private_run_saved"])
+            self.assertIsNone(outcome["reference_summary"])
+            self.assertEqual(outcome["failure_code"], "calculation_error")
+            save.assert_not_called()
+
+    def test_analysis_reuse_is_limited_to_one_invocation_including_exceptions(self) -> None:
+        snapshot = snapshot_from_bytes(SOURCE)
+
+        def probe(*args, **kwargs):
+            first = analyze_snapshot(snapshot)
+            self.assertEqual(first, analyze_snapshot(snapshot))
+            if fail:
+                raise RuntimeError("Invented analysis failure")
+            return {"status": "complete"}
+
+        for fail in (False, True):
+            with self.subTest(fail=fail), \
+                    patch.object(source_module, "_build_inventory", wraps=source_module._build_inventory) as build, \
+                    patch.object(work_check, "_analyze_source", side_effect=probe):
+                if fail:
+                    with self.assertRaisesRegex(RuntimeError, "Invented analysis failure"):
+                        work_check._analyze(Path("."), Path("invented.L5X"), Path("."), {})
+                else:
+                    self.assertEqual(work_check._analyze(Path("."), Path("invented.L5X"), Path("."), {}),
+                                     {"status": "complete"})
+                self.assertEqual(build.call_count, 1)
+                analyze_snapshot(snapshot)
+                analyze_snapshot(snapshot)
+                self.assertEqual(build.call_count, 3)
 
     def test_log_write_failure_does_not_discard_analysis_failure(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

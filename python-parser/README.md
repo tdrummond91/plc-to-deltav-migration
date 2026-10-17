@@ -1,6 +1,12 @@
 # L5X engineering review, calculations and source structure
 
-Latest bundle: **Work-check timing and sequence alias diagnostics** adds six
+Latest bundle: **Bounded source reuse** gives every caller fresh XML/inventory
+containers while retaining protected templates inside one work-check analysis.
+The 128 MiB retention limit falls back to ordinary parsing when needed.
+Canonical comparisons, private artifacts and work38 remain unchanged. See
+[scope and validation](../public/docs/reviews/SOURCE_REUSE_REVIEW.md).
+
+Previous bundle: **Work-check timing and sequence alias diagnostics** adds six
 stage durations to the console and work38 feedback report. SFC context summary2
 counts existing alias failure reasons and lexical rack hints without exporting
 additional source examples or changing private analysis. See

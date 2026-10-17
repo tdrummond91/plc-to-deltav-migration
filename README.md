@@ -1,6 +1,16 @@
 # PLC analysis workbench
 
-Latest checkpoint: return `d9df280` passed 1,426 application cases (two expected
+Latest checkpoint: return `0b5a9d9` passed 1,448 application cases (two expected
+Windows skips) and 139 helpers. Its measured 10:44 run prompted bounded reuse
+of protected XML and inventory templates during each work-check analysis.
+Canonical validation and report contracts remain in place. The next ordinary
+work-machine run measures the improvement. See
+[scope and validation](public/docs/reviews/SOURCE_REUSE_REVIEW.md).
+Team review remains deferred.
+
+Historical timing and alias diagnostic checkpoint:
+
+Earlier checkpoint: return `d9df280` passed 1,426 application cases (two expected
 Windows skips) and 139 helpers. Four sequence references remain unresolved
 through alias chains; 267 have qualified address context and 39 chart-step
 candidate links were found. Work38 adds stage timings and closed alias/rack

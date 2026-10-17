@@ -1,5 +1,15 @@
 # Data contracts, traceability, and checkpoints
 
+## Source reuse implementation (2026-10-17)
+
+Work38/timing1, SFC context summary2, review20/manifest23 and all sixteen private
+artifacts are unchanged. Protected XML and inventory reuse is limited to one
+work-check analysis invocation, keyed by exact bytes and parsing policy, with
+fresh mutable copies and a 128 MiB retained-object budget. Canonical model
+comparisons remain in place; capacity exhaustion uses normal parsing. This
+adds no public fields, persistent cache, source excerpts or network operations.
+See [scope and validation](../reviews/SOURCE_REUSE_REVIEW.md).
+
 ## Work timing and alias diagnostic revision (2026-10-16)
 
 Work38 adds top-level timing1: bounded integer milliseconds for six fixed stages,
