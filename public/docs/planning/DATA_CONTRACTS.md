@@ -1,5 +1,14 @@
 # Data contracts, traceability, and checkpoints
 
+## Timer/counter/reset context revision (2026-10-16)
+
+Stateful objects1 connects instruction occurrences, exact control addresses,
+member-use evidence and existing stored-data records. Review18 embeds the
+16 MiB companion under 248 MiB JSON / 280 MiB HTML limits. Manifest21 retains
+sixteen hashed artifacts. Work35 adds a closed 4 KiB summary under the unchanged
+80 KiB envelope. Prior evidence and frozen samples retain their contracts.
+See [scope and validation](../reviews/STATEFUL_OBJECTS_REVIEW.md).
+
 ## Boolean output context revision (2026-10-16)
 
 Output context1 links coil occurrences, shared exact-target uses, predicate/ONS

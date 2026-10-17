@@ -64,3 +64,5 @@ for the current checkpoint and [invented report](examples/calculation-paths-demo
 
 - [Boolean output context](docs/reviews/OUTPUT_CONTEXT_REVIEW.md) and
   [invented output-context report](examples/output-context-demo.html).
+
+Timer/counter/reset relationships: [scope and validation](docs/reviews/STATEFUL_OBJECTS_REVIEW.md), with an [invented demonstration](examples/stateful-objects-demo.html).

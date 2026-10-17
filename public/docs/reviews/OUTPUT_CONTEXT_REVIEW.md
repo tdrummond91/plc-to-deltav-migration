@@ -1,5 +1,15 @@
 # Boolean output context
 
+## Validated Boolean-output return
+
+Return `19ccaee` tested clean `5ae8b6d`: 1,295 application cases passed (two
+expected Windows skips), plus 139 helpers. The private run saved successfully.
+All 4,163 coil occurrences are accounted for across 2,978 qualified exact targets:
+1,126 have multiple coil writers and 315 have no captured explicit RLL readers.
+There are 6,071 accepted predicate-read occurrences and sixteen unbound targets.
+Seventeen prior summaries and the frozen six samples remain unchanged, and all
+41 historical reports validate. See [the next bundle](STATEFUL_OBJECTS_REVIEW.md).
+
 ## Confirmed return
 
 Return `48dcd22` tested clean `2105ce3`: 1,254 application cases passed with two

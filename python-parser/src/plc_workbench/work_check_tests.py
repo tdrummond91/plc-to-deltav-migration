@@ -60,6 +60,7 @@ WORK_MACHINE_MODULES = {
         "test_pid_connections", "test_pid_connection_summary", "test_pid_connection_workflow",
         "test_calculation_paths", "test_calculation_path_summary", "test_calculation_path_workflow",
         "test_output_context", "test_output_context_summary", "test_output_context_workflow",
+        "test_stateful_objects", "test_stateful_object_summary", "test_stateful_object_workflow",
         "test_calculations", "test_calculation_summary", "test_calculation_workflow",
         "test_cpt_access", "test_cpt_access_summary", "test_cpt_access_workflow",
         "test_rung_analysis", "test_rung_analysis_summary", "test_rung_analysis_workflow",

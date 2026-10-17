@@ -1,5 +1,20 @@
 # Independently synthetic L5X fixture
 
+## Timer/counter/reset relationships fixture
+
+[stateful_objects_demo.L5X](stateful_objects_demo.L5X) contains 152 independently
+invented rungs. It covers timer/counter controls, resets, incoming branch
+conditions, aliases, repeated writers, member reads/writes, whole-object uses,
+static arrays, nested members, duplicate stored representations and namespace
+gaps. Deliberately inconsistent types and signatures remain explicit. CONTROL
+and TIMER_T cases prevent blanket timer-only reset or unit assumptions.
+Fifty-five extra timer groups and member reads exercise pagination.
+
+The [offline report](../../examples/stateful-objects-demo.html) demonstrates the
+new navigation. See [scope and checks](../../docs/reviews/STATEFUL_OBJECTS_REVIEW.md).
+Use isolated checkouts for work-check QA; this input must not establish the
+production sample reservation. It is not controller-ready logic.
+
 ## Boolean output context fixture
 
 [output_context_demo.L5X](output_context_demo.L5X) contains 88 independently

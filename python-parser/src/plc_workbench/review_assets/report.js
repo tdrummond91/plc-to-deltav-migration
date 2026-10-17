@@ -92,6 +92,23 @@
   const byOutputRungContext=new Map((outputContext?.rung_contexts||[]).map(r=>[r.id,r]));
   const outputConditionReads=outputContext?.condition_reads||[];
   let outputConditionParents=null;
+  const statefulObjects=data.stateful_objects||null,statefulOccurrences=statefulObjects?.occurrences||[],statefulGroups=statefulObjects?.objects||[];
+  const byStatefulOccurrence=new Map(statefulOccurrences.map(o=>[o.id,o])),byStatefulGroup=new Map(statefulGroups.map(o=>[o.id,o]));
+  const statefulUsesByObject=new Map(),statefulStoredByObject=new Map(),statefulOccurrencesByRung=new Map();
+  statefulOccurrences.forEach(o=>add(statefulOccurrencesByRung,o.rung_id,o));
+  (statefulObjects?.address_uses||[]).forEach(u=>add(statefulUsesByObject,u.object_id,u));
+  (statefulObjects?.stored_data||[]).forEach(u=>add(statefulStoredByObject,u.object_id,u));
+  const statefulIssueContentIds=new Set((tagData?.issues||[]).map(i=>i.content_id));
+  const statefulGroupGaps=new Map(statefulGroups.map(o=>[o.id,new Set([
+    ...(o.type_conflict?['Declaration conflicts with observed instructions']:[]),
+    ...(['unresolved','static_out_of_bounds'].includes(o.bounds_status)?['Array or control type unresolved']:[]),
+    ...(o.family==='reset_only'?['No matching timer or counter occurrence']:[]),
+    ...(o.family==='mixed'?['Timer and counter instructions share control']:[]),
+    ...(o.content_ids.some(id=>statefulIssueContentIds.has(id))?['Stored data capture issues']:[])
+  ])]));
+  (statefulObjects?.address_uses||[]).forEach(u=>{const gaps=statefulGroupGaps.get(u.object_id);if(u.rejected_operand_ids.length||u.rejected_expression_use_ids.length)gaps.add('Unqualified namespace uses');if(u.member_status==='unknown')gaps.add('Uncatalogued member or suffix');if(u.unknown_operand_ids.length)gaps.add('Unknown operand roles');});
+  (statefulObjects?.stored_data||[]).forEach(u=>{const gaps=statefulGroupGaps.get(u.object_id);if(u.status==='namespace_gap')gaps.add('Unqualified stored namespace');if(u.status==='shape_gap')gaps.add('Unqualified stored data shape');if(u.type_status==='mismatch')gaps.add('Stored structure type mismatch');});
+  statefulOccurrences.forEach(o=>{if(o.control_address_id&&o.context_status!=='modeled')statefulGroupGaps.get(o.control_address_id).add('Incoming condition needs review');});
   const conditionNodes = conditions?.nodes || [], byConditionNode = new Map(conditionNodes.map(n=>[n.id,n]));
   const conditionNodeOrder = new Map(conditionNodes.map((n,i)=>[n.id,i]));
   const byConditionalOutput = new Map(conditionalOutputs.map(o=>[o.id,o]));
@@ -254,10 +271,12 @@
   headings.bindingcontext=['Binding gaps & context','Follow unresolved source occurrences through their alias chains and available rack-name candidates. Candidate addresses remain separate from confirmed root bindings.'];
   headings.instructioncontext=['Instruction & index context','Inspect custom-instruction declaration candidates and symbolic array selectors while unresolved roles and exact-element gaps remain visible.'];
   headings.sfrcontext=['Sequence reset context','Follow captured SFR routine and step candidates across every exported SFC content version. Reset effects and outgoing rung conditions remain unresolved.'];
+  headings.statefulobjects=['Timers, counters & resets','Connect captured timer and counter occurrences, reset instructions, exact member uses and separately retained stored values.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
   if(relationships){labels.relationships='Address relationships';navCounts.relationships=addresses.length;}
+  if(statefulObjects){labels.statefulobjects='Timers, counters & resets';navCounts.statefulobjects=statefulOccurrences.length;}
   if(conditions){labels.conditions=outputContext?'Boolean output context':'Conditional outputs';navCounts.conditions=conditionalOutputs.length;}
   if(instructionConditions){labels.transfers='Instruction conditions';navCounts.transfers=conditionTransfers.length;}
   if(bindingContext){labels.bindingcontext='Binding gaps & context';navCounts.bindingcontext=bindingContextGaps.length;}
@@ -409,6 +428,8 @@
   conditionalOutputs.forEach(o=>searchable(o,[o.opcode,conditionTargetName(o),sourceName(o.rung_id),conditionGuardLabel(o.guard_status),conditionActionLabel(o.action),human(o.target_status)]));
   contextOutputs.forEach(o=>searchable(o,[o.opcode,outputContextName(o),sourceName(o.rung_id),human(o.target_status),human(o.context_status),...outputRungHintCategories(o.rung_id)]));
   contextAddresses.forEach(a=>searchable(a,[addressName(byAddress.get(a.id)),human(a.endpoint_kind),human(a.profile)]));
+  statefulOccurrences.forEach(o=>searchable(o,[o.opcode,statefulOccurrenceName(o),sourceName(o.rung_id),human(o.target_status),human(o.context_status)]));
+  statefulGroups.forEach(o=>searchable(o,[addressName(byAddress.get(o.id)),human(o.family),human(o.declaration_kind),human(o.bounds_status),...o.producer_ids.map(id=>byStatefulOccurrence.get(id)?.opcode)]));
   conditionTransfers.forEach(n=>searchable(n,[transferOpcode(n),short(sourceName(n.rung_id),240),transferLabel(n),conditionGuardLabel(conditionQuality(n)),...n.operand_ids.slice(0,4).map(id=>short(byOperand.get(id)?.raw_text || '',80))]));
   // Index bounded previews once per occurrence/group. Alias chains, expanded
   // source text and ancestor graphs are inspected only in the selected dossier.
@@ -461,6 +482,7 @@
     if(pidConnections){const row=node('div','status-row');row.append(node('span','','PID source connections'),badge(pidConnections.status));capture.append(row);}
     if(calculations){const row=node('div','status-row');row.append(node('span','','CPT expression syntax and references'),badge(calculations.status));capture.append(row);}
     if(calculationPaths){const row=node('div','status-row');row.append(node('span','','Calculation inputs and destinations'),badge(calculationPaths.status));capture.append(row);}
+    if(statefulObjects){const row=node('div','status-row');row.append(node('span','','Timer, counter and reset context'),badge(statefulObjects.status));capture.append(row);}
     if(outputContext){const row=node('div','status-row');row.append(node('span','','Boolean output context'),badge(outputContext.status));capture.append(row);}
     if(customContext){const row=node('div','status-row');row.append(node('span','','Custom-instruction declaration context'),badge(customContext.status));capture.append(row);}
     if(indexedAccess){const row=node('div','status-row');row.append(node('span','','Symbolic array selector context'),badge(indexedAccess.status));capture.append(row);}
@@ -475,6 +497,7 @@
     if(tagData)content.append(button('Explore stored tag data',()=>go('tagdata')));
     if(pid)content.append(button('Explore PID instruction evidence',()=>go('pid')));
     if(calculations)content.append(button('Explore calculations',()=>go('calculations')));
+    if(statefulObjects)content.append(button('Explore timers, counters and resets',()=>go('statefulobjects')));
     if(calculationPaths)content.append(button('Explore calculation inputs and destinations',()=>go('calculationpaths')));
     const meta=panel('Snapshot details','This report is read-only. IDs belong to this byte snapshot and are not persistent equipment or correction identities.');
     meta.append(values({'Source size':fmt(data.snapshot.size_bytes)+' bytes','SHA-256':data.snapshot.sha256,'Report format':data.report_version,'Inventory parser':inv.parser_version,'Reference analyzer':refs.analyzer_version,'SFC analyzer':sfc.analyzer_version}));content.append(meta);
@@ -802,6 +825,7 @@
   function addressDetail(a){
     setDetailHeading('EXACT ADDRESS EVIDENCE',addressName(a),entityPath(byEntity.get(a.target_id)?.parent_id));
     content.append(addressNotice());
+    if(byStatefulGroup.has(a.id))content.append(button('Inspect timer, counter and reset context',()=>openDetail('statefulobject',a.id),'text-link'));
     const summary=panel('Captured uses',addressProfile(a));
     summary.append(values({'Resolved declaration':addressRootPreview(a.target_id),'Expanded suffix':a.suffix || '(root address)','Operand read occurrences':a.read_operand_ids.length,'Write occurrences':a.write_operand_ids.length,'Read/write occurrences':a.read_write_operand_ids.length,'Unknown-role occurrences':a.unknown_operand_ids.length,'Expression read occurrences':a.expression_use_ids.length,'Distinct rungs':a.rung_ids.length,'Distinct instructions':a.instruction_ids.length}));
     const links=node('div','inline-links');links.append(sourceCell(a.target_id));
@@ -820,6 +844,68 @@
     if(outputs.length){const p=section('Conditional coil outputs targeting this address','These are captured OTE, OTL or OTU occurrences, not proof of a physical output or process effect.');p.append(conditionalOutputTable(outputs,'Exact address conditional outputs'));content.append(p);}
     if(byOutputAddress.has(a.id))content.append(button('Inspect qualified Boolean output address context',()=>openDetail('outputaddress',a.id),'text-link'));
     content.append(technical({'Address group ID':a.id,'Resolved declaration ID':a.target_id,'Identity rule':'Exact expanded spelling'}));
+  }
+  function timerCounterNotice(){return notice('Captured timer and counter relationships','These records connect source occurrences through qualified exact control addresses. Incoming conditions describe source structure, not timing, count transitions, execution order or final state. Stored PRE, ACC and status values remain export evidence across every representation; no effective preset, live value, elapsed time or alarm purpose is inferred.');}
+  function statefulOccurrenceName(o){return o.control_address_id?addressName(byAddress.get(o.control_address_id)):short(byOperand.get(o.control_operand_id)?.raw_text||'(control unresolved)',160);}
+  function statefulOccurrenceLink(o){return button(o.opcode+' · '+statefulOccurrenceName(o),()=>openDetail('statefuloccurrence',o.id),'text-link');}
+  function statefulObjectLink(id){const o=byStatefulGroup.get(id);return o?button(addressName(byAddress.get(id)),()=>openDetail('statefulobject',id),'text-link'):node('span','muted','No qualified control address');}
+  function statefulObjectGap(o){return Boolean(statefulGroupGaps.get(o.id)?.size);}
+  function statefulOccurrenceTable(rows,caption,emptyOptions=null){return table(['Instruction occurrence','Control address','Incoming source condition','Rung'],rows,o=>[
+    statefulOccurrenceLink(o),primary(statefulObjectLink(o.control_address_id),human(o.target_status)),outputContextStatus(o.context_status),sourceCell(o.rung_id)
+  ],caption,emptyOptions||{emptyTitle:'No timer, counter or reset occurrences in this selection',emptyDetail:'Change the opcode or evidence filter. Unresolved controls remain available in this view.'});}
+  function statefulObjectTable(rows,caption){return table(['Qualified control address','Observed family / declared root type','Producer / reset occurrences','Array evidence','Review gaps'],rows,o=>[
+    statefulObjectLink(o.id),primary(human(o.family),'Root '+(byEntity.get(o.target_id)?.attributes?.DataType||'type unavailable')+' · '+human(o.declaration_kind)),o.producer_ids.length+' / '+o.reset_ids.length,human(o.bounds_status),[...statefulGroupGaps.get(o.id),...(o.has_tof_reset?['TOF and RES both observed']:[])].join(' · ')||'No gap from these rules'
+  ],caption);}
+  function statefulObjectsToolbar(){
+    const groups=state.statefulMode!=='occurrences';
+    toolbarFor(groups?'Search control addresses, timer or counter families, types and bounds':'Search timer, counter and reset opcodes, control addresses or rung context',groups?[['all','All control groups'],['timer','Timer groups'],['counter','Counter groups'],['mixed','Mixed instruction families'],['reset_only','Reset without matching producer']]:[['all','All opcodes'],...['TON','TOF','RTO','CTU','CTD','RES'].map(v=>[v,v])]);
+    const select=(labelText,items,current,change)=>{const label=node('label','filter-wrap',labelText),box=node('select');box.setAttribute('aria-label',labelText);items.forEach(([value,text])=>{const option=node('option','',text);option.value=value;box.append(option);});box.value=current;box.addEventListener('change',()=>change(box.value));label.append(box);toolbar.querySelector('.toolbar').append(label);};
+    select('Timer and counter view',[['objects','Control groups'],['occurrences','Instruction occurrences']],state.statefulMode||'objects',value=>{state.statefulMode=value;state.filter='all';state.listPages={};render();});
+    select('Timer and counter evidence',[['all','All evidence'],['gaps','With unresolved evidence'],['qualified','Qualified evidence']],state.statefulEvidence||'all',value=>{state.statefulEvidence=value;state.listPages={};renderList();});
+  }
+  function statefulObjectsList(){
+    content.append(timerCounterNotice());
+    const total=panel('Timer, counter and reset coverage','Control groups require exact qualified addresses. Unresolved controls remain instruction occurrences.');
+    total.append(values({'Instruction occurrences':statefulOccurrences.length,'Qualified control groups':statefulGroups.length,'Unresolved controls':statefulOccurrences.filter(o=>o.target_status!=='exact_address').length,'Groups with matched resets':statefulGroups.filter(o=>o.producer_ids.length&&o.reset_ids.length).length,'Reset-only groups':statefulGroups.filter(o=>o.family==='reset_only').length,'Mixed instruction families':statefulGroups.filter(o=>o.family==='mixed').length}));content.append(total);
+    const accepts=gap=>!state.statefulEvidence||state.statefulEvidence==='all'||(state.statefulEvidence==='gaps')===gap;
+    if(state.statefulMode==='occurrences')content.append(statefulOccurrenceTable(statefulOccurrences.filter(o=>matches(o)&&(state.filter==='all'||o.opcode===state.filter)&&accepts(o.target_status!=='exact_address'||o.context_status!=='modeled'||(byStatefulGroup.has(o.control_address_id)&&statefulObjectGap(byStatefulGroup.get(o.control_address_id))))),'Timer and counter instruction occurrences'));
+    else content.append(statefulObjectTable(statefulGroups.filter(o=>matches(o)&&(state.filter==='all'||o.family===state.filter)&&accepts(statefulObjectGap(o))),'Timer and counter control groups'));
+  }
+  function statefulObjectSections(o){
+    const summary=panel('Qualified control identity','An exact spelling association retains the declared type and any literal array bounds separately. A matched reset is a source association, not proof that it executes.');
+    summary.append(values({'Control address':addressName(byAddress.get(o.id)),'Observed instruction family':human(o.family),'Declared root data type':byEntity.get(o.target_id)?.attributes?.DataType||'Unavailable','Qualified control kind':human(o.declaration_kind),'Type conflict':o.type_conflict?'Yes':'No','Array evidence':human(o.bounds_status),'TOF and RES co-occurrence':o.has_tof_reset?'Both observed; effects require engineering review':'Not observed together'}));
+    const links=node('div','inline-links');links.append(sourceCell(o.target_id),button('Open original exact address evidence',()=>openDetail('address',o.id),'text-link'));summary.append(links);content.append(summary);
+    content.append(statefulOccurrenceTable(o.producer_ids.map(id=>byStatefulOccurrence.get(id)),'Timer and counter producer occurrences',{emptyTitle:'No timer or counter producer occurrences observed',emptyDetail:'Only qualified exact address associations are shown.'}),statefulOccurrenceTable(o.reset_ids.map(id=>byStatefulOccurrence.get(id)),'Reset occurrences for this control',{emptyTitle:'No reset occurrences observed for this exact control',emptyDetail:'Only qualified exact address associations are shown.'}));
+    if(!o.producer_ids.length)content.append(notice('No matched timer or counter occurrence','This export contains a reset at this address without a qualified TON, TOF, RTO, CTU or CTD occurrence. A CONTROL reset may be valid outside this timer and counter interpretation. Absence here does not prove unused logic.'));
+    const uses=section('Observed control and member uses','Direct members, other suffixes and whole-control operands remain separate. Explicit writes and unknown roles do not establish the final control state.');
+    uses.append(table(['Exact observed address','Member context','Reads / writes / read-write / unknown','Expression reads','Namespace gaps'],statefulUsesByObject.get(o.id)||[],u=>[
+      button(addressName(byAddress.get(u.address_id)),()=>openDetail('statefuluse',u.address_id,{statefulObjectId:o.id}),'text-link'),primary(u.member||'Whole control',human(u.kind)+' · '+human(u.member_status)),['read','write','read_write','unknown'].map(role=>u[role+'_operand_ids'].length).join(' / '),u.expression_use_ids.length,u.rejected_operand_ids.length+u.rejected_expression_use_ids.length
+    ],'Timer and counter member uses'));content.append(uses);
+    const stored=section('Stored control and member evidence','Each exact captured path remains linked to its own representation, including duplicate or conflicting values. No representation wins, and no time units or effective PRE / ACC values are selected. Namespace and shape gaps are visible but unqualified.');
+    stored.append(table(['Stored member / control','Representation','Saved value / source text','Association'],statefulStoredByObject.get(o.id)||[],row=>{
+      const e=byTagElement.get(row.element_id),c=byTagContent.get(e?.content_id);
+      return[primary(sourceCell(row.element_id),row.member||'Control structure'),c?sourceCell(c.id):'Representation unavailable',node('div','snippet',Object.hasOwn(e?.attributes||{},'Value')?(e.attributes.Value===''?'Empty value':short(e.attributes.Value,180)):e?.direct_text?.trim()?short(e.direct_text,180):'No scalar value on this element'),human(row.status)+' · stored type '+human(row.type_status)];
+    },'Timer and counter stored evidence'));content.append(stored);
+    const reps=section('All stored representations for the declaration','Opaque data and representations without qualified member links remain available for source inspection.');reps.append(tagContentTable(o.content_ids.map(id=>byTagContent.get(id)).filter(Boolean),'Timer and counter data representations'));content.append(reps);
+  }
+  function statefulObjectDetail(o){setDetailHeading('TIMER AND COUNTER CONTROL',addressName(byAddress.get(o.id)),human(o.family));content.append(timerCounterNotice());statefulObjectSections(o);}
+  function statefulOccurrenceDetail(o){
+    setDetailHeading('TIMER COUNTER OR RESET OCCURRENCE',o.opcode+' · '+statefulOccurrenceName(o),sourceName(o.rung_id));content.append(timerCounterNotice());
+    const summary=panel('Captured instruction and control','Incoming source conditions are kept separate from an instruction-specific timing or counting trigger. TOF timing and counter transitions require state beyond a static condition.');
+    summary.append(values({'Opcode':o.opcode,'Control qualification':human(o.target_status),'Incoming condition context':outputContextStatus(o.context_status)}));
+    const links=node('div','inline-links');links.append(sourceCell(o.id),sourceCell(o.rung_id));if(o.control_operand_id)links.append(sourceCell(o.control_operand_id));if(o.control_address_id)links.append(statefulObjectLink(o.control_address_id));summary.append(links);content.append(summary);
+    const operands=(rungOperands.get(o.rung_id)||[]).filter(p=>p.instruction_id===o.id);if(operands.length){const captured=section('Captured instruction arguments','Pseudo PRE / ACC arguments and literal spellings remain source evidence. They are not interpreted as per-scan input values or approved settings.');captured.append(table(['Source argument','Role evidence'],operands,p=>[sourceCell(p.id),accessCell(byOperandAccess.get(p.id))],'Timer and counter captured arguments'));content.append(captured);}
+    if(o.guard_id&&o.context_status!=='namespace_gap'){const incoming=section('Incoming source condition','This condition immediately precedes the source occurrence. It is not a timing interval, edge detector, runtime enable state or proof of execution.');incoming.append(values({'Evidence quality':outputContextStatus(o.context_status)}));content.append(incoming);conditionGraph(o.guard_id,'Timer and counter incoming condition','Incoming source condition');}
+    else content.append(notice('Incoming condition unavailable','The source occurrence remains visible, but its condition link is unavailable or withheld because of unsupported namespace context.'));
+    const object=byStatefulGroup.get(o.control_address_id);if(object)statefulObjectSections(object);else content.append(notice('Control association unresolved','Review the captured arguments and declaration evidence. This occurrence has not been assigned to a qualified timer or counter object.'));
+  }
+  function statefulUseDetail(u){
+    const object=byStatefulGroup.get(u.object_id);setDetailHeading('TIMER AND COUNTER MEMBER USE',addressName(byAddress.get(u.address_id)),human(u.kind));content.append(timerCounterNotice(),statefulObjectLink(object.id));
+    content.append(values({'Member':u.member||'Whole control','Member qualification':human(u.member_status)}));
+    for(const role of ['read','write','read_write','unknown']){const ids=u[role+'_operand_ids'];if(!ids.length)continue;const sectionNode=section('Observed '+human(role)+' operands');sectionNode.append(table(['Source operand','Rung','Instruction','Role evidence'],ids,id=>{const use=byOperandAccess.get(id);return[sourceCell(id),sourceCell(use?.rung_id),sourceCell(use?.instruction_id),accessCell(use)];},'Timer and counter '+role+' operands'));content.append(sectionNode);}
+    if(u.expression_use_ids.length){const sectionNode=section('Observed expression readers');sectionNode.append(expressionUseTable(u.expression_use_ids.map(id=>byExpressionUse.get(id)),'Timer and counter expression readers'));content.append(sectionNode);}
+    if(u.rejected_operand_ids.length){const sectionNode=section('Unqualified namespace operand uses','These retained source occurrences do not participate in the qualified role associations.');sectionNode.append(table(['Source operand','Rung'],u.rejected_operand_ids,id=>[sourceCell(id),sourceCell(byOperandAccess.get(id)?.rung_id)],'Timer and counter namespace operand gaps'));content.append(sectionNode);}
+    if(u.rejected_expression_use_ids.length){const sectionNode=section('Unqualified namespace expression uses');sectionNode.append(expressionUseTable(u.rejected_expression_use_ids.map(id=>byExpressionUse.get(id)),'Timer and counter namespace expression gaps'));content.append(sectionNode);}
   }
   function outputContextName(o){const a=byAddress.get(o.target_address_id);return a?addressName(a):short(byOperand.get(o.target_operand_id)?.raw_text||'(target unresolved)',160);}
   function outputContextLink(o){return button(o.opcode+' · '+outputContextName(o),()=>openDetail('condition',o.condition_output_id),'text-link');}
@@ -1222,6 +1308,7 @@
     if(sfrCallsByRung.has(r.id)){const reset=section('SFR target context on this rung','Candidate matches do not establish reset execution or outgoing condition.');reset.append(sfrCallTable(sfrCallsByRung.get(r.id),'Rung SFR target contexts'));content.append(reset);}
     if(indexedByRung.has(r.id)){const indexed=section('Indexed source context on this rung','Array roots and possible selector reads stay separate from exact-address relationships.');indexed.append(indexedUseTable(indexedByRung.get(r.id),'Rung indexed source context'));content.append(indexed);}
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
+    if(statefulOccurrencesByRung.has(r.id)){const p=section('Timer, counter and reset evidence on this rung');p.append(statefulOccurrenceTable(statefulOccurrencesByRung.get(r.id),'Rung timer counter and reset occurrences'));content.append(p);}
     if(rungPids.has(r.id)){const p=section('PID evidence on this rung');p.append(pidTable(rungPids.get(r.id),'Rung PID occurrences'));content.append(p);}
     if(rungCalculations.has(r.id)){const p=section('Calculations on this rung');p.append(calculationTable(rungCalculations.get(r.id),'Rung calculation occurrences'));content.append(p);}
     if(calculationPaths){const paths=calculationPathOccurrences.filter(c=>c.rung_id===r.id);if(paths.length){const p=section('Calculation inputs and destinations on this rung');p.append(calculationPathTable(paths,'Rung calculation blocks'));content.append(p);}}
@@ -1888,6 +1975,7 @@
     else if(state.view==='engineering')engineeringList();
     else if(state.view==='relationships')relationshipsList();
     else if(state.view==='conditions')conditionsList();
+    else if(state.view==='statefulobjects')statefulObjectsList();
     else if(state.view==='transfers')transfersList();
     else if(state.view==='bindingcontext')bindingContextList();
     else if(state.view==='instructioncontext')instructionContextList();
@@ -1917,6 +2005,9 @@
       else if(d.type==='access')accessDetail(byRootAccess.get(d.id));
       else if(d.type==='address')addressDetail(byAddress.get(d.id));
       else if(d.type==='condition')conditionDetail(byConditionalOutput.get(d.id));
+      else if(d.type==='statefulobject')statefulObjectDetail(byStatefulGroup.get(d.id));
+      else if(d.type==='statefuloccurrence')statefulOccurrenceDetail(byStatefulOccurrence.get(d.id));
+      else if(d.type==='statefuluse')statefulUseDetail((statefulUsesByObject.get(state.statefulObjectId)||[]).find(u=>u.address_id===d.id));
       else if(d.type==='outputaddress')outputContextAddressDetail(byOutputAddress.get(d.id));
       else if(d.type==='transfer')transferDetail(byConditionNode.get(d.id));
       else if(d.type==='bindingcontext')bindingContextDetail(byBindingContext.get(d.id));
@@ -1941,6 +2032,7 @@
       if(state.view==='engineering')engineeringToolbar();
       else if(state.view==='relationships')relationshipsToolbar();
       else if(state.view==='conditions')conditionsToolbar();
+      else if(state.view==='statefulobjects')statefulObjectsToolbar();
       else if(state.view==='transfers')toolbarFor('Search instruction opcodes, operand previews or rung context',[['all','All transfers'],['pass_through','Documented pass-through'],...(conditions?.schema_version>=3?[['stateful_transfer','ONS stored-state transfer']]:[]),['opaque_transfer','Unknown transfer']]);
       else if(state.view==='bindingcontext')bindingContextToolbar();
       else if(state.view==='instructioncontext')toolbarFor('Search instruction names, declarations, index expressions or context status');

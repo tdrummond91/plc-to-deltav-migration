@@ -129,7 +129,7 @@ class CalculationPathWorkflowTests(unittest.TestCase):
         for path in (ROOT / 'public/inspection').glob('work-check-*.json'):
             before = path.read_bytes()
             historical = json.loads(before)
-            self.assertLessEqual(historical['schema_version'], 33)
+            self.assertLessEqual(historical['schema_version'], 34)
             self.assertEqual(json.loads(work_check.render_work_check_report(historical)), historical)
             self.assertEqual(path.read_bytes(), before)
         self.assertEqual(work_check.render_work_check_report(old), json.dumps(
@@ -193,7 +193,7 @@ class CalculationPathWorkflowTests(unittest.TestCase):
             envelope = first.pop('targeted_samples')
             first.pop('diagnostic_sample')
             payload = report()
-            payload.update(schema_version=34, workflow_version='work-check-34', analysis=first, targeted_samples=envelope)
+            payload.update(schema_version=35, workflow_version='work-check-35', analysis=first, targeted_samples=envelope)
             work_check.validate_work_check_report(payload)
             path.write_bytes(source('NOP();'))
             with patch.object(work_check, 'build_targeted_samples', side_effect=AssertionError('No new disclosure.')), \
@@ -215,7 +215,7 @@ class CalculationPathWorkflowTests(unittest.TestCase):
                     result = work_check._analyze(root, path, root, REVISION)
                 self.assertEqual((result['failure_code'], result['private_run_saved']), (code, saved))
                 self.assertTrue(all(value is None for key, value in result.items() if key.endswith('_summary')))
-                payload = failed_report(34, code)
+                payload = failed_report(35, code)
                 payload['analysis'] = {k: v for k, v in result.items() if k not in {'diagnostic_sample', 'targeted_samples'}}
                 self.assertNotIn('PRIVATE_SENTINEL', work_check.render_work_check_report(payload))
                 self.assertIn('PRIVATE_SENTINEL', (root / 'analysis.log').read_text())
@@ -245,7 +245,7 @@ class CalculationPathWorkflowTests(unittest.TestCase):
             self.assertEqual((code, error), (3, ''))
             saved, = (root / 'runs').iterdir()
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), data)
-            from test_output_context_workflow import captured as latest_captured, options as latest_options
+            from test_stateful_object_workflow import captured as latest_captured, options as latest_options
             expected = review.build_review_data(*latest_captured(data)[:4], **latest_options(latest_captured(data)))
             self.assertEqual((saved / 'review.html').read_bytes(), review_html.render_review_html(expected).encode())
             path.write_bytes(data)

@@ -1,11 +1,11 @@
 # PLC analysis workbench
 
-Latest checkpoint: return `48dcd22` passed 1,254 application cases (two expected
-Windows skips) and 139 helpers. It accounts for all 2,138 selected calculation
-blocks, with two unresolved destinations. Work34 adds Boolean output target-use
-context, condition readers, declaration direction and rung-scoped authored hints.
+Latest checkpoint: return `19ccaee` passed 1,295 application cases (two expected
+Windows skips) and 139 helpers. Boolean output context accounts for 4,163 coil
+occurrences and 2,978 qualified exact targets. Work35 adds timer/counter/reset
+relationships, incoming source conditions, member uses and stored-data context.
 Earlier analysis and the frozen six examples remain unchanged. See
-[scope and validation](public/docs/reviews/OUTPUT_CONTEXT_REVIEW.md).
+[scope and validation](public/docs/reviews/STATEFUL_OBJECTS_REVIEW.md).
 The next step is the normal work-machine run; team review remains deferred.
 
 Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected

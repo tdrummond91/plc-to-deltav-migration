@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from .calculations import CalculationResult
     from .calculation_paths import CalculationPathResult
     from .output_context import BooleanOutputContextResult
+    from .stateful_objects import StatefulObjectResult
     from .rung_analysis import RungAnalysisResult
     from .relationships import RelationshipResult
     from .conditions import ConditionResult
@@ -111,6 +112,7 @@ def save_run(
     pid_connections: PidConnectionResult | None = None,
     calculation_paths: CalculationPathResult | None = None,
     output_context: BooleanOutputContextResult | None = None,
+    stateful_objects: StatefulObjectResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -154,6 +156,8 @@ def save_run(
             raise StorageError("Calculation paths require a complete engineering review with PID connection evidence.")
         if output_context is not None and (calculation_paths is None or not include_review):
             raise StorageError("Boolean output context requires a complete engineering review with calculation paths.")
+        if stateful_objects is not None and (output_context is None or tag_data is None or not include_review):
+            raise StorageError("Timer and counter context requires a complete engineering review with Boolean output context and Tag Data.")
         payload = result.to_dict()
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
@@ -198,7 +202,7 @@ def save_run(
                                                 custom_instruction_context=custom_instruction_context,
                                                 indexed_access=indexed_access, sfr_context=sfr_context, aoi_body_context=aoi_body_context,
                                                 pid_connections=pid_connections, calculation_paths=calculation_paths,
-                                                output_context=output_context)
+                                                output_context=output_context, stateful_objects=stateful_objects)
                 review_html = render_review_html(review_data).encode("utf-8")
             except (ReviewSizeLimitError, ReviewHtmlSizeLimitError) as exc:
                 raise StorageError("Private engineering review exceeds its report size limit.", code='review_size_limit') from exc
@@ -459,6 +463,12 @@ def save_run(
             manifest.update({"schema_version": 20,
                              "output_context_schema_version": companion["schema_version"],
                              "output_context_analyzer_version": companion["analyzer_version"],
+                             "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete"})
+        if stateful_objects is not None:
+            companion = review_data["stateful_objects"]
+            manifest.update({"schema_version": 21,
+                             "stateful_objects_schema_version": companion["schema_version"],
+                             "stateful_objects_analyzer_version": companion["analyzer_version"],
                              "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete"})
         _write_artifact(
             destination, run_dir, ".manifest.pending",

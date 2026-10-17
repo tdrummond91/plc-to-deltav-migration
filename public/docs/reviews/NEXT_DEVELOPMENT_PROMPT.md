@@ -1,6 +1,26 @@
 # Next development checkpoint
 
-Current checkpoint (2026-10-16): **Boolean output context**.
+Current checkpoint (2026-10-16): **Timers, counters and resets**.
+Return `19ccaee` tested clean `5ae8b6d`: 1,295 application cases passed (two
+expected Windows skips), plus 139 helpers. Boolean output context accounts for
+all 4,163 coil occurrences and 2,978 qualified exact targets, with 6,071 predicate
+reads. Multiple coil writers occur on 1,126 addresses; 315 have no captured
+explicit RLL reader, which does not prove they are unused. Seventeen previous
+summaries and the frozen six samples are unchanged; all 41 reports validate.
+
+Review18/manifest21 adds timer/counter/reset control associations, incoming
+source conditions, explicit member uses and exported stored-data context.
+Work35 returns closed counts while retaining sixteen saved artifacts.
+See [scope and validation](STATEFUL_OBJECTS_REVIEW.md).
+
+The next ordinary work-machine run measures this bundle. No new plant samples
+or manual engineering/team review are requested. Git transport stays manual and
+the listener stays disabled. Sequence-transition text is the next planned broad
+analysis bundle after returned evidence is checked.
+
+## Historical Boolean-output checkpoint
+
+Historical checkpoint (2026-10-16): **Boolean output context**.
 Return `48dcd22` tested clean `2105ce3`: 1,254 application cases passed (two
 expected Windows skips), plus 139 helpers. All 2,138 selected calculation blocks
 are accounted for, including 1,294 in branched rungs; two destinations remain

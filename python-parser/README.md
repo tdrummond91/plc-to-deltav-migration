@@ -1,5 +1,12 @@
 # L5X engineering review, calculations and source structure
 
+Latest bundle: **Timers, counters & resets** connects exact control uses,
+producer/reset occurrences, incoming source conditions, member reads/writes and
+exported stored settings. Multiple representations, uncertain bindings and
+mixed-family uses remain explicit. It does not select runtime state or an
+effective duration. See [scope and validation](../public/docs/reviews/STATEFUL_OBJECTS_REVIEW.md)
+and the [invented report](../public/examples/stateful-objects-demo.html).
+
 ## Offline engineering review
 
 `plc review` builds a self-contained, read-only report from source, reference,

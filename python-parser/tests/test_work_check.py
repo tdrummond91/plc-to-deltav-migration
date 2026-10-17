@@ -567,6 +567,12 @@ class GitAndWorkflowTests(unittest.TestCase):
             analysis_payload["output_context_summary"] = build_output_context_summary(
                 *path_inputs, analyze_output_context(*path_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.stateful_objects import analyze_stateful_objects
+            from plc_workbench.stateful_object_summary import build_stateful_object_summary
+            stateful_inputs = (*path_inputs, tag_data)
+            analysis_payload["stateful_object_summary"] = build_stateful_object_summary(
+                *stateful_inputs, analyze_stateful_objects(*stateful_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))
             stack.enter_context(redirect_stdout(io.StringIO()))
