@@ -2057,7 +2057,7 @@
     ],'Unresolved instruction analysis'));
     const other=section('Source and structural questions','These populations are separate from instruction rows and can overlap them. Open the evidence to distinguish missing source, unresolved interpretation and runtime information.');
     const cohorts=[
-      ['Binding and alias contexts',bindingContextGaps.length,'Inspect exported declarations, alias chains and namespace evidence; rack-name candidates remain unconfirmed.','bindingcontext'],
+      ['Binding and alias contexts',bindingContextGaps.length,'Inspect base binding and alias evidence separately from any qualified rack source correspondence. Source identity does not establish physical wiring or runtime behavior.','bindingcontext'],
       ...(rackBacking?[['Rack source occurrences with gaps',rackBackingUses.filter(u=>u.disposition!=='associated').length,'Inspect failed source qualification separately from the preserved base binding gaps. Physical channel and runtime behavior are not established by an associated source address.','rackbacking',{rackBackingMode:'uses',filter:'gaps'}]]:[]),
       ['Indexed source occurrences',indexedUses.length,'Symbolic selectors, unknown-role fields and unsupported forms remain distinct. A parsed selector alone does not establish a runtime element.','instructioncontext',{filter:'indexed'}],
       ['Sequence transition gaps',sequenceConditions.filter(sequenceConditionGaps).length,'Inspect the preserved transition and reference dispositions; unsupported syntax remains parser work.','sequenceconditions',{filter:'gap'}],

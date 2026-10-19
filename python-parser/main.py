@@ -1,3 +1,8 @@
+"""Retained standalone inspection prototype.
+
+Normal project use starts at ``run-work-check.sh`` or ``plc_workbench.cli``.
+This older explorer keeps its original command-line interface for reference.
+"""
 from __future__ import annotations
 
 import argparse

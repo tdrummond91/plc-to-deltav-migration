@@ -1,0 +1,2364 @@
+# Codex handoff: PLC analysis workbench
+
+For current progress and the remaining run estimate, read the
+[pre-team-review tracker](../../../../planning/PRE_TEAM_REVIEW_TRACKER.md) first.
+Update its checklist and estimate ledger after every returned work-machine run.
+
+Current checkpoint (2026-10-19): **C14 validated; reports ready for review**.
+
+Return `adc5475`, testing clean `a53ca67`, passes all 2,103 application cases
+(two expected skips) and 139 helpers. All 61 historical reports validate and
+replay exactly. All 28 non-assembly summary families and frozen sample envelopes
+are unchanged. The complete assembly scan retains 55,230 memberships across
+7,580 groups, including 1,029 rack-qualified memberships; signal and SFC
+exclusions are zero. Only two dynamic calculation destinations and one dynamic
+file address remain excluded.
+
+The tracker records **fourteen completed cycles and zero further normal
+work-machine cycles planned before review**. R3 and R4 close for presentation
+of this tested export. Original partial statuses, opaque transfers and source
+limits remain visible; engineering interpretations are still unreviewed.
+Independent audit found no further concrete parser omission requiring another
+normal run. Do not reopen the run loop without new evidence or a specific defect.
+
+Tyler's next action is to open the existing latest private `review.html`, check
+readability/navigation/appearance, then involve the engineering team. No code
+reading or parser rerun is required. Preserve report/run and record IDs with
+feedback. Missing source, vendor/exporter semantics, runtime values and target
+design decisions have separate questions; the editable correction workflow,
+PCSD and FHX remain later phases. Work-PC Git transport remains manual.
+
+Read [the readiness assessment](../../../../reviews/PHASE_1_READINESS_REVIEW.md) and
+[report guide](../../../../reviews/REPORT_REVIEW_GUIDE.md). Preserve the known unresolved-view wording caveat about
+base rack bindings versus qualified correspondence. Resume implementation from
+specific review findings or new source evidence, not another unchanged-source run.
+
+## Historical C13 grouping checkpoint
+
+Historical checkpoint (2026-10-19): **C13 audited; cross-rung rack associations prepared for C14**.
+
+Return `c67be2e`, testing clean `eebe469`, passes 2,074 application cases
+(two expected skips) and 139 helpers. All 60 historical reports validate and
+replay exactly. All fifteen rack declarations, 94 addresses, 319 RLL uses and
+four SFC uses associate. All 28 preceding summaries and frozen samples are
+unchanged; no new raw sample is needed.
+
+Independent audit found that assemblies2 does not consume those qualified rack
+identities, and miscounts literal/system-flag guard inputs as binding failures.
+It also drops 41 already-exact guard links when their sixteen rack output
+targets are excluded. These are implementation gaps, not engineering questions.
+
+Assemblies3 joins qualified rack occurrences by exact backing-tag/suffix
+identity and retains per-membership source proof. Known non-address values
+have separate counts. Forward and reverse source links expose related outputs;
+original bindings, conditions, signal and SFC providers remain unchanged.
+Work53/review35/manifest38 retain sixteen artifacts, 144 KiB public reports and
+472/504 MiB review JSON/HTML limits. Reusable defaults and historical schemas
+remain replayable. Current work/CLI selects the full bundle with assemblies3.
+
+C14 must reconcile recovered predicates, output targets, guard memberships and
+four SFC references, plus known non-address skips. Do not equate all 2,136
+historical signal exclusions with missing rack associations. Inspect every
+remaining exclusion and scan limit; preserve every unrelated summary and the
+complete frozen sample envelope. Source-only grouping does not establish
+physical wiring, live flow, engineering identity or shutdown behavior.
+
+The tracker records **thirteen completed cycles and one remaining centrally
+(range one to two), fourteen total**. This explicit extension addresses the
+newly confirmed downstream omission. R3/R4 remain open pending C14 validation.
+Work-PC transport remains manual: pull, run the script, then push its local
+feedback commit. Existing reports are readable without another run; team
+review remains pending the completion gates.
+
+Read [the C13 audit and C14 validation](../../../../reviews/RACK_ASSEMBLY_REVIEW.md). Continue local investigation
+until the next work-PC run or a genuine source question is required.
+
+## Historical rack source correspondence checkpoint
+
+Historical checkpoint (2026-10-19): **C12 audited; rack source correspondence prepared for C13**.
+
+Return `a5ccae8`, testing clean `a58f3c0`, passes 2,045 application cases
+(two expected skips) and 139 helpers. All 59 historical reports validate and
+replay exactly. The AOI condition proof now qualifies; all 76 routine calls
+associate with captured target contents, including fourteen SFC callees with
+no captured interface declaration. All fifteen rack declarations qualify for
+the captured Slot layout. Source populations, all 104 signal fields, 46 PID
+incoming links, assembly evidence and frozen samples remain unchanged.
+
+The new `include_rack_backing_context=True` requires the preceding residual
+bundle and selects review34 / manifest37 / work52. It adds an independently
+qualified rack source-address overlay with RLL and SFC occurrence links.
+Original bindings, conditions and groups remain unchanged. Exact captured
+module/adapter/declaration/Slot/member evidence is required; physical wiring,
+active values and runtime execution are outside this proof. Sixteen private
+artifacts and the 144 KiB public envelope remain; the additional private
+companion allows 8 MiB. No additional plant samples are requested.
+
+The report now exposes rack declarations, addresses and individual uses, joins
+SFR target dossiers, and opens the exact unresolved population selected by a
+count. GSV `?`, call-field semantics and outgoing control flow retain precise
+source/vendor boundaries. Do not infer undocumented control transfer rules.
+
+C13 must reconcile 319 RLL candidate uses / 94 addresses / eleven used roots,
+fifteen declarations and four SFC gaps; inspect every non-associated result.
+Expect the independent overlay to add evidence without changing prior summary
+families. Audit saved reports, scan/resource limits, all historical reports and
+the complete frozen-sample envelope before deciding whether R3/R4 can close.
+
+The tracker records **twelve completed cycles and one remaining centrally
+(range one to two), thirteen total**. R3/R4 remain open and team review is not
+requested yet. Work-machine transport remains manual: pull, run the script,
+then push its locally committed report.
+
+Read [the C12 audit and C13 validation](../../../../reviews/RACK_SOURCE_MAPPING_REVIEW.md). Continue local investigation
+until the next work-PC run or a genuine source question is required.
+
+## Historical residual source diagnostics checkpoint
+
+Historical checkpoint (2026-10-19): **C11 audited; residual source diagnostics prepared for C12**.
+
+Return `908873f`, testing clean `3a4d997`, passes 1,995 application cases (two
+expected skips) and 139 helpers. All 58 historical reports validate and replay.
+All 46 PID incoming links are restored. Six generic MSG services are recognized;
+all 104 signal fields and the frozen six-example/eight-reserved-unit envelope
+are unchanged. Rack evidence exposes a different family/layout than the initial
+Data-array probe, and AOI help/revision metadata explains its first rejection.
+
+The new opt-in `include_residual_diagnostics=True` selects condition6,
+execution3 and rack summary2 under review33 / manifest36 / work51. It requires
+`include_control_interpretation=True` and the preceding bundles. The current
+CLI/work entry points select this chain; reusable defaults and old schemas stay
+replayable. Sixteen private artifacts, public 144 KiB, and manual work-PC Git
+transport remain. No additional source samples are requested.
+
+C12 must return precise AOI/GSV gap categories, SFC declared-interface outcomes
+for the fourteen SFC callees, and joint rack direction/catalog/representation/
+layout counts. Preserve the restored 46 PID links and unrelated evidence. Then
+implement any source-supported remaining rules and finish report verification.
+The tracker records **eleven completed cycles and two remaining centrally
+(range one to three), total thirteen**. This explicit third extension is for
+rack layout identification before mapping, not a reset of prior cycles. R3/R4
+remain open; team classification/readability review is not requested yet.
+
+Read [the C11 audit and next checks](../../../../reviews/RESIDUAL_DIAGNOSTICS_REVIEW.md). Continue through local investigation,
+tests and review until a work-PC run or a genuine source question is required.
+
+## Historical control interpretation checkpoint
+
+Historical checkpoint (2026-10-19): **R3 control interpretation and R4 verification**.
+
+Return 883002a validates clean 7dcc4fa: 1,920 application cases (two expected
+skips), 139 helpers, and all 57 historical public reports pass. Condition4
+resolves 106 transfers; all 27 MSG configurations classify; four named AOI
+members link. Source/access populations, all 104 signal fields, memberships
+and frozen samples remain unchanged. A PID reader regression dropped 46
+incoming condition links and added one partial assembly provider.
+
+The current bundle repairs that reader under PID connections2 and adds
+condition5 bounded AOI EnableOut proof/GSV failure diagnostics, execution2
+exact routine-content and lexical argument context, and communication3 explicit
+generic-service selector interpretation. Review32/manifest35/work50 keep sixteen
+artifacts and the 128 KiB public limit. The combined opt-in is
+`include_control_interpretation=True`, requiring the preceding residual bundle; reusable defaults and
+historical replay remain supported. Work-PC pull/push remain manual.
+
+Independent readiness review found rack backing still uninvestigated beyond
+logical candidates. Work50 now includes fixed joint diagnostic counts from the
+captured module/adapter/backing shape; no raw configuration is shared. The
+tracker records ten completed cycles and two remaining centrally (range one to
+three), an explicit extension to twelve because that investigation was omitted.
+C11 informs the rack rule/source-boundary work planned for C12. R3 and R4 are
+open. Do not ask for team classifications before source investigation and
+report verification are complete. No additional plant sample is requested.
+
+Next return must restore 46 PID incoming links, explain the one GSV disposition,
+check the AOI proof outcome, reconcile the 76 call boundaries/164 argument
+fields and six generic services, reconcile rack diagnostics against 11 rack
+connections/15 declarations, and preserve all unrelated coverage and frozen
+samples. Inspect the same export's saved report/scan/resource results against
+the completion gate. Source omissions, runtime choices and engineering design
+remain distinct from unfinished parser work.
+
+Read [the audit and implementation](../../../../reviews/CONTROL_INTERPRETATION_REVIEW.md) and [the reader guide](../../../../reviews/REPORT_REVIEW_GUIDE.md). Local test, capacity and browser evidence
+is recorded in the current review; update that record and the tracker after C11.
+
+## Historical residual interpretation checkpoint
+
+Historical checkpoint (2026-10-19): **R3 residual interpretation**.
+
+Return `31cc08b` validates clean `dad1f6d`: 1,848 application cases (two expected
+skips), 139 helpers and all 56 historical public reports pass. All 78 omitted
+sequence/file memberships are recovered (54,201 total, 7,486 groups). All 27
+MSG occurrences link to stored parameters; local fields are 21 LocalElement
+and six DestinationTag, with two produced-tag metadata records. Prior summary
+families and frozen six-example/eight-reserved-unit samples are unchanged.
+
+The next bundle adds condition4 documented output propagation and residual
+opcode/guard diagnostics, communication2 configured families/methods/local
+roles, and AOI body2 exact named parameter-member links and call-field counts.
+Review31/manifest34/work49 preserve sixteen private artifacts. Work49 uses a
+128 KiB closed public envelope; historical report caps remain unchanged.
+Reusable defaults remain historical; `include_residual_interpretation=True`
+selects the complete new interpretation chain. Work-PC Git transport stays
+manual, with only validated report commits local to the script.
+
+Local validation caught and repaired the public writer's missing work49 cap
+and stale current-CLI/test fixtures. Focused retests pass: 48 work-check, 32
+workflow and 15 publication/integration cases, plus guarded CLI checks. The
+full 2,205-case run was not repeated after those repairs; its original outcome
+and the successful synthetic capacity checks are recorded in the current review.
+
+The tracker records nine completed cycles and two remaining centrally (range
+one to four), an explicit one-cycle extension beyond the original ten-cycle
+budget. R3 capture succeeded, but source-supported interpretation rules needed
+another bundle. JSR/SBR/RET, SFR and AOI outgoing behavior still require explicit
+investigation. Neutral RLL/ST call signatures differ in the import/export
+manual; do not silently treat the second JSR field as a validated InputCount.
+No new plant excerpt or team classification feedback is requested.
+
+Next: validate the returned condition populations, MSG catalogue/unique-owner
+counts and AOI associations; audit condition-dependent downstream deltas while
+keeping source/access classifications and frozen samples stable. Then finish
+remaining R3 investigations and R4 report/readiness verification. Read
+[the current scope, evidence and validation](../../../../reviews/RESIDUAL_INTERPRETATION_REVIEW.md) before continuing.
+
+## Historical residual source context checkpoint
+
+Historical checkpoint (2026-10-18): **R3 residual source context**.
+
+Return `cdad803` validated clean `158868d`: 1,786 application cases (two
+expected Windows skips) and 139 helpers passed. All 55 historical work reports
+validate. All 25 preceding summaries, 104 signal coverage fields and the frozen
+six-example/eight-reserved-unit sample envelope are unchanged. Assemblies1
+completed all scans: 54,123 memberships, 7,408 groups, 3,759 spanning rungs and
+1,527 spanning providers. This closes R2. The tracker records eight completed
+cycles and two remaining (range one to four), including the next R3 run.
+
+This bundle adds assemblies2 supplemental exact SFC/file addresses and
+communication1 source context. Review30/manifest33/work48 retain sixteen private
+artifacts. The new Communication context view links MSG calls to stored
+parameters and local root candidates while keeping remote fields separate.
+Unresolved analysis reconciles base gaps with captured context and explicitly
+keeps unfinished condition/parameter semantics as parser investigation.
+
+Expected same-export grouping delta: +78 memberships (74 SFC, four file),
+missing-address exclusions 78 -> zero; unresolved bindings and dynamic selectors
+remain excluded. The next return must also establish MSG association and local
+endpoint dispositions, produced/consumed metadata, resource use and preservation
+of prior evidence. No new plant sample or team feedback is requested.
+
+R3 is still open. Its residual ledger includes condition-transfer rules, AOI/call
+parameter mapping and MSG direction/protocol interpretation; extra source context
+is not semantic closure. Keep those visible and investigate remaining useful
+source-supported rules before R4 readiness. Git transport remains manual and the
+listener remains disabled. See [scope, residual ledger and validation](../../../../reviews/RESIDUAL_SOURCE_REVIEW.md).
+
+Release validation passed 1,844 application cases (two expected Windows skips)
+and 139 helpers. The full rehearsal exposed a stale sample-history read limit;
+the narrow repair passed 40 guarded focused cases (one expected skip) and two
+fresh canonical saved analyses. Frozen samples, 25 prior summaries, 104 signal
+fields and fifteen non-review artifacts are unchanged. The CLI and invented
+demo match, independent review is clear, and the launcher made one local commit
+with zero Git network calls. Run the ordinary work-PC check next.
+
+## Historical exact-address engineering assemblies checkpoint
+
+Historical checkpoint (2026-10-18): **R2 exact-address engineering assemblies**.
+
+Return `d6c5fc1` validated clean `f5399e6`: 1,743 application cases (two
+expected Windows skips) and 139 helpers passed. All 54 work reports validate.
+All 4,163 candidate scans completed; 2,296 outputs retained 4,969 exact pairs.
+The 24 preceding non-signal summaries, 92 prior signal fields and frozen
+six-example/eight-reserved-unit sample record are unchanged. This closes R1.
+The tracker now records seven completed cycles and three remaining (range two
+to five), including the next R2 run. R2 is still open pending its export return.
+
+Engineering assemblies1 joins qualified occurrences by exact relationship
+address across signal guards, PID slots/address uses, calculations,
+timer/counter members, SFC conditions and file operations. Cross-rung groups
+shows captured roles, related rungs, source/edit context and original evidence
+links. Competing writers, branches, unknown roles and missing source remain
+explicit; a source group does not establish physical equipment or execution.
+Review29/manifest32/work47 retain sixteen private artifacts and closed counts.
+
+Release checks passed 1,786 application cases (two expected Windows skips),
+139 helpers, final 43 new production cases, eleven DOM cases and independent
+review. The final capacity-only adjustment passed targeted regressions and
+fresh canonical saved runs. All 25 preceding summaries and fifteen non-review
+artifacts are unchanged; two final saves, the CLI and the invented demo agree.
+The launcher made one local feedback commit and zero Git network calls.
+
+The next ordinary work-machine run must measure assembly coverage by provider,
+relation, boundary and gap, plus complete/truncated scans and the byte/visit
+budget. Compare all 25 preceding summaries (including 104 signal coverage
+fields) and the frozen sample envelope before closing R2. R3 then investigates residual source-supported gaps, including
+exact file slots absent from the base address universe and MSG payload context.
+Do not treat unimplemented rules as engineer-only questions. R4 owns final
+report readiness and the review guide. No team review or new plant sample is
+needed now. Git transport stays manual and the listener remains disabled.
+
+See [scope and validation](../../../../reviews/ENGINEERING_ASSEMBLIES_REVIEW.md).
+
+## Historical grouped source candidate checkpoint
+
+Historical checkpoint (2026-10-18): **Grouped source candidates and consolidated block evidence**.
+
+Return `b9240c8` tested clean `1b78327`: 1,707 application cases (two expected
+Windows skips) and 139 helpers passed. All 53 historical reports validate.
+The 24 non-signal summaries, 76 preceding signal fields and frozen sample
+allowance are unchanged. All 4,163 dependency scans completed without truncation,
+retaining 15,082 forward and 12,269 qualified reverse associations. Work-check
+finished in 13:46.631, almost unchanged from the preceding run.
+
+Signal5 groups exact condition/output pairs using qualified authored wording
+or module-root evidence. Every pair retains occurrence identity and its original
+guard; alias attribution, source edits, branches and unknown transfers remain
+explicit. Engineering analysis now joins specialized block context without
+promoting unknown operand roles or changing base classifications.
+Review28/manifest31 keeps sixteen artifacts; work46 returns closed counts.
+
+Release verification: 1,743 application cases (two expected Windows skips),
+139 helpers and 36 guarded new production cases passed. Independent review,
+final DOM/browser checks and the 4,606-rung invented capacity probe passed.
+The launcher made one local report commit and zero Git network calls. Final
+review corrections passed targeted checks and two fresh canonical saved runs.
+The 24 non-signal summaries, 92 preceding signal fields, fifteen non-review
+artifacts and all 53 historical reports remain unchanged. Both invented reports
+reproduce through the CLI; final runtime/test files match the verified snapshot.
+
+The next work-machine run measures these candidate intersections and any
+incomplete scans. No additional plant sample or manual team review is required.
+This remains Phase 1. Git transport is manual and the listener stays disabled.
+
+See [scope and validation](../../../../reviews/SIGNAL_CANDIDATES_REVIEW.md).
+
+## Historical guard dependency checkpoint
+
+Historical checkpoint (2026-10-17): **Guard dependencies and bounded source trails**.
+
+Return `d9eca23` tested clean `8f63a10`: 1,672 application cases (two expected
+Windows skips), plus 139 helpers, with no failures or errors. All 52 historical
+reports validate. All 24 preceding summaries and the frozen six-example/eight-unit
+sample envelope are unchanged. The explicit alarm scan covered 83,942 XML elements,
+7,035 entities and 11,117 data contents, finding zero supported declarations,
+containers or elements and zero capture gaps. This does not exclude Boolean or
+external HMI alarms. Total work-check time was 13:39.137, up 27.629 seconds,
+mostly in application tests.
+
+Signal4 saves direct output-guard operand associations and qualified reverse
+address indices. The report adds bounded upstream/downstream source trails,
+retaining branches and distinguishing cycles from shared destinations. Traces
+stop at competing writers, stateful/unknown logic, unresolved references and
+source-content boundaries. No execution, shutdown or physical pairing is inferred.
+Review27/manifest30 retains sixteen artifacts; work45 returns closed counts.
+
+Release verification passed 1,707 application cases (two expected Windows skips),
+139 helpers, 35 guarded new cases and 76 development workflow cases. Independent
+review, browser/DOM checks and a 4,606-rung invented capacity probe passed.
+All 24 non-signal summaries, 76 preceding signal fields and fifteen prior
+non-review artifacts are unchanged. The actual launcher made one local feedback
+commit and zero Git network calls. Two canonical saved runs and the CLI agree;
+all 242 runtime/asset/test files match the tested snapshot.
+
+The next ordinary work-machine run measures dependency populations and any
+truncation. No new plant sample or manual team review is required. This remains
+Phase 1; equipment/alarm interpretation, residual source gaps and report
+consolidation remain. Git transport stays manual and the listener stays disabled.
+
+See [scope and validation](../../../../reviews/SIGNAL_DEPENDENCIES_REVIEW.md).
+
+## Historical explicit alarm checkpoint
+
+Historical checkpoint (2026-10-17): **Explicit alarm source evidence**.
+Return `0c1e6d3` tested clean `1462800`: 1,627 application cases passed (two
+expected Windows skips), plus 139 helpers. All 51 historical reports validate.
+The 23 preceding non-signal summaries, all 55 signal2 coverage fields and the
+frozen sample envelope are unchanged. Authored wording links 1,073 qualified
+field associations to 1,072 addresses and 873 outputs. All 5,064 scans completed
+without description gaps or truncation. The 88 alarm-worded outputs remain
+lexical leads. Parsed RLL contains no ALMA/ALMD/ASO occurrences; other alarm
+sources are not ruled out. Total work-check time was 13:11.508, up 31.350 seconds,
+mostly application tests.
+
+Alarm evidence1 captures explicit typed declarations, tag-based conditions,
+definition templates, messages and exported settings with source locations and
+qualified/gap distinctions. It does not expand templates, bind relative inputs,
+select effective values or infer shutdown behavior. Review26/manifest29 retains
+sixteen artifacts; work44 returns closed counts. See [scope and validation](../../../../reviews/ALARM_EVIDENCE_REVIEW.md).
+
+Release verification passed 1,672 application cases (two expected Windows
+skips), 139 helpers, 45 guarded new production cases and 76 development
+workflow cases. Independent review, invented capacity, browser/DOM and
+canonical artifact checks passed. All 24 preceding summaries and fifteen
+non-review artifacts are unchanged. The script made one local report commit
+and zero Git network calls. The final renderer reproduces through the CLI.
+
+The next ordinary work-machine run measures these explicit source populations
+and their gaps. No new plant sample or manual team review is required. This
+remains Phase 1; equipment relationships, residual gaps and report consolidation
+remain. Git transport stays manual and the listener remains disabled.
+
+## Historical authored wording checkpoint
+
+Historical checkpoint (2026-10-17): **Authored signal wording attribution**.
+Return `8a6d7fb` tested clean `16d2c9b`: 1,597 application cases passed (two
+expected Windows skips), plus 139 helpers. All 50 historical reports validate.
+The 23 non-signal summaries, preceding signal fields and frozen samples are unchanged.
+There are 2,213 outputs with self contacts, 446 with timer contacts and 1,085
+same-content set/reset groups. All 4,163 guard scans completed without truncation.
+Total work-check time was 12:40.158, up 9.311 seconds, mostly in tests.
+
+Signal3 attributes alarm/equipment/sensor wording to individual declaration
+fields and exact source uses. Root-wide descriptions, aliases and missing or
+unqualified text remain distinct. Output dossiers exclude reader-only alias
+wording. Review25/manifest28 retains sixteen artifacts; work43 returns closed
+counts. See [scope and validation](../../../../reviews/SIGNAL_AUTHORED_REVIEW.md).
+
+The release rehearsal passed 1,627 application cases (two expected Windows skips),
+139 helpers and 76 development workflow cases. All 30 new cases passed under
+process/socket guards and independent review. Browser/DOM checks, full-scale
+invented capacity, canonical artifact comparisons and CLI demo reproduction
+passed. The script made one local report commit and zero Git network calls.
+
+The next ordinary work-machine run measures this attribution and its source gaps.
+No new plant sample or manual team review is required. This remains Phase 1;
+explicit alarm evidence, equipment relationships and report consolidation remain.
+Git transport stays manual and the listener remains disabled.
+
+## Historical Boolean contact and coil pattern checkpoint
+
+Historical checkpoint (2026-10-17): **Bounded Boolean contact and coil patterns**.
+Return `0e7d011` tested clean `764b521`: 1,569 application cases passed (two
+expected Windows skips), plus 139 helpers. All 49 historical reports validate.
+All 23 preceding summaries and the frozen six-example envelope are unchanged.
+File operations account for 95 operations and 294 slots without new gaps.
+Total work-check time was 12:30.847, up 41.111 seconds across analysis, saving,
+summary construction and tests.
+
+Signal2 adds same-content set/reset groups, exact self XIC/XIO guard contacts,
+and qualified TIMER EN/TT/DN contacts. Each writer keeps its original guard
+and source edit. These are source patterns without seal-in, delay, shutdown
+or execution-order claims. Review24/manifest27 keeps sixteen artifacts; work42
+returns closed counts. See [scope and validation](../../../../reviews/SIGNAL_PATTERNS_REVIEW.md).
+
+The release rehearsal passed 1,597 application cases (two expected Windows
+skips), 139 helpers and 76 development workflow cases. All 28 new production
+cases passed under process/socket guards. Independent review, Chrome/DOM checks,
+capacity testing, canonical artifact comparisons and CLI demo reproduction
+passed. The launcher made one local report commit and zero Git network calls.
+
+The next ordinary work-machine run measures these patterns and any bounded
+traversal gaps. No new source sample or team feedback is required. Git transport
+stays manual, the listener stays disabled, and this remains Phase 1. More precise
+alarm/equipment evidence and report consolidation remain ahead.
+
+## Historical file and array operation checkpoint
+
+Historical checkpoint (2026-10-17): **File and array operation evidence**.
+Return `f2165d5` tested clean `fb49ecf`: 1,532 application cases passed (two
+expected Windows skips), plus 139 helpers. All 48 historical reports validate.
+All 22 preceding summaries and the frozen six examples are unchanged.
+Signal analysis captured the predicted 12,741 condition slots, 5,064 exact
+signal addresses and 4,163 output occurrences. The private run saved; total
+work-check time was 11:50, about a minute longer than the previous run.
+
+Review23/manifest26 adds COP/CPS, AVE, FAL and SQO source operations, their
+slots, symbolic selectors, arithmetic expressions and separate stored control
+data. Work41 returns closed counts; sixteen private artifacts remain.
+Expected private-source intake is 95 operations and 294 slots, including
+three previously mnemonic-only blocks. See [scope and validation](../../../../reviews/FILE_OPERATIONS_REVIEW.md).
+
+This bundle passed 1,569 application cases (two expected Windows skips),
+139 helpers and 76 development workflow cases. All 37 new cases passed under
+process/socket guards. Artifact and prior-summary comparisons passed; the
+invented report reproduces exactly through the CLI. DOM navigation checks passed;
+visual browser QA remains pending because no browser was available.
+
+The next ordinary work-machine run measures this bundle. No new plant samples
+or manual team review are requested. Git transport stays manual and the listener
+stays disabled. This remains Phase 1; stronger Boolean patterns and precisely
+attributed alarm/equipment interpretations follow the returned evidence.
+
+## Historical signal context checkpoint
+
+Historical checkpoint (2026-10-17): **Cross-rung signal context**.
+Return `2eb51d2` tested clean `cf6f785`: 1,500 application cases passed (two
+expected Windows skips), plus 139 helpers. All 47 historical reports validate.
+All 21 preceding summaries and the frozen six examples are unchanged.
+All 76 JSR calls have unique target candidates; three program schedule/main
+links resolve. Eleven call/control guards contain stored-state conditions.
+Total work-check time was 10:47, about seven seconds longer than the prior run.
+
+Review22/manifest25 adds all predicate-input occurrences, exact-address dossiers
+and bounded navigation between source conditions and individual output guards.
+Timer/counter members and rung-wide hints remain typed contextual evidence.
+Work40 adds closed counts; sixteen private artifacts remain.
+See [scope and validation](../../../../reviews/SIGNAL_CONTEXT_REVIEW.md).
+
+This bundle passed 1,532 application cases (two expected Windows skips),
+139 helpers and 76 development workflow cases. All 32 new cases passed with
+subprocess/socket creation blocked. Browser checks, canonical capacity testing,
+artifact comparisons and all 22 preceding summary comparisons passed.
+
+The next ordinary work-machine run measures the expanded signal population.
+No new plant samples or manual team review are requested. Git transport stays
+manual and the listener stays disabled. This remains Phase 1; further equipment,
+alarm and unresolved-path analysis follows the returned evidence.
+
+## Historical execution context checkpoint
+
+Historical checkpoint (2026-10-17): **Source-declared execution context**.
+Return `4eca393` tested clean `d3a5ec6`: 1,469 application cases passed (two
+expected Windows skips), plus 139 helpers. All 46 historical reports validate.
+All 21 analysis summaries and the frozen six examples are unchanged.
+Analysis, private saving and summary generation together improved by 38.779 s
+(9.1%); tests took 34.904 s longer, leaving total time nearly flat at 10:40.
+
+Review21/manifest24 adds task and program declarations, schedule candidates,
+main/fault designations, routine-call incoming conditions and local control
+boundaries. Work39 returns closed counts; sixteen private artifacts remain.
+See [scope and validation](../../../../reviews/EXECUTION_CONTEXT_REVIEW.md).
+
+This bundle passed 1,500 application cases (two expected Windows skips),
+139 helpers and 76 development workflow cases. Browser checks and artifact/summary
+comparison against the previous revision passed.
+
+The next ordinary work-machine run measures this context on the private source.
+No new plant samples or manual team review are requested. Git transport stays
+manual and the listener stays disabled. Equipment command/feedback and alarm
+relationships follow after the returned evidence is checked; this remains Phase 1.
+
+## Historical source reuse checkpoint
+
+Historical checkpoint (2026-10-17): **Bounded source reuse during work checks**.
+Return `0b5a9d9` tested clean `51202a8`: 1,448 application cases passed (two
+expected Windows skips), plus 139 helpers. All 45 historical reports validate.
+Twenty earlier summaries, sequence context coverage and the frozen six
+examples are unchanged. Four unresolved sequence occurrences trace through
+two aliases with two lexical rack-input candidates; bindings remain unresolved.
+
+Measured total time was 10:44: tests 3:38, analysis 2:09, private saving 2:42,
+and summaries 2:14. Protected XML and inventory templates are now reused only
+inside one work-check analysis, with fresh mutable copies and a 128 MiB
+retention limit. Canonical comparisons remain in place. Work38 and the private
+review20/manifest23 contracts stay unchanged. See [scope and validation](../../../../reviews/SOURCE_REUSE_REVIEW.md).
+
+The next ordinary work-machine run measures the effect on the private source.
+No new samples or manual team review are needed. Git transport stays manual;
+the listener stays disabled. Source-declared task and routine-call context
+comes next, supporting later equipment/alarm grouping; this remains Phase 1.
+
+## Historical timing and alias diagnostic checkpoint
+
+Historical checkpoint (2026-10-16): **Work-check timing and sequence alias diagnostics**.
+Return `d9df280` tested clean `0ee009a`: 1,426 application cases passed (two
+expected Windows skips), plus 139 helpers. All 267 bound transition references
+have qualified exact-address context; four unresolved references are alias-chain
+gaps. There are 167 distinct addresses and 39 bound step candidates (32 in the
+same chart content and seven in peer charts). All twenty preceding summaries
+and the frozen six examples are unchanged; all 44 historical reports validate.
+
+Work38 measures six workflow stages and adds closed alias-failure/rack-hint
+counts to SFC context summary2. The private evidence and review20/manifest23
+stay unchanged, with sixteen saved artifacts. See [scope and validation](../../../../reviews/WORK_CHECK_TIMING_REVIEW.md).
+
+The next ordinary work-machine run identifies the expensive stages and narrows
+the four alias gaps. No additional source examples or manual team review are
+requested. Git transport stays manual and the listener stays disabled. This
+remains Phase 1; equipment, alarm and execution-context analysis continues
+after the returned evidence is checked.
+
+## Historical sequence relationship checkpoint
+
+Historical checkpoint (2026-10-16): **Sequence reference relationships**.
+Return `e8a328e` tested clean `57e9bf6`: 1,386 application cases passed (two
+expected Windows skips), plus 139 helpers. All 155 transition conditions parsed;
+267 of 271 reference occurrences bind and four remain unresolved. There were no
+unsupported expression forms. All nineteen preceding summaries and the frozen
+six examples are unchanged; all 43 historical feedback reports validate.
+
+Review20/manifest23 connects transition reference occurrences to qualified
+exact ladder uses and chart-step candidates, while retaining source-only hints
+for binding gaps. Work37 adds closed diagnostic counts and keeps sixteen saved
+artifacts. See [scope and validation](../../../../reviews/SFC_CONTEXT_REVIEW.md).
+
+The next ordinary work-machine run measures these relationships and narrows
+the four unresolved reference occurrences. No new plant samples or manual team
+review are requested. Git transport stays manual and the listener stays
+disabled. Further equipment, alarm and execution-context analysis follows the
+returned evidence; this remains Phase 1.
+
+## Historical sequence expression checkpoint
+
+Historical checkpoint (2026-10-16): **Sequence transition expressions**.
+Return `3547344` tested clean `a6840f4`: 1,338 application cases passed (two
+expected Windows skips), plus 139 helpers. All 485 timer/counter/reset targets
+bind, all 48 resets match producers, and all 436 control objects have stored
+data. Eighteen earlier summaries and the frozen six samples are unchanged;
+all 42 historical feedback reports validate.
+
+Review19/manifest22 adds source-linked transition expressions, comments and
+reference bindings, with explicit unsupported and missing-condition cases.
+Work36 returns closed counts while retaining sixteen saved artifacts.
+See [scope and validation](../../../../reviews/SFC_CONDITIONS_REVIEW.md).
+
+The next ordinary work-machine run measures coverage of 155 transition
+conditions across 14 charts. No new plant samples or manual engineering/team
+review are requested. Git transport stays manual and the listener stays
+disabled. The returned syntax and binding gaps guide further sequence analysis.
+
+## Historical timer/counter checkpoint
+
+Historical checkpoint (2026-10-16): **Timers, counters and resets**.
+Return `19ccaee` tested clean `5ae8b6d`: 1,295 application cases passed (two
+expected Windows skips), plus 139 helpers. Boolean output context accounts for
+all 4,163 coil occurrences and 2,978 qualified exact targets, with 6,071 predicate
+reads. Multiple coil writers occur on 1,126 addresses; 315 have no captured
+explicit RLL reader, which does not prove they are unused. Seventeen previous
+summaries and the frozen six samples are unchanged; all 41 reports validate.
+
+Review18/manifest21 adds timer/counter/reset control associations, incoming
+source conditions, explicit member uses and exported stored-data context.
+Work35 returns closed counts while retaining sixteen saved artifacts.
+See [scope and validation](../../../../reviews/STATEFUL_OBJECTS_REVIEW.md).
+
+The next ordinary work-machine run measures this bundle. No new plant samples
+or manual engineering/team review are requested. Git transport stays manual and
+the listener stays disabled. Sequence-transition text is the next planned broad
+analysis bundle after returned evidence is checked.
+
+## Historical Boolean-output checkpoint
+
+Historical checkpoint (2026-10-16): **Boolean output context**.
+Return `48dcd22` tested clean `2105ce3`: 1,254 application cases passed (two
+expected Windows skips), plus 139 helpers. All 2,138 selected calculation blocks
+are accounted for, including 1,294 in branched rungs; two destinations remain
+unresolved. One possible local reuse link was found. All sixteen preceding
+summaries and the frozen six examples are unchanged; all 40 reports validate.
+
+Review17/manifest20 adds shared target-use evidence for the 4,163 coil
+occurrences, declaration direction, competing writers, condition readers and
+rung-scoped authored hints. The report follows actual condition-graph links,
+without inferring execution, physical channels or shutdown behavior. Work34
+returns closed counts while retaining sixteen saved artifacts.
+See [scope and validation](../../../../reviews/OUTPUT_CONTEXT_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new plant
+samples or manual engineering/team review are requested. Git transport stays
+manual and the listener stays disabled.
+
+## Historical calculation-path checkpoint
+
+Historical checkpoint (2026-10-16): **Calculation inputs and destinations**.
+Return `693e419` tested clean `f4f704d`: 1,216 application cases passed (two
+expected Windows skips), plus 139 helpers. All 46 PID controls and 322 slots
+are accounted for; 515 exact addresses include 333 referenced direct members.
+All master operands are literals, so no explicit master-reference candidates
+were found. Fifteen earlier summaries and the frozen six examples are unchanged;
+all 39 historical reports validate.
+
+Review16/manifest19 adds source-linked math/move records inside straight
+segments and branch legs, with incoming conditions and possible local result
+reuse. Forks, joins, unsupported blocks and stateful operations stop links.
+Work33 returns closed counts while retaining the sixteen saved artifacts and
+all earlier analysis semantics. See [scope and validation](../../../../reviews/CALCULATION_PATHS_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new plant
+samples or manual engineering/team review are requested. Git transport stays
+manual and the listener stays disabled.
+
+## Historical PID connection checkpoint
+
+Historical checkpoint (2026-10-16): **PID connections and observed member uses**.
+Return `4018156` passed 1,183 application cases (two expected Windows skips) and
+139 helpers. The AOI body has two rungs and three classified calculation blocks,
+with no recorded context gaps. The single unmatched SFR address has one exact
+candidate in another chart; its original missing match remains unchanged.
+Thirteen earlier summaries and the frozen six-example record are unchanged;
+all 38 historical reports validate.
+
+Review15/manifest18 adds source-linked PID slot, member-use and master-reference
+context while retaining sixteen artifacts. Work32 returns the closed connection
+counts. Existing access4 and condition3 semantics remain unchanged.
+See [scope, evidence and validation](../../../../reviews/PID_CONNECTIONS_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new source
+samples or manual engineering/team review are needed. Git transport remains
+manual, and the listener remains disabled.
+
+## Historical AOI body checkpoint
+
+Historical checkpoint (2026-10-16): **AOI body ownership and unmatched SFR context**.
+Return `871b700` passed 1,128 application cases (two expected Windows skips) and
+139 helpers. All 133 ONS occurrences now have stored-state transfers; opaque
+coil guards fell from 59 to one. SFR target matching resolved 139 of 140 calls.
+Twelve earlier summaries and the frozen six-example record remain unchanged;
+all 37 historical reports validate.
+
+Review14/manifest17 adds AOI body and instance relationships plus SFR gap
+context, still with sixteen artifacts. Work31 returns their closed counts.
+See [scope, evidence and validation](../../../../reviews/AOI_BODY_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new source
+samples or manual engineering/team review are needed. Git transport remains
+manual, and the listener remains disabled.
+
+## Historical stored-state checkpoint
+
+Historical checkpoint (2026-10-15): **stored-state conditions and SFC reset targets**.
+Return `5215baa` passed 1,057 application cases (two expected Windows skips) and
+139 helpers, saved its private run and preserved all eleven earlier summaries.
+The unknown call has one matching AOI declaration; both dynamic write roots and
+their index reads bind. One unknown-role indexed operand remains deferred.
+All 36 historical reports validate and the six samples replay unchanged.
+
+Condition3 explains ONS storage dependence without selecting runtime values.
+SFR context links reset calls to program-local chart and step candidates while
+retaining edit revisions and unresolved matches. Review13/manifest16 retains
+sixteen artifacts; work30 returns the new SFR counts and updated condition counts.
+See [scope, evidence and validation](../../../../reviews/STATEFUL_SEQUENCE_REVIEW.md).
+
+The next ordinary work-machine run measures these changes; no new rung samples
+or manual engineering/team review are needed. Git transport remains manual and
+the listener remains disabled. AOI body/instance mapping is a recorded follow-up.
+
+## Historical instruction-context checkpoint
+
+Historical checkpoint (2026-10-15): **custom declarations and symbolic array selectors**.
+Returned `51315bd` tested clean `bfd53e1`: 991 application cases passed (two
+expected Windows skips), plus 139 helpers; private analysis saved, all eleven
+earlier summaries were unchanged, and all 35 historical reports validate.
+All six targeted cases were included, reserving eight units with the two earlier
+operand clues. The sample request is now frozen and replayed across reruns.
+
+Review12 adds declaration context for unknown-family blocks and symbolic context
+for indexed ordinary operands. The new records preserve unresolved effects and
+exact-address gaps while exposing declaration candidates, outer-root bindings
+and individual index reads. Work29 returns two additional count-only summaries;
+manifest15 retains sixteen artifacts. Existing analysis companions remain unchanged.
+See [scope, returned evidence and verification](../../../../reviews/INSTRUCTION_CONTEXT_REVIEW.md).
+
+The next normal work-machine run measures these two companions. It requires no
+new source samples or manual engineering/team review. Git transport stays manual,
+and the listener stays disabled. ONS state dependence and SFR sequence effects
+remain explicit follow-up analysis; neither is inferred from the new context.
+
+## Historical targeted-sample checkpoint
+
+Historical checkpoint (2026-10-15): **fixed targeted diagnostic rung examples**.
+Tyler confirmed the 2% limit counts new informative examples separately from
+older scrubbed structural catalogs. Small evidence-driven pulls are authorized;
+no per-case approval gate is needed within that boundary.
+
+Work28 adds a maximum six-rung request for two dynamic indexes, an unknown
+instruction, ONS/SFR condition gaps and a branched comparison/output pattern.
+Per-rung substitutions remove plant names and literal values. One bounded
+unknown mnemonic is an intentional diagnostic clue. Public history plus an
+ignored local reservation freeze the whole request across retries and changed
+exports; historical replay is explicitly marked. The old rotating operand
+sampler is disabled in work28. Earlier contracts remain readable.
+
+Returned `aed0fc4` tested clean `a12ada1`: 945 application cases passed (one
+expected skip), plus 139 helpers; the private run saved and all ten prior summaries
+were unchanged. All 303 predicate gaps and 16 unbound outputs have unique rack
+context, with two dynamic-index writes remaining. All 34 older reports validate.
+The next normal work-machine run collects targeted examples; no manual engineering
+or UI review is needed. See [selection, accounting and validation](../../../../reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
+Git transport stays manual and the listener stays disabled.
+
+## Historical binding-context checkpoint
+
+Latest return (2026-10-15): `aed0fc4` tested clean `a12ada1`; 945 application
+cases passed (one expected skip), plus 139 helpers, and the private run saved.
+All ten prior summaries are unchanged. The 303 predicate gaps and 16 unbound
+coil targets each have unique rack context: 319 uses, 94 candidate addresses,
+11 roots. Only two further binding gaps remain, both dynamic-index writes.
+All 34 historical reports validate. See the returned-result section in
+[BINDING_CONTEXT_REVIEW.md](../../../../reviews/BINDING_CONTEXT_REVIEW.md).
+
+Tyler reauthorized small targeted source-derived diagnostic pulls to investigate
+unclear patterns. Next work should collect representative cases rather than rely
+only on aggregate counters and invented tests. That checkpoint awaited the
+accounting clarification resolved above. No sampler
+or new disclosure had been implemented at that historical checkpoint.
+
+Historical checkpoint (2026-10-15): **binding gaps and logical rack context**.
+Returned `248b12a` tested clean `ef4ba8d`: 907 application cases passed (one
+expected skip), plus 139 helpers, with a saved private run. Nine earlier summaries
+are unchanged. Condition2 explains 2,718 instruction transfers; 459 remain opaque.
+Coil guards comprise 3,923 modeled, 181 with predicate gaps and 59 opaque.
+There remain 303 gap-bearing predicates and 16 unbound coil targets.
+
+Review11 adds a bounded binding-context index linking unresolved occurrences to
+source, alias chains, existing rack candidates and separate logical-address groups.
+All existing bindings and condition statuses remain unchanged; physical backing
+and member validity remain unverified. Manifest14 still has sixteen artifacts.
+Work27 adds a count-only context summary. See [scope and validation](../../../../reviews/BINDING_CONTEXT_REVIEW.md).
+
+The next normal work-machine run measures those per-occurrence associations.
+Continue Phase 1 automated analysis; no engineering/team review is requested yet.
+Git transport remains manual and the listener remains disabled.
+
+## Historical condition-transfer checkpoint
+
+Historical checkpoint (2026-10-15): **normal-scan instruction condition transfer**.
+Returned `b31392a` tested clean `78cf221`: 889 application cases passed (one
+expected skip), plus 139 helpers, and the private report saved successfully.
+All nine preceding summaries are unchanged after tool revision normalization.
+The first condition return accounts for all 4,163 coils: 3,920 modeled incoming
+guards, 181 with predicate binding gaps and 62 with opaque transfers; 16 targets
+remain unbound. This confirms recovery, without proving the earlier failure's cause.
+
+Condition2 preserves incoming context through 17 documented, signature-classified
+instruction spellings, including math, move, timer, counter and reset blocks.
+The report also exposes noncoil instruction contexts without requiring a downstream
+coil. Normal-scan condition transfer does not simulate effects or execution.
+Review10/manifest13 retains sixteen artifacts; work26 returns condition summary2.
+Earlier replay stays frozen. See [scope, sources and validation](../../../../reviews/CONDITION_TRANSFER_REVIEW.md).
+
+Continue Phase 1 automated analysis after the next normal work-machine return;
+no team review is requested. Git transport stays manual and the listener remains disabled.
+
+## Historical save repair checkpoint
+
+Historical checkpoint (2026-10-15): **condition report save repair**.
+Returned `e0b6b0c` tested clean `effa48f`: 870 application cases passed (one
+expected skip), plus 139 helpers, but returned `save_error` and no analysis
+summaries. The private failure cause remains unconfirmed. Review9 now reserves
+its additional bounded condition payload (160 MiB JSON / 192 MiB HTML);
+review1-8 budgets remain unchanged. Work25 adds five fixed save-failure categories
+without sharing exception text. A console failure after a completed save now
+retains the correct saved-run flag. See [evidence and validation](../../../../reviews/SAVE_FAILURE_REVIEW.md).
+
+The next normal work-machine run should supply condition counts or a precise
+failure category. Continue Phase 1 analysis after that return; no team review
+is requested. Git transport stays manual and the listener remains disabled.
+
+## Historical condition implementation checkpoint
+
+Historical checkpoint (2026-10-15): **Boolean conditions and output actions**
+adds compact local condition graphs for series and parallel rungs, individual
+predicate occurrences, and incoming-condition records for OTE/OTL/OTU. Unknown
+block behavior remains explicit. Ordinary output, latch and unlatch actions stay
+distinct; no PLC execution, final value or equipment/alarm purpose is inferred.
+
+Returned `f7d91f0` tests clean `ddd087c`: 821 application cases passed (one
+expected Windows skip), plus 139 helpers. There are 7,591 exact addresses,
+3,778 used across rungs and 1,453 with multiple captured writers. Stronger
+patterns cover 4,286 rungs in 1,489 groups; 320 rungs retain explicit exclusions.
+No composed-suffix gaps were found. The narrow local calculation analysis found
+one link; 13,053 instructions were excluded because their rungs contain branches.
+All eight preceding summaries match after tool_revision normalization, and all
+30 historical reports validate. Pushed results are automated, not team feedback.
+
+Review9/manifest12 adds boolean-conditions.json as the sixteenth hashed artifact.
+Work24 adds closed condition summary1. Work22-24 retain 48 KiB outer envelopes;
+work1-21 retain 32 KiB. Earlier companions and optional replay remain intact.
+The next normal work-machine run measures local condition/output coverage.
+Continue source-addressable Phase 1 analysis before asking for team review.
+Git synchronization stays manual; the launcher commits only its new validated
+feedback report locally, and the listener remains disabled.
+
+See [condition scope and validation](../../../../reviews/CONDITION_REVIEW.md).
+
+## Historical relationship implementation checkpoint
+
+Historical checkpoint (2026-10-15): **exact-address relationships and operand-reuse patterns**
+adds exact expanded suffix identities, separate source/expression read occurrences,
+possible local calculation links and stronger rung groups. Existing root-only
+access and opcode-shape views remain available. Source-order links do not establish
+runtime data flow, and pattern equality does not confirm engineering equivalence.
+
+Returned `4a3406b` tests clean `938d72d`: 778 application cases passed (one
+expected Windows skip), plus 139 helpers. All 4,606 rungs and 17,874 blocks were
+accounted for; 1,863 rungs contain branches. The rung layer found 82 blocks with
+unresolved operand behavior and 11,837 overlapping function candidates. The 1,319
+alarm candidates are text hints, not verified alarms. Seven preceding summaries
+match after tool_revision normalization; all 29 historical reports validate.
+
+Review8/manifest11 adds relationships.json as the fifteenth hashed artifact.
+Work23 adds closed relationship summary1; work22 and work23 allow 48 KiB outer
+reports, while work1-21 retain 32 KiB. Earlier companions and optional replay
+paths remain intact. The next normal work-machine run measures this relationship
+layer on the private export. Pushed results are automated evidence, not human
+feedback. Continue script-addressable Phase 1 analysis before team review.
+Git synchronization stays manual; the launcher commits only its new validated
+feedback report locally, and the listener stays disabled.
+
+See [relationship scope and validation](../../../../reviews/RELATIONSHIP_REVIEW.md).
+
+## Historical rung-analysis implementation checkpoint
+
+Historical checkpoint (2026-10-15): **rung structure and function candidates**
+brings existing source/access evidence into a complete rung census, ordered block
+dossiers, branch outlines and overlapping candidate families. Interpretations
+remain unreviewed, with reasons and missing evidence. Supported roles, recognized
+mnemonics, declaration links and weak text hints stay distinguishable.
+
+Returned `f93f744` tests clean `ae97f10`: 732 application cases passed (one
+expected Windows skip), plus 139 helpers. All 45 CPTs were classified and all
+132 expression reads bound across 72 roots. There are 17,746 classified
+instructions, 128 unsupported instructions, 505 unknown source operand roles
+and 321 unchanged ordinary binding gaps. Six other summaries match after only
+tool_revision normalization; all 28 historical reports validate.
+
+Review7/manifest10 adds rung-analysis.json as the fourteenth artifact. Work22
+adds a fixed-count rung summary1 and a 48 KiB outer cap only for this version;
+older report caps/contracts stay unchanged. Access4/calculation2 remain intact.
+The next work-machine run supplies automated coverage for this broader layer.
+Pushed results are not human feedback. Continue resolving script-addressable
+relationships, loops, alarms and sequence questions before team review; no
+manual review is requested now. Git synchronization stays manual and the
+listener stays disabled. See [Rung analysis](../../../../reviews/RUNG_ANALYSIS_REVIEW.md) and the
+[Phase 1 completion gate](../../../../planning/PHASE_1_ENGINEERING_ANALYSIS.md).
+
+## Historical CPT access implementation checkpoint
+
+Historical checkpoint (2026-10-15): **CPT calculation access** connects the existing
+expression trees to possible destination writes and individual tag reads.
+Returned `cbb2965` tests clean `456786a`: all 175 newly supported instructions
+and 336 operand slots were classified, and all 175 new data operands bound.
+There are 17,701 classified instructions, 173 unsupported instructions, 595
+unknown source operand roles and 321 unchanged binding gaps. All 695 application
+cases passed (one expected Windows skip), as did 139 helpers. Six other summaries
+match after removing only tool_revision; all 27 historical reports validate.
+
+Current commands explicitly build access4 from authenticated calculation2
+records. Expression reads remain separate from source operand counts, and repeat
+occurrences retain their node/span links. Work21 requires access summary4 and
+calculation summary2; work1-20 and explicit access2/3 replay remain frozen.
+Review6/manifest9 still saves thirteen artifacts. The next work-machine run
+checks the projected 45 CPT classifications and 132 expression reads. Only
+bounded generated feedback is required; engineering/UI review remains optional.
+Git synchronization stays manual and the listener stays disabled. See
+[CPT access](../../../../reviews/CPT_ACCESS_REVIEW.md).
+
+## Historical extended access implementation checkpoint
+
+Historical checkpoint (2026-10-15): **extended explicit operand access** adds
+counter controls, message controls, system-value operands and SFC-reset targets.
+Returned `760448e` tests clean `36c0ff4`: all 45 CPT expressions now parse into
+592 nodes, with 132 captured reference uses and all 45 destinations root-bound.
+Four retained function calls use `SQR`; all expression-error counters are zero.
+All 668 application cases passed (one expected Windows skip), as did 139 helpers.
+Six earlier summaries match after removing only tool_revision. This establishes
+syntax/root coverage for this export, not engineering validity or source-byte
+identity. All 26 historical feedback reports validate.
+
+Access3 owns the new bindings separately from unchanged reference6 evidence;
+explicit access2 replay remains available. Work20 requires access summary3,
+while work1-19 retain their exact contracts. Review6/manifest9 still saves
+thirteen artifacts with actual nested versions. The next work-machine run
+measures the new instruction families and binding gaps. Only generated feedback
+is required; engineering/UI review remains optional. Git synchronization stays
+manual and the listener stays disabled. See [Extended operand access](../../../../reviews/EXTENDED_ACCESS_REVIEW.md).
+
+## Historical PID member implementation checkpoint
+
+Historical checkpoint (2026-10-15): **documented PID member evidence** organizes
+linked stored fields into readable groups, checks captured names/types/shapes,
+and exposes absent and duplicate catalog entries without selecting effective
+values. Returned `28b5d1f` confirms all 46 PID instruction occurrences linked to
+46 distinct declarations, with 2,346 direct member occurrences and no PID
+association gaps. It passed 586 application cases (one skip) and 139 helpers;
+previous summaries stayed equal after revision normalization.
+
+Current review5/manifest8 adds `pid-members.json` as the twelfth hashed artifact.
+Work17 adds count-only `analysis.pid_member_summary` schema1 beside unchanged
+PID1, Tag Data1, access2, SFC2 and reference12/source4 summaries. Older optional
+paths and work1-16 remain strict. The next work-machine run measures member
+coverage and gaps; only generated feedback is needed. Manual engineering/UI
+review remains optional. Git synchronization stays manual and the listener
+remains disabled. See [PID member review](../../../../reviews/PID_MEMBER_REVIEW.md) for scope and validation.
+
+## Historical PID occurrence checkpoint
+
+Historical checkpoint (2026-10-15): **PID occurrence evidence** links parsed PID
+instructions and their seven named operand functions to retained references and
+conservatively eligible stored PID structures. Repeated occurrences, aliases,
+representations and duplicate members remain separate evidence. No active
+cascade, runtime mode, effective value or distinct control-loop count is inferred.
+The previously observed 46 PID instructions are source occurrences.
+
+Current review4/manifest7 saves eleven hashed private artifacts, adding `pid.json`
+beside unchanged Tag Data1/access2/reference6/SFC2/inventory3 evidence. Work16 adds
+closed count-only `analysis.pid_summary` schema1 and keeps Tag Data1/access2/SFC2/
+reference12/source4 summaries. Review1-3, manifest1-6 and work1-15 keep their exact
+contracts; review4 retains review3's 128 MiB JSON and 160 MiB HTML limits.
+See [PID evidence review](../../../../reviews/PID_EVIDENCE_REVIEW.md) for scope, validation and
+remaining limits. The next ordinary work-machine run measures PID evidence;
+only generated aggregate feedback is needed. Engineering/UI review remains
+optional later. Manual pull/run/push and private artifact storage still apply.
+
+## Historical Tag Data checkpoint
+
+Historical checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
+capture layer beside the unchanged source/reference/SFC/access contracts.
+Review3/manifest6 adds `tag-data.json` as the tenth hashed private artifact;
+work15 adds a count-only tag-data summary1. Missing Data remains absent evidence.
+Stored text and attributes do not establish effective values, initialization,
+runtime state, member validity or approved settings. Read the
+[Tag Data review](../../../../reviews/TAG_DATA_REVIEW.md) for scope and complete validation results.
+All 642 development cases pass with one existing Windows symlink skip.
+Two actual isolated runs, explicit then remembered source, each pass 546
+application cases (one existing symlink skip) and 139 helpers, with report-only
+local commits and no Git network calls. All ten hashes and canonical review3/
+Tag Data schema1 verify; fresh CLI artifacts are identical. Eight legacy artifacts
+match `122f230` byte for byte, source/reference/SFC/access summaries match after
+revision normalization, and all 21 historical work1-14 reports validate.
+
+Returned `122f230` confirms timer/reset/copy access2 on clean `bdcc101`: 496
+application cases (one skip), 139 helpers, 17,526 classified instructions of
+17,874, 348 unsupported instructions, 931 unknown operand roles and 321 binding
+gaps. All 434 timers have 868 placeholder initialization fields. Source/reference
+and SFC summaries equal `7cd9201` after revision normalization; aggregate equality
+does not prove source byte identity. The next normal work-machine run measures
+Tag Data capture. Only generated aggregate feedback is needed; engineering/UI
+review remains deferred and does not gate parser work. Manual pull/run/push
+and private artifact storage continue as described below.
+
+## Historical timer/reset/copy checkpoint
+
+Historical checkpoint (2026-10-15): **Phase 1 explicit operand access covers 34
+supported mnemonic spellings**, adding TON/TOF/RTO, RES and COP/CPS to the
+initial 28-spelling catalogue. Timer preset/accumulator slots accept only `?`
+or recognized integer literal forms as non-data pseudo-operands; a different form leaves
+the whole instruction unknown. Timer storage is read-write, RES storage is a
+possible write, and COP/CPS retain source-read/destination-write/length-read
+roles without expanding ranges. Initialization, timing, types, copy extents,
+execution effects and dependencies remain unmodeled. Read
+[TIMER_COPY_ACCESS_REVIEW.md](../../../../reviews/TIMER_COPY_ACCESS_REVIEW.md), the
+[initial access review](../../../../reviews/ACCESS_ROLE_REVIEW.md), then the
+[work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+Returned `7cd9201` confirms initial access1 on clean `6642c5c`: 478 application
+cases (one skip), 139 helpers and a saved private run. It classified 16,952 of
+17,874 instructions, retained 922 unsupported instructions and counted 321
+access binding gaps. Reference/source and SFC summaries equal the preceding
+`1332543` report after revision normalization; this does not prove source byte identity.
+Tyler has not inspected the source/report and has explicitly deferred engineering
+and UI review. That review is optional later and is not a gate to continued
+parser work. The next work-machine run measures the timer/reset/copy extension;
+only its generated aggregate feedback is needed.
+
+On the current `feat/bounded-operand-example-pc` branch, manually `git pull`,
+run `bash ./run-work-check.sh` (supply `A19CHL02-unencrypted.L5X` if the checkout
+has no remembered source), then manually
+`git push` to return the automatically committed bounded feedback report.
+Keep the HTML, source and engineering artifacts under `confidential/`.
+Standalone generation is `uv run --project python-parser --locked plc review
+FILE --workspace PRIVATE_DIRECTORY`; `--workspace` is required and exit 3 means
+a usable partial report was saved.
+
+Historical timer/reset/copy validation: 592 development cases pass with one existing
+symlink skip. Two actual isolated runs, first explicit then remembered source,
+each pass 496 application cases (one skip) and 139 helpers and make only local
+report commits with no Git network calls. All nine manifest hashes, canonical
+access2/review2 and byte-identical CLI output artifacts verify. Seven legacy
+artifacts match `7cd9201` byte for byte; source/reference/SFC summaries match
+after revision normalization. All 20 historical work1-13 reports validate.
+
+Initial access1 validation (historical): 574 cases passed with one existing symlink skip.
+Two final synthetic launcher runs each pass 478 application cases (one skip)
+and 139 helpers. Both verify all nine manifest hashes, canonical review/access
+evidence and identical CLI HTML. On the same invented input, seven legacy
+artifacts match baseline `1332543` byte for byte; source/reference/SFC summaries
+match after revision normalization. All 19 historical work1-12 reports validate.
+At that checkpoint, work14 required access summary2; frozen work13 retains access summary1.
+Private access2 (`instruction-access-2`) and review2 are saved under
+manifest5 with nine hashed artifacts, including `access.json` and `review.html`.
+Public reference12/source4/SFC2 and private inventory3/reference6/SFC2 stay
+unchanged. Plain reference runs retain manifest2 and standalone SFC runs retain
+manifest3; historical review1/manifest4 runs remain readable. The
+[preceding review checkpoint](../../../../reviews/ENGINEERING_REVIEW_REPORT.md) retains
+its original validation evidence.
+
+Current listener hold (2026-10-14): Tyler reported repeated endpoint-security
+alerts involving bash.exe after the work-machine check of `1419af7`. The local
+listener task is disabled and state is paused with no pending worker. Do not
+restore automatic listener execution while that report is under investigation. The run
+included listener Git/process-host regression tests in the application suite;
+the specific detection is unverified and these changes do not prove its cause
+resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
+using the local-only workflow below. Earlier restoration evidence is history.
+
+Historical SFC annotation baseline (2026-10-14): **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `90923ab` confirms SFC structural capture is complete for this export: all 280 text boxes are recognized, all 213 annotation attachments resolve, and SFC issues are zero. All earlier reference and SFC flow/ST counts remain unchanged. Phase 1 engineering interpretation is still incomplete. Read the [project-state assessment](../../../../reviews/PROJECT_STATE_REVIEW.md), [annotation evidence](../../../../reviews/SFC_ANNOTATION_REVIEW.md) and [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+Annotation checkpoint validation: 512 development cases pass (one existing symlink
+skip), and 17 stored reports validate unchanged. Independent review has no
+remaining blockers after fixing repeated endpoint-payload rendering. Two actual
+synthetic launcher runs each pass 416 application cases (one skip) and 139
+helpers, preserving prior artifacts and making report-only local commits with
+no remote Git calls. Returned `90923ab` now confirms all 280 unknowns were recognized Text children
+and all 213 attachments resolve. No repeat annotation-only run is needed. See
+the annotation review for exact evidence and the project-state assessment for
+remaining milestones.
+
+## Development-only listener files (2026-10-14)
+
+Tyler requested that the work machine receive normal parser code without the
+development feedback listener. `feedback-listener.sh`, `tools/feedback_listener/`
+and `python-parser/tests/test_feedback_listener.py` are removed from tracking and
+explicitly ignored. Their existing development-PC files are preserved locally;
+the task remains disabled and paused. Fresh checkouts have no listener files,
+and pulling this removal deletes the previously tracked copies on other PCs.
+No parser or work-check command requires them. Listener documentation remains
+as historical evidence; its source is retained in the pre-squash archive tag.
+
+Do not re-add the local listener files to ordinary commits. A future maintained
+listener should have its own development-tool repository or distribution path.
+This removal neither restores the listener nor diagnoses the endpoint alert.
+
+Validation used a clean export of the staged tree with no listener files: all
+229 application/workflow tests (one existing Windows symlink skip) and 139 helper
+tests passed, and the work-check entry point remained available. All 11 removed
+files remain locally with unchanged Git-normalized contents. Independent review
+found no remaining dependency or packaging blockers.
+
+## Git baseline consolidation (2026-10-14)
+
+Tyler requested one squash commit on `main` and retirement of the accumulated
+topic branches. Documentation, decisions, reports and review evidence remain
+intact. The primary feature's pre-squash history is retained by
+`archive/phase1-before-squash-20261014` so reported tested SHAs remain retrievable.
+The older divergent local summary branch was checked: its report is identical
+and its review findings are already preserved in this baseline. Its exact two
+extra commits are also backed up in the development checkout's local
+`.git/branch-archive-20261014.bundle` before branch retirement.
+
+Use `main` for the baseline on each computer. Future development starts from
+current `main` on a new branch ending in `-pc`; do not merge a retired branch
+back into the consolidated history. Manual work-machine checks accept `main`
+and other named branches while retaining clean-tree and revision checks.
+This Git cleanup does not mark Phase 1 complete or re-enable the listener.
+The installed listener still targets the retired feature branch; any future
+activation needs an explicitly selected new `-pc` target and updated local
+configuration. Do not resume it against `main` or its old target.
+
+Consolidation validation: 229 application/workflow tests passed (one existing
+Windows symlink skip), excluding listener/Windows-host integration; all 139
+helper tests and the synthetic fixture check with `l5x` passed. The 55 focused
+work-check tests cover clean `main`, other named branches, dirty/detached
+rejection and repeated local runs with an unreachable origin. Independent
+review found no code blockers; no private input or listener execution was used.
+
+## Current work-machine workflow (2026-10-14)
+
+Work-machine recovery: its screenshot showed missing `.git/HEAD` and other
+repository files. Tyler deleted the old checkout, then confirmed another old
+folder contains the private inputs and is proceeding with a fresh clone. Keep
+that backup intact; a fresh checkout needs its source selection supplied again.
+
+Tyler clarified that running the script must automatically commit the report;
+only fetching, pulling and pushing stay manual. The earlier removal of staging
+and commits went beyond that requirement. The launcher uses the already checked
+out clean named branch (including `main`) with no matching upstream required.
+It saves and commits only the new validated feedback report under
+`public/inspection/work-check-<run-id>.json`. Source selection remains in Git
+metadata, and private logs/artifacts retain their `confidential/` locations.
+
+Update code manually before a run. Review its feedback report, then run `git push`;
+there is no manual copy, staging or commit step. The runner pins the tested
+branch and revision, rejects unrelated changes, uses a report-only commit and
+verifies its parent, changed path and validated report content in the working
+file, index and commit. Failed test/analysis reports are also
+committed locally. Git commit failure preserves the report for recovery.
+Tyler additionally authorized one actual mystery operand, implemented below. Old reports
+in Git-ignored `public/inspection/local/` are not picked up automatically.
+
+Local report-commit validation: all 239 application/workflow tests passed (one
+existing Windows symlink skip), excluding the ignored listener loader. Real
+temporary-checkout CLI runs passed 152 selected application and 139 helper tests,
+committed only the report and left a clean `main` with an unreachable origin.
+Independent review found no remaining blockers; see the current
+[runner review](../../../../reviews/WORK_CHECK_RUNNER_REVIEW.md) for failure-case evidence.
+
+Work-machine test execution uses explicit parser/helper module allowlists,
+excluding listener, Windows process-host, Bash bootstrap and Git-fixture tests.
+Full development unittest discovery remains available. Schema-1 reports remain
+readable; schema 2 adds the bounded sample, schema 3 adds an unmatched-colon
+fallback, schema 4 carries reference schema 6 with system-flag recognition,
+schema 5 carries reference 7 with the ABS/LN/SQR signature catalog,
+schema 6 carries reference 8 with MVM/SWPB roles and schema 7 carries
+reference 9 with observation-only routine-instruction shapes. Schema 8
+carries reference 10 with declared JSR first-field candidates; schema 9
+carries reference 11 with unique-candidate metadata observations. Schema
+10 carries reference 12 with static candidate graph counts. Current schema16
+keeps reference12, SFC-structure summary2, access summary2 and Tag Data summary1,
+and adds `analysis.pid_summary` schema1. Frozen work15 retains the prior fields;
+frozen work14 omits Tag Data and PID;
+frozen work13 retains access summary1,
+frozen work12 retains the prior fields, and frozen work11 retains SFC1.
+Consult the tested revision for historical suite scope
+instead of treating reduced suite totals as a regression.
+
+The confirmed timer report is `public/inspection/work-check-20261014T162634Z-2a7e40fe.json`,
+returned in `1195d40`, testing clean `112ee82`. It validates, reports 177
+application cases (one skip) and 139 helper cases with no failures/errors, and
+records partial analysis with a private run saved. Its commit changes only the
+report and has the tested revision as parent. Malformed-address/other_form counts
+fall 868 to 0; non_data rises 0 to 868; unsupported-address falls 870 to 2.
+The sample is null. All other source/reference counters are unchanged. This
+confirms the predicted classification change without proving source byte identity.
+
+The confirmed timer behavior recognizes trimmed `?` only in preset/accumulator
+slots of valid three-argument TON/TOF/RTO instructions as `non_data` for root
+lookup. Raw text is preserved; timer settings and effects remain unverified.
+No repeat timer-only confirmation is needed.
+
+The rack slice now captures RackConnection/InAliasTag/OutAliasTag separately,
+derives conservative candidate roots and compares terminal missing roots under
+existing scope/alias rules. Private references show candidates and occurrence
+links; public summaries expose closed counts only. Unique matches do not become
+ordinary terminal `root_bound` symbols because backing members are unexamined.
+`candidate_names_unavailable` means matching is inconclusive, not that those
+unnamed declarations correspond to the missing roots. Invented topology confirms
+two candidate roots, one matching alias, two direct and one alias-mediated operand
+matches, while ordinary bindings remain two bound and three unresolved operands.
+Returned report `9597f18` now measures the real relationship: all 15 rack roots
+are named, all 99 aliases and 319 alias-mediated occurrences have unique
+candidates, and one direct occurrence has no candidate. No candidate names are
+unavailable, ambiguous or outside scope. The report tested clean `9d159e0`, its
+parent, passed 220 application cases (one skip) and 139 helpers, saved a private
+run and changed only the feedback JSON. Ordinary source/reference counters are
+unchanged; 26 XML elements across three paths are newly modeled and 11 warnings
+now describe unknown backing instead of omitted declarations. The sample is null.
+
+Current contracts: private inventory/reference schemas 3/6 with
+`source-inventory-3` / `source-references-9`; public source/reference schemas 4/12;
+work-check schema16 with separate access summary2, Tag Data summary1 and PID summary1; private PID1 /
+pid-evidence-1, private access2 /
+instruction-access-2, private Tag Data schema1 / tag-data-1, and private SFC
+schema2 / sfc-structure-2 with public SFC summary2. Plain
+reference runs retain manifest2; standalone SFC runs retain manifest3. Combined
+review work runs use review4/manifest7 with SFC JSON/text, `access.json`,
+`tag-data.json`, `pid.json` and `review.html`, eleven hashed artifacts in total. Inventory/reference JSON retain their exact structures:
+private reference JSON includes
+canonical routine_targets occurrences and routine_graph; public output contains closed counts only. Historical public
+reports still validate with exact original status vocabularies. Work schema 3
+still requires reference 5, work schema 4 requires reference 6, and work schema
+5 requires reference 7, work schema 6 requires reference 8 and work schema 7
+requires reference 9; work schema 8 requires reference 10 and work schema 9
+requires reference 11. Work10/11/12/13/14/15/16 require reference12; work11/12 have SFC
+summary siblings1/2 respectively, work13 requires access summary1 beside SFC2,
+work14 requires access summary2 beside SFC2, work15 adds Tag Data summary1,
+and work16 adds PID summary1.
+Historical contracts remain frozen.
+Read [SFC review](../../../../reviews/SFC_STRUCTURE_REVIEW.md)
+for scope, version mapping, validation and the next report comparison.
+
+Rack validation: 316 development application/workflow tests passed (one existing
+symlink skip), including 43 new rack cases. The ignored listener loader was
+excluded. Independent review found no remaining blockers after strengthening
+mandatory warning and alias-mediated status reconciliation. Historical reports
+remain readable. Final disposable-checkout workflow validation passed 220 selected
+application cases (one skip) and 139 helpers, saved private synthetic artifacts,
+made a report-only local commit and made no remote Git calls. See the rack review
+for reproducible checks and exact scope.
+
+Tyler's one actual mystery operand remains authorized: at most 128 printable
+characters, a standard opcode and zero-based position, without rung/location IDs
+or neighbors. Known timer placeholders are skipped. The rack slice does not
+share individual rack names/relationships. The implemented follow-up retains one
+sample total, choosing the first eligible malformed operand, then the first
+unmatched direct colon operand only when no malformed sample qualifies. It
+requires canonical direct no-candidate evidence and preserves exact raw text.
+Schema 2 rejects the new kind; historical schema 3 requires reference schema 5.
+See [follow-up review](../../../../reviews/UNMATCHED_OPERAND_REVIEW.md).
+
+Report `7f5db96`, testing clean `84dc393`, completes that one-address request:
+`S:FS` at XIC argument 0. Its commit changes only the report, its tested revision
+is its parent, 241 application cases (one skip) and 139 helpers passed, and a
+private run was saved. All nested aggregate counts equal the preceding report
+after excluding code revision; this does not establish source byte identity.
+
+Rockwell identifies this as the First Scan flag. The implemented rule recognizes
+only direct exact trimmed ASCII S:FS, ignoring case, in valid one-argument
+XIC/XIO instructions. Raw evidence is preserved; no synthetic tag is created.
+Aliases, other roles, suffixes and other S names retain their previous handling.
+No runtime first-scan effects are modeled. Current reports reject it as a mystery
+sample; historical returned samples remain readable. See the system-flag review
+for official sources, boundary tests and final validation. Report `d247f87`,
+testing clean `d64ee4d`, now confirms the exact predicted change: one system
+flag, unresolved 320 to 319, direct rack comparisons 1 to 0, sample null, all
+other source/reference counters unchanged. It passed 269 application cases
+(one skip) and 139 helpers, saved a private run and changes only its report
+with the tested revision as parent. No repeat flag-only run or mystery-address
+request is needed. Partial analysis remains expected.
+
+System-flag validation: 365 development application/workflow cases passed (one
+existing symlink skip), excluding the ignored listener loader. Independent review
+passed 99 focused cases with no blockers. Two actual disposable-checkout CLI
+runs each passed 269 selected application cases (one skip) and 139 helpers,
+preserved synthetic artifacts/rack counts, emitted one system flag and a null
+sample, and made report-only local commits with no remote Git calls. All nine
+stored work reports validate unchanged. Commands and evidence are in the
+system-flag review.
+
+The selected calculation slice adds only ABS/LN/SQR with two catalogued
+source/destination slots using existing lexical root/literal rules. Source IDs,
+raw operands, aliases and private field layout remain intact. Datatype, domain,
+destination access, expression evaluation and runtime effects remain outside
+this scope. Private text explicitly explains lexical destination literals.
+
+Report `4244cf5`, testing clean `a6a2a71`, now confirms the predicted calculation
+delta: catalogued 17,563 to 17,591, root_bound 20,178 to 20,234 and unsupported
+instruction slots 653 to 597. All 56 new slots bound to roots, with every other
+source/reference counter unchanged. It passed 286 application cases (one skip)
+and 139 helpers, saved a private run and adds only its report with the tested
+revision as parent. No repeat calculation-only check is needed.
+
+Calculation validation: 382 development cases, OK with one existing symlink
+skip; listener loader excluded. Independent review found no remaining blockers,
+and its historical sample-contract coverage recommendation is retained. Two
+actual synthetic CLI runs each passed 286 selected application cases (one skip)
+and 139 helpers, saved the expected math delta and made only local report
+commits with no remote Git calls. The second run confirms a newly saved report
+does not break the historical fixture tests. All ten stored work reports remain
+readable. Commands and final artifact evidence are in the calculation review.
+
+The selected bit-operation slice adds MVM/SWPB three-field signatures. SWPB
+argument 1 is an order-mode selector, accounted as non_data before literal/root
+lookup. A shared predicate excludes that slot from both address sample kinds,
+regardless of its spelling. Arity/empty checks still take priority. Raw values
+and IDs are preserved; mask widths, mode values, types, byte ordering and runtime
+effects remain unvalidated. Other data fields use the existing lexical lookup.
+
+Report `08c2695`, testing clean `bdf09f1`, confirms that exact bit-operation
+prediction: catalogued rises 17,591 to 17,617 and unsupported instruction slots
+fall 597 to 519. The 78 slots split into 52 bound roots, 16 literals and ten
+selectors. All other source/reference counters are unchanged. It passed 296
+application cases (one skip) and 139 helpers, saved a private run and adds only
+its report with the tested revision as parent. No repeat bit-only run is needed.
+
+Bit-operation validation: 392 development cases, OK with one existing symlink
+skip; ignored listener loader excluded. Independent review passed all nine
+new bit cases with no blockers. Two actual disposable CLI runs each passed
+296 selected application cases (one skip) and 139 helpers, saved the exact
+synthetic role/count delta and made only local report commits. Traces show no
+fetch/pull/push, input and prior artifacts are preserved, and all 80 copied
+code/test/config files match final working bytes. Eleven stored work reports
+remain readable. Commands and artifact evidence are in the bit-operation review.
+
+The preceding routine-shape diagnostic profiles successful RLL JSR/SBR/RET fields
+without changing the binding catalog, analyzer or private JSON. It adds fixed
+arity bins, exact trimmed second-zero observations for JSR and case/withheld
+reconciliation. Official RLL/ST tables differ, so zero text is not a validated
+InputCount and no target/parameter/sequence roles are inferred. Private text
+uses captured inventory to include zero-field SBR/RET calls, while the old
+renderer API remains available. No source reread is introduced.
+
+Returned `0a2610f` tests clean `9c56b50`: 308 application cases (one skip)
+and 139 helpers pass. It confirms 65 two-field second-zero JSRs and 11 three-field
+second-other JSRs, one one-field SBR and one zero-field RET. Every earlier
+source/reference counter is unchanged. No parameter boundary is established.
+
+The preceding candidate slice adds one separate row per parsed RLL JSR, resolving
+only static first-field names within the caller program. Explicit self/main/fault
+context is retained; other_routine requires a Normal program. No phase-state
+name guessing, valid-call claim or parameter role is introduced. Source and tag
+bindings stay intact. Returned `7e15843` confirms all 76 candidates unique, 66 distinct targets,
+all 76 contexts not_analyzed, with 325 application cases (one skip) and 139 helpers
+passing. All earlier counters are unchanged. No repeat candidate-only run is needed.
+
+The preceding metadata profile observes exact program-Type buckets and target-language
+declarations for unique JSR candidates, with a program-Type subset for unknown
+contexts. Missing, empty and unknown explicit attributes remain distinct. No
+omitted-Type default or execution/body availability is inferred. Public11/work9
+add the profile; private5/analyzer8 and earlier bindings/candidates remain intact.
+Returned `3431389` confirms all 76 program-Type observations are absent, with
+call-weighted RLL62/SFC14 target languages. Both suites pass (335 application
+cases, one skip; 139 helpers), and every earlier counter is unchanged.
+
+The preceding static graph groups unique JSR calls into program-local edges while
+retaining source instruction links. Nodes include isolated declarations, observed
+rung/body coverage and unmodeled SFC envelopes. Explicit main designations and
+iterative candidate cycles supply source context without execution, recursion,
+parameter or scheduling claims. Private6/analyzer9/public12/work10 carry this
+slice. Returned `2f37ae3` confirms 69 nodes (54 parsed RLL, one partial RLL,
+14 SFC), 76 linked calls/68 pairs, three repeated pairs/eight extras, three
+unique mains, one isolated node and no candidate cycles/self pairs. All earlier
+counters remain unchanged; 354 application cases (one skip) and 139 helpers pass.
+
+The earlier SFC structural slice adds a separate immutable-snapshot result, keeping
+edit-version namespaces separate and preserving opaque ST. Missing/invalid/
+duplicate IDs, unresolved endpoints, protection and unmodeled content remain
+explicit. Work11 adds count-only SFC feedback and saves two private SFC artifacts
+under combined manifest3; old inventory/reference/source contracts remain exact.
+Its returned counts and the later annotation confirmation are recorded above.
+The new review report preserves that evidence and adds navigation. Partial remains
+expected; SFC execution and process interpretation remain unimplemented.
+
+SFC validation: 495 development cases pass (one symlink skip), excluding the
+listener loader. Independent review passes 53 focused cases after three resource/
+aggregate fixes and an outside-content coverage fix. Two actual final script
+runs each pass 399 application cases (one skip) and 139 helpers, preserve exact
+baseline `2f37ae3` inventory/reference records, and add SFC-only private artifacts/
+bounded counts. Canonical CLI output, separate edit namespaces, storage hashes,
+source/prior-run preservation, report-only local commits and final copied bytes
+verify with no remote Git calls. All 16 stored work reports validate unchanged.
+See [full SFC evidence](../../../../reviews/SFC_STRUCTURE_REVIEW.md).
+
+Static graph validation: 450 development cases pass (one symlink skip), excluding
+the listener loader. Independent review passes 37 focused cases and 150 generated
+mixed-language/multi-program summaries; iterative SCCs match 1,800 independent
+small-graph checks. Two final actual script runs each pass 354 application cases
+(one skip) and 139 helpers. Private CLI/JSON/text, source/prior-run preservation,
+artifact hashes, report-only local commits and final copied bytes verify, with
+no remote Git calls. Baseline `3431389` inventory and all earlier private/public
+fields remain unchanged apart from graph/version/revision additions. All 15
+stored work reports validate. See [full graph evidence](../../../../reviews/ROUTINE_GRAPH_REVIEW.md).
+
+Metadata validation: 431 development cases pass (one symlink skip); listener
+loader excluded. Independent review passes 26 focused cases and verifies three
+partition-preserving forgeries reject. Two actual synthetic script runs each
+pass 335 application cases (one skip) and 139 helpers. Work9/reference11/source4
+reports make local report-only commits with no remote Git calls. Private
+inventory/reference JSON matches baseline `7e15843` exactly on the fixture;
+public differences are limited to the new profile and version/revision metadata.
+Text/CLI, input/prior-run preservation, artifact hashes and final copied bytes
+verify. All 14 stored work reports validate. See [full evidence](../../../../reviews/ROUTINE_METADATA_REVIEW.md).
+
+Candidate validation: 421 development cases pass (one symlink skip), excluding
+the ignored listener loader. Independent review passed 62 focused cases after
+fixes; 25 negative public-count cases reject contradictions and private labels.
+Two actual synthetic script runs each passed 325 application cases (one skip)
+and 139 helpers, with local report-only commits and no fetch/pull/push. Direct
+CLI text/JSON returned expected partial exit3; canonical JSON, candidate context,
+source/prior-output preservation and artifact hashes verify. All 13 stored work
+reports validate unchanged. See [full evidence](../../../../reviews/ROUTINE_TARGET_REVIEW.md).
+
+Routine-shape validation: 404 development cases, OK with one existing symlink
+skip; listener loader excluded. Independent review passed 68 focused cases with
+no blockers. Two actual synthetic CLI script runs each passed 308 application
+cases (one skip) and 139 helpers; a direct text CLI check returned expected
+partial exit 3. Both script reports use work7/reference9/source4; private
+inventory/reference/manifest stay3/4/2 with analyzer7, and saved text includes
+zero-field calls. Binding and
+catalog behavior remains unchanged. Report-only local commits, no remote Git
+commands, source/prior-output preservation and artifact hashes were verified.
+Twelve stored work reports remain readable; see the routine-shape review.
+
+Timer-fix validation: 273 application/workflow tests passed (one symlink skip),
+with listener tests excluded. Two real temporary-checkout CLI runs each passed
+177 selected application and 139 helper cases, validated null/remaining-gap
+samples, preserved private raw slots and made report-only local commits. All six
+stored work reports validate unchanged. Independent review confirmed no remaining
+blockers. Details and reproducible commands are in the timer review above.
+
+Historical sample validation: 259 application/workflow tests passed (one existing symlink
+skip), with listener tests excluded. Two temporary-checkout CLI runs passed
+166 selected application and 139 helper tests each, emitted the same one sample,
+committed only their report, and preserved the source and prior outputs. All
+five historical work-check reports still validate. Independent review found no
+code blockers. That sample later returned in `349ee29`; the timer correction
+was then confirmed by `1195d40` as recorded above.
+
+Leave the development listener disabled and paused. Manual parser execution
+remains under Tyler's control and is not gated on restoring the listener.
+
+The checkpoints below retain prior implementation and validation evidence.
+Earlier activation and automatic-publication instructions are superseded by
+this current workflow and operational hold.
+
+## Historical address-shape checkpoint (2026-10-13)
+
+Historical listener restoration (subsequently reversed): the corrected scheduled task was enabled
+and the listener was unpaused. Its first production poll after restoration ran at
+00:14:29 America/Chicago, returned `LastTaskResult=0` and saved
+`waiting_for_report` with no pending claim. Five-minute and logon checks were active.
+Tyler's existing authorization covers automatic monitoring; the earlier hold for
+terminal takeover is closed. Check live local status before interactive edits.
+
+The historical hold followed terminal takeover after f18b34b. Disabling the task
+stopped the interruption. Earlier foreground-window tests missed tab selection;
+the corrected scheduled launch was subsequently verified at that boundary.
+
+Root cause captured in scheduled testing: the uv virtual environment's
+`pythonw.exe` is a console-subsystem redirector and opens Terminal before Python
+code runs. The installer now verifies PE subsystem 2 and chooses the underlying
+GUI Python executable. A repeated real scheduled worker had unchanged tabs and
+selection with no window/focus events. `install.ps1 -UpdateLauncher` migrates only
+the exact known old action while preserving the disabled task and paused state.
+
+Listener maintenance: Tyler reported terminal interruptions from background work.
+The replacement hosts the entire scheduled poll and ordinary descendants in a
+private native ConPTY session and disables notifications only for the unattended
+worker. It preserves exit codes, waits for attached descendants and records
+local host diagnostics. The listener requires Windows 11 24H2+; parser/work-machine
+support is unchanged. See [listener verification](../../../../reviews/FEEDBACK_LISTENER.md).
+Fresh validation: 274 application tests (273 passed, one existing symlink skip),
+139 helper tests passed, independent review with no remaining blockers and a
+successful real scheduled worker with passive Terminal-tab observation.
+Global settings and parser contracts are unchanged. Inspect local listener status
+before interactive edits. This validation preceded the report returned in
+`b58af78` and the current operational hold.
+
+The automatic worker verified event b06e7dc and the selected report's exact blob,
+validated it and the preceding report, and confirmed no suite/analysis failure.
+The selected report tests clean 6585443; the preceding one tests clean ad2ec8b.
+The module/I/O improvements and remaining 868 malformed-address occurrences
+reconcile with the comparison below. These counts do not identify source syntax,
+prove source byte identity or justify a grammar change.
+
+The bounded follow-up adds `operands.malformed_address_shapes` to public reference
+schema 3 (`reference-summary-3`, policy 2). Seven fixed counters partition only
+operand occurrences with `unsupported_address` / `malformed_address`. Alias-target
+failures are separated from direct operand spellings. The other counters observe
+a leading hash (with or without a remainder accepted by the existing static
+address recognizer), brackets, colon, dot, or other form, in documented precedence.
+No names, values, lengths, source hashes or per-occurrence records are published.
+Parsing and binding behavior, private inventory/references 2/2, source aggregate 3
+and the work-check envelope 1 are unchanged. Reference aggregates 1/2 still validate
+under their exact historical contracts. The listener itself is unchanged.
+
+Fresh validation: 246 application tests (245 passed, one existing Windows symlink
+skip), all 139 helper tests passed; independent review passed 37 focused tests
+and found no remaining blockers. The real launcher also passed in a disposable
+checkout/local remote with invented input, validated schema 1/3/3 aggregate,
+private artifact hashes and independently verified report-only push. Full
+evidence is in ADDRESS_SHAPE_REVIEW.md.
+The requested schema-3 histogram has since returned in `b58af78`; its analysis
+is the next parser task after the workflow changes. No rerun is needed merely to
+obtain it.
+Compare the same input's statuses/reasons and the histogram total with the prior
+868 count; no improvement in binding counts is expected from this diagnostic.
+Do not infer the new histogram from this earlier report. If its closed buckets
+cannot support a bounded syntax investigation, record the specific work-machine
+question and stop; never request private addresses, inventories or logs.
+Phase 1 remains active; engineering classifications, corrections, PCSD/FHX,
+services and deployment remain outside this slice.
+
+## Historical module/I/O checkpoint (2026-10-13)
+
+Tyler authorized implementing the next slice here after the two successful
+work-machine reports. Do not ask for that authorization again or repeat this
+implementation. Phase 1 now inventories module ports, ordinary connections and
+input/output/configuration tag declarations. Scoped reference lookup can use
+explicit module-tag names or names inferred conservatively from supported
+ICP/Ethernet topology. Private records keep raw source and naming provenance
+separate; unavailable names and unresolved/unsupported addresses have fixed
+reasons. RackConnection mappings remain an explicit unsupported gap. This does
+not validate members, types, instruction effects or engineering purpose.
+
+Current private contracts are inventory schema 2 (`source-inventory-2`) and
+reference schema 2 (`source-references-2`). New public output uses source schema 3
+(`aggregate-summary-3`) and reference schema 2 (`reference-summary-2`), both with
+policy 2. Public validation retains source schema 2 and reference schema 1 with
+its schema-2 source; hybrid versions are rejected. The outer work-check schema 1
+and private run manifests 1/2 are unchanged. See
+[data contracts](../../../../planning/DATA_CONTRACTS.md) for details.
+
+The work-machine report returned in f91ae18:
+[work-check-20261013T234851Z-b10d84dc.json](../../../../../inspection/work-check-20261013T234851Z-b10d84dc.json).
+It validates and records clean tested revision 6585443, 208 application tests
+(207 passed, one skipped), all 139 helper tests passed, partial analysis without
+a failure code and private_run_saved=true. All 252 module I/O declarations receive
+names: 164 backplane-slot roots and 88 module-name roots. Bound aliases rise from
+45 to 842; unresolved aliases fall from 896 to 99. Bound operands rise from
+17,856 to 20,178; unresolved operands fall from 2,642 to 320. Shared source counts,
+instruction histograms, routine types, ladder metrics and reference coverage are
+unchanged. This verifies improved root lookup, not engineering semantics or
+source byte identity. The detailed comparison is in MODULE_IO_REVIEW.md.
+
+All remaining unresolved aliases/operands have colon_root_not_declared. Their
+relationship to 11 unsupported rack connections is unproven. Unsupported-address
+operands remain 870: 868 outside the current address grammar and two dynamic
+indices. The next bounded parser candidate is aggregate address-shape evidence
+for those 868 cases, with invented examples and a closed publication contract;
+do not guess a fix from the label alone. No additional work-machine run is needed
+to review this report. Do not request private inventories, addresses, reference
+records or terminal logs here. PCSD, FHX, editor and engineering classification
+remain later work.
+
+Tyler has now explicitly authorized a listener to check for new work-machine
+pushes and continue agreed development. Implementation fde4fc2 is installed, and
+the scheduled launch check returned exit 0. The latest report above is selected
+for the first follow-up, so Tyler does not need to rerun it to trigger development.
+Live monitoring/worker state is local and must be checked with the status command;
+consult [FEEDBACK_LISTENER.md](../../../../reviews/FEEDBACK_LISTENER.md) for validation,
+local activation and operating details. Before interactive edits on a development
+PC where it is installed, inspect `bash ./feedback-listener.sh status` and pause
+it; let a running worker finish before taking over. Do not pause the listener
+from its own dedicated worker checkout. The work machine needs only its existing
+run-work-check command.
+The workflow should process each new work report once, serialize repository
+work, ignore its own code pushes and stop for required questions, work-machine
+investigation or a phase checkpoint needing Tyler's decision.
+
+The current application suite includes the listener's Git integration tests:
+232 tests run: 231 passed and one skipped, plus all 139 helper tests passed.
+Source/reference output contracts are unchanged by the listener.
+
+The checkpoints below preserve earlier evidence and chronology. Their previous
+next-step statements do not override this current checkpoint.
+
+## Returned automated checks (2026-10-13)
+
+Two work-check reports arrived in ad2ec8b and f38d81e, testing clean revisions
+0666542 and ad2ec8b respectively. Both pass validate_work_check_report. Each
+reports 155 application tests run (154 passed, one skip), all 139 helper tests
+passed, no test failures/errors, partial analysis, no analysis failure code and
+private_run_saved=true. Both commits change only their new aggregate JSON report.
+
+After excluding tool_revision, both nested reference summaries exactly match
+reference-summary-20261013T203510Z.json: 4,606 rungs, 17,874 instructions and the
+same symbol/alias/operand counts. This verifies repeatable aggregate results and
+the work-machine test/report/push cycle. It does not establish source byte identity
+or independently inspect the private saved files. No real export or private log
+was accessed here, and no local test rerun was needed for this report review.
+
+No additional work-machine run was needed to close this earlier checkpoint.
+Tyler subsequently authorized the module/I/O slice recorded above. Phase 1 remains
+active.
+
+## Work-machine automation checkpoint (2026-10-13)
+
+Tyler requested one script that pulls, tests, runs the current analysis and pushes
+results including test outcomes. `bash ./run-work-check.sh SOURCE.L5X` records
+the local source choice; later runs need only `bash ./run-work-check.sh`. The path
+stays in Git metadata. The script uses `git pull --ff-only`, locked dependencies,
+both test suites, one captured source snapshot, new private inventory/reference
+files and one closed aggregate report. It automatically commits/pushes only the
+new report, including failed test outcomes. Failed tests skip source analysis;
+partial usable analysis counts as successful workflow completion.
+
+No separate fetch step or manual report staging is required on the work machine.
+Real source, private records and detailed logs stay under confidential/. Shared
+reports include the tested commit, suite event counts and bounded code-only failed
+test IDs, plus reference/structural aggregates when analysis succeeds. Branch/HEAD
+or working-tree changes stop automatic publication/push; a rejected push preserves
+the local report commit. Read the runner review for the exact schema and tests.
+
+Validation: 155 application tests run, 154 passed and one existing Windows symlink
+skip; all 139 helper tests passed. Independent review passed the 47 new tests
+without remaining blockers after corrections. An actual temporary-remote workflow
+also passed success, failed-test and malformed-source scenarios, verifying both
+successful and failed results are committed/pushed without private text. The work-machine
+run has now returned and is reviewed above.
+The module/I/O parser extension was implemented after this runner checkpoint;
+see the current section above.
+
+## Returned reference evidence (2026-10-13)
+
+Tyler pushed public/inspection/reference-summary-20261013T203510Z.json in 7328809,
+with clean code provenance at 294c839, and confirmed both work-machine test suites
+passed. The reference aggregate validates. Its nested structural report exactly
+matches summary-002 except for tool_revision; all 4,606 rungs remain accounted for.
+
+17,563 of 17,874 instruction signatures are catalogued (98.26%). Of 24,583 operand
+occurrences, 17,856 bind to declared roots and 2,517 are literals; 2,642 remain
+unresolved, 870 have unsupported address syntax, 45 are unsupported expressions
+and 653 occur in uncatalogued instructions. Aliases: 45 bound and 896 unresolved
+out of 941. No ambiguity, cycles, depth limits or argument-count mismatches appear.
+These are lexical-reference counts, not engineering interpretation percentages.
+
+This evidence motivated the module/I/O declaration and fixed-reason slice now
+implemented above. The public structural baseline includes 104 InputTag, 65
+OutputTag and 83 ConfigTag elements omitted from the previous symbol model.
+Their contribution to the unresolved totals remains unproven until the new run.
+See the reference review for the earlier reconciliation and remaining limits.
+
+## Preceding reference-analysis checkpoint (2026-10-13)
+
+Tyler's corrected public/inspection/summary-002.json arrived in remote 3dd1b25.
+It passes aggregate validation and matches the earlier readable baseline:
+4,606/4,606 rungs parsed, 17,874 instructions, 6,307 tags, 941 tag aliases,
+120 modules, 70 routines, one AOI and zero encoded regions. All ladder measures
+match. Partial coverage reflects the already observed 14 SFC routines and one
+RLL routine without content. The later reference run and suite confirmation are
+recorded above.
+
+Tyler then authorized continuing. The new branch starts at 3dd1b25 and preserves
+the earlier review notes without resetting either history. `plc references`
+adds private scoped declaration/alias/operand records from the captured inventory;
+`plc reference-summary` publishes only fixed aggregate counts plus the structural
+summary. Root binding does not validate members, access, effects or engineering
+purpose. Unknown instructions, dynamic/qualified addresses, expressions and
+missing module-tag declarations remain explicit gaps. Both publication paths
+verify derived records against the source inventory before saving.
+
+Implementation is b8d92bc. Validation: 107 application tests run, 106 passed,
+one existing Windows symlink skip; all 139 helper tests passed. Independent review
+passed all 48 reference tests after fixing record-integrity validation. Installed
+CLI checks verified private storage, aggregate output, unchanged inputs and
+no-overwrite behavior. The synthetic aggregate records clean b8d92bc provenance.
+
+See the reference review for scope, primary documentation, independent review,
+test evidence and resource bounds. The initial work-machine run has now returned
+and is reviewed above. Use normal commits/pushes on feat/source-references-pc.
+Engineering classification, editable corrections, GUI, PCSD and FHX remain later phases.
+
+## First returned work-machine evidence (historical, 2026-10-13)
+
+Tyler pushed public/inspection/summary-001.json in 61b9ca7. It reports a clean
+028537d application revision, 6,000 tags, 111 modules, 70 encoded regions and
+zero exposed routines/rungs/instructions. All 70 diagnostics are encoded_content
+warnings. The aggregate passes a read-only v1-to-v2 schema compatibility check;
+the original report remains unchanged and approved for sync.
+
+The earlier public baseline had 6,307 tags, 120 modules, 70 routines, 4,606 rungs
+and no EncodedData. Source equivalence is not established. The next action is to
+confirm whether the same unchanged L5X or a different/new export was used, then
+compare source availability on the work machine. Tyler may have sent the wrong
+one and is checking; the cause is still unconfirmed. EncodedData counts do not prove
+70 encrypted routines or identify their contents. No parser change was justified
+from this aggregate alone. The corrected summary-002 above resolves the missing
+readable-source evidence; the original report remains a separate comparison.
+
+## Clarified sharing boundary (2026-10-13)
+
+Tyler defines confidential material as information that permits rebuilding the
+entire unit with data values, or more than 2% rung knowledge (D026). Aggregate
+summary counts and technical codes expose no individual rung logic or process
+values and are approved for repo sync. The previous private holding folder and
+per-report sharing gate were unnecessary for these reports.
+
+`plc summarize` now allows public/inspection/ output, records schema/policy v2
+and `sharing_status=aggregate_sync_allowed`, and omits the review-before-sharing
+warning. Its publisher validates and canonicalizes the bounded JSON before
+writing. Raw `inspect` inventories and source exports retain their private
+storage boundary. Future rung samples need separate coverage accounting; no
+rung-sample allowance or whole-unit reconstruction capability was added here.
+
+Validation: 59 application tests run, 58 passed, one existing Windows symlink
+skip. Independent review passed all 25 summary tests with no remaining blocker.
+Tyler's v1 work-machine report has now been returned and reviewed above; no
+rerun was needed merely to adopt the clarified sharing policy. Earlier review-gate
+statements below describe the superseded v1 policy, not a current approval
+requirement.
+
+## Summary export checkpoint (2026-10-12)
+
+Tyler authorized building/testing the next slice and pushing it to GitHub for a
+work-machine run. This branch starts at 79d865f and includes the source-inventory
+commits. `plc summarize FILE [--output NEW.json]` reconstructs a fixed, bounded
+aggregate schema from one captured source inventory. It includes component and
+coverage counts, approved routine/instruction vocabulary, pooled withheld labels,
+global ladder measurements and diagnostic counts. It excludes source identities,
+hashes, names, paths, operands, layouts and per-occurrence records. Code revision
+metadata refers to the application checkout, not the source export.
+
+The summary is a local review candidate. Optional explicit output stays private
+inside this checkout, uses atomic no-clobber publication and does not save an
+L5X or raw inventory. Existing files remain untouched. Exit 3 means a usable
+partial-coverage summary was produced; it does not imply a failed save.
+
+Validation: 56 application tests passed plus one existing Windows symlink skip;
+all 139 helper tests passed. Installed-command checks against both public fixtures
+verified counts, unchanged inputs, no source hash in output, and preserved
+existing reports. Independent review findings about OS-error disclosure and
+impossible internal states were fixed and rechecked without remaining blockers.
+Exact tested revision and command evidence are in SUMMARY_EXPORT_REVIEW.md.
+
+Next action is Tyler's bounded work-machine run using the linked procedure.
+Return only the locally reviewed summary JSON and test outcome. No real-export
+run has occurred on this PC. Further symbol/alias analysis can follow the returned
+evidence; PCSD/FHX and editor implementation remain deferred. Git log/status and
+the branch's remote tip determine publication state; earlier no-push statements
+below are historical checkpoints.
+
+## Preceding source inventory checkpoint (2026-10-12)
+
+The feature branch starts at 3cfdb57 on chore/project-scope-review-pc; source
+implementation and validation are recorded at f9f61bc. The new
+`plc inspect` captures input bytes once and produces JSON or readable reports
+with scoped declarations, ordered rungs/instructions, source offsets, coverage
+and diagnostics. Optional explicit private storage creates a new run with the
+exact snapshot, complete reports and a manifest published last. Source IDs are
+snapshot-specific; persistent engineering identities and review overlays remain
+future work. The existing main.py prototype remains available.
+
+Validation: 29 application tests passed, one Windows symlink test skipped, and
+139 helper tests passed. The public minimized-fixture audit and synthetic fixture
+checker passed. Installed CLI checks from an unrelated temporary working directory
+parsed all 9 synthetic rungs (25 instructions) and all 276 minimized rungs
+(1,904 instructions). Both correctly reported partial coverage for unsupported
+routine content; the minimized fixture also includes an RLL routine without a
+content block. These are public fixture results, not real-export validation.
+
+Independent code review found and prompted fixes for declaration context,
+unrecognized executable XML, ambiguous descriptions/comments and canonical
+snapshot identity. The shared grammar now limits total branch legs and argument
+slots and records instruction spans. Standalone inspection helpers import that
+same grammar from python-parser/src; copy the full branch across machines rather
+than only the old tools folder. No confidential files were read or remote
+branches pushed. Use git log/status for the exact local commit state.
+
+No work-machine run is required to continue development. A bounded public-summary
+export is the recommended next slice before asking Tyler to return new private
+inventory results. After that, scoped symbols/aliases and references can build on
+this foundation. GUI/database decisions, editable review data, PCSD and FHX are
+still deferred. Detailed evidence, limits and next-step rationale are in the
+implementation review linked above.
+
+## Confirmed scope and preceding documentation checkpoint (2026-10-12)
+
+Tyler confirmed a reusable migration tool for several units. The five product
+phases and workflow are recorded in docs/planning/ROADMAP.md and decisions D013-D025.
+L5X analysis has two parallel outputs: information/scanning reports for source
+understanding, and editable engineering files used to organize objects and build
+the PCSD. Both need links to the same source evidence. PCSD feedback, class-based
+FHX generation and FHX-to-PCSD are explicitly in the long-term scope.
+
+Review is sequential initially, but participant order is not fixed. Tyler,
+Quebec and the development team are participants, not hardcoded workflow stages.
+Choose the recipient at each handoff and keep the policy adaptable. Approved
+corrections must survive reruns. Changed, expanded, collapsed, split or combined
+objects require reconciliation rather than losing prior decisions.
+
+PCSD means Process Control Strategy Document. The earlier MOD-to-DeltaV workflow
+used Excel, which was accessible to users but difficult to organize and version.
+The PCSD supports generating plant test sheets for a DeltaV unit and simulation.
+Candidate content includes I/O, selectors, PID relationships/flowcharts,
+sequences/transitions, alarms, communications, external references, Boolean and
+floating-point calculations, valves and pumps. Source understanding comes first;
+the final PCSD content/schema is not settled. L5X sequences may require explicit
+engineering design, and source grouping is not automatically target unit/module
+or execution-location grouping.
+
+Tyler prefers a standalone editor with search, useful navigation, change review,
+import/export and backups, while retaining Excel if it proves useful. Design
+deployment for non-programmers without a separately installed Python runtime.
+SQLite as a local project store and PyInstaller-style Windows packaging are
+recommendations to evaluate, not installed components or confirmed selections.
+Tyler prefers sequential review initially: one active editor, followed by a
+revision-bound handoff to the next reviewer. Validate returned changes against
+their base revision and flag stale copies. Shared live editing and concurrent
+copy reconciliation are later options, not initial requirements. Keep the
+one-active-editor policy separate from participant identity and routing.
+
+Only non-proprietary code/tools and reviewed development artifacts travel through
+Git. Real L5X files and private engineering state stay local. Tyler may supply
+bounded summary reports and stripped dummy ladder examples for development;
+these should not enable reconstruction of the complete process.
+
+On this editing PC, origin was fetched and main matched origin/main at bafc410.
+Created local branch chore/project-scope-review-pc as requested. Scope was
+recorded in 3ade905 and sequential-review preference in e8a1ede; subsequent
+clarifications are separate documentation commits. Use git log/status for the
+current commit/push state. All 130 helper tests passed, and the read-only
+minimized_review audit passed (7,303 source links, 276 rung records, 194 paths,
+431 variants). No confidential source was read. Changes in this scope discussion
+are documentation only. Future PC development branches must end in -pc.
+
+Scope-document validation: reviewed the changed requirements/proposals, checked
+the referenced local review entry point, and passed git diff --check. The helper
+test/audit results above are from the initial repository inspection in this
+session; documentation changes did not trigger a repeated test run.
+
+After Tyler requested code/fixture examination and invited subagents, independent
+validation, parser review and design-readiness review checked the unchanged
+implementation again. Fresh results: 130 tests passed (0.077 seconds), the
+minimized_review public audit passed, and the synthetic fixture checker passed
+including l5x tag access. No stable-input blocker was established within the
+documented outer-syntax/metrics contract. Allocation limits, sanitized-opcode
+round-trip assumptions and changing-input protection need explicit treatment
+as the reader evolves. Exact probes, commands and limitations are recorded in
+docs/reviews/NEXT_DEVELOPMENT_PROMPT.md.
+
+At this preceding documentation checkpoint, the recommended next slice was one private snapshot-bound source inventory,
+selected-rung evidence and gap reporting, with JSON/readable views over shared
+records. Current scrubbed fixtures validate structural breadth but not source
+relationships: the minimized sample retains 276/4,606 rungs and 161/554 shapes,
+with per-rung ARG identities. Use coherent independent synthetic cases for future
+reference tracing. This review does not select the GUI, database or final PCSD
+schema. Implementation followed in the source-inventory checkpoint above.
+
+A separate ChatGPT chat will review the work. Keep focused conventional commits,
+decision rationale, useful code comments and reproducible validation notes. Read
+docs/reviews/NEXT_DEVELOPMENT_PROMPT.md (relative to public/) for the review entry
+point. When work-machine turnaround is slow, Tyler may test up to three sibling
+experiment branches from a common baseline and return their comparable results.
+This is a workflow option, not a request to create three branches immediately.
+
+The sections below retain the earlier work-machine evidence and chronology.
+Their pending Git/checkpoint statements describe those earlier sessions, not
+this PC's current state. The five product phases are distinct from helper
+Stages 1-5 and the earlier technical implementation milestones.
+
+Tyler wants one small helper at a time: provide code, let him run it, inspect the
+result, then implement the next piece. Do not jump directly to a complete dummy
+generator or migration framework.
+
+## Historical inspection status (2026-10-09)
+
+- Stage 1: Tyler reported 19 tests passed and supplied the counts JSON. Its nested
+  counts reconcile with 83,942 elements, 213,876 attributes, 194 paths and depth 14.
+  Codex did not read the original confidential input.
+- Stage 2: Tyler reported "no errors". Codex has now independently audited the
+  complete public skeleton against Stage 1: all structure/counts match, all
+  attribute values and direct text are blank, and CDATA counts reconcile.
+- Stage 3: Tyler supplied 58 passing tests and a successful real-input run:
+  194 paths, 213,876 attribute values, 70 routines. Codex read the generated public
+  JSON and reconciled value accounting and source totals with Stage 1. The original
+  confidential export was not read.
+- All work by Codex remains in task handoff artifacts. No repository/Git writes.
+
+## Reviewed Stage 3 findings
+
+The report accounts for all 213,876 attribute values: 90,414 approved technical
+literal observations plus 123,462 withheld observations. Per-field occurrence,
+unique-value and missing-attribute counts reconcile. Source totals match Stage 1.
+
+Routine types: 56 RLL and 14 SFC. Exactly one reported Routine has no child
+elements: global routine ordinal 68, located at
+/RSLogix5000Content[1]/Controller[1]/Programs[1]/Program[2]/Routines[1]/Routine[1].
+Its declared Type is RLL. This explains the 70-record/69-content-block gap.
+The empty element is observed; intentionality is not established.
+
+Tag kinds across controller/program scopes: 5,364 Base, 941 Alias, 2 Produced.
+Declared Tag datatypes include 2,993 BOOL, 1,536 REAL, 434 TIMER, 129 DINT,
+39 INT, 27 MESSAGE, 7 SINT, 4 CONTROL and 3 COUNTER observations.
+194 Tag DataType observations remain withheld (177 controller, 17 program);
+do not label them all as custom or infer the actual names.
+
+Across Data and DefaultData elements: 5,597 Decorated, 5,511 L5K and 27 Message
+formats. These are representation counts, not separate tag counts.
+Task types are 1 CONTINUOUS and 2 PERIODIC; actual scan rates remain withheld.
+
+## Stage 4: rung inventory implemented and reviewed
+
+The helper is ready as a task handoff. It adds:
+- `tools/l5x_inspect/inspect_rungs.py`: arguments and console summary.
+- `tools/l5x_inspect/rungs/syntax.py`: pure neutral-text structure parser,
+  measurements and sanitized representations.
+- `tools/l5x_inspect/rungs/inventory.py`: XML reading, coverage, grouping,
+  ranked samples and JSON publication.
+- Two test modules plus RUNGS.md and RUNG_VALIDATION.md.
+
+The 58 unchanged earlier tests and 36 new tests passed together (94 total).
+CLI help passed. Tests used invented in-memory inputs and mocked writes.
+Tyler has now copied the helper, passed all 94 tests locally, and run the actual
+export successfully. Codex reviewed the generated public report; see below.
+
+Default output: `public/rung-structure.json`, schema_version 1, parser_version 1.
+Coverage accounts for every encountered ladder rung as parsed or unparsed, and
+separately counts ignored non-ladder Rung elements. Program and AOI ladders are
+included. The actual report accounts for all 4,606 ladder rungs as parsed.
+
+The JSON provides per-rung ordinal locators, numeric Number, approved Type,
+metrics, pattern IDs and diagnostic codes; pattern records link back to rung IDs.
+It counts instruction calls, argument positions, expression-bearing instruction
+calls (CMP/CPT/FAL/FSC only), branch groups/legs, depth, normalized height and
+normalized width. Inner expressions remain opaque. Height counts parallel lanes;
+width counts instruction boxes and excludes wiring. These are structural measures,
+not Studio pixels, execution timing or proof of behavioral complexity.
+
+Shapes preserve ordered instruction labels, arity, empty argument positions and
+branch topology. Operand values, reuse and inner expression structure do not
+define shape identity. Select up to five distinct shapes per ranking by default:
+tallest, widest, deepest and most frequent. The sample list is deduplicated across
+rankings; tied scores use first source occurrence.
+
+Samples retain the authorized instruction/branch layout with every nonempty
+whole argument replaced by ARG placeholders. Identical stripped arguments share
+a label only within a sample. Unlisted instruction names become run-local
+UNLISTED_OP labels; this is not a declaration that they are custom or invalid.
+No raw comments, identifiers, operands, source filename/path or source hash
+enter the report. Private mappings are not persisted in this slice.
+
+PASS means all encountered ladder rungs were structurally parsed. PARTIAL means
+a report was still saved, with unparsed locators and error codes; valid runs
+return exit code 2 in this case. Measured totals and rankings cover only parsed
+rungs. No partial instruction counts are guessed from failed rungs.
+
+Keep the original source local. Ladder branching is parsed from Rung/Text, not
+the XML Branch elements belonging to SFC. Syntactic samples do not establish
+semantic equivalence or Studio import validity. The complete minimized dummy L5X
+and general ASCII renderer remain later slices.
+
+## Reviewed Stage 4 findings
+
+Tyler ran all 94 tests successfully in 0.037 seconds, then ran the helper on
+the actual local export. The console reported PASS. Codex subsequently read
+public/rung-structure.json and independently recalculated its shape metrics,
+weighted totals, rankings and occurrence links from the saved public trees.
+The confidential source was not opened by Codex.
+
+- 4,606/4,606 ladder rungs parsed; 0 unparsed; 0 metadata findings.
+- 4,604 program rungs and 2 AOI rungs; totals agree with earlier stages.
+- 554 distinct ordered structural shapes; every rung links to exactly one.
+- 17,874 instruction calls; 24,583 argument positions, all nonempty.
+- 3,719 branch groups; 8,887 branch legs; no empty branch legs.
+- Maximum nesting depth 4, height 59 lanes, width 18 instruction boxes.
+- 46 expression-bearing calls: 45 CPT plus 1 FAL. Inner mathematical operators
+  are not counted.
+- 19 selected samples after deduplicating the four top-five rankings.
+- All sample operands were checked as ARG placeholders; rendered sample text
+  matches its saved tree and shape. This is an output-format check, not a
+  comparison against original confidential values or a general secrecy proof.
+
+The tallest example is pattern_00038, rung_000237, original rung Number 5.
+It has 94 calls, 6 branch groups, 64 total legs, and depth 2. Its outer branch
+has 49 legs; five nested three-leg branches add ten lanes: 49 + 5*(3-1) = 59.
+Its normalized width is 3 instruction boxes.
+The widest example is pattern_00420, rung_003215, Number 33: width 18,
+height 6, depth 2, 25 instructions.
+
+The most frequent shape, pattern_00048, occurs 999 times:
+XIO(ARG_001)OTU(ARG_002);. Equal shapes do not prove equal behavior.
+
+UNLISTED_OP_0001 occurs exactly once, in pattern_00007 / rung_000007:
+ordinal locator
+/RSLogix5000Content[1]/Controller[1]/Programs[1]/Program[1]/Routines[1]/Routine[1]/RLLContent[1]/Rung[5],
+Number 4. Its structure parsed successfully. Its original mnemonic remains
+unknown and masked; do not infer that it is custom or invalid. It is outside
+the 19 ranked sample selections; retain a sanitized representative for this
+case in the next dummy fixture.
+
+Source totals still match Stages 1 and 3: 83,942 elements, 213,876 attributes,
+194 paths, depth 14. All 554 shape metrics, 4,606 occurrence links, weighted
+instruction/branch totals, four rankings and 19 sample/tree links reconciled.
+No new parser correction is indicated by this report review.
+This verifies report consistency, not instruction semantics or Studio validity.
+
+## Stage 5: first minimized fixture generated and reviewed
+
+The handoff adds minimize_l5x.py, dummy/model.py, dummy/selection.py and
+dummy/build.py under tools/l5x_inspect/, plus test_minimize_l5x.py, MINIMIZE.md
+and MINIMIZE_VALIDATION.md. Earlier helpers and the application are unchanged.
+
+The helper opens the original export read-only and recomputes its rung inventory.
+It requires complete rung parsing and no rung metadata findings. It sanitizes
+values, selects representative XML, writes a structural L5X example and a
+companion report. No dependency installation is needed.
+
+Default outputs:
+- public/fixtures/minimized/controller_demo.L5X
+- public/fixtures/minimized/minimized-report.json
+
+The initial policy-1 --per-variant 5 sampled consecutive equivalent local runs.
+The reviewed policy-2 handoff counts first N occurrences per variant under each
+retained parent, including interleaved variants. Mandatory
+anchors retain the first occurrence of every global local variant, the ranked
+ladder examples, every instruction label (including masked ones), and all needed
+ancestors. Selected ladder Rung subtrees are retained completely. Retained
+siblings stay in source order. The cap is not a global five-per-element limit.
+
+Variant identity includes path, attribute names/categories, approved technical
+values or masked datatype identity, collapsed ordered child-name runs, source
+direct-text/CDATAness and text action. It is not full subtree or behavior
+equivalence. Publication checks all source paths and variant IDs are represented
+and verifies emitted element/attribute counts.
+
+Stage 3 approved technical literals and numeric rung Number/approved Type remain.
+Other identifiers, datatypes, descriptions and scalars receive invented values.
+Whole recognized identifier/reference strings share run-local DUMMY_ID labels;
+other datatypes share DUMMY_TYPE labels. Ladder ARG labels are separate per rung.
+No scope/member/reference resolution is claimed. Private replacement dictionaries
+exist only in process memory; every retained element has public source/output
+ordinal XML locators for back-reference.
+
+Serialized non-ladder text, ST lines and mixed direct text receive explicit
+placeholders and are reported. Original comments/PIs are omitted and counted.
+Task/SFC links, array dimensions/indices and member references are not repaired
+for semantic coherence. Output is for structural parser development; controller
+import/operation has not been validated.
+
+The coverage JSON records source/retained/omitted elements, attributes and text
+values by path, selection reasons, replacement action counts, unsupported retained
+payloads, rung records and source/output occurrence links. output_sha256 hashes
+the generated XML only. XML and report are individually atomic, with XML written
+first and report second; they are not one atomic two-file transaction.
+
+Validation completed:
+- 118 combined tests passed (94 unchanged plus 24 new), 0.116 seconds.
+- CLI help passed.
+- Full actual public skeleton verified: 83,942 elements, 213,876 attributes,
+  194 paths, depth 14, 18,351 CDATA-bearing elements, all values/text blank.
+- An in-memory integration using the 19 approved public rung examples plus the
+  masked-opcode shape passed. From 20 inputs it selected 16 with per-variant 1
+  and preserved depth 4, 49-leg maximum, 59-lane height and width 18.
+- No confidential export was opened and no repository/Git writes occurred.
+
+Actual Stage 5 run and public-output review are complete.
+
+Tyler passed all 118 tests locally (0.057 seconds), committed the helpers and
+earlier reviewed public reports as 6c50244, and successfully pushed main to
+origin/main. The push created the remote branch and set tracking. The new
+minimized files were generated afterward; no subsequent commit/push was reported.
+
+The real-input generator reported:
+- 44,545 of 83,942 elements retained; 39,397 omitted.
+- 194 of 194 XML paths and 431 of 431 local variants represented.
+- 2,397 of 4,606 ladder rungs retained, covering 458 of 554 source shapes.
+- All 42 encountered instruction labels represented, including the masked one.
+- 4,171 opaque payload replacements, 107 ST-line replacements and 12 mixed-text
+  replacements among retained elements.
+- Generated XML 4,078,792 bytes; companion report 14,379,883 bytes.
+
+Codex read the two public files and ran a read-only audit, without opening the
+confidential original. The generated XML hash matches its report. Every one of
+44,545 output/source occurrence links was verified against the full blank
+skeleton, including unchanged element names and attribute-name sets. All 194
+per-path source/retained/omitted counts reconcile with the earlier reports and
+actual output. All 2,397 rung source records, metadata, shapes and metrics match
+the Stage 4 report. All 19 ranked source examples and 42 instruction labels remain.
+Maxima remain depth 4, 49 direct legs, 59 lanes and width 18. All 108,252 output
+attributes were checked against the stated public/dummy value categories, with
+zero findings. All 13,131 nonblank direct text fields, including whole ladder
+operands, passed their replacement-policy checks.
+
+These checks verify output structure, provenance and stated replacement policies;
+they do not establish instruction semantics, coherent runtime references, Studio
+import validity or a general confidentiality certification. Public source/output
+ordinal locators apply to this source ordering only.
+
+## Stage 5 review corrections: installed and verified by user
+
+The independent review confirmed two issues. See
+public/docs/reviews/STAGE_5_CODE_REVIEW.md and
+public/inspection/stage_5_corrections.json for original file/line evidence.
+
+1. The sampler reset its quota between consecutive variant runs. It now counts
+   the first N occurrences of each variant across each retained parent.
+   Mandatory anchors and their ancestors, full selected rung subtrees, global
+   path/local-variant coverage, ranked examples, instruction representatives,
+   source ordering and occurrence mappings are retained.
+2. Skeleton publication checked counts/text but could accept nonblank attributes.
+   parse_structure now has an opt-in require_blank_attributes gate, enabled when
+   create_skeleton verifies its completed output. A failing gate prevents
+   publication without printing the unexpected value.
+
+The new minimized report uses schema_version 2 and policy_version 2.
+selection.per_parent_variant_limit replaces per_consecutive_variant_run.
+Other report schemas are unchanged. Variant identity itself is unchanged;
+retained parents may lose entire later child-name runs when redundant examples
+are omitted. The full blank skeleton remains the authority for complete nesting.
+
+Twelve new tests were run against the unchanged helpers first: four expected
+failures established the two quota cases, version contract and skeleton gate.
+After the bounded correction, all 130 tests passed in 0.182 seconds. Existing
+count, parser, sanitizer and publication tests also passed. Tests use memory
+and mocks, with Python -B; no workspace writes or confidential reads occurred.
+
+The existing policy-1 public pair was freshly audited: 44,545 links, 2,397 rung
+records/shapes/metrics, 194 paths, 431 variant IDs, all 19 source ranked samples,
+42 instruction labels, counts, source order, full retained rung descendants and
+replacement policies reconciled. The actual public skeleton also passed strict
+blank-attribute verification; no existing retained attribute value was found.
+
+A separate in-memory re-minimization of the existing public fixture retained
+7,303 of 44,545 elements and 276 of 2,397 rungs. It preserved 194 paths, 431
+variants, 19 rankings selected for that public input, all 42 instruction labels
+and maxima depth 4 / direct legs 49 / height 59 / width 18. Every retained source
+link and rung tree was checked. These are public-fixture integration counts;
+that check did not regenerate the original confidential source. The subsequent
+user-run original-source results are recorded below; keep the two evidence
+sources distinct.
+
+The handoff files are under the task outputs/l5x-inspect-stage-5-fixes directory.
+Tyler has installed them; both pre/post-install verification checks passed.
+Codex did not install files in the repository. COPY_AND_RUN.md contains bounded
+backup/copy commands. verify_handoff.py checks all destination code/document
+hashes before replacement and detects skipped/changed files after installation.
+It handles line-ending differences only, not other edits. The package also
+contains unchanged helper snapshots for task-local tests; copy only the paths
+listed in install-files.txt, never the whole snapshot.
+
+## Policy-2 original-source run and public review: complete
+
+Tyler supplied the completed install/test/generation/audit output. Both checks
+verified 13 handoff files and 12 dependencies. All 130 tests passed in 0.061
+seconds. The original-source run produced public/fixtures/minimized_review.
+Codex read that public JSON and generated XML bytes, confirmed schema/policy 2,
+reconciled the report summary and independently verified its generated-file hash.
+Codex did not open the confidential original or repeat the production run.
+
+Actual original-source coverage:
+- 7,303 of 83,942 elements retained; 76,639 omitted.
+- 194/194 XML paths and 431/431 local variants represented.
+- 276 of 4,606 rungs retained, representing 161 of 554 ladder shapes.
+- All 19 ranked source examples and 42 instruction labels preserved.
+- Maxima unchanged: branch depth 4, direct legs 49, height 59, width 18.
+- 204 opaque payload, 78 ST-line and 11 mixed-text replacements retained.
+- Output: 18,539 attributes; 1,493 nonblank text-bearing elements;
+  1,016 CDATA-bearing elements; XML depth 14.
+- XML 714,140 bytes; JSON 2,854,812 bytes.
+
+The user's public checker returned PASS: generated XML hash matches; all 7,303
+occurrence links and 276 rung shape/metric pairs verified; all required path,
+variant, ranked-example and instruction-label coverage accounted; zero attribute
+policy findings; all 1,493 nonblank text fields passed policy checks.
+These are user-run checker results plus Codex's direct public-report/hash review.
+
+The previously oversized parent/variant group fell from 614 retained rungs to 7.
+Codex inspected their recorded source locators and mandatory selection reasons:
+first five ordinary examples plus one CTU and one RES instruction representative.
+The two extra examples are intentional quota exceptions, not counter resets.
+
+The fixture is representative, not complete ladder-pattern coverage. The full
+rung-structure.json retains all 554 shape records and all 4,606 rung occurrences.
+Keep the policy-1 minimized folder as a comparison until a separate cleanup is
+chosen. No helper code changed after the 130-test review checkpoint.
+
+See public/inspection/stage_5_run_review.json for the portable result record.
+
+## Next bounded step: documentation checkpoint and Git review
+
+Copy the updated handoff and stage_5_run_review.json from the task
+outputs/l5x-inspect-stage-5-run-review directory. Then Tyler should fetch origin
+and return git status and ahead/behind evidence before commit/push instructions.
+No new commit/push is reported. The earlier successful main push is the last
+confirmed remote event; Codex has not fetched or modified Git.
+
+Generated references, array dimensions/indices, sampled SFC graphs and opaque/ST
+payload placeholders remain outside semantic validity. Two output files are
+individually atomic, not a transaction. GUI, translation and DeltaV conversion
+remain deferred. Next development scope should be chosen after this checkpoint;
+do not start another broad implementation automatically.
+
+## Stage 3 report contract
+
+The report includes source_totals, coverage, policies, routine_coverage and paths.
+Every path row has an element count and per-attribute/direct-text statistics:
+occurrences, distinct parsed strings, lexical-type counts, approved technical
+literal counts, withheld counts, invented examples, and missing-attribute counts.
+
+Lexical types are syntax categories. Integer 0 is not proof of BOOL or DINT.
+Same-element DataType context is reported separately for Value/ForceValue or
+direct text; parent inheritance and tag/reference resolution are not implemented.
+Date-like shapes are not calendar validation. Distinct strings are kept only in
+local process memory and are never dumped, hashed into the report, or sent online.
+
+An explicit limited permission list allows common builtin types, routine types,
+task types, TagType, Radix, ExternalAccess and selected documented Data formats.
+Unrecognized values stay withheld but counted. Do not label all withheld types
+as custom: some may be valid builtin types outside the initial list.
+A small repeated value set is only a heuristic, never permission to emit values.
+Actual descriptions, identifiers, constants and source logic remain absent;
+examples are independently invented placeholders.
+
+Routine records use ordinal XML locators, not names. Direct children establish
+content coverage; STContent inside an SFC transition condition does not establish
+an ST routine. Missing/multiple/mismatched blocks and protection markers are
+review findings, not proof of an invalid PLC project. Ordinal locators apply only
+to this source ordering, not as stable IDs across future reordered exports.
+
+Opaque payloads are not decoded. Stage 4 now implements outer ladder syntax and
+structural dimensions. Semantic analysis, persistent mappings, translation and
+GUI logic remain separate future work.
+
+## Findings from the Stage 1 JSON
+
+There are 3 programs, 3 tasks, 120 Module records, 1 AOI definition,
+70 Routine records, 4,606 ladder Rung elements, and 6,307 Tag elements
+(6,261 controller plus 46 program). InputTag/OutputTag/ConfigTag, AOI Parameter
+and AOI LocalTag records are different element types and excluded from Tag counts.
+
+55 RLLContent blocks comprise 54 program blocks plus one AOI block.
+14 SFCContent blocks contain 14 Branch elements and 34 Leg elements.
+The 155 STContent blocks are under SFC transition Conditions.
+No EncodedData element is present in this particular report. DataTypes exists
+without child definitions; this alone does not exclude custom type references.
+
+Resolved by Stage 3: one RLL Routine has no child elements. See the reviewed
+findings above for its ordinal XML location.
+
+Different Data representations and scopes must stay distinct. Profile Format
+values before interpreting payloads; a Data count is not a tag count.
+
+## Required eventual outputs
+
+| Output | State |
+|---|---|
+| Nested counts JSON | User-run report inspected; totals reconciled |
+| Full blank XML skeleton | Complete public skeleton independently verified against Stage 1 |
+| Type/value profile | User run and public JSON reviewed; accounting reconciled |
+| Minimized dummy L5X | Policy-2 original-source run and public audit passed; 276 sampled rungs with required coverage |
+
+Full skeleton: preserve every element, repeated instance, sibling order and
+attribute name; blank all values, including Number, Type and DataType.
+The later dummy L5X may retain approved technical values.
+
+Tyler permits retaining sampled rung instruction and branch layouts, rung Number
+and Type, with tag names and constants replaced. Include tallest/widest branch
+examples and branch/expression-call counts. Stage 4 implements the first pass;
+actual-input coverage and the saved public report have now been reviewed. Define metrics against observed
+neutral syntax; do not infer ladder branching from SFC Branch elements or the
+blank XML skeleton. Keep real reverse mappings in confidential/.
+
+
+## Layout and machine boundaries
+
+- `python-parser/`: current application prototype; do not refactor in this slice.
+- `tools/l5x_inspect/`: standalone auxiliary inspection helpers.
+- `public/`: portable documentation, invented fixtures, and reviewed structural
+  reports/examples approved for sharing.
+- `confidential/`: source exports, private derived data, mappings, logs, reviewer
+  workbooks, and checkpoints. Inputs are under `confidential/plc-code/`.
+- Root `.gitignore` excludes `confidential/` and Python environments/caches.
+  Preserve the current ignore files; no replacement is needed for this slice.
+
+Read the current machine's AGENTS instructions first. On the work machine, Codex
+may only create handoff artifacts in its designated task artifact directory.
+Repository files, configuration, Git metadata, and remote state are read-only.
+Provide exact Git Bash commands for Tyler to run; do not execute them or request
+permission to bypass that boundary. On an authorized editing machine, make the
+selected changes directly within that machine's instructions.
+
+Tyler created the renamed project copy, initialized Git on main, and configured
+origin. Do not rerun git init, discard history, or add origin again. Current
+working-tree/staging status and remote freshness were not verified for these
+handoffs; a read-only Git status attempt was denied by the environment. Preserve
+local changes and inspect status before staging. Fetch/check remote state must be
+user-run before recommending a push; do not use force push to resolve rejection.
+
+The old independently invented fixture passed Tyler's checker including l5x tag
+access. That verifies the toy's internal checks, not coverage of his real export,
+nor Studio 5000 import validity. Use it as a limited test fixture, not as authority
+for the source schema.
+
+## Broader direction retained
+
+The future application should have a thin argument/UI layer and reusable parsing,
+analysis, and reporting services. Ladder is the first detailed target. Inventory
+must still count SFC and other routine types, tags by scope, tasks, modules, rungs,
+and instructions such as JMP where their text can be parsed.
+
+JSON should drive overview reports and a future GUI. Navigate from broad counts
+and pattern groups down to concrete occurrences. Keep explicit links to source
+locations and support many-to-many mappings; one classification can span rungs,
+and one rung can have multiple classifications. Patterns alone do not establish
+behavioral equivalence. Preserve scan order, jumps, timing/task context, and
+inter-controller relationships during later execution-graph analysis.
+
+Each stage must account for parsed content, preserved unknowns, deliberately
+ignored content, and errors. Immutable original inputs, versioned checkpoints,
+and review overlays must support resume, back-reference, and Excel export/import
+round trips without silently overwriting prior decisions.
+
+French/Quebec shorthand interpretation should eventually support AI suggestions,
+uncertainty, unresolved items, and bilingual human review. Provider and data scope
+are unresolved. A confidence score is not automatically a calibrated probability.
+Keep a reversible glossary/mapping; do not alter the original source text.
+
+DeltaV FHX conversion is deferred. Target library/version, mapping semantics,
+execution behavior, acceptance tests, and the conversion design are not chosen.
+No PLC download or runtime change is part of this work.
+
+Earlier planning remains under `public/docs/planning/`: ARCHITECTURE, DATA_CONTRACTS,
+CLI_AND_REVIEW, L5X_STRUCTURE, ROADMAP, CONFIDENTIALITY, and DECISIONS. Treat it as
+a proposal subject to actual-structure findings and the staged sequence above.
+
+## Progress and handoff maintenance
+
+Stages 3 and 4 results are recorded above. Stage 4 user tests and source run
+succeeded, and Codex inspected the generated public report. The first minimized
+L5X generator has now passed the user run and public-output audit. The code
+checkpoint was pushed; generated outputs have no reported subsequent push.
+Fresh review corrections are installed by Tyler. Policy-2 original-source
+generation and the public checker passed; Codex reviewed the generated public
+report/hash and mandatory exceptions. Documentation checkpoint and user-run Git
+review are next; no new commit/push has been reported.
+Keep user-reported runs distinct from inspected output and semantic validation.
+
+After each slice, update:
+- implemented behavior and schema/script versions;
+- actual commands run, results, and limits of those results;
+- unresolved structures and unsupported syntax;
+- agreed next bounded step.
+
+Keep real tag names, plant paths, raw ladder text, confidential hashes, and private
+diagnostics out of this public document.

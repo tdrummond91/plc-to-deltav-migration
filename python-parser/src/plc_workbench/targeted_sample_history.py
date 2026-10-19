@@ -14,14 +14,14 @@ import stat
 import tempfile
 from typing import Any, Callable
 
+from .contracts.work_reports import MAX_WORK_REPORT_BYTES
 from .targeted_samples import MAX_BYTES, REQUEST_ID, render_targeted_samples_json, validate_targeted_samples
 
 MAX_HISTORY_FILES = 512
 MAX_HISTORY_BYTES = 32 * 1024 * 1024
-# Pre-parse envelope tracks the current work-check format; a regression guard
-# compares this with its current versioned cap. Older raw file caps remain in
-# force after validation, including whitespace omitted by canonical rendering.
-MAX_WORK_REPORT_BYTES = 144 * 1024
+# MAX_WORK_REPORT_BYTES remains a local compatibility alias for the shared
+# pre-parse envelope. Older raw file caps remain in force after validation,
+# including whitespace omitted by canonical rendering.
 
 
 class TargetedSampleHistoryError(ValueError):

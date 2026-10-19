@@ -1,15 +1,18 @@
 # Reading the Phase 1 engineering report
 
 The report explains captured PLC source and proposed engineering groupings.
-No code reading is required. C14 return `adc5475`, testing `a53ca67`, closes the
-automated pre-review gate for this export. Start with Tyler's readability and
-appearance check, then team engineering review. No new parser run is needed.
+No code reading is required. C14 return `adc5475`, testing `a53ca67`, closed the
+automated pre-review gate for this export. C15 return `d53e1ee`, testing clean
+`4c5386c`, also passed the requested cleanup confirmation with all 29 analysis
+summaries unchanged. Start with readability and appearance, then team
+engineering review. No further parser run is needed. See the
+[cleanup record](CLEANUP_REVIEW.md) for the final returned evidence.
 See the [readiness assessment](PHASE_1_READINESS_REVIEW.md) for evidence and the
 remaining source questions.
 
 ## Open the report on the work PC
 
-Open the `review.html` already saved by your latest work-check run. The script
+Open the `review.html` already saved by run `20261019T185822Z-acde7c64`. The script
 prints **Private review report:** followed by its path. If that terminal output
 is gone, browse `confidential/workspaces/work-check/` and open the newest run's
 `review.html`. There is no need to rerun the parser merely to find the report.
@@ -131,11 +134,11 @@ across changing source exports.
 - Alarm severity, shutdown effects, equipment identities and target naming need
   supporting source or engineering decisions. Wording alone is insufficient.
 
-One source-population description in **Unresolved analysis** says rack-name
-candidates remain unconfirmed. That is
+In older C14 reports, one source-population description in **Unresolved
+analysis** says rack-name candidates remain unconfirmed. That is
 the preserved base binding view; use **Rack source addresses** and its qualified
-cross-rung links for the later source correspondence. This wording is a known
-presentation limitation for the feedback pass. A qualified source path still
+cross-rung links for the later source correspondence. The cleanup corrects the
+sentence in newly generated reports. A qualified source path still
 does not prove a physical channel or a Boolean execution result.
 
 The [completion tracker](../planning/PRE_TEAM_REVIEW_TRACKER.md) and

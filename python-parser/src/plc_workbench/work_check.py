@@ -88,26 +88,17 @@ from .rack_backing_context import analyze_rack_backing_context
 from .rack_backing_context_summary import build_rack_backing_context_summary, validate_rack_backing_context_summary
 from .targeted_sample_history import resolve_targeted_samples, sample_envelope, validate_sample_envelope
 
-MAX_REPORT_BYTES = 32 * 1024
-MAX_REPORT_V22_BYTES = 48 * 1024
-MAX_REPORT_V28_BYTES = 64 * 1024
-# Work32 reserves the new closed summary plus the unchanged full sample envelope.
-MAX_REPORT_V32_BYTES = 80 * 1024
-MAX_REPORT_V39_BYTES = 88 * 1024
-MAX_REPORT_V40_BYTES = 96 * 1024
-MAX_REPORT_V41_BYTES = 104 * 1024
-MAX_REPORT_V42_BYTES = 104 * 1024
-MAX_REPORT_V43_BYTES = 104 * 1024
-MAX_REPORT_V44_BYTES = 104 * 1024
-MAX_REPORT_V45_BYTES = 104 * 1024
-MAX_REPORT_V46_BYTES = 104 * 1024
-MAX_REPORT_V47_BYTES = 104 * 1024
-MAX_REPORT_V48_BYTES = 112 * 1024
-MAX_REPORT_V49_BYTES = 128 * 1024
-MAX_REPORT_V50_BYTES = 128 * 1024
-MAX_REPORT_V51_BYTES = 144 * 1024
-MAX_REPORT_V52_BYTES = 144 * 1024
-MAX_REPORT_V53_BYTES = 144 * 1024
+# Compatibility aliases stay here: boundary tests and callers patch these names.
+from .contracts.work_reports import (
+    MAX_REPORT_BYTES, MAX_REPORT_V22_BYTES, MAX_REPORT_V28_BYTES,
+    MAX_REPORT_V32_BYTES, MAX_REPORT_V39_BYTES, MAX_REPORT_V40_BYTES,
+    MAX_REPORT_V41_BYTES, MAX_REPORT_V42_BYTES, MAX_REPORT_V43_BYTES,
+    MAX_REPORT_V44_BYTES, MAX_REPORT_V45_BYTES, MAX_REPORT_V46_BYTES,
+    MAX_REPORT_V47_BYTES, MAX_REPORT_V48_BYTES, MAX_REPORT_V49_BYTES,
+    MAX_REPORT_V50_BYTES, MAX_REPORT_V51_BYTES, MAX_REPORT_V52_BYTES,
+    MAX_REPORT_V53_BYTES, report_limit_name, serialize_report,
+)
+
 _LEGACY_CONSTANTS = {
     "schema_version": 1,
     "report_kind": "l5x_work_machine_check",
@@ -1437,48 +1428,12 @@ def validate_work_check_report(report: Any) -> None:
 
 
 def _report_limit(version: int) -> int:
-    if version == 53:
-        return MAX_REPORT_V53_BYTES
-    if version == 52:
-        return MAX_REPORT_V52_BYTES
-    if version == 51:
-        return MAX_REPORT_V51_BYTES
-    if version == 50:
-        return MAX_REPORT_V50_BYTES
-    if version == 49:
-        return MAX_REPORT_V49_BYTES
-    if version == 48:
-        return MAX_REPORT_V48_BYTES
-    if version == 47:
-        return MAX_REPORT_V47_BYTES
-    if version == 46:
-        return MAX_REPORT_V46_BYTES
-    if version == 45:
-        return MAX_REPORT_V45_BYTES
-    if version == 44:
-        return MAX_REPORT_V44_BYTES
-    if version == 43:
-        return MAX_REPORT_V43_BYTES
-    if version == 42:
-        return MAX_REPORT_V42_BYTES
-    if version == 41:
-        return MAX_REPORT_V41_BYTES
-    if version == 40:
-        return MAX_REPORT_V40_BYTES
-    if version == 39:
-        return MAX_REPORT_V39_BYTES
-    if version in (32, 33, 34, 35, 36, 37, 38):
-        return MAX_REPORT_V32_BYTES
-    if version in (28, 29, 30, 31):
-        return MAX_REPORT_V28_BYTES
-    return MAX_REPORT_V22_BYTES if version in (22, 23, 24, 25, 26, 27) else MAX_REPORT_BYTES
+    # Resolve the public aliases at call time, retaining existing patch behavior.
+    return globals()[report_limit_name(version)]
 
 
 def _serialize_report(report: dict[str, Any]) -> str:
-    # New companions need room for the complete frozen sample reservation.
-    # Work31 and later use compact whitespace; all historical render bytes stay stable.
-    layout = {"separators": (",", ":")} if report["schema_version"] in (31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53) else {"indent": 2}
-    return json.dumps(report, sort_keys=True, ensure_ascii=True, **layout) + "\n"
+    return serialize_report(report)
 
 
 def _report_size(report: dict[str, Any]) -> None:

@@ -44,7 +44,7 @@ WORK_MACHINE_MODULES = {
         "test_rack_candidates", "test_rack_source", "test_rack_summary", "test_rack_backing_summary",
         "test_rack_backing_context", "test_rack_backing_context_summary", "test_rack_backing_context_workflow",
         "test_reference_summary", "test_references", "test_source", "test_source_reuse", "test_storage",
-        "test_summary", "test_summary_output", "test_timer_placeholders",
+        "test_summary", "test_summary_output", "test_work_report_contracts", "test_timer_placeholders",
         "test_unmatched_sample_report",
         "test_system_flags", "test_system_flag_summary", "test_system_flag_report",
         "test_math_references", "test_math_summary", "test_math_report",

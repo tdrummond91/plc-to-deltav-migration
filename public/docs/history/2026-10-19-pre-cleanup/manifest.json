@@ -1,0 +1,1649 @@
+{
+  "schema_version": 1,
+  "archived_date": "2026-10-19",
+  "purpose": "Full pre-cleanup entrypoints; only relative Markdown link targets rebased.",
+  "offset_encoding": "UTF-8 bytes after CRLF-to-LF normalization",
+  "files": [
+    {
+      "original_path": "README.md",
+      "archive_path": "files/README.md",
+      "original_byte_count": 13607,
+      "original_sha256": "98e285b0c65165e63b21d02b548379d6044c39e982aca7d5bdba32bf7d3ca085",
+      "original_newline": "crlf",
+      "original_sha256_lf": "c2f4d7c33c142e651884cafef94e5cff71a91a7071516a691df5a3b8be1bb550",
+      "archive_sha256_lf": "f872cdc7725867700dd83c414a33953bfbf7b1beb3adebd6c1e78ba695d4038f",
+      "link_rewrites": [
+        {
+          "archive_byte_offset_lf": 355,
+          "original_target": "public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md",
+          "archive_target": "../../../planning/PRE_TEAM_REVIEW_TRACKER.md"
+        },
+        {
+          "archive_byte_offset_lf": 510,
+          "original_target": "public/docs/reviews/PHASE_1_READINESS_REVIEW.md",
+          "archive_target": "../../../reviews/PHASE_1_READINESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 580,
+          "original_target": "public/docs/reviews/REPORT_REVIEW_GUIDE.md",
+          "archive_target": "../../../reviews/REPORT_REVIEW_GUIDE.md"
+        },
+        {
+          "archive_byte_offset_lf": 643,
+          "original_target": "public/examples/control-interpretation-review-demo.html",
+          "archive_target": "../../../../examples/control-interpretation-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 1447,
+          "original_target": "public/docs/reviews/EXECUTION_CONTEXT_REVIEW.md",
+          "archive_target": "../../../reviews/EXECUTION_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 1519,
+          "original_target": "public/examples/execution-context-demo.html",
+          "archive_target": "../../../../examples/execution-context-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 2063,
+          "original_target": "public/docs/reviews/SOURCE_REUSE_REVIEW.md",
+          "archive_target": "../../../reviews/SOURCE_REUSE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 2541,
+          "original_target": "public/docs/reviews/WORK_CHECK_TIMING_REVIEW.md",
+          "archive_target": "../../../reviews/WORK_CHECK_TIMING_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 3149,
+          "original_target": "public/docs/reviews/SFC_CONTEXT_REVIEW.md",
+          "archive_target": "../../../reviews/SFC_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 3215,
+          "original_target": "public/examples/sfc-context-demo.html",
+          "archive_target": "../../../../examples/sfc-context-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 3534,
+          "original_target": "public/docs/reviews/SAVE_FAILURE_REVIEW.md",
+          "archive_target": "../../../reviews/SAVE_FAILURE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 4324,
+          "original_target": "public/docs/reviews/CONDITION_REVIEW.md",
+          "archive_target": "../../../reviews/CONDITION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 5443,
+          "original_target": "public/docs/reviews/FEEDBACK_LISTENER.md",
+          "archive_target": "../../../reviews/FEEDBACK_LISTENER.md"
+        },
+        {
+          "archive_byte_offset_lf": 5826,
+          "original_target": "CODEX_HANDOFF.md",
+          "archive_target": "../../../../../CODEX_HANDOFF.md"
+        },
+        {
+          "archive_byte_offset_lf": 5884,
+          "original_target": "public/docs/planning/ARCHITECTURE.md",
+          "archive_target": "../../../planning/ARCHITECTURE.md"
+        },
+        {
+          "archive_byte_offset_lf": 5954,
+          "original_target": "public/docs/planning/ROADMAP.md",
+          "archive_target": "../../../planning/ROADMAP.md"
+        },
+        {
+          "archive_byte_offset_lf": 7970,
+          "original_target": "public/docs/planning/ARCHITECTURE.md",
+          "archive_target": "../../../planning/ARCHITECTURE.md"
+        },
+        {
+          "archive_byte_offset_lf": 8095,
+          "original_target": "public/docs/planning/DATA_CONTRACTS.md",
+          "archive_target": "../../../planning/DATA_CONTRACTS.md"
+        },
+        {
+          "archive_byte_offset_lf": 8210,
+          "original_target": "public/docs/planning/ROADMAP.md",
+          "archive_target": "../../../planning/ROADMAP.md"
+        },
+        {
+          "archive_byte_offset_lf": 8325,
+          "original_target": "public/docs/planning/CLI_AND_REVIEW.md",
+          "archive_target": "../../../planning/CLI_AND_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 8449,
+          "original_target": "public/docs/planning/CONFIDENTIALITY.md",
+          "archive_target": "../../../planning/CONFIDENTIALITY.md"
+        },
+        {
+          "archive_byte_offset_lf": 8567,
+          "original_target": "public/docs/planning/DECISIONS.md",
+          "archive_target": "../../../planning/DECISIONS.md"
+        },
+        {
+          "archive_byte_offset_lf": 8677,
+          "original_target": "public/examples/glossary.synthetic.json",
+          "archive_target": "../../../../examples/glossary.synthetic.json"
+        },
+        {
+          "archive_byte_offset_lf": 8792,
+          "original_target": "public/examples/pattern.synthetic.json",
+          "archive_target": "../../../../examples/pattern.synthetic.json"
+        },
+        {
+          "archive_byte_offset_lf": 10522,
+          "original_target": "public/docs/reviews/SOURCE_INVENTORY_REVIEW.md",
+          "archive_target": "../../../reviews/SOURCE_INVENTORY_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 11216,
+          "original_target": "public/docs/reviews/SUMMARY_EXPORT_REVIEW.md",
+          "archive_target": "../../../reviews/SUMMARY_EXPORT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 12342,
+          "original_target": "public/fixtures/synthetic/README.md",
+          "archive_target": "../../../../fixtures/synthetic/README.md"
+        },
+        {
+          "archive_byte_offset_lf": 13372,
+          "original_target": "public/docs/planning/GIT_FRESH_START.md",
+          "archive_target": "../../../planning/GIT_FRESH_START.md"
+        }
+      ]
+    },
+    {
+      "original_path": "public/README.md",
+      "archive_path": "files/public/README.md",
+      "original_byte_count": 6076,
+      "original_sha256": "0f31a2e61c2932e75ab9eca7878e8e1816e13d1dba73364faeabc6bd98cfea12",
+      "original_newline": "lf",
+      "original_sha256_lf": "0f31a2e61c2932e75ab9eca7878e8e1816e13d1dba73364faeabc6bd98cfea12",
+      "archive_sha256_lf": "d879275647fefd9c0c06f399e2758ce1157761a70560a2e37e9c0bc8f473d3d7",
+      "link_rewrites": [
+        {
+          "archive_byte_offset_lf": 96,
+          "original_target": "docs/reviews/PHASE_1_READINESS_REVIEW.md",
+          "archive_target": "../../../../reviews/PHASE_1_READINESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 175,
+          "original_target": "docs/planning/PRE_TEAM_REVIEW_TRACKER.md",
+          "archive_target": "../../../../planning/PRE_TEAM_REVIEW_TRACKER.md"
+        },
+        {
+          "archive_byte_offset_lf": 274,
+          "original_target": "docs/reviews/REPORT_REVIEW_GUIDE.md",
+          "archive_target": "../../../../reviews/REPORT_REVIEW_GUIDE.md"
+        },
+        {
+          "archive_byte_offset_lf": 817,
+          "original_target": "docs/reviews/SIGNAL_DEPENDENCIES_REVIEW.md",
+          "archive_target": "../../../../reviews/SIGNAL_DEPENDENCIES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 928,
+          "original_target": "docs/reviews/ALARM_EVIDENCE_REVIEW.md",
+          "archive_target": "../../../../reviews/ALARM_EVIDENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 1000,
+          "original_target": "examples/alarm-evidence-review-demo.html",
+          "archive_target": "../../../../../examples/alarm-evidence-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 1557,
+          "original_target": "fixtures/synthetic/README.md",
+          "archive_target": "../../../../../fixtures/synthetic/README.md"
+        },
+        {
+          "archive_byte_offset_lf": 1621,
+          "original_target": "docs/planning/ARCHITECTURE.md",
+          "archive_target": "../../../../planning/ARCHITECTURE.md"
+        },
+        {
+          "archive_byte_offset_lf": 1676,
+          "original_target": "docs/planning/ROADMAP.md",
+          "archive_target": "../../../../planning/ROADMAP.md"
+        },
+        {
+          "archive_byte_offset_lf": 1742,
+          "original_target": "VALIDATION.md",
+          "archive_target": "../../../../../VALIDATION.md"
+        },
+        {
+          "archive_byte_offset_lf": 1797,
+          "original_target": "docs/planning/GIT_FRESH_START.md",
+          "archive_target": "../../../../planning/GIT_FRESH_START.md"
+        },
+        {
+          "archive_byte_offset_lf": 1869,
+          "original_target": "docs/reviews/ENGINEERING_REVIEW_REPORT.md",
+          "archive_target": "../../../../reviews/ENGINEERING_REVIEW_REPORT.md"
+        },
+        {
+          "archive_byte_offset_lf": 1956,
+          "original_target": "examples/engineering-review-demo.html",
+          "archive_target": "../../../../../examples/engineering-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 2046,
+          "original_target": "docs/reviews/ACCESS_ROLE_REVIEW.md",
+          "archive_target": "../../../../reviews/ACCESS_ROLE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 2136,
+          "original_target": "docs/reviews/TIMER_COPY_ACCESS_REVIEW.md",
+          "archive_target": "../../../../reviews/TIMER_COPY_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 2228,
+          "original_target": "docs/reviews/TAG_DATA_REVIEW.md",
+          "archive_target": "../../../../reviews/TAG_DATA_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 2306,
+          "original_target": "docs/reviews/PID_MEMBER_REVIEW.md",
+          "archive_target": "../../../../reviews/PID_MEMBER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 2387,
+          "original_target": "docs/reviews/PID_EVIDENCE_REVIEW.md",
+          "archive_target": "../../../../reviews/PID_EVIDENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 2476,
+          "original_target": "docs/reviews/CALCULATION_REVIEW.md",
+          "archive_target": "../../../../reviews/CALCULATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 2560,
+          "original_target": "docs/reviews/CALCULATION_FUNCTION_REVIEW.md",
+          "archive_target": "../../../../reviews/CALCULATION_FUNCTION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 2654,
+          "original_target": "docs/reviews/EXTENDED_ACCESS_REVIEW.md",
+          "archive_target": "../../../../reviews/EXTENDED_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 2739,
+          "original_target": "docs/reviews/CPT_ACCESS_REVIEW.md",
+          "archive_target": "../../../../reviews/CPT_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 3655,
+          "original_target": "docs/planning/L5X_STRUCTURE.md",
+          "archive_target": "../../../../planning/L5X_STRUCTURE.md"
+        },
+        {
+          "archive_byte_offset_lf": 3739,
+          "original_target": "docs/reviews/RUNG_ANALYSIS_REVIEW.md",
+          "archive_target": "../../../../reviews/RUNG_ANALYSIS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 3824,
+          "original_target": "docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md",
+          "archive_target": "../../../../planning/PHASE_1_ENGINEERING_ANALYSIS.md"
+        },
+        {
+          "archive_byte_offset_lf": 3949,
+          "original_target": "docs/reviews/RELATIONSHIP_REVIEW.md",
+          "archive_target": "../../../../reviews/RELATIONSHIP_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 4047,
+          "original_target": "docs/reviews/CONDITION_REVIEW.md",
+          "archive_target": "../../../../reviews/CONDITION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 4136,
+          "original_target": "docs/reviews/BINDING_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/BINDING_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 4231,
+          "original_target": "docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md",
+          "archive_target": "../../../../reviews/TARGETED_RUNG_SAMPLES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 4353,
+          "original_target": "docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/INSTRUCTION_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 4444,
+          "original_target": "examples/instruction-context-demo.html",
+          "archive_target": "../../../../../examples/instruction-context-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 4553,
+          "original_target": "docs/reviews/STATEFUL_SEQUENCE_REVIEW.md",
+          "archive_target": "../../../../reviews/STATEFUL_SEQUENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 4660,
+          "original_target": "examples/stateful-sequence-demo.html",
+          "archive_target": "../../../../../examples/stateful-sequence-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 4765,
+          "original_target": "docs/reviews/AOI_BODY_REVIEW.md",
+          "archive_target": "../../../../reviews/AOI_BODY_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 4850,
+          "original_target": "examples/aoi-body-demo.html",
+          "archive_target": "../../../../../examples/aoi-body-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 4943,
+          "original_target": "docs/reviews/PID_CONNECTIONS_REVIEW.md",
+          "archive_target": "../../../../reviews/PID_CONNECTIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 5016,
+          "original_target": "examples/pid-connections-demo.html",
+          "archive_target": "../../../../../examples/pid-connections-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 5111,
+          "original_target": "docs/reviews/CALCULATION_PATHS_REVIEW.md",
+          "archive_target": "../../../../reviews/CALCULATION_PATHS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 5209,
+          "original_target": "examples/calculation-paths-demo.html",
+          "archive_target": "../../../../../examples/calculation-paths-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 5291,
+          "original_target": "docs/reviews/OUTPUT_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/OUTPUT_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 5376,
+          "original_target": "examples/output-context-demo.html",
+          "archive_target": "../../../../../examples/output-context-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 5486,
+          "original_target": "docs/reviews/STATEFUL_OBJECTS_REVIEW.md",
+          "archive_target": "../../../../reviews/STATEFUL_OBJECTS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 5568,
+          "original_target": "examples/stateful-objects-demo.html",
+          "archive_target": "../../../../../examples/stateful-objects-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 5678,
+          "original_target": "docs/reviews/SFC_CONDITIONS_REVIEW.md",
+          "archive_target": "../../../../reviews/SFC_CONDITIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 5758,
+          "original_target": "examples/sfc-conditions-demo.html",
+          "archive_target": "../../../../../examples/sfc-conditions-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 5867,
+          "original_target": "docs/reviews/SFC_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/SFC_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 5944,
+          "original_target": "examples/sfc-context-demo.html",
+          "archive_target": "../../../../../examples/sfc-context-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 6057,
+          "original_target": "docs/reviews/WORK_CHECK_TIMING_REVIEW.md",
+          "archive_target": "../../../../reviews/WORK_CHECK_TIMING_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 6163,
+          "original_target": "docs/reviews/SOURCE_REUSE_REVIEW.md",
+          "archive_target": "../../../../reviews/SOURCE_REUSE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 6412,
+          "original_target": "docs/reviews/EXECUTION_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/EXECUTION_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 6491,
+          "original_target": "examples/execution-context-demo.html",
+          "archive_target": "../../../../../examples/execution-context-demo.html"
+        }
+      ]
+    },
+    {
+      "original_path": "public/CODEX_HANDOFF.md",
+      "archive_path": "files/public/CODEX_HANDOFF.md",
+      "original_byte_count": 148144,
+      "original_sha256": "1896d3f35bc0fb0dce7fe9f3b7ce6cb3fe6b220f44b86e3be5e3efb5777da639",
+      "original_newline": "lf",
+      "original_sha256_lf": "1896d3f35bc0fb0dce7fe9f3b7ce6cb3fe6b220f44b86e3be5e3efb5777da639",
+      "archive_sha256_lf": "317838b9e840cbc2afeadc6c9bed9faeb4f45d0e2ca85b50d9379e05dd2a92e4",
+      "link_rewrites": [
+        {
+          "archive_byte_offset_lf": 129,
+          "original_target": "docs/planning/PRE_TEAM_REVIEW_TRACKER.md",
+          "archive_target": "../../../../planning/PRE_TEAM_REVIEW_TRACKER.md"
+        },
+        {
+          "archive_byte_offset_lf": 1797,
+          "original_target": "docs/reviews/PHASE_1_READINESS_REVIEW.md",
+          "archive_target": "../../../../reviews/PHASE_1_READINESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 1865,
+          "original_target": "docs/reviews/REPORT_REVIEW_GUIDE.md",
+          "archive_target": "../../../../reviews/REPORT_REVIEW_GUIDE.md"
+        },
+        {
+          "archive_byte_offset_lf": 4383,
+          "original_target": "docs/reviews/RACK_ASSEMBLY_REVIEW.md",
+          "archive_target": "../../../../reviews/RACK_ASSEMBLY_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 6815,
+          "original_target": "docs/reviews/RACK_SOURCE_MAPPING_REVIEW.md",
+          "archive_target": "../../../../reviews/RACK_SOURCE_MAPPING_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 8704,
+          "original_target": "docs/reviews/RESIDUAL_DIAGNOSTICS_REVIEW.md",
+          "archive_target": "../../../../reviews/RESIDUAL_DIAGNOSTICS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 11160,
+          "original_target": "docs/reviews/CONTROL_INTERPRETATION_REVIEW.md",
+          "archive_target": "../../../../reviews/CONTROL_INTERPRETATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 11237,
+          "original_target": "docs/reviews/REPORT_REVIEW_GUIDE.md",
+          "archive_target": "../../../../reviews/REPORT_REVIEW_GUIDE.md"
+        },
+        {
+          "archive_byte_offset_lf": 13861,
+          "original_target": "docs/reviews/RESIDUAL_INTERPRETATION_REVIEW.md",
+          "archive_target": "../../../../reviews/RESIDUAL_INTERPRETATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 15823,
+          "original_target": "docs/reviews/RESIDUAL_SOURCE_REVIEW.md",
+          "archive_target": "../../../../reviews/RESIDUAL_SOURCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 18769,
+          "original_target": "docs/reviews/ENGINEERING_ASSEMBLIES_REVIEW.md",
+          "archive_target": "../../../../reviews/ENGINEERING_ASSEMBLIES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 20763,
+          "original_target": "docs/reviews/SIGNAL_CANDIDATES_REVIEW.md",
+          "archive_target": "../../../../reviews/SIGNAL_CANDIDATES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 22874,
+          "original_target": "docs/reviews/SIGNAL_DEPENDENCIES_REVIEW.md",
+          "archive_target": "../../../../reviews/SIGNAL_DEPENDENCIES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 24085,
+          "original_target": "docs/reviews/ALARM_EVIDENCE_REVIEW.md",
+          "archive_target": "../../../../reviews/ALARM_EVIDENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 25820,
+          "original_target": "docs/reviews/SIGNAL_AUTHORED_REVIEW.md",
+          "archive_target": "../../../../reviews/SIGNAL_AUTHORED_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 27486,
+          "original_target": "docs/reviews/SIGNAL_PATTERNS_REVIEW.md",
+          "archive_target": "../../../../reviews/SIGNAL_PATTERNS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 29164,
+          "original_target": "docs/reviews/FILE_OPERATIONS_REVIEW.md",
+          "archive_target": "../../../../reviews/FILE_OPERATIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 30789,
+          "original_target": "docs/reviews/SIGNAL_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/SIGNAL_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 32195,
+          "original_target": "docs/reviews/EXECUTION_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/EXECUTION_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 33655,
+          "original_target": "docs/reviews/SOURCE_REUSE_REVIEW.md",
+          "archive_target": "../../../../reviews/SOURCE_REUSE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 34852,
+          "original_target": "docs/reviews/WORK_CHECK_TIMING_REVIEW.md",
+          "archive_target": "../../../../reviews/WORK_CHECK_TIMING_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 36034,
+          "original_target": "docs/reviews/SFC_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/SFC_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 37147,
+          "original_target": "docs/reviews/SFC_CONDITIONS_REVIEW.md",
+          "archive_target": "../../../../reviews/SFC_CONDITIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 38323,
+          "original_target": "docs/reviews/STATEFUL_OBJECTS_REVIEW.md",
+          "archive_target": "../../../../reviews/STATEFUL_OBJECTS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 39550,
+          "original_target": "docs/reviews/OUTPUT_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/OUTPUT_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 40699,
+          "original_target": "docs/reviews/CALCULATION_PATHS_REVIEW.md",
+          "archive_target": "../../../../reviews/CALCULATION_PATHS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 41758,
+          "original_target": "docs/reviews/PID_CONNECTIONS_REVIEW.md",
+          "archive_target": "../../../../reviews/PID_CONNECTIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 42661,
+          "original_target": "docs/reviews/AOI_BODY_REVIEW.md",
+          "archive_target": "../../../../reviews/AOI_BODY_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 43766,
+          "original_target": "docs/reviews/STATEFUL_SEQUENCE_REVIEW.md",
+          "archive_target": "../../../../reviews/STATEFUL_SEQUENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 45032,
+          "original_target": "docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/INSTRUCTION_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 46735,
+          "original_target": "docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md",
+          "archive_target": "../../../../reviews/TARGETED_RUNG_SAMPLES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 47378,
+          "original_target": "docs/reviews/BINDING_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/BINDING_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 48646,
+          "original_target": "docs/reviews/BINDING_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/BINDING_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 49995,
+          "original_target": "docs/reviews/CONDITION_TRANSFER_REVIEW.md",
+          "archive_target": "../../../../reviews/CONDITION_TRANSFER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 50856,
+          "original_target": "docs/reviews/SAVE_FAILURE_REVIEW.md",
+          "archive_target": "../../../../reviews/SAVE_FAILURE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 52780,
+          "original_target": "docs/reviews/CONDITION_REVIEW.md",
+          "archive_target": "../../../../reviews/CONDITION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 54424,
+          "original_target": "docs/reviews/RELATIONSHIP_REVIEW.md",
+          "archive_target": "../../../../reviews/RELATIONSHIP_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 55950,
+          "original_target": "docs/reviews/RUNG_ANALYSIS_REVIEW.md",
+          "archive_target": "../../../../reviews/RUNG_ANALYSIS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 56029,
+          "original_target": "docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md",
+          "archive_target": "../../../../planning/PHASE_1_ENGINEERING_ANALYSIS.md"
+        },
+        {
+          "archive_byte_offset_lf": 57391,
+          "original_target": "docs/reviews/CPT_ACCESS_REVIEW.md",
+          "archive_target": "../../../../reviews/CPT_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 58718,
+          "original_target": "docs/reviews/EXTENDED_ACCESS_REVIEW.md",
+          "archive_target": "../../../../reviews/EXTENDED_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 59862,
+          "original_target": "docs/reviews/PID_MEMBER_REVIEW.md",
+          "archive_target": "../../../../reviews/PID_MEMBER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 60872,
+          "original_target": "docs/reviews/PID_EVIDENCE_REVIEW.md",
+          "archive_target": "../../../../reviews/PID_EVIDENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 61678,
+          "original_target": "docs/reviews/TAG_DATA_REVIEW.md",
+          "archive_target": "../../../../reviews/TAG_DATA_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 63676,
+          "original_target": "docs/reviews/TIMER_COPY_ACCESS_REVIEW.md",
+          "archive_target": "../../../../reviews/TIMER_COPY_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 63754,
+          "original_target": "docs/reviews/ACCESS_ROLE_REVIEW.md",
+          "archive_target": "../../../../reviews/ACCESS_ROLE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 66633,
+          "original_target": "docs/reviews/ENGINEERING_REVIEW_REPORT.md",
+          "archive_target": "../../../../reviews/ENGINEERING_REVIEW_REPORT.md"
+        },
+        {
+          "archive_byte_offset_lf": 67835,
+          "original_target": "docs/reviews/PROJECT_STATE_REVIEW.md",
+          "archive_target": "../../../../reviews/PROJECT_STATE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 67903,
+          "original_target": "docs/reviews/SFC_ANNOTATION_REVIEW.md",
+          "archive_target": "../../../../reviews/SFC_ANNOTATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 73590,
+          "original_target": "docs/reviews/WORK_CHECK_RUNNER_REVIEW.md",
+          "archive_target": "../../../../reviews/WORK_CHECK_RUNNER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 78683,
+          "original_target": "docs/reviews/SFC_STRUCTURE_REVIEW.md",
+          "archive_target": "../../../../reviews/SFC_STRUCTURE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 80048,
+          "original_target": "docs/reviews/UNMATCHED_OPERAND_REVIEW.md",
+          "archive_target": "../../../../reviews/UNMATCHED_OPERAND_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 89169,
+          "original_target": "docs/reviews/SFC_STRUCTURE_REVIEW.md",
+          "archive_target": "../../../../reviews/SFC_STRUCTURE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 89914,
+          "original_target": "docs/reviews/ROUTINE_GRAPH_REVIEW.md",
+          "archive_target": "../../../../reviews/ROUTINE_GRAPH_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 90649,
+          "original_target": "docs/reviews/ROUTINE_METADATA_REVIEW.md",
+          "archive_target": "../../../../reviews/ROUTINE_METADATA_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 91303,
+          "original_target": "docs/reviews/ROUTINE_TARGET_REVIEW.md",
+          "archive_target": "../../../../reviews/ROUTINE_TARGET_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 95136,
+          "original_target": "docs/reviews/FEEDBACK_LISTENER.md",
+          "archive_target": "../../../../reviews/FEEDBACK_LISTENER.md"
+        },
+        {
+          "archive_byte_offset_lf": 99205,
+          "original_target": "docs/planning/DATA_CONTRACTS.md",
+          "archive_target": "../../../../planning/DATA_CONTRACTS.md"
+        },
+        {
+          "archive_byte_offset_lf": 99348,
+          "original_target": "inspection/work-check-20261013T234851Z-b10d84dc.json",
+          "archive_target": "../../../../../inspection/work-check-20261013T234851Z-b10d84dc.json"
+        },
+        {
+          "archive_byte_offset_lf": 101225,
+          "original_target": "docs/reviews/FEEDBACK_LISTENER.md",
+          "archive_target": "../../../../reviews/FEEDBACK_LISTENER.md"
+        }
+      ]
+    },
+    {
+      "original_path": "public/docs/reviews/NEXT_DEVELOPMENT_PROMPT.md",
+      "archive_path": "files/public/docs/reviews/NEXT_DEVELOPMENT_PROMPT.md",
+      "original_byte_count": 92720,
+      "original_sha256": "a2edde208b313d1c01d15a983809071bfc97dccd6dc046cf3d78958e65017182",
+      "original_newline": "lf",
+      "original_sha256_lf": "a2edde208b313d1c01d15a983809071bfc97dccd6dc046cf3d78958e65017182",
+      "archive_sha256_lf": "3e51204c41fa40dd79ac5f9cb515629c65d35ee3a13d96beee70477bcfccd9ce",
+      "link_rewrites": [
+        {
+          "archive_byte_offset_lf": 72,
+          "original_target": "../planning/PRE_TEAM_REVIEW_TRACKER.md",
+          "archive_target": "../../../../../../planning/PRE_TEAM_REVIEW_TRACKER.md"
+        },
+        {
+          "archive_byte_offset_lf": 1842,
+          "original_target": "PHASE_1_READINESS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/PHASE_1_READINESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 1916,
+          "original_target": "REPORT_REVIEW_GUIDE.md",
+          "archive_target": "../../../../../../reviews/REPORT_REVIEW_GUIDE.md"
+        },
+        {
+          "archive_byte_offset_lf": 4440,
+          "original_target": "RACK_ASSEMBLY_REVIEW.md",
+          "archive_target": "../../../../../../reviews/RACK_ASSEMBLY_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 6878,
+          "original_target": "RACK_SOURCE_MAPPING_REVIEW.md",
+          "archive_target": "../../../../../../reviews/RACK_SOURCE_MAPPING_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 8773,
+          "original_target": "RESIDUAL_DIAGNOSTICS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/RESIDUAL_DIAGNOSTICS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 11235,
+          "original_target": "CONTROL_INTERPRETATION_REVIEW.md",
+          "archive_target": "../../../../../../reviews/CONTROL_INTERPRETATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 11318,
+          "original_target": "REPORT_REVIEW_GUIDE.md",
+          "archive_target": "../../../../../../reviews/REPORT_REVIEW_GUIDE.md"
+        },
+        {
+          "archive_byte_offset_lf": 13948,
+          "original_target": "RESIDUAL_INTERPRETATION_REVIEW.md",
+          "archive_target": "../../../../../../reviews/RESIDUAL_INTERPRETATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 15916,
+          "original_target": "RESIDUAL_SOURCE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/RESIDUAL_SOURCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 18868,
+          "original_target": "ENGINEERING_ASSEMBLIES_REVIEW.md",
+          "archive_target": "../../../../../../reviews/ENGINEERING_ASSEMBLIES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 20868,
+          "original_target": "SIGNAL_CANDIDATES_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SIGNAL_CANDIDATES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 22985,
+          "original_target": "SIGNAL_DEPENDENCIES_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SIGNAL_DEPENDENCIES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 24202,
+          "original_target": "ALARM_EVIDENCE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/ALARM_EVIDENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 25943,
+          "original_target": "SIGNAL_AUTHORED_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SIGNAL_AUTHORED_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 27615,
+          "original_target": "SIGNAL_PATTERNS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SIGNAL_PATTERNS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 29299,
+          "original_target": "FILE_OPERATIONS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/FILE_OPERATIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 30930,
+          "original_target": "SIGNAL_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SIGNAL_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 32342,
+          "original_target": "EXECUTION_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/EXECUTION_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 33808,
+          "original_target": "SOURCE_REUSE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SOURCE_REUSE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 35011,
+          "original_target": "WORK_CHECK_TIMING_REVIEW.md",
+          "archive_target": "../../../../../../reviews/WORK_CHECK_TIMING_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 36199,
+          "original_target": "SFC_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SFC_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 37318,
+          "original_target": "SFC_CONDITIONS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SFC_CONDITIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 38500,
+          "original_target": "STATEFUL_OBJECTS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/STATEFUL_OBJECTS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 39733,
+          "original_target": "OUTPUT_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/OUTPUT_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 40888,
+          "original_target": "CALCULATION_PATHS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/CALCULATION_PATHS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 41953,
+          "original_target": "PID_CONNECTIONS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/PID_CONNECTIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 42862,
+          "original_target": "AOI_BODY_REVIEW.md",
+          "archive_target": "../../../../../../reviews/AOI_BODY_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 43973,
+          "original_target": "STATEFUL_SEQUENCE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/STATEFUL_SEQUENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 45059,
+          "original_target": "INSTRUCTION_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/INSTRUCTION_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 46675,
+          "original_target": "TARGETED_RUNG_SAMPLES_REVIEW.md",
+          "archive_target": "../../../../../../reviews/TARGETED_RUNG_SAMPLES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 47697,
+          "original_target": "BINDING_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/BINDING_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 49052,
+          "original_target": "CONDITION_TRANSFER_REVIEW.md",
+          "archive_target": "../../../../../../reviews/CONDITION_TRANSFER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 49919,
+          "original_target": "SAVE_FAILURE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SAVE_FAILURE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 51849,
+          "original_target": "CONDITION_REVIEW.md",
+          "archive_target": "../../../../../../reviews/CONDITION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 53499,
+          "original_target": "RELATIONSHIP_REVIEW.md",
+          "archive_target": "../../../../../../reviews/RELATIONSHIP_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 55031,
+          "original_target": "RUNG_ANALYSIS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/RUNG_ANALYSIS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 55116,
+          "original_target": "../planning/PHASE_1_ENGINEERING_ANALYSIS.md",
+          "archive_target": "../../../../../../planning/PHASE_1_ENGINEERING_ANALYSIS.md"
+        },
+        {
+          "archive_byte_offset_lf": 56484,
+          "original_target": "CPT_ACCESS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/CPT_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 57817,
+          "original_target": "EXTENDED_ACCESS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/EXTENDED_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 58967,
+          "original_target": "PID_MEMBER_REVIEW.md",
+          "archive_target": "../../../../../../reviews/PID_MEMBER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 59983,
+          "original_target": "PID_EVIDENCE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/PID_EVIDENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 60795,
+          "original_target": "TAG_DATA_REVIEW.md",
+          "archive_target": "../../../../../../reviews/TAG_DATA_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 62354,
+          "original_target": "TIMER_COPY_ACCESS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/TIMER_COPY_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 62434,
+          "original_target": "ACCESS_ROLE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/ACCESS_ROLE_REVIEW.md"
+        }
+      ]
+    },
+    {
+      "original_path": "public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md",
+      "archive_path": "files/public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md",
+      "original_byte_count": 66628,
+      "original_sha256": "0148531807a0cb8310f3ca4597713a49140ab1cd13a550bd9fd51c76305ab82d",
+      "original_newline": "lf",
+      "original_sha256_lf": "0148531807a0cb8310f3ca4597713a49140ab1cd13a550bd9fd51c76305ab82d",
+      "archive_sha256_lf": "1c0ec6f7cef4df23360c16bbdb3da4451ddf26b15ea01a249b20a8d970963e47",
+      "link_rewrites": [
+        {
+          "archive_byte_offset_lf": 270,
+          "original_target": "REPORT_REVIEW_GUIDE.md",
+          "archive_target": "../../../../../../reviews/REPORT_REVIEW_GUIDE.md"
+        },
+        {
+          "archive_byte_offset_lf": 405,
+          "original_target": "PHASE_1_READINESS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/PHASE_1_READINESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 898,
+          "original_target": "RACK_ASSEMBLY_REVIEW.md",
+          "archive_target": "../../../../../../reviews/RACK_ASSEMBLY_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 971,
+          "original_target": "../planning/PRE_TEAM_REVIEW_TRACKER.md",
+          "archive_target": "../../../../../../planning/PRE_TEAM_REVIEW_TRACKER.md"
+        },
+        {
+          "archive_byte_offset_lf": 1464,
+          "original_target": "REPORT_REVIEW_GUIDE.md",
+          "archive_target": "../../../../../../reviews/REPORT_REVIEW_GUIDE.md"
+        },
+        {
+          "archive_byte_offset_lf": 2621,
+          "original_target": "../planning/PRE_TEAM_REVIEW_TRACKER.md",
+          "archive_target": "../../../../../../planning/PRE_TEAM_REVIEW_TRACKER.md"
+        },
+        {
+          "archive_byte_offset_lf": 2712,
+          "original_target": "RESIDUAL_SOURCE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/RESIDUAL_SOURCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 5126,
+          "original_target": "ENGINEERING_ASSEMBLIES_REVIEW.md",
+          "archive_target": "../../../../../../reviews/ENGINEERING_ASSEMBLIES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 7126,
+          "original_target": "SIGNAL_CANDIDATES_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SIGNAL_CANDIDATES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 9243,
+          "original_target": "SIGNAL_DEPENDENCIES_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SIGNAL_DEPENDENCIES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 10460,
+          "original_target": "ALARM_EVIDENCE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/ALARM_EVIDENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 12201,
+          "original_target": "SIGNAL_AUTHORED_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SIGNAL_AUTHORED_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 13873,
+          "original_target": "SIGNAL_PATTERNS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SIGNAL_PATTERNS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 15557,
+          "original_target": "FILE_OPERATIONS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/FILE_OPERATIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 17188,
+          "original_target": "SIGNAL_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SIGNAL_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 18600,
+          "original_target": "EXECUTION_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/EXECUTION_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 20066,
+          "original_target": "SOURCE_REUSE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SOURCE_REUSE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 21269,
+          "original_target": "WORK_CHECK_TIMING_REVIEW.md",
+          "archive_target": "../../../../../../reviews/WORK_CHECK_TIMING_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 22457,
+          "original_target": "SFC_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SFC_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 23576,
+          "original_target": "SFC_CONDITIONS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SFC_CONDITIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 24758,
+          "original_target": "STATEFUL_OBJECTS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/STATEFUL_OBJECTS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 25991,
+          "original_target": "OUTPUT_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/OUTPUT_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 27146,
+          "original_target": "CALCULATION_PATHS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/CALCULATION_PATHS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 28211,
+          "original_target": "PID_CONNECTIONS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/PID_CONNECTIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 29120,
+          "original_target": "AOI_BODY_REVIEW.md",
+          "archive_target": "../../../../../../reviews/AOI_BODY_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 30231,
+          "original_target": "STATEFUL_SEQUENCE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/STATEFUL_SEQUENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 31373,
+          "original_target": "INSTRUCTION_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/INSTRUCTION_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 32763,
+          "original_target": "TARGETED_RUNG_SAMPLES_REVIEW.md",
+          "archive_target": "../../../../../../reviews/TARGETED_RUNG_SAMPLES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 33785,
+          "original_target": "BINDING_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../../../reviews/BINDING_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 35140,
+          "original_target": "CONDITION_TRANSFER_REVIEW.md",
+          "archive_target": "../../../../../../reviews/CONDITION_TRANSFER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 36007,
+          "original_target": "SAVE_FAILURE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SAVE_FAILURE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 37937,
+          "original_target": "CONDITION_REVIEW.md",
+          "archive_target": "../../../../../../reviews/CONDITION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 39587,
+          "original_target": "RELATIONSHIP_REVIEW.md",
+          "archive_target": "../../../../../../reviews/RELATIONSHIP_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 41119,
+          "original_target": "RUNG_ANALYSIS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/RUNG_ANALYSIS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 41204,
+          "original_target": "../planning/PHASE_1_ENGINEERING_ANALYSIS.md",
+          "archive_target": "../../../../../../planning/PHASE_1_ENGINEERING_ANALYSIS.md"
+        },
+        {
+          "archive_byte_offset_lf": 42572,
+          "original_target": "CPT_ACCESS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/CPT_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 43905,
+          "original_target": "EXTENDED_ACCESS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/EXTENDED_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 45055,
+          "original_target": "PID_MEMBER_REVIEW.md",
+          "archive_target": "../../../../../../reviews/PID_MEMBER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 46071,
+          "original_target": "PID_EVIDENCE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/PID_EVIDENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 46883,
+          "original_target": "TAG_DATA_REVIEW.md",
+          "archive_target": "../../../../../../reviews/TAG_DATA_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 48774,
+          "original_target": "TIMER_COPY_ACCESS_REVIEW.md",
+          "archive_target": "../../../../../../reviews/TIMER_COPY_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 48869,
+          "original_target": "ACCESS_ROLE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/ACCESS_ROLE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 52263,
+          "original_target": "TIMER_PLACEHOLDER_REVIEW.md",
+          "archive_target": "../../../../../../reviews/TIMER_PLACEHOLDER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 53207,
+          "original_target": "SYSTEM_FLAG_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SYSTEM_FLAG_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 53642,
+          "original_target": "MATH_SIGNATURE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/MATH_SIGNATURE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 54014,
+          "original_target": "BIT_OPERATION_REVIEW.md",
+          "archive_target": "../../../../../../reviews/BIT_OPERATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 54435,
+          "original_target": "ROUTINE_CALL_SHAPE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/ROUTINE_CALL_SHAPE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 54778,
+          "original_target": "ROUTINE_TARGET_REVIEW.md",
+          "archive_target": "../../../../../../reviews/ROUTINE_TARGET_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 55108,
+          "original_target": "ROUTINE_METADATA_REVIEW.md",
+          "archive_target": "../../../../../../reviews/ROUTINE_METADATA_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 55503,
+          "original_target": "ROUTINE_GRAPH_REVIEW.md",
+          "archive_target": "../../../../../../reviews/ROUTINE_GRAPH_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 56481,
+          "original_target": "SFC_ANNOTATION_REVIEW.md",
+          "archive_target": "../../../../../../reviews/SFC_ANNOTATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 56553,
+          "original_target": "PROJECT_STATE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/PROJECT_STATE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 66469,
+          "original_target": "WORK_CHECK_RUNNER_REVIEW.md",
+          "archive_target": "../../../../../../reviews/WORK_CHECK_RUNNER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 66923,
+          "original_target": "MODULE_IO_REVIEW.md",
+          "archive_target": "../../../../../../reviews/MODULE_IO_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 67018,
+          "original_target": "FEEDBACK_LISTENER.md",
+          "archive_target": "../../../../../../reviews/FEEDBACK_LISTENER.md"
+        },
+        {
+          "archive_byte_offset_lf": 67409,
+          "original_target": "TIMER_PLACEHOLDER_REVIEW.md",
+          "archive_target": "../../../../../../reviews/TIMER_PLACEHOLDER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 68025,
+          "original_target": "ADDRESS_SHAPE_REVIEW.md",
+          "archive_target": "../../../../../../reviews/ADDRESS_SHAPE_REVIEW.md"
+        }
+      ]
+    },
+    {
+      "original_path": "python-parser/README.md",
+      "archive_path": "files/python-parser/README.md",
+      "original_byte_count": 52030,
+      "original_sha256": "47ade3ada6eae3b54bc68741b81c6f7fb5e4f785401bbc69d18a2e1afbefe028",
+      "original_newline": "lf",
+      "original_sha256_lf": "47ade3ada6eae3b54bc68741b81c6f7fb5e4f785401bbc69d18a2e1afbefe028",
+      "archive_sha256_lf": "d39cfce502e0103d5058cf992f5725885afc1f1b7c41e194ad17352392f18fa7",
+      "link_rewrites": [
+        {
+          "archive_byte_offset_lf": 444,
+          "original_target": "../public/docs/reviews/PHASE_1_READINESS_REVIEW.md",
+          "archive_target": "../../../../reviews/PHASE_1_READINESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 509,
+          "original_target": "../public/docs/reviews/REPORT_REVIEW_GUIDE.md",
+          "archive_target": "../../../../reviews/REPORT_REVIEW_GUIDE.md"
+        },
+        {
+          "archive_byte_offset_lf": 578,
+          "original_target": "../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md",
+          "archive_target": "../../../../planning/PRE_TEAM_REVIEW_TRACKER.md"
+        },
+        {
+          "archive_byte_offset_lf": 1370,
+          "original_target": "../public/docs/reviews/CONTROL_INTERPRETATION_REVIEW.md",
+          "archive_target": "../../../../reviews/CONTROL_INTERPRETATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 1440,
+          "original_target": "../public/docs/reviews/REPORT_REVIEW_GUIDE.md",
+          "archive_target": "../../../../reviews/REPORT_REVIEW_GUIDE.md"
+        },
+        {
+          "archive_byte_offset_lf": 1503,
+          "original_target": "../public/examples/control-interpretation-review-demo.html",
+          "archive_target": "../../../../../examples/control-interpretation-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 1593,
+          "original_target": "../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md",
+          "archive_target": "../../../../planning/PRE_TEAM_REVIEW_TRACKER.md"
+        },
+        {
+          "archive_byte_offset_lf": 1965,
+          "original_target": "../public/docs/reviews/RESIDUAL_INTERPRETATION_REVIEW.md",
+          "archive_target": "../../../../reviews/RESIDUAL_INTERPRETATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 2039,
+          "original_target": "../public/examples/residual-interpretation-review-demo.html",
+          "archive_target": "../../../../../examples/residual-interpretation-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 2130,
+          "original_target": "../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md",
+          "archive_target": "../../../../planning/PRE_TEAM_REVIEW_TRACKER.md"
+        },
+        {
+          "archive_byte_offset_lf": 2795,
+          "original_target": "../public/docs/reviews/RESIDUAL_SOURCE_REVIEW.md",
+          "archive_target": "../../../../reviews/RESIDUAL_SOURCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 2861,
+          "original_target": "../public/examples/residual-source-review-demo.html",
+          "archive_target": "../../../../../examples/residual-source-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 2942,
+          "original_target": "../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md",
+          "archive_target": "../../../../planning/PRE_TEAM_REVIEW_TRACKER.md"
+        },
+        {
+          "archive_byte_offset_lf": 3677,
+          "original_target": "../public/docs/reviews/ENGINEERING_ASSEMBLIES_REVIEW.md",
+          "archive_target": "../../../../reviews/ENGINEERING_ASSEMBLIES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 3754,
+          "original_target": "../public/examples/engineering-assemblies-review-demo.html",
+          "archive_target": "../../../../../examples/engineering-assemblies-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 3856,
+          "original_target": "../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md",
+          "archive_target": "../../../../planning/PRE_TEAM_REVIEW_TRACKER.md"
+        },
+        {
+          "archive_byte_offset_lf": 4320,
+          "original_target": "../public/docs/reviews/SIGNAL_CANDIDATES_REVIEW.md",
+          "archive_target": "../../../../reviews/SIGNAL_CANDIDATES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 4395,
+          "original_target": "../public/examples/signal-candidates-review-demo.html",
+          "archive_target": "../../../../../examples/signal-candidates-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 4720,
+          "original_target": "../public/docs/reviews/SIGNAL_DEPENDENCIES_REVIEW.md",
+          "archive_target": "../../../../reviews/SIGNAL_DEPENDENCIES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 5124,
+          "original_target": "../public/docs/reviews/ALARM_EVIDENCE_REVIEW.md",
+          "archive_target": "../../../../reviews/ALARM_EVIDENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 5196,
+          "original_target": "../public/examples/alarm-evidence-review-demo.html",
+          "archive_target": "../../../../../examples/alarm-evidence-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 5667,
+          "original_target": "../public/docs/reviews/SIGNAL_AUTHORED_REVIEW.md",
+          "archive_target": "../../../../reviews/SIGNAL_AUTHORED_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 5740,
+          "original_target": "../public/examples/signal-authored-review-demo.html",
+          "archive_target": "../../../../../examples/signal-authored-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 6199,
+          "original_target": "../public/docs/reviews/SIGNAL_PATTERNS_REVIEW.md",
+          "archive_target": "../../../../reviews/SIGNAL_PATTERNS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 6272,
+          "original_target": "../public/examples/signal-patterns-review-demo.html",
+          "archive_target": "../../../../../examples/signal-patterns-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 6688,
+          "original_target": "../public/docs/reviews/FILE_OPERATIONS_REVIEW.md",
+          "archive_target": "../../../../reviews/FILE_OPERATIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 6761,
+          "original_target": "../public/examples/file-operations-review-demo.html",
+          "archive_target": "../../../../../examples/file-operations-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 7171,
+          "original_target": "../public/docs/reviews/SIGNAL_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/SIGNAL_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 7239,
+          "original_target": "../public/examples/signal-context-review-demo.html",
+          "archive_target": "../../../../../examples/signal-context-review-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 7638,
+          "original_target": "../public/docs/reviews/EXECUTION_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/EXECUTION_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 7713,
+          "original_target": "../public/examples/execution-context-demo.html",
+          "archive_target": "../../../../../examples/execution-context-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 8097,
+          "original_target": "../public/docs/reviews/SOURCE_REUSE_REVIEW.md",
+          "archive_target": "../../../../reviews/SOURCE_REUSE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 8465,
+          "original_target": "../public/docs/reviews/WORK_CHECK_TIMING_REVIEW.md",
+          "archive_target": "../../../../reviews/WORK_CHECK_TIMING_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 8819,
+          "original_target": "../public/docs/reviews/SFC_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/SFC_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 8888,
+          "original_target": "../public/examples/sfc-context-demo.html",
+          "archive_target": "../../../../../examples/sfc-context-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 9201,
+          "original_target": "../public/docs/reviews/SFC_CONDITIONS_REVIEW.md",
+          "archive_target": "../../../../reviews/SFC_CONDITIONS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 9273,
+          "original_target": "../public/examples/sfc-conditions-demo.html",
+          "archive_target": "../../../../../examples/sfc-conditions-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 9660,
+          "original_target": "../public/docs/reviews/STATEFUL_OBJECTS_REVIEW.md",
+          "archive_target": "../../../../reviews/STATEFUL_OBJECTS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 9734,
+          "original_target": "../public/examples/stateful-objects-demo.html",
+          "archive_target": "../../../../../examples/stateful-objects-demo.html"
+        },
+        {
+          "archive_byte_offset_lf": 13657,
+          "original_target": "../public/docs/reviews/OUTPUT_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/OUTPUT_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 13727,
+          "original_target": "../public/docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/INSTRUCTION_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 13804,
+          "original_target": "../public/docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md",
+          "archive_target": "../../../../reviews/TARGETED_RUNG_SAMPLES_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 13899,
+          "original_target": "../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md",
+          "archive_target": "../../../../planning/PHASE_1_ENGINEERING_ANALYSIS.md"
+        },
+        {
+          "archive_byte_offset_lf": 14075,
+          "original_target": "../public/docs/reviews/BINDING_CONTEXT_REVIEW.md",
+          "archive_target": "../../../../reviews/BINDING_CONTEXT_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 14942,
+          "original_target": "../public/docs/reviews/CALCULATION_FUNCTION_REVIEW.md",
+          "archive_target": "../../../../reviews/CALCULATION_FUNCTION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 15020,
+          "original_target": "../public/docs/reviews/CALCULATION_REVIEW.md",
+          "archive_target": "../../../../reviews/CALCULATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 15088,
+          "original_target": "../public/docs/reviews/PID_MEMBER_REVIEW.md",
+          "archive_target": "../../../../reviews/PID_MEMBER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 15159,
+          "original_target": "../public/docs/reviews/PID_EVIDENCE_REVIEW.md",
+          "archive_target": "../../../../reviews/PID_EVIDENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 15226,
+          "original_target": "../public/docs/reviews/TAG_DATA_REVIEW.md",
+          "archive_target": "../../../../reviews/TAG_DATA_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 15295,
+          "original_target": "../public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md",
+          "archive_target": "../../../../reviews/TIMER_COPY_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 15385,
+          "original_target": "../public/docs/reviews/ACCESS_ROLE_REVIEW.md",
+          "archive_target": "../../../../reviews/ACCESS_ROLE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 17121,
+          "original_target": "../public/docs/reviews/SAVE_FAILURE_REVIEW.md",
+          "archive_target": "../../../../reviews/SAVE_FAILURE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 17212,
+          "original_target": "../public/docs/reviews/STATEFUL_SEQUENCE_REVIEW.md",
+          "archive_target": "../../../../reviews/STATEFUL_SEQUENCE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 17333,
+          "original_target": "../public/docs/reviews/CALCULATION_PATHS_REVIEW.md",
+          "archive_target": "../../../../reviews/CALCULATION_PATHS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 18235,
+          "original_target": "../public/docs/reviews/PID_MEMBER_REVIEW.md",
+          "archive_target": "../../../../reviews/PID_MEMBER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 23494,
+          "original_target": "../public/docs/reviews/EXTENDED_ACCESS_REVIEW.md",
+          "archive_target": "../../../../reviews/EXTENDED_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 23600,
+          "original_target": "../public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md",
+          "archive_target": "../../../../reviews/TIMER_COPY_ACCESS_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 25878,
+          "original_target": "../public/docs/reviews/SFC_ANNOTATION_REVIEW.md",
+          "archive_target": "../../../../reviews/SFC_ANNOTATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 25945,
+          "original_target": "../public/docs/reviews/SFC_STRUCTURE_REVIEW.md",
+          "archive_target": "../../../../reviews/SFC_STRUCTURE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 28708,
+          "original_target": "../public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md",
+          "archive_target": "../../../../reviews/TIMER_PLACEHOLDER_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 29159,
+          "original_target": "../public/docs/reviews/SYSTEM_FLAG_REVIEW.md",
+          "archive_target": "../../../../reviews/SYSTEM_FLAG_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 29587,
+          "original_target": "../public/docs/reviews/MATH_SIGNATURE_REVIEW.md",
+          "archive_target": "../../../../reviews/MATH_SIGNATURE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 30068,
+          "original_target": "../public/docs/reviews/BIT_OPERATION_REVIEW.md",
+          "archive_target": "../../../../reviews/BIT_OPERATION_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 30710,
+          "original_target": "../public/docs/reviews/ROUTINE_TARGET_REVIEW.md",
+          "archive_target": "../../../../reviews/ROUTINE_TARGET_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 31207,
+          "original_target": "../public/docs/reviews/RACK_CANDIDATE_REVIEW.md",
+          "archive_target": "../../../../reviews/RACK_CANDIDATE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 32985,
+          "original_target": "../public/docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md",
+          "archive_target": "../../../../reviews/ROUTINE_CALL_SHAPE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 34055,
+          "original_target": "../public/docs/reviews/ROUTINE_METADATA_REVIEW.md",
+          "archive_target": "../../../../reviews/ROUTINE_METADATA_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 34656,
+          "original_target": "../public/docs/reviews/ROUTINE_GRAPH_REVIEW.md",
+          "archive_target": "../../../../reviews/ROUTINE_GRAPH_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 34962,
+          "original_target": "../public/docs/reviews/ADDRESS_SHAPE_REVIEW.md",
+          "archive_target": "../../../../reviews/ADDRESS_SHAPE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 35718,
+          "original_target": "../public/docs/reviews/MODULE_IO_REVIEW.md",
+          "archive_target": "../../../../reviews/MODULE_IO_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 38962,
+          "original_target": "../public/docs/reviews/WORK_MACHINE_SUMMARY_RUN.md",
+          "archive_target": "../../../../reviews/WORK_MACHINE_SUMMARY_RUN.md"
+        },
+        {
+          "archive_byte_offset_lf": 41363,
+          "original_target": "../public/docs/reviews/UNMATCHED_OPERAND_REVIEW.md",
+          "archive_target": "../../../../reviews/UNMATCHED_OPERAND_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 46230,
+          "original_target": "../public/docs/reviews/PROJECT_STATE_REVIEW.md",
+          "archive_target": "../../../../reviews/PROJECT_STATE_REVIEW.md"
+        },
+        {
+          "archive_byte_offset_lf": 46746,
+          "original_target": "../public/docs/reviews/WORK_CHECK_RUNNER_REVIEW.md",
+          "archive_target": "../../../../reviews/WORK_CHECK_RUNNER_REVIEW.md"
+        }
+      ]
+    }
+  ]
+}

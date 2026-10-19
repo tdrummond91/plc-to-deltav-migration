@@ -1,6 +1,19 @@
 # Phase 1 report review handoff
 
-## Decision and next action
+The requested cleanup confirmation is now complete. C15 return `d53e1ee` tested
+clean `4c5386c`: 2,112 application cases (two expected skips), 139 helpers and a
+successful private save with no failure code. All 29 C14 analysis summaries,
+excluding revision metadata, and the complete sample envelopes are unchanged.
+All 62 historical reports pass their own limits, validation and exact replay.
+See the [cleanup record](CLEANUP_REVIEW.md) and
+[completion tracker](../planning/PRE_TEAM_REVIEW_TRACKER.md).
+
+The saved report from run `20261019T185822Z-acde7c64` is ready for Tyler's
+walkthrough and official engineering review. No further parser run is needed.
+The C14 assessment below remains the verified analysis baseline and retains
+the unresolved source/vendor/runtime questions for review.
+
+## C14 decision and next action
 
 The automated pre-team-review gate for the current export is complete as of
 2026-10-19. Fourteen tracked cycles are complete; zero further unchanged-source
@@ -93,8 +106,9 @@ One source-population description in **Unresolved analysis** still calls
 rack-name candidates unconfirmed. This
 describes the preserved base binding catalogue, while the separate rack
 correspondence and group dossiers contain the qualified source associations.
-The reading guide explains this wording limitation; it is presentation polish
-for the feedback pass, not another missing source analysis rule.
+The cleanup pass corrects this wording for newly generated reports. Existing
+C14 reports retain the original sentence; this is presentation polish, not
+another missing source analysis rule.
 
 ## Questions to carry into review
 
