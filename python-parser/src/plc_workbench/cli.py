@@ -106,6 +106,8 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("file", type=Path, help="Local L5X input; never modified.")
     review.add_argument("--workspace", type=Path, required=True,
                         help="Private directory for a NEW review run; existing runs are preserved.")
+    review.add_argument("--debug", action="store_true",
+                        help="Include implementation diagnostics in the private HTML report.")
     return parser
 
 
@@ -314,7 +316,8 @@ def _review(args: argparse.Namespace) -> int:
                          file_operations=file_operations, alarm_evidence=alarm_evidence,
                          include_engineering_assemblies=True, engineering_assemblies_schema_version=3,
                          include_communication_context=True, include_residual_interpretation=True, include_control_interpretation=True,
-                         include_residual_diagnostics=True, include_rack_backing_context=True)
+                         include_residual_diagnostics=True, include_rack_backing_context=True,
+                         **({"review_debug": True} if args.debug else {}))
         print(f"Private review report: {saved / 'review.html'}")
         # The saved manifest includes the derived assembly and communication status, including
         # bounded truncation, alongside the independently captured providers.

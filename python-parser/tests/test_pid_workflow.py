@@ -71,7 +71,7 @@ class PidReviewStorageTests(unittest.TestCase):
             sfc_only = save_run(workspace, snapshot, inventory, sfc_structure=sfc)
             self.assertEqual(json.loads((sfc_only / 'manifest.json').read_bytes())['artifact_kind'],
                              'source_sfc_structure_run')
-            saved = save_run(workspace, snapshot, inventory, **arguments(parts))
+            saved = save_run(workspace, snapshot, inventory, review_debug=True, **arguments(parts))
             manifest = json.loads((saved / 'manifest.json').read_bytes())
             self.assertEqual((manifest['schema_version'], manifest['artifact_kind']),
                              (7, 'source_reference_sfc_access_tag_data_pid_review_run'))

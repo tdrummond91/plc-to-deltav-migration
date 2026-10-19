@@ -102,6 +102,7 @@ def save_run(
     *, references: ReferenceResult | None = None,
     sfc_structure: SfcStructureResult | None = None,
     include_review: bool = False,
+    review_debug: bool = False,
     include_engineering_assemblies: bool = False,
     engineering_assemblies_schema_version: int = 1,
     include_communication_context: bool = False,
@@ -139,6 +140,8 @@ def save_run(
     private run for inspection; it never marks that run complete.
     """
     try:
+        if type(review_debug) is not bool or (review_debug and not include_review):
+            raise StorageError("Review diagnostics require an engineering review run.")
         if type(include_review) is not bool or (include_review and (references is None or sfc_structure is None)):
             raise StorageError("A review run requires inventory, references and SFC structure.")
         if (type(engineering_assemblies_schema_version) is not int
@@ -270,7 +273,9 @@ def save_run(
                                                 include_control_interpretation=include_control_interpretation,
                                                 include_residual_diagnostics=include_residual_diagnostics,
                                                 include_rack_backing_context=include_rack_backing_context)
-                review_html = render_review_html(review_data).encode("utf-8")
+                review_html = render_review_html(
+                    review_data, **({"debug": True} if review_debug else {})
+                ).encode("utf-8")
             except (ReviewSizeLimitError, ReviewHtmlSizeLimitError) as exc:
                 raise StorageError("Private engineering review exceeds its report size limit.", code='review_size_limit') from exc
             except ReviewError as exc:

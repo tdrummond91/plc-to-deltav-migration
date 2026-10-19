@@ -1,6 +1,7 @@
 /* All source evidence is inserted with textContent. This application is offline. */
 (() => {
   'use strict';
+  const debugReport = typeof REVIEW_DEBUG !== 'undefined' && REVIEW_DEBUG === true;
   const PAGE_SIZE = 50;
   const ADDRESS_ROOT_PREVIEW = 120, ADDRESS_SUFFIX_PREVIEW = 160;
   // Kept in step with pid_members.FIELD_CATALOG; these are display labels only.
@@ -323,6 +324,7 @@
   patterns.forEach(p => (p.rung_ids || []).forEach(id => routinePatterns.set(id,p)));
   const headings = {
     overview:['Review overview','Explore the captured source, follow its references, and identify evidence that needs engineering review.'],
+    guide:['Review guide','What to check, how to use the report, and how to give a clear response.'],
     objects:['Objects & references','Search declarations and inspect their attributes, aliases and exact source occurrences.'],
     ladder:['Ladder source','Read each captured rung, its parsed instructions and the status of its operand bindings.'],
     sfc:['Sequence structure','Inspect SFC source elements, transition text and authored notes within each captured content version.'],
@@ -353,7 +355,7 @@
   headings.residuals=['Unresolved analysis','Inspect remaining catalogue, binding and condition questions alongside the source context already captured.'];
   headings.rackbacking=['Rack source addresses','Follow qualified exported rack declarations into captured adapter Slot members. Source correspondence remains separate from physical wiring, runtime values and the original binding model.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
-  const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
+  const labels = {overview:'Overview',guide:'Review guide',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(executionContext){labels.executioncontext='Execution context';navCounts.executioncontext=executionContext.calls.length;}
   if(signalContext){labels.signalcontext='Signal relationships';navCounts.signalcontext=signalAddresses.length;}
   if(engineeringAssemblies){labels.assemblies='Cross-rung groups';navCounts.assemblies=assemblyGroups.length;}
@@ -576,8 +578,10 @@
   function countsFilter(rows,key) { const m=new Map();rows.forEach(r=>m.set(r[key],(m.get(r[key])||0)+1));return [['all','All types'],...Array.from(m).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([k,v])=>[k,human(k)+' ('+fmt(v)+')'])]; }
   function notice(title,text){const n=node('div','notice');const body=node('div');body.append(node('strong','',title),node('div','',text));n.append(node('span','notice-icon','i'),body);return n;}
   function overview() {
-    content.append(notice(rungAnalysis?'Automated analysis in progress':'Captured source for analysis',rungAnalysis
-      ? 'Start with Engineering analysis to see recognized functions, possible purpose and unresolved blocks together. These are automated findings; engineering confirmation has not been recorded.' : access
+    const guideStart=panel('Start here: Review guide','Use the Review guide for subject checklists, explanations of report terms, and a feedback template. Then follow the source links in the sections relevant to your assignment.');
+    guideStart.append(button('Open Review guide',()=>go('guide'),'guide-entry'));content.append(guideStart);
+    content.append(notice(rungAnalysis?'Engineering review':'Captured source for review',rungAnalysis
+      ? 'Engineering analysis brings recognized functions, possible purpose and unresolved blocks together. Confirm interpretations against the source and supporting engineering records, and record your response in your review notes.' : access
       ? 'Supported ladder operand roles now identify possible reads and writes. Root grouping does not establish member overlap, execution, shutdown effects, alarm priority or sequence behavior.'
       : 'Browse captured evidence and follow exact references. Root bindings do not validate members or establish reads, writes, shutdown effects, alarm priority or sequence behavior.'));
     const cards=node('div','cards');
@@ -618,7 +622,8 @@
     if(calculationPaths)content.append(button('Explore calculation inputs and destinations',()=>go('calculationpaths')));
     if(communicationContext){content.append(button('Explore communication source context',()=>go('communication')),button('Inspect unresolved analysis',()=>go('residuals')));}
     const meta=panel('Snapshot details','This report is read-only. IDs belong to this byte snapshot and are not persistent equipment or correction identities.');
-    meta.append(values({'Source size':fmt(data.snapshot.size_bytes)+' bytes','SHA-256':data.snapshot.sha256,'Report format':data.report_version,'Inventory parser':inv.parser_version,'Reference analyzer':refs.analyzer_version,'SFC analyzer':sfc.analyzer_version}));content.append(meta);
+    meta.append(values({'Source size':fmt(data.snapshot.size_bytes)+' bytes','SHA-256':data.snapshot.sha256}));content.append(meta);
+    if(debugReport){const debug=panel('Developer diagnostics','Implementation versions for troubleshooting this generated report.');debug.append(values({'Report format':data.report_version,'Inventory parser':inv.parser_version,'Reference analyzer':refs.analyzer_version,'SFC analyzer':sfc.analyzer_version}));content.append(debug);}
   }
   function objectList(){const rows=entities.filter(e=>matches(e)&&(state.filter==='all'||e.kind===state.filter));content.append(table(['Object','Type','Scope','Description'],rows,e=>[primary(link(e.name || '(unnamed)',e.id),e.attributes?.DataType),human(e.kind),entityPath(e.scope_id),short(e.description || 'No description captured.')],'Source objects',{emptyTitle:'No objects match your search',emptyDetail:'Search by name, scope, description or attribute value.'}));}
   function accessNotice() {
@@ -2196,8 +2201,9 @@
       const proof=node('div');proof.append(node('p','',engineeringReason(c)));
       const detail=node('details','technical');detail.append(node('summary','','Supporting evidence ('+c.evidence_ids.length+')'),engineeringIdTable(c.evidence_ids,'Candidate evidence '+c.id));proof.append(detail);
       const missing=node('div');for(const item of c.missing_evidence)missing.append(node('p','row-note',engineeringMissing(item)));
-      if(!c.missing_evidence.length)missing.append(node('span','muted','No additional gap from this rule; purpose remains unconfirmed.'));
-      const rule=node('details','technical');rule.append(node('summary','','Analysis rule'),values({'Rule':c.rule_id,'Version':c.rule_version,'Review status':human(c.review_status)}));missing.append(rule);
+      if(!c.missing_evidence.length)missing.append(node('span','muted','No additional gap identified for this candidate; purpose remains unconfirmed.'));
+      missing.append(node('p','row-note','Review status: '+human(c.review_status)));
+      if(debugReport){const rule=node('details','technical');rule.append(node('summary','','Analysis rule'),values({'Rule':c.rule_id,'Version':c.rule_version}));missing.append(rule);}
       return [primary(ENGINEERING_FAMILIES[c.category] || human(c.category),engineeringBasis(c)),proof,missing];
     },'Rung function candidates',{emptyTitle:'No function candidate yet',emptyDetail:'The rung remains in the unclassified group. Its captured source and any parsed blocks remain below.'}));content.append(summary);
     const blocks=section('Ordered block functions','Every parsed instruction appears in source order. These evidence levels belong to the base access catalogue. Specialized instruction views can supply additional roles and context.');
@@ -2454,6 +2460,15 @@
   }
   function setDetailHeading(eyebrow,title,subtitle){
     heading.replaceChildren(button('← Back to previous view',goBack,'back'),node('p','eyebrow',eyebrow),node('h1','',title),node('p','subtitle',subtitle));
+    heading.append(button('Prepare review feedback',()=>{
+      // Some detail renderers choose their default content after this heading.
+      // Read the final selection at click time, and exclude prior-view context.
+      const type=state.detail?.type;
+      const selectedContent=type==='sfc'?state.contentId:['sfrcontent','sfrgap'].includes(type)?state.sfrContentId:null;
+      const selections=Object.fromEntries(Object.entries({'Content ID':selectedContent,'Instruction ID':type==='rung'?state.focusInstruction:null,'Operand ID':type==='rung'?state.focusOperand:null,'Calculation node ID':type==='calculation'?state.focusCalculationNode:null,'Condition node ID':state.focusConditionNode}).filter(([,value])=>value));
+      const context={section:labels[state.view]||eyebrow,title,id:state.detail?.id||'',subtitle,selections};
+      backStack.push({...state});state={...state,view:'guide',detail:null,reviewContext:context};render(true);
+    },'feedback-entry'));
   }
   function pidName(p){return 'PID · '+short(byOperand.get(p.operand_ids[0])?.raw_text || '(no storage operand)',100);}
   const PID_MEMBER_HEADERS = {
@@ -3140,6 +3155,7 @@
   function renderList(){
     content.replaceChildren();
     if(state.view==='overview')overview();
+    else if(state.view==='guide')content.append(renderReviewGuide({node,button,panel,values,labels,go,back:goBack,data,context:state.reviewContext||null}));
     else if(state.view==='assemblies')assembliesList();
     else if(state.view==='communication')communicationList();
     else if(state.view==='residuals')residualList();

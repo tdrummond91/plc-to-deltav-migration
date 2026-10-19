@@ -57,16 +57,16 @@ def review(texts: tuple[str, ...] = (
 
 @unittest.skipUnless(_NODE, 'Node is optional development tooling for UI behavior checks.')
 class RungAnalysisReviewUiTests(unittest.TestCase):
-    def run_ui(self, data: dict, checks: str) -> None:
-        parsed = ParsedPage(render_review_html(data))
+    def run_ui(self, data: dict, checks: str, *, debug: bool = False) -> None:
+        parsed = ParsedPage(render_review_html(data, debug=debug))
         process = subprocess.run([_NODE, '-e', DOM], input=json.dumps({
-            'data': data, 'script': parsed.scripts[1][1], 'checks': checks}),
+            'data': json.loads(parsed.scripts[0][1]), 'script': parsed.scripts[1][1], 'checks': checks}),
             text=True, encoding='utf-8', capture_output=True, timeout=30, check=False)
         self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
 
     def test_every_rung_is_accounted_for_once_with_distinct_evidence_groups(self) -> None:
         self.run_ui(review(), r"""
-        assert.ok(content.textContent.includes('Automated analysis in progress'));
+        assert.ok(content.textContent.includes('Confirm interpretations against the source'));
         clickText(content,'Explore engineering analysisFollow function families, branch structure and uncertainty before reviewing individual instructions.→');
         let table=tableNamed('Engineering rung analysis');
         assert.equal(rows(table).length,8);
@@ -126,7 +126,8 @@ class RungAnalysisReviewUiTests(unittest.TestCase):
         assert.equal(rows(tableNamed('Engineering result operands')).length,1);
         assert.ok(tableNamed('Engineering result operands').textContent.includes('B'));
         assert.ok(tableNamed('Rung function candidates').textContent.includes('Engineering purpose is unconfirmed.'));
-        assert.ok(tableNamed('Rung function candidates').textContent.includes('boolean_assign'));
+        assert.ok(tableNamed('Rung function candidates').textContent.includes('Boolean outputs'));
+        assert.ok(!tableNamed('Rung function candidates').textContent.includes('Analysis rule'));
         """)
 
     def test_text_hints_and_comments_are_visible_escaped_and_searchable(self) -> None:
@@ -224,10 +225,19 @@ class RungAnalysisReviewUiTests(unittest.TestCase):
         rows(table)[0].querySelector('button').click();
         const candidates=tableNamed('Rung function candidates');
         assert.ok(candidates.textContent.includes('PID execution has not been established.'));
-        assert.ok(candidates.textContent.includes('pid_declared_structure'));
+        assert.ok(!candidates.textContent.includes('pid_declared_structure'));
         assert.ok(content.textContent.includes('it does not establish a PID execution'));
         assert.ok(!content.textContent.includes('PID evidence on this rung'));
         """)
+
+    def test_rule_identifiers_are_available_only_in_debug_display(self) -> None:
+        self.run_ui(review(('XIC(A)OTE(B);',)), r"""
+        navigate('engineering');rows(tableNamed('Engineering rung analysis'))[0].querySelector('button').click();
+        const candidates=tableNamed('Rung function candidates');
+        assert.ok(candidates.textContent.includes('Analysis rule'));
+        assert.ok(candidates.textContent.includes('boolean_assign'));
+        assert.ok(candidates.textContent.includes('Review status: unreviewed'));
+        """, debug=True)
 
     def test_ambiguous_comment_is_not_absent_and_zero_is_a_real_rung_number(self) -> None:
         self.run_ui(review(('XIC(A)OTE(B);',), comment='First source comment', ambiguous_comment=True), r"""

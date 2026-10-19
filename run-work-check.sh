@@ -4,10 +4,11 @@ set -euo pipefail
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     cat <<'USAGE'
-Usage: bash ./run-work-check.sh [SOURCE.L5X]
+Usage: bash ./run-work-check.sh [--debug] [SOURCE.L5X]
 
 Run parser tests, analyze the local source, and commit its feedback report locally.
-The report includes counts and at most one short mystery-operand example.
+The HTML includes a review guide, source evidence and a feedback template.
+Add --debug to include developer diagnostics in the private HTML report.
 No automatic fetch, pull or push. Review the report, then run git push when ready.
 A bare filename is found under confidential/plc-code/. An explicit path also works.
 The first run needs a source; later runs remember its path on this machine only.

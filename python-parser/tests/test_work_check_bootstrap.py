@@ -126,7 +126,7 @@ git rev-parse HEAD > "$WORK_CHECK_CAPTURE_HEAD"
         remote_head = self._git("rev-parse", "HEAD")
         self.assertNotEqual(old_head, remote_head)
 
-        result = self._run("folder with spaces/invented unit.L5X", "literal-dollar-$value")
+        result = self._run("--debug", "folder with spaces/invented unit.L5X", "literal-dollar-$value")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.head_log.read_text(encoding="utf-8").strip(), old_head)
@@ -134,7 +134,7 @@ git rev-parse HEAD > "$WORK_CHECK_CAPTURE_HEAD"
         arguments = self.arguments_log.read_bytes().decode("utf-8").split("\0")[:-1]
         self.assertEqual(arguments, [
             "run", "--project", "python-parser", "--locked", "python", "-B", "-m",
-            "plc_workbench.work_check", "folder with spaces/invented unit.L5X", "literal-dollar-$value",
+            "plc_workbench.work_check", "--debug", "folder with spaces/invented unit.L5X", "literal-dollar-$value",
         ])
         self.assertTrue(set(self._commands()) <= {"rev-parse", "status", "symbolic-ref"})
 

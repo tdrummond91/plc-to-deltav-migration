@@ -224,13 +224,13 @@ class BindingContextHtmlGateTests(unittest.TestCase):
     def test_review_eleven_size_caps_do_not_change_older_versions(self) -> None:
         data, legacy = review(), review(legacy=True)
         with patch('plc_workbench.review_html.MAX_REVIEW_V9_PAYLOAD_BYTES', 1):
-            self.assertIn('binding-context-1', render_review_html(data))
+            self.assertIn('binding-context-1', render_review_html(data, debug=True))
             with self.assertRaises(ReviewHtmlSizeLimitError):
                 render_review_html(legacy)
         with patch('plc_workbench.review_html.MAX_REVIEW_V11_PAYLOAD_BYTES', 1):
             with self.assertRaises(ReviewHtmlSizeLimitError):
                 render_review_html(data)
-            self.assertIn('engineering-review-10', render_review_html(legacy))
+            self.assertIn('engineering-review-10', render_review_html(legacy, debug=True))
 
 
 if __name__ == '__main__':

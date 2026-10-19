@@ -9,18 +9,21 @@ records preserve why the implementation works as it does; older status and
 | Need | Page |
 |---|---|
 | Start or resume | [Project README](../../README.md) and [current handoff](../CODEX_HANDOFF.md) |
-| Run a future check when requested | [Work-PC instructions](reviews/WORK_MACHINE_REFERENCES_RUN.md) |
+| Synchronize main and open the accepted report | [Work-PC instructions](reviews/WORK_MACHINE_REFERENCES_RUN.md) |
 | Read the generated report | [Report reading guide](reviews/REPORT_REVIEW_GUIDE.md) |
 | Check completed gates and review readiness | [Pre-team-review tracker](planning/PRE_TEAM_REVIEW_TRACKER.md) |
 | Understand accepted evidence and remaining external questions | [Readiness assessment](reviews/PHASE_1_READINESS_REVIEW.md) |
 | Review this organization/refactoring pass | [Cleanup record](reviews/CLEANUP_REVIEW.md) |
+| Understand the embedded guide and debug option | [Review-guide implementation](reviews/REVIEW_GUIDE_IMPLEMENTATION.md) |
 | Handle review feedback | [Next-development checklist](reviews/NEXT_DEVELOPMENT_PROMPT.md) |
 | Find commands and code ownership | [Development guide](DEVELOPMENT_GUIDE.md) and [source module map](../../python-parser/src/plc_workbench/README.md) |
 | Learn with invented reports | [Examples index](../examples/README.md) |
 
-Phase 1 source analysis has fourteen validated cycles, followed by a successful
-cleanup confirmation. No further unchanged-source run is planned before
-official review. Editable corrections, PCSD and FHX remain later phases.
+Phase 1 source analysis has fourteen validated cycles, followed by successful
+cleanup and embedded-guide confirmations: sixteen completed cycles, zero
+further unchanged-source runs before review. Synchronize `main`, open the
+accepted saved report and start with **Review guide**. Editable corrections,
+PCSD and FHX remain later phases.
 
 ## Planning and contracts
 

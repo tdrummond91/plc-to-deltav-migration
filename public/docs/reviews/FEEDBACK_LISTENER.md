@@ -8,9 +8,10 @@ the task remains disabled and paused. Normal parser commands have no dependency
 on these files. Installation/control commands below only apply to an existing
 local copy; do not install or restore it on the work machine.
 
-The last tracked implementation is preserved under
-`archive/phase1-before-squash-20261014`. Keeping this review does not re-enable
-the listener or establish a cause for the endpoint-security detection.
+The temporary Git archive tag was retired during the 2026-10-19 history
+cleanup. The current shared checkout continues to omit the listener. Keeping
+this review does not re-enable it or establish a cause for the endpoint-security
+detection.
 
 Tyler explicitly authorized automatic checks and bounded follow-up development
 on 2026-10-13. This listener runs on the development PC. The work machine keeps

@@ -52,7 +52,7 @@ WORK_MACHINE_MODULES = {
         "test_routine_shapes", "test_routine_targets", "test_routine_metadata", "test_routine_graph", "test_sfc_structure", "test_sfc_summary",
         "test_sfc_cli", "test_sfc_storage", "test_sfc_work_report",
         "test_sfc_annotations", "test_sfc_annotation_summary",
-        "test_review", "test_review_html", "test_review_workflow",
+        "test_review", "test_review_html", "test_review_presentation", "test_review_workflow",
         "test_access", "test_access_summary", "test_access_workflow",
         "test_access_extended", "test_access_summary_extended", "test_access_extended_workflow",
         "test_tag_data", "test_tag_data_summary", "test_tag_evidence_workflow",

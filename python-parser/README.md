@@ -6,8 +6,9 @@ and branch structure, I/O, scoped references, PID evidence, calculations,
 conditions, sequences, communication and cross-rung groups. Source facts,
 inferred candidates and unresolved questions remain distinguishable.
 
-Phase 1's fourteen analysis cycles and the requested cleanup confirmation are
-validated. The saved report is ready for official review. Editable records,
+Phase 1's fourteen analysis cycles, cleanup confirmation and C16 embedded-guide
+refresh are validated. The saved report is ready for official review without
+another parser run. Editable records,
 persistent correction workflows, PCSD and FHX are later phases. Use the
 [project README](../README.md) for the normal user workflow and the
 [tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md) for current status.
@@ -34,6 +35,17 @@ Open the printed `review.html` path. Exit status 3 means a usable report with
 explicit partial coverage, not a failed save. The command creates a fresh run;
 it does not overwrite earlier reports. For the work-PC check with automatic
 local feedback commit, use [the normal script](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+Open **Review guide** for subject checklists, response guidance and a glossary.
+**Prepare review feedback** on a detail page supplies that record's context in
+a copyable template. The report is read-only: copy the template into separate
+notes and record your answers there.
+
+Add `--debug` to `plc review` to include developer versions and rule diagnostics
+in the HTML. Normal HTML keeps the engineering evidence and uncertainty while
+omitting that generated implementation metadata. Canonical evidence JSON and
+manifests retain their existing contents in both modes. The work-PC equivalent
+is `bash ./run-work-check.sh --debug`.
 
 ## Command map
 

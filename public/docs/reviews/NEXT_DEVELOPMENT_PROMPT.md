@@ -4,13 +4,14 @@ Updated 2026-10-19. Read the [current handoff](../../CODEX_HANDOFF.md),
 [tracker](../planning/PRE_TEAM_REVIEW_TRACKER.md) and
 [readiness assessment](PHASE_1_READINESS_REVIEW.md) before choosing work.
 
-## Ready for report review
+## Accepted analysis baseline
 
-The fourteen Phase 1 analysis cycles and the requested cleanup confirmation
-are complete. C15 return `d53e1ee` tested clean `4c5386c`: 2,112 application cases
-(two expected skips), 139 helpers and a successful private save. All 62 reports
-validate and replay exactly. All 29 analysis summaries match C14 after removing
-revision metadata; complete frozen sample and diagnostic envelopes also match.
+The fourteen Phase 1 analysis cycles, cleanup confirmation and C16 guide refresh
+are complete. C16 return `23d073d` tested clean `07a935c`: 2,122 application cases
+(two expected skips), 139 helpers and a successful private save with no failure
+code. All 64 retained reports validate and replay exactly. All 29 analysis
+summaries match C15 after removing only `tool_revision`; complete frozen sample
+and diagnostic envelopes also match, and frozen-history acceptance passes.
 
 Engineering assemblies retain 55,230 memberships / 7,580 groups, 1,029
 rack-qualified memberships, complete scans and three runtime-dependent
@@ -18,9 +19,25 @@ exclusions. See the [cleanup record](CLEANUP_REVIEW.md) and readiness assessment
 for evidence and external questions. The report is ready for review; this does
 not establish engineering approval or runtime equivalence.
 
-Tyler's next step is to open the private `review.html` saved by run
-`20261019T185822Z-acde7c64` for readability, navigation and appearance checks,
-then official engineering review. No further unchanged-source run is planned.
+## Ready for report review
+
+Tyler requested an embedded review guide and clearer instructions for people
+receiving the HTML. C16 adds nine topic checklists, a glossary, response
+definitions and a copyable feedback template linked to the selected record,
+snapshot and detail context. It explicitly explains that responses must be
+saved in separate notes. Normal HTML omits only generated implementation
+versions and candidate rule identifiers; `--debug` restores developer detail.
+Source evidence, uncertainty, saved canonical JSON and sampling remain intact.
+
+Tyler authorized integrating the consolidated history and accepted return into
+`main`. The next work-PC action is `git switch main` then `git pull --ff-only`.
+Open the existing private `review.html` saved by completed check
+`20261019T201714Z-38434b5f`, choose **Review guide**, and begin the walkthrough
+and official review. No parser rerun is needed. The actual private HTML was
+not visually inspected here; previous browser checks used invented reports.
+The [implementation record](REVIEW_GUIDE_IMPLEMENTATION.md) records the
+accepted return. C14/R3/R4, C15 and C16 remain closed until concrete new evidence
+requires a correction.
 
 When review feedback arrives:
 
@@ -48,7 +65,7 @@ semantic validation.
 
 Work-PC transport remains manual. Keep private exports/reports local and
 preserve all prior review decisions and sample history. The later editable
-correction layer, PCSD and FHX are outside this cleanup.
+correction layer, PCSD and FHX are outside this presentation refresh.
 
 The [full earlier next-session notes](../history/2026-10-19-pre-cleanup/files/public/docs/reviews/NEXT_DEVELOPMENT_PROMPT.md)
 are preserved; use them for historical evidence, not the current next action.

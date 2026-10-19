@@ -16,10 +16,13 @@ plant exports and reports belong in ignored `confidential/`.
 | Continue development | [Current handoff](CODEX_HANDOFF.md) and [development guide](docs/DEVELOPMENT_GUIDE.md) |
 | Find a design or past investigation | [Documentation index](docs/README.md) |
 
-Phase 1's fourteen analysis cycles and the requested cleanup confirmation are
-validated. The saved report is ready for Tyler's walkthrough and official
-engineering review; no further parser run is currently needed. The report is
-read-only; editable corrections, PCSD and FHX remain later work.
+Phase 1's fourteen analysis cycles, requested cleanup confirmation and C16
+review-guide refresh are validated. Synchronize `main` using the work-PC
+instructions, then open the existing report from completed check
+`20261019T201714Z-38434b5f` for the walkthrough and official engineering review.
+No further parser run is needed. Start with its **Review guide**, topic
+checklists and feedback template. The report is read-only; responses belong in
+review notes. Editable corrections, PCSD and FHX remain later work.
 
 ## Folder map
 

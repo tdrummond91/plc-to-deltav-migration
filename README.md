@@ -5,21 +5,29 @@ DeltaV. The current tool builds a searchable, offline engineering report from
 the source: rungs and branches, I/O, PID evidence, calculations, sequences,
 alarms, communication and related groups, with uncertainty kept visible.
 
-**Current step:** Phase 1 source analysis and the final cleanup confirmation
-have passed. **The saved report is ready for Tyler's walkthrough and official
-engineering review.** No further parser run is currently needed. Editable
+**Current step:** Phase 1 source analysis, cleanup and the requested review-guide
+refresh have passed. **The saved report is ready for the walkthrough and
+official engineering review; no further parser run is needed.** Editable
 records, persistent corrections, PCSD and FHX generation are later phases.
 
 ## What to do next
 
-On the work PC, open the `review.html` saved by the completed run
-`20261019T185822Z-acde7c64`. Start with the reading steps below; you do not need
-to read code or rerun the parser. Return the first confusing or incorrect cases.
+On the work PC, use Git Bash in this repository to synchronize the consolidated
+history on `main`:
+
+```bash
+git switch main
+git pull --ff-only
+```
+
+Then open the existing `review.html` saved by completed work check
+`20261019T201714Z-38434b5f`. Start with **Review guide**. This return passed both
+test suites and retained all 29 analysis summary families unchanged. You do not
+need to run the script again to review it.
 
 ## Run a future check when needed
 
-For a new source export or a requested parser change, use Git Bash in this
-repository:
+For a changed export or a requested correction, use:
 
 ```bash
 git pull
@@ -40,17 +48,24 @@ The source belongs under `confidential/plc-code/`; an explicit local path also
 works. See the [work-PC instructions](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md)
 for prerequisites, results and failure handling.
 
+Normal reports include the reviewer instructions and engineering evidence.
+To include developer version and rule diagnostics in a separate run, use
+`bash ./run-work-check.sh --debug`. Keep the normal report for review.
+
 ## Read your report
 
 The script prints **Private review report:** and its path. In File Explorer,
 open `confidential/workspaces/work-check/`, choose the newest completed run and
 double-click **`review.html`**. It works in a browser without a server.
 
-Start with one familiar rung, one PID or output group and one unresolved case.
-No code reading is needed. Follow the
-[report reading guide](public/docs/reviews/REPORT_REVIEW_GUIDE.md); return the
-run/record ID, what seems wrong or confusing, and what you expected. Keep the
-full report on the work PC.
+Open **Review guide** from Overview or the left navigation. It explains what
+to check by subject, what the report's terms mean, and how to write a useful
+response. On a detail page, **Prepare review feedback** fills in its record ID,
+source snapshot and selected context. Copy the template into your review notes
+and complete it there; the HTML does not save or send responses. No code reading
+is needed. The [reading guide](public/docs/reviews/REPORT_REVIEW_GUIDE.md)
+provides additional context. Keep the full report within the approved work
+environment.
 
 ## Find things
 
@@ -70,7 +85,8 @@ Use the [completion tracker](public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md)
 for progress and the [readiness assessment](public/docs/reviews/PHASE_1_READINESS_REVIEW.md)
 for evidence and remaining source questions. Developers can start with the
 [development guide](public/docs/DEVELOPMENT_GUIDE.md); this pass is recorded in
-the [cleanup review](public/docs/reviews/CLEANUP_REVIEW.md).
+the [cleanup review](public/docs/reviews/CLEANUP_REVIEW.md). The requested report
+guide is recorded in [its implementation review](public/docs/reviews/REVIEW_GUIDE_IMPLEMENTATION.md).
 
 The full earlier entrypoint notes are preserved in the
 [2026-10-19 archive](public/docs/history/2026-10-19-pre-cleanup/README.md).

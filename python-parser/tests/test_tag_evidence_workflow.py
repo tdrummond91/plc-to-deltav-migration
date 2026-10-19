@@ -56,7 +56,7 @@ class TagEvidenceStorageTests(unittest.TestCase):
                     self.assertEqual(manifest['review_schema_version'], version - 3)
                 previous.append((saved, contents))
             saved = save_run(workspace, snapshot, inventory, references=references,
-                             sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data)
+                             sfc_structure=sfc, include_review=True, review_debug=True, access=access, tag_data=tag_data)
             manifest = json.loads((saved / 'manifest.json').read_bytes())
             self.assertEqual((manifest['schema_version'], manifest['artifact_kind']),
                              (6, 'source_reference_sfc_access_tag_data_review_run'))

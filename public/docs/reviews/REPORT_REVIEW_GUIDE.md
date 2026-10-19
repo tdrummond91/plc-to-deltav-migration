@@ -4,18 +4,23 @@ The report explains captured PLC source and proposed engineering groupings.
 No code reading is required. C14 return `adc5475`, testing `a53ca67`, closed the
 automated pre-review gate for this export. C15 return `d53e1ee`, testing clean
 `4c5386c`, also passed the requested cleanup confirmation with all 29 analysis
-summaries unchanged. Start with readability and appearance, then team
-engineering review. No further parser run is needed. See the
+summaries unchanged. C16 return `23d073d`, testing clean `07a935c`, confirms the
+embedded guide with the same 29 analysis summaries and frozen sample/diagnostic
+envelopes. Start with readability and appearance, followed by team engineering
+review. No further parser run is needed. See the
 [cleanup record](CLEANUP_REVIEW.md) for the final returned evidence.
 See the [readiness assessment](PHASE_1_READINESS_REVIEW.md) for evidence and the
 remaining source questions.
 
 ## Open the report on the work PC
 
-Open the `review.html` already saved by run `20261019T185822Z-acde7c64`. The script
-prints **Private review report:** followed by its path. If that terminal output
-is gone, browse `confidential/workspaces/work-check/` and open the newest run's
-`review.html`. There is no need to rerun the parser merely to find the report.
+Follow the [work-PC procedure](WORK_MACHINE_REFERENCES_RUN.md) to synchronize
+`main`, then open the existing `review.html` saved by completed check
+`20261019T201714Z-38434b5f`. The script printed **Private review report:** followed
+by its path. If that output is gone, browse
+`confidential/workspaces/work-check/` and open the newest completed run's
+`review.html`; its workspace folder name can differ from the work-check ID.
+No rerun is needed. Older saved reports retain their previous interface.
 The report
 works locally without a server. Keep the complete report and its neighboring
 artifacts on the work machine. The automatically created local commit contains
@@ -26,6 +31,27 @@ is available for learning the navigation. It is not a model of the plant.
 The smaller [rack group demonstration](../../examples/rack-assemblies-review-demo.html)
 shows a rack alias and direct adapter use sharing a source group, and a command
 feeding a rack output guard. It also shows literal inputs counted separately.
+
+## Use the guide inside the HTML
+
+Select **Review guide** in the left navigation or **Open Review guide** on
+Overview. The guide is part of the report and remains available offline. It
+provides nine subject checklists covering source coverage, rungs and branches,
+I/O and equipment, PID loops, calculations, sequences, alarms, communications,
+and unresolved items or interface problems. Each checklist explains what to
+inspect and what a useful response should contain. Section links open only
+views present in the selected report. A glossary explains the report's terms.
+
+For a particular item, open its detail and choose **Prepare review feedback**.
+The template includes the source snapshot, section, record ID and selected
+detail context. Choose **Select feedback template**, copy it, and paste it into
+your review notes. Replace its bracketed prompts there. **Return to the selected
+record** takes you back to the item you were checking. If you open the guide
+directly from navigation, fill in the item identity yourself.
+
+The template is read-only. The HTML does not record answers, edit source or
+send feedback. Keep the report identity with your notes and return them through
+the agreed review process. You do not need to read or change application code.
 
 ## Suggested first pass
 
@@ -96,25 +122,37 @@ Use search and filters to narrow each view. Open a row, follow its evidence
 links, and use Back to return to the prior view. A report ID belongs to that
 exact snapshot; copy the report/run identity alongside any record ID.
 
-## What later feedback should contain
+## Write a useful response
 
-For the first pass, try one familiar rung, one PID or output group, and one
-unresolved case. Check whether you can find their source, follow the links and
-understand what is known versus uncertain. Report confusing labels, cramped
-tables, missing context or broken links as well as incorrect interpretations.
-You do not need to classify the entire export before returning feedback.
+Review the subjects assigned to you, and use one entry per issue or clearly
+defined checked item. Select a response in your notes:
 
-For each correction, identify the report/run, view and object/rung, then describe
-the observed result, expected result and supporting evidence. Mark the kind of
-correction: a reusable parser rule, a source-specific exception, an interpretation
-requiring additional evidence, or a DeltaV design decision. Appearance feedback
-can identify confusing labels, difficult navigation, cramped tables or missing
-grouping without assigning engineering classifications.
+| Response | What your answer should say |
+|---|---|
+| Checked | Identify the fields or interpretation you checked and the evidence that supports them. This does not approve unrelated logic. |
+| Needs correction | Quote the displayed result, state the replacement or expected behavior, and explain what supports the change. |
+| Evidence missing | State the unanswered question and exactly which source, drawing, configuration or operating information would resolve it. |
+| Not applicable | Explain why this check does not apply to the selected item. |
+
+Keep anything you have not checked marked **Not reviewed** in your notes. A
+complete scan or resolved address does not record engineering approval.
+
+Retain the report/run and source snapshot, section and record ID, displayed
+result, expected result or unanswered question, supporting evidence, operational
+importance, reviewer and date. Distinguish interpretation, missing information,
+grouping, descriptions, navigation/appearance and target design decisions.
+For an interface problem, include the click or search steps and what you
+expected to see. The embedded guide includes a completed illustrative correction
+to show the required level of detail.
 
 Preserve the report that prompted the correction. Editable correction storage,
 cross-snapshot reconciliation and PCSD/FHX generation are later phases; this
 read-only report does not yet store review decisions or automatically carry them
 across changing source exports.
+
+Normal HTML omits generated developer versions and rule diagnostics. Use
+`--debug` only when a diagnostic report is wanted; the same guide is present in
+both modes. Source comments, IDs, evidence and uncertainty are preserved.
 
 ## Remaining source questions to carry into review
 

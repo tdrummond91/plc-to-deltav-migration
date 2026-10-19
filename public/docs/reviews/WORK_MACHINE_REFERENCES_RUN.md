@@ -2,13 +2,27 @@
 
 ## Current action
 
-The cleanup confirmation passed: return `d53e1ee` tested clean `4c5386c`, with
-both suites passing, the private report saved and all 29 analysis summaries
-unchanged. Open the saved `review.html` for run `20261019T185822Z-acde7c64`
-and follow the [reading guide](REPORT_REVIEW_GUIDE.md). No additional run or
-plant sample is requested. See the [tracker](../planning/PRE_TEAM_REVIEW_TRACKER.md).
+The guide refresh passed: return `23d073d` tested clean `07a935c`, with 2,122
+application cases (two expected skips), 139 helpers, the private report saved
+and all 29 analysis summaries unchanged from C15 except `tool_revision`.
+**No further run is needed before review.** See the
+[tracker](../planning/PRE_TEAM_REVIEW_TRACKER.md).
 
-## Future check when requested
+In Git Bash, from the repository root, synchronize the consolidated history:
+
+```bash
+git switch main
+git pull --ff-only
+```
+
+Open the existing `review.html` saved by completed check
+`20261019T201714Z-38434b5f`. Use the **Private review report:** path printed by
+that run, or find its newest completed report under
+`confidential/workspaces/work-check/`. The private workspace directory name can
+differ from the work-check ID. Start with **Review guide**. Switching branches
+does not require regenerating the saved report.
+
+## Run a future check when requested
 
 In Git Bash, from this repository's root:
 
@@ -29,6 +43,19 @@ A bare filename is found under `confidential/plc-code/`. An explicit local path
 also works. The source is read without modification. The checkout must be clean
 and on a named branch; Python 3.12+ and `uv` must be available. `uv` uses the
 locked project environment and may need to install dependencies on first use.
+
+The normal report includes **Review guide**, the topic checklists and the
+feedback template. For a separate developer-diagnostic report, use this middle
+command instead:
+
+```bash
+bash ./run-work-check.sh --debug
+```
+
+You may supply the source after `--debug` when needed. The flag adds generated
+version and rule details to the HTML; it does not request more source examples
+or change the analysis. Normal mode is the intended report for engineering
+review. Both modes retain the source evidence and explicit uncertainty.
 
 ## What the script does
 
@@ -71,16 +98,20 @@ failure. If Git reports local changes before the run, inspect them before
 trying again. If `git push` says everything is up to date, check whether the
 script completed and created a local feedback commit.
 
-The accepted C15 cleanup run took about 18 minutes; C14 took about 37 minutes,
-largely in application tests. These are observations, not duration guarantees.
+The accepted C16 guide run took 18m 20.148s; C15 took about 18 minutes and C14
+about 37 minutes. These are observations, not duration guarantees.
 Let a requested check finish rather than starting a duplicate run.
 
 ## After the return is checked
 
-Open the saved report and follow the [reading guide](REPORT_REVIEW_GUIDE.md).
-Start with one familiar rung, one PID/output group and one unresolved case.
-For feedback, retain the report/run ID and record ID, the observed result and
-what you expected. No code reading is required. The
+Open the saved report and choose **Review guide** from Overview or the left
+navigation. It explains the subject checks, terms and response categories.
+On a detail page, choose **Prepare review feedback**, select and copy the
+template, and complete it in separate review notes. The source snapshot,
+record ID and selected context are filled in for that item. State the displayed
+result, expected result or unanswered question, and supporting evidence. The
+HTML does not save or send answers. No code reading is required. The
+[reading guide](REPORT_REVIEW_GUIDE.md) provides further context, and the
 [readiness assessment](PHASE_1_READINESS_REVIEW.md) lists the engineering and
 external-source questions that remain.
 

@@ -15,6 +15,7 @@ and the existing bounded examples.
 | Engineering report composition | [review.py](../../python-parser/src/plc_workbench/review.py) |
 | Private artifact saving and manifests | [storage.py](../../python-parser/src/plc_workbench/storage.py) |
 | Offline HTML and interaction | [review_html.py](../../python-parser/src/plc_workbench/review_html.py), [report.js](../../python-parser/src/plc_workbench/review_assets/report.js), [report.css](../../python-parser/src/plc_workbench/review_assets/report.css) |
+| Embedded reviewer instructions and feedback template | [review_guide.js](../../python-parser/src/plc_workbench/review_assets/review_guide.js) |
 | Work-PC check, validated feedback and local commit | [work_check.py](../../python-parser/src/plc_workbench/work_check.py) |
 | Work-report size/serialization policy | [contracts/work_reports.py](../../python-parser/src/plc_workbench/contracts/work_reports.py) |
 | Audited work-PC tests and bounded test result | [work_check_tests.py](../../python-parser/src/plc_workbench/work_check_tests.py) |
@@ -39,6 +40,20 @@ The invented report can return exit 3 for deliberately partial source coverage.
 Read the saved status and manifest before treating that as a failure. New runs
 have unique directories; no earlier run is overwritten. The
 [application README](../../python-parser/README.md) maps all CLI commands.
+
+Add `--debug` to the `plc review` command when checking generated version and
+rule diagnostics. Normal HTML uses a presentation projection that omits only
+known implementation metadata; debug HTML retains the canonical review
+payload. Both retain source evidence, uncertainty, source/record IDs and the
+same review guide. Canonical evidence JSON and manifests are unchanged.
+
+The renderer validates canonical input before making that projection. Do not
+extract the payload from normal HTML and treat it as a canonical input for
+regeneration: it deliberately lacks required version metadata. Rebuild from
+the saved evidence/model or the source fixture. `review_guide.js` is bundled
+with `report.js` into the existing offline, hash-authorized script; it does not
+add a server or network dependency. See the
+[implementation record](reviews/REVIEW_GUIDE_IMPLEMENTATION.md).
 
 ## Test the changed boundary
 

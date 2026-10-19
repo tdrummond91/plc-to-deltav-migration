@@ -136,7 +136,7 @@ def _limits(version: int) -> tuple[int, int]:
     return MAX_REVIEW_PAYLOAD_BYTES, MAX_REVIEW_HTML_BYTES
 
 
-def _payload(data: dict[str, Any]) -> str:
+def _payload(data: dict[str, Any], *, debug: bool = False) -> str:
     if (type(data) is not dict or type(data.get('schema_version')) is not int
             or (data.get('schema_version'), data.get('report_version')) not in
                ((1, 'engineering-review-1'), (2, 'engineering-review-2'),
@@ -256,6 +256,56 @@ def _payload(data: dict[str, Any]) -> str:
                    for key in ('snapshot', 'inventory', 'references', 'sfc', 'statistics'))
             or any(type(data.get(key)) is not list for key in ('patterns', 'findings'))):
         raise ReviewHtmlError('Engineering review data is not supported.')
+    # Validate and bound the original canonical document before omitting any
+    # presentation-only metadata. A smaller distribution view must not permit
+    # an oversized or malformed canonical source document to pass the boundary.
+    if debug:
+        return _encode_payload(data)
+    _encode_payload(data, retain=False)
+    return _encode_payload(_presentation_data(data))
+
+
+_PROVIDER_ROOTS = (
+    'inventory', 'references', 'sfc', 'access', 'tag_data', 'pid', 'pid_members',
+    'calculations', 'rung_analysis', 'relationships', 'conditions',
+    'binding_context', 'custom_instruction_context', 'indexed_access',
+    'sfr_context', 'aoi_body_context', 'pid_connections', 'calculation_paths',
+    'output_context', 'stateful_objects', 'sfc_conditions', 'sfc_context',
+    'execution_context', 'signal_context', 'file_operations', 'alarm_evidence',
+    'communication_context', 'rack_backing_context', 'engineering_assemblies',
+)
+_IMPLEMENTATION_METADATA = frozenset({
+    'report_version', 'parser_version', 'analyzer_version', 'catalog_version',
+    'tool_revision',
+})
+
+
+def _presentation_data(data: dict[str, Any]) -> dict[str, Any]:
+    # Project only known envelopes and the explicit candidate rule fields below.
+    # Never recurse through source attributes, comments or values: similar keys are
+    # engineering evidence, not application metadata. Schema discriminators and
+    # source identity stay available to navigation and feedback references.
+    projected = {key: value for key, value in data.items()
+                 if key not in _IMPLEMENTATION_METADATA}
+    for name in _PROVIDER_ROOTS:
+        if name in data:
+            projected[name] = {key: value for key, value in data[name].items()
+                               if key not in _IMPLEMENTATION_METADATA}
+    rung_analysis = projected.get('rung_analysis')
+    if type(rung_analysis) is dict and type(rung_analysis.get('candidates')) is list:
+        # Rule identifiers describe this application's implementation. The
+        # candidate ID, source rung, reason, evidence and review status remain
+        # unchanged; no similarly named authored source attribute is touched.
+        rung_analysis['candidates'] = [
+            {key: value for key, value in candidate.items()
+             if key not in {'rule_id', 'rule_version'}}
+            if type(candidate) is dict else candidate
+            for candidate in rung_analysis['candidates']
+        ]
+    return projected
+
+
+def _encode_payload(data: dict[str, Any], *, retain: bool = True) -> str:
     payload_limit, html_limit = _limits(data['schema_version'])
     output = io.StringIO()
     size = escaped_size = 0
@@ -274,7 +324,8 @@ def _payload(data: dict[str, Any]) -> str:
                 escaped_size += len(escaped.encode('utf-8'))
                 if escaped_size > html_limit:
                     raise ReviewHtmlSizeLimitError('Engineering review exceeds the report size limit.')
-                output.write(escaped)
+                if retain:
+                    output.write(escaped)
         return output.getvalue()
     except (TypeError, ValueError, RecursionError, UnicodeError) as exc:
         if isinstance(exc, ReviewHtmlError):
@@ -286,13 +337,17 @@ def _hash(value: str) -> str:
     return base64.b64encode(hashlib.sha256(value.encode('utf-8')).digest()).decode('ascii')
 
 
-def render_review_html(data: dict[str, Any]) -> str:
-    """Render canonical review data; the result contains proprietary evidence."""
-    payload = _payload(data)
+def render_review_html(data: dict[str, Any], *, debug: bool = False) -> str:
+    """Render private evidence, with implementation metadata only on request."""
+    if type(debug) is not bool:
+        raise ReviewHtmlError('Engineering review display mode is not supported.')
+    payload = _payload(data, debug=debug)
     asset_dir = Path(__file__).with_name('review_assets')
     try:
         css = (asset_dir / 'report.css').read_text(encoding='utf-8')
-        script = (asset_dir / 'report.js').read_text(encoding='utf-8')
+        guide = (asset_dir / 'review_guide.js').read_text(encoding='utf-8')
+        application = (asset_dir / 'report.js').read_text(encoding='utf-8')
+        script = f"const REVIEW_DEBUG = {'true' if debug else 'false'};\n{guide}\n{application}"
     except (OSError, UnicodeError):
         raise ReviewHtmlError('Engineering review resources are unavailable.') from None
     policy = ("default-src 'none'; "

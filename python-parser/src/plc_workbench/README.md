@@ -14,6 +14,7 @@ the table is a navigation guide, not a new execution order. Start with the
 | [review.py](review.py) | Compose and validate the private engineering review. |
 | [storage.py](storage.py) | Fresh private run directories, artifact serialization and final manifests. |
 | [review_html.py](review_html.py), [review_assets/](review_assets/) | Offline HTML rendering, JavaScript navigation and CSS. |
+| [review_assets/review_guide.js](review_assets/review_guide.js) | Embedded reviewer checklists, response guidance, glossary and selectable feedback template. |
 | [work_check.py](work_check.py), [work_check_timing.py](work_check_timing.py) | Work-PC stages, bounded returned feedback, local commit and stage timings. |
 | [work_check_tests.py](work_check_tests.py) | Reviewed test selection and closed test-result format. |
 | [contracts/work_reports.py](contracts/work_reports.py) | Versioned work-report envelope caps and canonical JSON layout, independent of workflow imports. |

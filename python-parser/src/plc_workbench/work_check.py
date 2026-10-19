@@ -1635,7 +1635,8 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str], *,
              include_residual_interpretation: bool = False,
              include_control_interpretation: bool = False,
              include_residual_diagnostics: bool = False,
-             include_rack_backing_context: bool = False) -> dict[str, Any]:
+             include_rack_backing_context: bool = False,
+             review_debug: bool = False) -> dict[str, Any]:
     # Reuse only protected source templates during this invocation. Derived
     # models still pass their ordinary canonical comparisons before publication.
     with source_reuse_scope():
@@ -1652,7 +1653,8 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str], *,
                                include_residual_interpretation=include_residual_interpretation,
                                include_control_interpretation=include_control_interpretation,
                                include_residual_diagnostics=include_residual_diagnostics,
-                               include_rack_backing_context=include_rack_backing_context)
+                               include_rack_backing_context=include_rack_backing_context,
+                               **({"review_debug": True} if review_debug else {}))
 
 
 def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, str], *,
@@ -1669,7 +1671,8 @@ def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, st
                     include_residual_interpretation: bool = False,
                     include_control_interpretation: bool = False,
                     include_residual_diagnostics: bool = False,
-                    include_rack_backing_context: bool = False) -> dict[str, Any]:
+                    include_rack_backing_context: bool = False,
+                    review_debug: bool = False) -> dict[str, Any]:
     result: dict[str, Any] = {"status": "failed", "failure_code": "read_error", "private_run_saved": False,
                               "reference_summary": None, "sfc_structure_summary": None,
                               "access_summary": None, "tag_data_summary": None, "pid_summary": None,
@@ -1849,7 +1852,8 @@ def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, st
                                  include_residual_interpretation=include_residual_interpretation,
                                  include_control_interpretation=include_control_interpretation,
                                  include_residual_diagnostics=include_residual_diagnostics,
-                                 include_rack_backing_context=include_rack_backing_context)
+                                 include_rack_backing_context=include_rack_backing_context,
+                                 **({"review_debug": True} if review_debug else {}))
             # save_run returns only after finalizing the manifest. A console failure
             # afterwards must not misreport a successfully saved private run.
             result["private_run_saved"] = True
@@ -1998,7 +2002,7 @@ def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, st
     return result
 
 
-def run_check(root: Path, supplied_source: str | None) -> int:
+def run_check(root: Path, supplied_source: str | None, *, review_debug: bool = False) -> int:
     """Commit only the validated feedback report, without contacting a remote."""
     timings = WorkCheckTiming(announce=_phase_elapsed)
     branch = _branch(root)
@@ -2027,7 +2031,8 @@ def run_check(root: Path, supplied_source: str | None) -> int:
                             signal_context_schema_version=5, include_alarm_evidence=True, include_engineering_assemblies=True,
                             engineering_assemblies_schema_version=3, include_communication_context=True,
                             include_residual_interpretation=True, include_control_interpretation=True,
-                            include_residual_diagnostics=True, include_rack_backing_context=True)
+                            include_residual_diagnostics=True, include_rack_backing_context=True,
+                            **({"review_debug": True} if review_debug else {}))
     else:
         analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False,
                     "reference_summary": None, "sfc_structure_summary": None, "access_summary": None,
@@ -2084,9 +2089,12 @@ def run_check(root: Path, supplied_source: str | None) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run local parser tests and analysis without automatic Git synchronization.")
     parser.add_argument("source", nargs="?", help="L5X filename under confidential/plc-code, or an explicit path. Saved locally for later runs.")
+    parser.add_argument("--debug", action="store_true",
+                        help="Include implementation diagnostics in the private HTML report.")
     arguments = parser.parse_args(argv)
     try:
-        return run_check(_checkout_root(), arguments.source)
+        return run_check(_checkout_root(), arguments.source,
+                         **({"review_debug": True} if arguments.debug else {}))
     except WorkCheckError as exc:
         print(str(exc), file=sys.stderr)
     except Exception:

@@ -108,7 +108,7 @@ class ReviewHtmlTests(unittest.TestCase):
         args = fixture(tags='<Tag Name="Values"><Data Format="String"><![CDATA[' + marker + ']]></Data></Tag>')
         access = analyze_access(args[1], args[2])
         data = build_review_data(*args, access=access, tag_data=analyze_tag_data(args[0], args[1]))
-        parsed = ParsedPage(render_review_html(data))
+        parsed = ParsedPage(render_review_html(data, debug=True))
         self.assertEqual(len(parsed.scripts), 2)
         payload = json.loads(parsed.scripts[0][1])
         self.assertEqual(payload, data)
@@ -127,7 +127,7 @@ class ReviewHtmlTests(unittest.TestCase):
         args = fixture(('XIC(A)OTE(B);', 'MOV(B,12);', 'PID(A,B,A,B,A,B,A);'))
         access = analyze_access(args[1], args[2])
         data = build_review_data(*args, access=access)
-        parsed = ParsedPage(render_review_html(data))
+        parsed = ParsedPage(render_review_html(data, debug=True))
         self.assertEqual(json.loads(parsed.scripts[0][1]), data)
         self.assertEqual(data['access']['coverage']['access_gap_operands'], 1)
         for candidate in (dict(data, schema_version=1), dict(data, report_version='engineering-review-1'),
@@ -140,7 +140,7 @@ class ReviewHtmlTests(unittest.TestCase):
         marker = '</ScRiPt><img src="https://invalid.example/secret" onerror="invented()">&\u2028\u2029é'
         data = review_data(marker)
         original = deepcopy(data)
-        page = render_review_html(data)
+        page = render_review_html(data, debug=True)
         parsed = ParsedPage(page)
         self.assertEqual(len(parsed.scripts), 2)
         attrs, payload = parsed.scripts[0]

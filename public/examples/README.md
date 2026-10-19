@@ -12,8 +12,14 @@ report is the latest `review.html` under the work PC's
 | [Control interpretation](control-interpretation-review-demo.html) | General report navigation, source evidence, candidate interpretations and remaining questions. |
 | [Rack groups](rack-assemblies-review-demo.html) | Direct/rack source associations, cross-rung groups, reverse guard links and occurrence qualification. |
 
-Use the [report reading guide](../docs/reviews/REPORT_REVIEW_GUIDE.md) alongside
-the examples. The cleanup updates presentation, not the invented evidence model.
+Both current reports include **Review guide** in the left navigation. Expand a
+topic checklist, read the response examples and glossary, then open a detail
+page and choose **Prepare review feedback**. Copy its template into separate
+notes; the HTML does not save answers. These demonstrations use normal review
+mode, with developer version and rule diagnostics omitted.
+
+Use the [report reading guide](../docs/reviews/REPORT_REVIEW_GUIDE.md) for further
+context. This presentation update leaves the invented evidence model unchanged.
 
 ## Earlier focused demonstrations
 

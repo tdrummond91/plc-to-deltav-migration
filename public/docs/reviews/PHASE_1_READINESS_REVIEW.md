@@ -8,10 +8,23 @@ All 62 historical reports pass their own limits, validation and exact replay.
 See the [cleanup record](CLEANUP_REVIEW.md) and
 [completion tracker](../planning/PRE_TEAM_REVIEW_TRACKER.md).
 
-The saved report from run `20261019T185822Z-acde7c64` is ready for Tyler's
-walkthrough and official engineering review. No further parser run is needed.
-The C14 assessment below remains the verified analysis baseline and retains
-the unresolved source/vendor/runtime questions for review.
+The requested embedded-guide confirmation also passed. C16 return `23d073d`
+tested clean `07a935c`: 2,122 application cases (two expected skips), 139 helpers
+and a successful private save with no failure code. All 29 analysis summaries
+match C15 after removing only `tool_revision`; complete sample/diagnostic
+envelopes are identical. All 64 retained reports validate and replay exactly.
+The run took 18m 20.148s. The [implementation record](REVIEW_GUIDE_IMPLEMENTATION.md)
+records the guide and returned evidence.
+
+Sixteen cycles are complete, with zero further unchanged-source runs before
+review. Synchronize `main`, then open the existing report saved by completed
+check `20261019T201714Z-38434b5f` for the walkthrough and official engineering
+review. The private HTML has not been visually inspected here; prior browser
+checks used invented reports. The C14 assessment below remains the verified
+analysis baseline, with its source/vendor/runtime questions and closed R3/R4
+gate intact. Its original next-action instructions describe that checkpoint;
+use the current [work-PC procedure](WORK_MACHINE_REFERENCES_RUN.md) to sync and
+find the accepted report.
 
 ## C14 decision and next action
 

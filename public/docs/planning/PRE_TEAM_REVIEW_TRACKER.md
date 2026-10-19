@@ -1,25 +1,29 @@
 # Pre-team-review completion tracker
 
-Updated 2026-10-19. This is the current estimate and checklist for finishing
-automated Phase 1 analysis before Tyler presents the reports to the team.
+Updated 2026-10-19. This records the completed automated Phase 1 analysis and
+requested report updates before Tyler presents the reports to the team.
 Read this first for progress; use linked reviews for detailed evidence.
 
 ## Current estimate and next action
 
-**Ready for report review: fourteen analysis cycles plus C15 cleanup
-confirmation are complete; zero further unchanged-source runs are planned.**
-C15 return `d53e1ee`, testing clean `4c5386c`, passes 2,112 application cases
-(two expected skips) and 139 helpers, with the private report saved and no
-failure code. All 29 analysis summaries match C14 after excluding revision
-metadata; complete frozen sample and diagnostic envelopes also match.
-All 62 historical reports validate and replay exactly.
+**Sixteen cycles are complete: fourteen analysis cycles, C15 cleanup and C16
+embedded-guide confirmation. Zero further unchanged-source runs are planned
+before official review.** C16 return `23d073d`, testing clean `07a935c`, passes
+2,122 application cases (two expected skips) and 139 helpers, with the private
+report saved and no failure code. All 29 analysis summaries match C15 after
+removing only `tool_revision`; complete frozen sample and diagnostic envelopes
+also match. All 64 retained reports validate and replay exactly; frozen-history
+acceptance passes.
 
 After C14 closed, Tyler requested one code and folder-organization cleanup
 followed by another work-machine run. C15 confirms unchanged analysis after
-that maintenance. R3/R4 retain their C14 closure; Tyler can now walk through
-the saved report and present it for official review. Engineering approval,
+that maintenance. Tyler then requested reviewer instructions inside the HTML,
+with clear response guidance and developer details behind `--debug`. C16 now
+confirms that presentation change with unchanged analysis. R3/R4 retain their
+C14 closure. Engineering approval,
 runtime validation and later project phases remain separate.
 See the [cleanup record](../reviews/CLEANUP_REVIEW.md).
+See the [review-guide implementation](../reviews/REVIEW_GUIDE_IMPLEMENTATION.md).
 See the [readiness assessment](../reviews/PHASE_1_READINESS_REVIEW.md).
 One cycle means a coherent development bundle, a work-machine run,
 and analysis of its returned feedback. Local commits and tests are not cycles.
@@ -36,25 +40,42 @@ The first rack-backing investigation extended the projection to twelve; its
 returned layout gaps now extend it explicitly to thirteen.
 The C13 downstream grouping audit extends it to fourteen.
 C14 validates that final analysis bundle. Fourteen analysis cycles and the
-subsequent user-requested cleanup confirmation are now complete. This is
+subsequent requested cleanup and guide confirmations are now complete. This is
 a cycle budget, not a percentage of Phase 1 completion. Earlier estimates in historical
 reviews are superseded for current planning, and their text remains intact.
 
 | Measure | Current state |
 |---|---|
-| Completed cycles in this reconciled window | 15: fourteen analysis cycles plus one requested cleanup confirmation |
+| Completed cycles in this reconciled window | 16: fourteen analysis cycles plus cleanup and guide confirmations |
 | Remaining work-machine cycles before official review | 0 |
-| Latest analyzed return | d53e1ee, testing clean 4c5386c |
-| Current parser bundle | C15 accepted: shared report contracts, organized documentation and clarified wording; all 29 summaries unchanged |
-| Immediate user action | Open the private review.html from run 20261019T185822Z-acde7c64; check readability/navigation/appearance |
-| Team engineering review | Report ready for official review; engineering decisions remain unreviewed |
+| Latest analyzed return | 23d073d, testing clean 07a935c |
+| Current bundle | C16 accepted: embedded Review guide, feedback instructions and optional debug presentation; all 29 summaries unchanged |
+| Immediate user action | git switch main; git pull --ff-only; open the existing saved review.html from completed check 20261019T201714Z-38434b5f |
+| Team engineering review | Report ready for walkthrough and official review; engineering decisions remain unreviewed |
 
 The former one-to-two-cycle analysis range closed with C14. C15, added at
 Tyler's explicit request, now passes with all 29 summary families and complete
-sample envelopes unchanged except revision metadata. No new source example,
-classification or parser run is requested. Concrete review feedback or a
+sample envelopes unchanged except revision metadata. C16 likewise passes with
+all 29 summaries and complete sample/diagnostic envelopes unchanged; no new
+source example or classification work was introduced. Concrete review feedback or a
 changed export may require further work; record that evidence rather than
 silently reopening completed cycles.
+
+## Completed presentation refresh
+
+- [x] **C16 - Embedded guide and clearer reviewer responses.** Return
+  `23d073d` tests clean `07a935c`: 2,122 application cases (two expected skips),
+  139 helpers and successful private save with no failure code. All 29 analysis
+  summaries match C15 after removing only `tool_revision`; complete sample and
+  diagnostic envelopes match exactly. All 64 retained reports pass their own
+  limits, validation and exact replay. Runtime is 18m 20.148s. The guide supplies
+  nine topic checklists, response categories, a glossary and a selectable
+  template with record/snapshot/context identity. Normal HTML omits known
+  generated version/rule metadata; `--debug` includes developer diagnostics.
+  Canonical evidence, uncertainty and sampling remain unchanged. C14/R3/R4
+  and C15 stay closed. Proceed to the requested
+  readability/navigation/appearance walkthrough and official review.
+  [Scope and validation](../reviews/REVIEW_GUIDE_IMPLEMENTATION.md).
 
 ## Completed cleanup confirmation
 
@@ -291,3 +312,5 @@ engineering approval or certainty about behavior absent from the source.
 | 2026-10-19 C14 audit | 0 before review; fourteen completed | Return adc5475 validates qualified groups and corrected accounting. Independent audit finds no further parser omission requiring a normal run. R3/R4 close for report presentation; source/vendor/runtime and engineering questions remain explicit. |
 | 2026-10-19 user-requested cleanup | 1 confirmation; fourteen completed, total 15 | Tyler requested one code/folder cleanup followed by another pull/run/push before official review. Preserve the completed C14 analysis gate and validate unchanged summaries after maintenance. |
 | 2026-10-19 C15 confirmation | 0 before review; fifteen completed including cleanup | Return d53e1ee tests clean 4c5386c with passing suites, private save, unchanged 29 summary families and frozen samples, and 62 exact historical replays. The saved report is ready for Tyler's walkthrough and official engineering review. |
+| 2026-10-19 requested review guide | 1 presentation refresh; fifteen completed, total 16 | Tyler requested a guide inside the HTML, clearer feedback instructions and developer details behind --debug. One regeneration puts that presentation into the private report; completed analysis gates and frozen sampling remain unchanged. |
+| 2026-10-19 C16 confirmation | 0 before review; sixteen completed | Return 23d073d tests clean 07a935c with passing suites, private save, unchanged 29 summary families and complete frozen sample/diagnostic envelopes. All 64 retained reports validate and replay exactly. Open the existing guide-bearing report for the walkthrough and official review. |

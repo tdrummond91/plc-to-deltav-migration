@@ -53,7 +53,7 @@ class PidMemberReviewStorageTests(unittest.TestCase):
         parts = captured()
         with tempfile.TemporaryDirectory() as directory:
             workspace = Path(directory)
-            old = save_run(workspace, *parts[:2], **pid_arguments(parts))
+            old = save_run(workspace, *parts[:2], review_debug=True, **pid_arguments(parts))
             old_files = {path.name: path.read_bytes() for path in old.iterdir()}
             old_manifest = json.loads(old_files['manifest.json'])
             self.assertEqual((old_manifest['schema_version'], old_manifest['review_schema_version']), (7, 4))
@@ -61,7 +61,7 @@ class PidMemberReviewStorageTests(unittest.TestCase):
             self.assertFalse(any(key.startswith('pid_member_') for key in old_manifest))
             old_payload = json.loads(ParsedPage(old_files['review.html'].decode()).scripts[0][1])
             self.assertNotIn('pid_members', old_payload)
-            saved = save_run(workspace, *parts[:2], **arguments(parts))
+            saved = save_run(workspace, *parts[:2], review_debug=True, **arguments(parts))
             manifest = json.loads((saved / 'manifest.json').read_bytes())
             self.assertEqual((manifest['schema_version'], manifest['artifact_kind']),
                              (8, 'source_reference_sfc_access_tag_data_pid_member_review_run'))
