@@ -1,6 +1,99 @@
 # Project state: calculation evidence and prior Phase 1 assessments
 
-Current checkpoint (2026-10-15): **CPT calculation access** connects the existing
+Current checkpoint (2026-10-15): **condition report save repair**.
+Returned `e0b6b0c` tested clean `effa48f`: 870 application cases passed (one
+expected skip), plus 139 helpers, but returned `save_error` and no analysis
+summaries. The private failure cause remains unconfirmed. Review9 now reserves
+its additional bounded condition payload (160 MiB JSON / 192 MiB HTML);
+review1-8 budgets remain unchanged. Work25 adds five fixed save-failure categories
+without sharing exception text. A console failure after a completed save now
+retains the correct saved-run flag. See [evidence and validation](SAVE_FAILURE_REVIEW.md).
+
+The next normal work-machine run should supply condition counts or a precise
+failure category. Continue Phase 1 analysis after that return; no team review
+is requested. Git transport stays manual and the listener remains disabled.
+
+## Historical condition implementation checkpoint
+
+Historical checkpoint (2026-10-15): **Boolean conditions and output actions**
+adds compact local condition graphs for series and parallel rungs, individual
+predicate occurrences, and incoming-condition records for OTE/OTL/OTU. Unknown
+block behavior remains explicit. Ordinary output, latch and unlatch actions stay
+distinct; no PLC execution, final value or equipment/alarm purpose is inferred.
+
+Returned `f7d91f0` tests clean `ddd087c`: 821 application cases passed (one
+expected Windows skip), plus 139 helpers. There are 7,591 exact addresses,
+3,778 used across rungs and 1,453 with multiple captured writers. Stronger
+patterns cover 4,286 rungs in 1,489 groups; 320 rungs retain explicit exclusions.
+No composed-suffix gaps were found. The narrow local calculation analysis found
+one link; 13,053 instructions were excluded because their rungs contain branches.
+All eight preceding summaries match after tool_revision normalization, and all
+30 historical reports validate. Pushed results are automated, not team feedback.
+
+Review9/manifest12 adds boolean-conditions.json as the sixteenth hashed artifact.
+Work24 adds closed condition summary1. Work22-24 retain 48 KiB outer envelopes;
+work1-21 retain 32 KiB. Earlier companions and optional replay remain intact.
+The next normal work-machine run measures local condition/output coverage.
+Continue source-addressable Phase 1 analysis before asking for team review.
+Git synchronization stays manual; the launcher commits only its new validated
+feedback report locally, and the listener remains disabled.
+
+See [condition scope and validation](CONDITION_REVIEW.md).
+
+## Historical relationship implementation checkpoint
+
+Historical checkpoint (2026-10-15): **exact-address relationships and operand-reuse patterns**
+adds exact expanded suffix identities, separate source/expression read occurrences,
+possible local calculation links and stronger rung groups. Existing root-only
+access and opcode-shape views remain available. Source-order links do not establish
+runtime data flow, and pattern equality does not confirm engineering equivalence.
+
+Returned `4a3406b` tests clean `938d72d`: 778 application cases passed (one
+expected Windows skip), plus 139 helpers. All 4,606 rungs and 17,874 blocks were
+accounted for; 1,863 rungs contain branches. The rung layer found 82 blocks with
+unresolved operand behavior and 11,837 overlapping function candidates. The 1,319
+alarm candidates are text hints, not verified alarms. Seven preceding summaries
+match after tool_revision normalization; all 29 historical reports validate.
+
+Review8/manifest11 adds relationships.json as the fifteenth hashed artifact.
+Work23 adds closed relationship summary1; work22 and work23 allow 48 KiB outer
+reports, while work1-21 retain 32 KiB. Earlier companions and optional replay
+paths remain intact. The next normal work-machine run measures this relationship
+layer on the private export. Pushed results are automated evidence, not human
+feedback. Continue script-addressable Phase 1 analysis before team review.
+Git synchronization stays manual; the launcher commits only its new validated
+feedback report locally, and the listener stays disabled.
+
+See [relationship scope and validation](RELATIONSHIP_REVIEW.md).
+
+## Historical rung-analysis implementation checkpoint
+
+Historical checkpoint (2026-10-15): **rung structure and function candidates**
+brings existing source/access evidence into a complete rung census, ordered block
+dossiers, branch outlines and overlapping candidate families. Interpretations
+remain unreviewed, with reasons and missing evidence. Supported roles, recognized
+mnemonics, declaration links and weak text hints stay distinguishable.
+
+Returned `f93f744` tests clean `ae97f10`: 732 application cases passed (one
+expected Windows skip), plus 139 helpers. All 45 CPTs were classified and all
+132 expression reads bound across 72 roots. There are 17,746 classified
+instructions, 128 unsupported instructions, 505 unknown source operand roles
+and 321 unchanged ordinary binding gaps. Six other summaries match after only
+tool_revision normalization; all 28 historical reports validate.
+
+Review7/manifest10 adds rung-analysis.json as the fourteenth artifact. Work22
+adds a fixed-count rung summary1 and a 48 KiB outer cap only for this version;
+older report caps/contracts stay unchanged. Access4/calculation2 remain intact.
+The next work-machine run supplies automated coverage for this broader layer.
+Pushed results are not human feedback. Continue resolving script-addressable
+relationships, loops, alarms and sequence questions before team review; no
+manual review is requested now. Git synchronization stays manual and the
+listener stays disabled. See [Rung analysis](RUNG_ANALYSIS_REVIEW.md) and the
+[Phase 1 completion gate](../planning/PHASE_1_ENGINEERING_ANALYSIS.md).
+
+## Historical CPT access implementation checkpoint
+
+Historical checkpoint (2026-10-15): **CPT calculation access** connects the existing
 expression trees to possible destination writes and individual tag reads.
 Returned `cbb2965` tests clean `456786a`: all 175 newly supported instructions
 and 336 operand slots were classified, and all 175 new data operands bound.

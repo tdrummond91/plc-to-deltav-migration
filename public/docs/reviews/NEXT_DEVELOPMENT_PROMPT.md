@@ -1,4 +1,215 @@
-Current checkpoint (2026-10-15): **CPT calculation access** connects the existing
+# Next development checkpoint
+
+Current checkpoint (2026-10-16): **AOI body ownership and unmatched SFR context**.
+Return `871b700` passed 1,128 application cases (two expected Windows skips) and
+139 helpers. All 133 ONS occurrences now have stored-state transfers; opaque
+coil guards fell from 59 to one. SFR target matching resolved 139 of 140 calls.
+Twelve earlier summaries and the frozen six-example record remain unchanged;
+all 37 historical reports validate.
+
+Review14/manifest17 adds AOI body and instance relationships plus SFR gap
+context, still with sixteen artifacts. Work31 returns their closed counts.
+See [scope, evidence and validation](AOI_BODY_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new source
+samples or manual engineering/team review are needed. Git transport remains
+manual, and the listener remains disabled.
+
+## Historical stored-state checkpoint
+
+Historical checkpoint (2026-10-15): **stored-state conditions and SFC reset targets**.
+Return `5215baa` passed 1,057 application cases (two expected Windows skips) and
+139 helpers, saved its private run and preserved all eleven earlier summaries.
+The unknown call has one matching AOI declaration; both dynamic write roots and
+their index reads bind. One unknown-role indexed operand remains deferred.
+All 36 historical reports validate and the six samples replay unchanged.
+
+Condition3 explains ONS storage dependence without selecting runtime values.
+SFR context links reset calls to program-local chart and step candidates while
+retaining edit revisions and unresolved matches. Review13/manifest16 retains
+sixteen artifacts; work30 returns the new SFR counts and updated condition counts.
+See [scope, evidence and validation](STATEFUL_SEQUENCE_REVIEW.md).
+
+The next ordinary work-machine run measures these changes; no new rung samples
+or manual engineering/team review are needed. Git transport remains manual and
+the listener remains disabled. AOI body/instance mapping is a recorded follow-up.
+
+## Historical instruction-context checkpoint
+
+Historical checkpoint (2026-10-15): **custom declarations and symbolic array selectors**.
+Return `51315bd` passed 991 application cases (two expected Windows skips) and
+139 helpers, saved private analysis, and preserved all eleven preceding summaries.
+The six targeted examples were included; their eight-unit reservation now replays
+unchanged. All 35 historical reports validate.
+
+Work29 adds custom-instruction and indexed-access count summaries. Review12 embeds
+both private contexts, while manifest15 keeps sixteen artifacts. Declaration
+candidates explain unknown-family identity; symbolic selectors explain outer roots
+and index reads. Effects, exact elements and older binding gaps remain explicit.
+See [implementation and validation](INSTRUCTION_CONTEXT_REVIEW.md).
+
+Next: analyze the ordinary work-machine return for these companions. No new
+samples, manual engineering review or team feedback are requested. ONS state
+dependence and SFR sequence effects remain subsequent analysis targets.
+
+## Historical targeted-sample checkpoint
+
+Historical checkpoint (2026-10-15): **fixed targeted diagnostic rung examples**.
+Tyler confirmed the 2% limit counts new informative examples separately from
+older scrubbed structural catalogs. Small evidence-driven pulls are authorized;
+no per-case approval gate is needed within that boundary.
+
+Work28 adds a maximum six-rung request for two dynamic indexes, an unknown
+instruction, ONS/SFR condition gaps and a branched comparison/output pattern.
+Per-rung substitutions remove plant names and literal values. One bounded
+unknown mnemonic is an intentional diagnostic clue. Public history plus an
+ignored local reservation freeze the whole request across retries and changed
+exports; historical replay is explicitly marked. The old rotating operand
+sampler is disabled in work28. Earlier contracts remain readable.
+
+Returned `aed0fc4` tested clean `a12ada1`: 945 application cases passed (one
+expected skip), plus 139 helpers; the private run saved and all ten prior summaries
+were unchanged. All 303 predicate gaps and 16 unbound outputs have unique rack
+context, with two dynamic-index writes remaining. All 34 older reports validate.
+The next normal work-machine run collects targeted examples; no manual engineering
+or UI review is needed. See [selection, accounting and validation](TARGETED_RUNG_SAMPLES_REVIEW.md).
+Git transport stays manual and the listener stays disabled.
+
+## Historical binding-context checkpoint
+
+Historical checkpoint (2026-10-15): **binding gaps and logical rack context**.
+Returned `248b12a` tested clean `ef4ba8d`: 907 application cases passed (one
+expected skip), plus 139 helpers, with a saved private run. Nine earlier summaries
+are unchanged. Condition2 explains 2,718 instruction transfers; 459 remain opaque.
+Coil guards comprise 3,923 modeled, 181 with predicate gaps and 59 opaque.
+There remain 303 gap-bearing predicates and 16 unbound coil targets.
+
+Review11 adds a bounded binding-context index linking unresolved occurrences to
+source, alias chains, existing rack candidates and separate logical-address groups.
+All existing bindings and condition statuses remain unchanged; physical backing
+and member validity remain unverified. Manifest14 still has sixteen artifacts.
+Work27 adds a count-only context summary. See [scope and validation](BINDING_CONTEXT_REVIEW.md).
+
+The next normal work-machine run measures those per-occurrence associations.
+Continue Phase 1 automated analysis; no engineering/team review is requested yet.
+Git transport remains manual and the listener remains disabled.
+
+## Historical condition-transfer checkpoint
+
+Historical checkpoint (2026-10-15): **normal-scan instruction condition transfer**.
+Returned `b31392a` tested clean `78cf221`: 889 application cases passed (one
+expected skip), plus 139 helpers, and the private report saved successfully.
+All nine preceding summaries are unchanged after tool revision normalization.
+The first condition return accounts for all 4,163 coils: 3,920 modeled incoming
+guards, 181 with predicate binding gaps and 62 with opaque transfers; 16 targets
+remain unbound. This confirms recovery, without proving the earlier failure's cause.
+
+Condition2 preserves incoming context through 17 documented, signature-classified
+instruction spellings, including math, move, timer, counter and reset blocks.
+The report also exposes noncoil instruction contexts without requiring a downstream
+coil. Normal-scan condition transfer does not simulate effects or execution.
+Review10/manifest13 retains sixteen artifacts; work26 returns condition summary2.
+Earlier replay stays frozen. See [scope, sources and validation](CONDITION_TRANSFER_REVIEW.md).
+
+Continue Phase 1 automated analysis after the next normal work-machine return;
+no team review is requested. Git transport stays manual and the listener remains disabled.
+
+## Historical save repair checkpoint
+
+Historical checkpoint (2026-10-15): **condition report save repair**.
+Returned `e0b6b0c` tested clean `effa48f`: 870 application cases passed (one
+expected skip), plus 139 helpers, but returned `save_error` and no analysis
+summaries. The private failure cause remains unconfirmed. Review9 now reserves
+its additional bounded condition payload (160 MiB JSON / 192 MiB HTML);
+review1-8 budgets remain unchanged. Work25 adds five fixed save-failure categories
+without sharing exception text. A console failure after a completed save now
+retains the correct saved-run flag. See [evidence and validation](SAVE_FAILURE_REVIEW.md).
+
+The next normal work-machine run should supply condition counts or a precise
+failure category. Continue Phase 1 analysis after that return; no team review
+is requested. Git transport stays manual and the listener remains disabled.
+
+## Historical condition implementation checkpoint
+
+Historical checkpoint (2026-10-15): **Boolean conditions and output actions**
+adds compact local condition graphs for series and parallel rungs, individual
+predicate occurrences, and incoming-condition records for OTE/OTL/OTU. Unknown
+block behavior remains explicit. Ordinary output, latch and unlatch actions stay
+distinct; no PLC execution, final value or equipment/alarm purpose is inferred.
+
+Returned `f7d91f0` tests clean `ddd087c`: 821 application cases passed (one
+expected Windows skip), plus 139 helpers. There are 7,591 exact addresses,
+3,778 used across rungs and 1,453 with multiple captured writers. Stronger
+patterns cover 4,286 rungs in 1,489 groups; 320 rungs retain explicit exclusions.
+No composed-suffix gaps were found. The narrow local calculation analysis found
+one link; 13,053 instructions were excluded because their rungs contain branches.
+All eight preceding summaries match after tool_revision normalization, and all
+30 historical reports validate. Pushed results are automated, not team feedback.
+
+Review9/manifest12 adds boolean-conditions.json as the sixteenth hashed artifact.
+Work24 adds closed condition summary1. Work22-24 retain 48 KiB outer envelopes;
+work1-21 retain 32 KiB. Earlier companions and optional replay remain intact.
+The next normal work-machine run measures local condition/output coverage.
+Continue source-addressable Phase 1 analysis before asking for team review.
+Git synchronization stays manual; the launcher commits only its new validated
+feedback report locally, and the listener remains disabled.
+
+See [condition scope and validation](CONDITION_REVIEW.md).
+
+## Historical relationship implementation checkpoint
+
+Historical checkpoint (2026-10-15): **exact-address relationships and operand-reuse patterns**
+adds exact expanded suffix identities, separate source/expression read occurrences,
+possible local calculation links and stronger rung groups. Existing root-only
+access and opcode-shape views remain available. Source-order links do not establish
+runtime data flow, and pattern equality does not confirm engineering equivalence.
+
+Returned `4a3406b` tests clean `938d72d`: 778 application cases passed (one
+expected Windows skip), plus 139 helpers. All 4,606 rungs and 17,874 blocks were
+accounted for; 1,863 rungs contain branches. The rung layer found 82 blocks with
+unresolved operand behavior and 11,837 overlapping function candidates. The 1,319
+alarm candidates are text hints, not verified alarms. Seven preceding summaries
+match after tool_revision normalization; all 29 historical reports validate.
+
+Review8/manifest11 adds relationships.json as the fifteenth hashed artifact.
+Work23 adds closed relationship summary1; work22 and work23 allow 48 KiB outer
+reports, while work1-21 retain 32 KiB. Earlier companions and optional replay
+paths remain intact. The next normal work-machine run measures this relationship
+layer on the private export. Pushed results are automated evidence, not human
+feedback. Continue script-addressable Phase 1 analysis before team review.
+Git synchronization stays manual; the launcher commits only its new validated
+feedback report locally, and the listener stays disabled.
+
+See [relationship scope and validation](RELATIONSHIP_REVIEW.md).
+
+## Historical rung-analysis implementation checkpoint
+
+Historical checkpoint (2026-10-15): **rung structure and function candidates**
+brings existing source/access evidence into a complete rung census, ordered block
+dossiers, branch outlines and overlapping candidate families. Interpretations
+remain unreviewed, with reasons and missing evidence. Supported roles, recognized
+mnemonics, declaration links and weak text hints stay distinguishable.
+
+Returned `f93f744` tests clean `ae97f10`: 732 application cases passed (one
+expected Windows skip), plus 139 helpers. All 45 CPTs were classified and all
+132 expression reads bound across 72 roots. There are 17,746 classified
+instructions, 128 unsupported instructions, 505 unknown source operand roles
+and 321 unchanged ordinary binding gaps. Six other summaries match after only
+tool_revision normalization; all 28 historical reports validate.
+
+Review7/manifest10 adds rung-analysis.json as the fourteenth artifact. Work22
+adds a fixed-count rung summary1 and a 48 KiB outer cap only for this version;
+older report caps/contracts stay unchanged. Access4/calculation2 remain intact.
+The next work-machine run supplies automated coverage for this broader layer.
+Pushed results are not human feedback. Continue resolving script-addressable
+relationships, loops, alarms and sequence questions before team review; no
+manual review is requested now. Git synchronization stays manual and the
+listener stays disabled. See [Rung analysis](RUNG_ANALYSIS_REVIEW.md) and the
+[Phase 1 completion gate](../planning/PHASE_1_ENGINEERING_ANALYSIS.md).
+
+## Historical CPT access implementation checkpoint
+
+Historical checkpoint (2026-10-15): **CPT calculation access** connects the existing
 expression trees to possible destination writes and individual tag reads.
 Returned `cbb2965` tests clean `456786a`: all 175 newly supported instructions
 and 336 operand slots were classified, and all 175 new data operands bound.

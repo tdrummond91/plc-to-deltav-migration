@@ -2,26 +2,58 @@
 
 ## Offline engineering review
 
-`plc review` builds an organized, read-only engineering report from the
-source inventory, references, explicit operand access, stored Tag Data, PID occurrence/member, CPT calculation and SFC evidence. Open its printed
-`review.html` path to search objects, follow source context, inspect findings,
-compare repeated rung syntax and navigate routine/SFC evidence. The report is
-self-contained and opens without a server. Phase 1 now classifies potential
-explicit operand uses for 41 supported mnemonic spellings, including bounded
-timer/reset/copy, counter, message-control, system-value, SFC-reset and CPT roles. CPT expression reads have separate
-counts and exact node/span links; repeated references stay separate.
-Access-owned bindings retain separate provenance from the original reference
-analysis; new declaration links use the access binding and alias chain. These roles are not
-execution effects or dependencies, and root groups do not establish overlap
-between member/index suffixes. Engineering classifications remain later work.
+`plc review` builds a self-contained, read-only report from source, reference,
+access, Tag Data, PID, CPT calculation, SFC, rung, relationship and condition evidence. Open the
+printed `review.html` path. The Engineering analysis view accounts for every
+rung and captured block, groups candidate functions, explains uncertainty, and
+shows structural branches and possible results. Search and combined filters
+find families, unresolved blocks, empty bypasses and missing comments/metadata.
+Address relationships separates exact member/index spellings, possible local
+calculation links and operand-reuse patterns. Root-only access and opcode-shape
+patterns remain separate views. Existing tag, PID, calculation and source views
+provide deeper evidence links. Instruction conditions exposes incoming contexts for noncoil blocks, including
+17 documented pass-through spellings. False evaluations can still change state;
+condition transfer is separate from action/data validity. Conditional outputs links OTE/OTL/OTU records to
+their incoming series/parallel condition graphs. Each source read stays a separate
+occurrence; unknown transfers, binding gaps and malformed actions remain visible.
+No PLC execution or final output value is inferred.
 
-Tyler has not inspected the source/report and explicitly deferred engineering
-and UI review. Such inspection is optional later; it is not a gate to continued
-parser work. The next work-machine run should return only generated aggregate
-feedback for CPT access integration. Returned `cbb2965` confirms 175 newly
-classified access instructions and 175 newly bound operands, with no new binding
-gaps. The next run measures the projected 45 CPT classifications and 132
-expression reads. See [the access contract and limits](../public/docs/reviews/CPT_ACCESS_REVIEW.md).
+Binding context follows known-role binding gaps through captured alias chains,
+scope-checked rack declarations and module evidence. Candidate logical addresses
+group exact suffix spellings separately from confirmed address relationships.
+Original bindings and guard statuses remain unchanged; physical I/O backing,
+member validity and process purpose are still unconfirmed.
+
+Instruction context links unknown-family blocks to candidate AOI declarations
+within their controller, with parameter/body availability and source navigation.
+Symbolic indexed access shows outer-root bindings and the individual reads that
+select an array element. These companions retain existing unknown effects and
+exact-address gaps. Call validity, element values and array bounds are unproven.
+
+Candidate interpretations are unreviewed. Instruction roles, recognized
+mnemonics, structural motifs, declaration references and weak name/comment
+hints are separate. Internal Boolean outputs do not imply physical DOs; no
+known local result does not prove dead code. CPT expression reads retain their
+own population, node/span links and repeated occurrences.
+
+The latest automated return (`871b700`) saved successfully and accounts for
+4,163 coil outputs: 3,966 modeled guards, 196 with condition binding gaps and
+one with an opaque transfer. There are 2,718 pass-through and 133 stored-state
+transfers; 326 remain opaque. Earlier summaries remain unchanged, including
+7,591 exact addresses and 1,489 operand-reuse patterns covering 4,286 rungs.
+All 303 predicate binding gaps and 16 unbound coil targets now have unique
+rack-candidate context: 319 uses across 94 candidate addresses and 11 roots.
+Both additional dynamic writes now have bound outer roots and index reads. The
+unknown block has a unique AOI declaration candidate, while one indexed operand
+with an unknown role stays deferred. All six targeted rung examples replay unchanged.
+SFR matched 139 of 140 calls to captured steps. The next run measures AOI
+body/instance relationships and diagnostic context for the unmatched target.
+See [the current scope](../public/docs/reviews/AOI_BODY_REVIEW.md),
+[the context contract](../public/docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md)
+and [sampling boundaries](../public/docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
+Continue the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)
+before requesting team feedback. No manual engineering/UI review is needed now.
+See [binding context scope and contracts](../public/docs/reviews/BINDING_CONTEXT_REVIEW.md).
 
 ```bash
 uv run --project python-parser --locked plc review \
@@ -31,8 +63,8 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-review6/manifest9 with thirteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
-references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json and review.html. Existing plain
+review14/manifest17 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json, rung-analysis.json, relationships.json, boolean-conditions.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
 `confidential/`. Read [the function follow-up](../public/docs/reviews/CALCULATION_FUNCTION_REVIEW.md),
@@ -47,8 +79,26 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work21 adds access summary4 beside calculation2, PID member1,
-PID1, Tag Data1, reference12/source4 and SFC2. Earlier work17 added count-only
+manual. Current work31 adds AOI body counts and SFR gap summary2. It retains
+condition3, custom-instruction/indexed-access summaries, the fixed
+targeted-sample record and unchanged
+binding-context summary1, relationship1, rung-analysis1,
+access4, calculation2, PID member1, PID1, Tag Data1, reference12/source4 and SFC2.
+Work28-31 permit 64 KiB including at most 16 KiB of targeted evidence. Work22-27
+retain 48 KiB; work1-21 retain 32 KiB. New legacy single-operand samples are
+disabled so they cannot rotate outside the targeted request's budget.
+Work31 uses compact JSON whitespace; historical feedback formats are unchanged.
+Work25 adds fixed save-failure categories. Review14 allows 200 MiB JSON / 232 MiB
+HTML, reserving 8 MiB for AOI body context. Review13 retains 192 MiB JSON / 224 MiB
+HTML, reserving 8 MiB for SFR context. Review12 retains 184 MiB JSON / 216 MiB
+HTML for custom-instruction and index context. Review11 retains 168 MiB JSON /
+200 MiB HTML for the earlier binding context. Review9/10 retain
+160 MiB JSON / 192 MiB HTML, and earlier versions retain their original budgets. See the
+[save failure checkpoint](../public/docs/reviews/SAVE_FAILURE_REVIEW.md).
+See [stored-state conditions and SFC targets](../public/docs/reviews/STATEFUL_SEQUENCE_REVIEW.md)
+for that checkpoint's semantics and validation, and
+[AOI body context](../public/docs/reviews/AOI_BODY_REVIEW.md) for current work.
+Earlier work17 added count-only
 PID member summary1 while preserving
 PID1, Tag Data1/reference12/source4/SFC2/access2 summaries. Documented member
 groups, type/shape checks and missing/duplicate catalog fields complement the
@@ -63,7 +113,7 @@ prior summaries matched after revision normalization. This establishes capture
 coverage, not 46 engineered loops or valid settings. Read the
 [PID member review](../public/docs/reviews/PID_MEMBER_REVIEW.md) for current
 scope and validation. That historical handoff measured PID member coverage;
-the current handoff measures extended access roles.
+the current handoff measures binding-gap context.
 
 Historical Tag Data/work15 validation: 642 development cases passed with one
 existing Windows symlink skip. Two isolated runs each passed 546 application
@@ -175,7 +225,7 @@ IDs resolve only within a content block; missing, invalid and duplicate IDs
 remain gaps. All edit versions stay separate. This uses another bounded XML pass
 over the same captured bytes, keeping existing inventory/reference results exact.
 Private text/JSON can be saved in an append-only workspace. Exit0/3 describes
-complete/partial structural capture, not complete Phase1 or valid execution.
+complete/partial structural capture, not complete Phase 1 or valid execution.
 
 `sfc-summary` publishes only closed counts and code revision under schema2/policy2.
 It contains no raw descriptors, values, source IDs or topology. The ordinary

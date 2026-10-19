@@ -24,6 +24,14 @@ if TYPE_CHECKING:
     from .pid import PidResult
     from .pid_members import PidMemberResult
     from .calculations import CalculationResult
+    from .rung_analysis import RungAnalysisResult
+    from .relationships import RelationshipResult
+    from .conditions import ConditionResult
+    from .binding_context import BindingContextResult
+    from .custom_instruction_context import CustomInstructionContextResult
+    from .indexed_access import IndexedAccessResult
+    from .sfr_context import SfrContextResult
+    from .aoi_body_context import AoiBodyContextResult
     from .references import ReferenceResult
     from .sfc_structure import SfcStructureResult
     from .tag_data import TagDataResult
@@ -31,6 +39,12 @@ if TYPE_CHECKING:
 
 class StorageError(ValueError):
     """Safe write error that never embeds source data or OS exception text."""
+
+    def __init__(self, message: str, *, code: str = 'save_error') -> None:
+        super().__init__(message)
+        # Callers publishing feedback must admit only their versioned, closed
+        # code vocabulary. Messages and causes remain private diagnostic detail.
+        self.code = code
 
 
 def _checkout_root() -> Path | None:
@@ -49,22 +63,22 @@ def _workspace_path(workspace: Path) -> Path:
     if checkout is not None and resolved.is_relative_to(checkout):
         private = checkout / "confidential"
         if not resolved.is_relative_to(private):
-            raise StorageError("Workspaces inside this checkout must be beneath confidential/.")
+            raise StorageError("Workspaces inside this checkout must be beneath confidential/.", code='save_workspace_error')
     return resolved
 
 
 def _assert_run_path(workspace: Path, run_dir: Path) -> None:
     if workspace.resolve() != workspace or run_dir.is_symlink():
-        raise StorageError("Workspace or run path changed during publication.")
+        raise StorageError("Workspace or run path changed during publication.", code='save_workspace_error')
     if run_dir.resolve() != run_dir or run_dir.parent != workspace:
-        raise StorageError("Run path must remain directly inside the resolved workspace.")
+        raise StorageError("Run path must remain directly inside the resolved workspace.", code='save_workspace_error')
 
 
 def _write_artifact(workspace: Path, run_dir: Path, name: str, data: bytes) -> dict[str, object]:
     _assert_run_path(workspace, run_dir)
     destination = run_dir / name
     if destination.parent != run_dir or destination.resolve() != destination:
-        raise StorageError("Artifact path escaped the run directory.")
+        raise StorageError("Artifact path escaped the run directory.", code='save_workspace_error')
     # Exclusive creation protects the input and any existing run artifacts.
     with destination.open("xb") as stream:
         stream.write(data)
@@ -83,6 +97,14 @@ def save_run(
     pid: PidResult | None = None,
     pid_members: PidMemberResult | None = None,
     calculations: CalculationResult | None = None,
+    rung_analysis: RungAnalysisResult | None = None,
+    relationships: RelationshipResult | None = None,
+    conditions: ConditionResult | None = None,
+    binding_context: BindingContextResult | None = None,
+    custom_instruction_context: CustomInstructionContextResult | None = None,
+    indexed_access: IndexedAccessResult | None = None,
+    sfr_context: SfrContextResult | None = None,
+    aoi_body_context: AoiBodyContextResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -102,6 +124,24 @@ def save_run(
             raise StorageError("PID member records require an engineering review with PID evidence.")
         if calculations is not None and (pid_members is None or pid is None or tag_data is None or access is None or not include_review):
             raise StorageError("Calculation records require an engineering review with PID member evidence.")
+        if rung_analysis is not None and (calculations is None or pid_members is None or pid is None
+                                         or tag_data is None or access is None or not include_review):
+            raise StorageError("Rung analysis records require a complete engineering review with calculation evidence.")
+        if relationships is not None and (rung_analysis is None or not include_review):
+            raise StorageError("Relationship records require a complete engineering review with rung evidence.")
+        if conditions is not None and (relationships is None or not include_review):
+            raise StorageError("Condition records require a complete engineering review with relationship evidence.")
+        if binding_context is not None and (conditions is None or not include_review):
+            raise StorageError("Binding context requires an engineering review with condition evidence.")
+        if (custom_instruction_context is not None or indexed_access is not None) and (
+                custom_instruction_context is None or indexed_access is None
+                or binding_context is None or not include_review):
+            raise StorageError("Custom instruction and indexed access context require a complete engineering review.")
+        if sfr_context is not None and (custom_instruction_context is None or indexed_access is None
+                                        or conditions is None or not include_review):
+            raise StorageError("SFR context requires a complete engineering review with condition evidence.")
+        if aoi_body_context is not None and (sfr_context is None or not include_review):
+            raise StorageError("AOI body context requires a complete engineering review with SFR context.")
         payload = result.to_dict()
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
@@ -135,15 +175,23 @@ def save_run(
         ):
             raise StorageError("Captured source bytes do not match their identity.")
         if include_review:
-            from .review import ReviewError, build_review_data
-            from .review_html import ReviewHtmlError, render_review_html
+            from .review import ReviewError, ReviewSizeLimitError, build_review_data
+            from .review_html import ReviewHtmlError, ReviewHtmlSizeLimitError, render_review_html
             try:
                 review_data = build_review_data(snapshot, result, references, sfc_structure,
                                                 access=access, tag_data=tag_data, pid=pid,
-                                                pid_members=pid_members, calculations=calculations)
+                                                pid_members=pid_members, calculations=calculations,
+                                                rung_analysis=rung_analysis, relationships=relationships,
+                                                conditions=conditions, binding_context=binding_context,
+                                                custom_instruction_context=custom_instruction_context,
+                                                indexed_access=indexed_access, sfr_context=sfr_context, aoi_body_context=aoi_body_context)
                 review_html = render_review_html(review_data).encode("utf-8")
-            except (ReviewError, ReviewHtmlError) as exc:
-                raise StorageError("Could not build the private engineering review report.") from exc
+            except (ReviewSizeLimitError, ReviewHtmlSizeLimitError) as exc:
+                raise StorageError("Private engineering review exceeds its report size limit.", code='review_size_limit') from exc
+            except ReviewError as exc:
+                raise StorageError("Could not validate the private engineering review report.", code='review_validation_error') from exc
+            except ReviewHtmlError as exc:
+                raise StorageError("Could not render the private engineering review report.", code='review_render_error') from exc
         # Finish every validation and rendering step before allocating a run.
         contents = {
             "snapshot.L5X": snapshot.data,
@@ -199,10 +247,31 @@ def save_run(
                 contents["calculations.json"] = render_calculation_json(calculations).encode("utf-8")
             except CalculationError as exc:
                 raise StorageError("Could not render captured calculation records.") from exc
+        if rung_analysis is not None:
+            from .rung_analysis import RungAnalysisError, render_rung_analysis_json
+            try:
+                rung_payload = rung_analysis.to_dict()
+                contents["rung-analysis.json"] = render_rung_analysis_json(rung_analysis).encode("utf-8")
+            except RungAnalysisError as exc:
+                raise StorageError("Could not render captured rung analysis records.") from exc
+        if relationships is not None:
+            from .relationships import RelationshipError, render_relationships_json
+            try:
+                relationship_payload = relationships.to_dict()
+                contents["relationships.json"] = render_relationships_json(relationships).encode("utf-8")
+            except RelationshipError as exc:
+                raise StorageError("Could not render captured relationship records.") from exc
+        if conditions is not None:
+            from .conditions import ConditionError, render_conditions_json
+            try:
+                condition_payload = conditions.to_dict()
+                contents["boolean-conditions.json"] = render_conditions_json(conditions).encode("utf-8")
+            except ConditionError as exc:
+                raise StorageError("Could not render captured condition records.") from exc
         destination = _workspace_path(workspace)
         destination.mkdir(parents=True, exist_ok=True)
         if destination.resolve() != destination:
-            raise StorageError("Workspace changed during creation.")
+            raise StorageError("Workspace changed during creation.", code='save_workspace_error')
         created = datetime.now(timezone.utc)
         for _ in range(10):
             run_id = f"run-{created.strftime('%Y%m%dT%H%M%S%fZ')}-{uuid4().hex}"
@@ -301,6 +370,64 @@ def save_run(
                 "calculation_schema_version": calculation_payload["schema_version"],
                 "calculation_analyzer_version": calculation_payload["analyzer_version"],
             })
+        if rung_analysis is not None:
+            manifest.update({
+                "schema_version": 10,
+                "artifact_kind": "source_reference_sfc_access_tag_data_pid_member_calculation_rung_review_run",
+                "status": "partial" if "partial" in (manifest["status"], rung_payload["status"]) else "complete",
+                "analysis_scope": review_data["analysis_scope"],
+                "semantic_analysis": review_data["semantic_analysis"],
+                "rung_analysis_schema_version": rung_payload["schema_version"],
+                "rung_analysis_analyzer_version": rung_payload["analyzer_version"],
+            })
+        if relationships is not None:
+            manifest.update({
+                "schema_version": 11,
+                "artifact_kind": "source_reference_sfc_access_tag_data_pid_member_calculation_rung_relationship_review_run",
+                "status": "partial" if "partial" in (manifest["status"], relationship_payload["status"]) else "complete",
+                "analysis_scope": review_data["analysis_scope"],
+                "relationship_schema_version": relationship_payload["schema_version"],
+                "relationship_analyzer_version": relationship_payload["analyzer_version"],
+            })
+        if conditions is not None:
+            manifest.update({
+                "schema_version": 12 if condition_payload["schema_version"] == 1 else 13,
+                "artifact_kind": "source_reference_sfc_access_tag_data_pid_member_calculation_rung_relationship_condition_review_run",
+                "status": "partial" if "partial" in (manifest["status"], condition_payload["status"]) else "complete",
+                "analysis_scope": review_data["analysis_scope"],
+                "condition_schema_version": condition_payload["schema_version"],
+                "condition_analyzer_version": condition_payload["analyzer_version"],
+            })
+        if binding_context is not None:
+            # This authenticated index is derived from the existing artifacts
+            # and embedded in review.html; it creates no additional artifact.
+            manifest.update({
+                "schema_version": 14,
+                "status": "partial" if "partial" in (manifest["status"], review_data["binding_context"]["status"]) else "complete",
+                "binding_context_schema_version": review_data["binding_context"]["schema_version"],
+                "binding_context_analyzer_version": review_data["binding_context"]["analyzer_version"],
+            })
+        if custom_instruction_context is not None:
+            manifest["schema_version"] = 15
+            for companion_name in ("custom_instruction_context", "indexed_access"):
+                companion = review_data[companion_name]
+                manifest.update({
+                    f"{companion_name}_schema_version": companion["schema_version"],
+                    f"{companion_name}_analyzer_version": companion["analyzer_version"],
+                    "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete",
+                })
+        if sfr_context is not None:
+            companion = review_data["sfr_context"]
+            manifest.update({"schema_version": 16,
+                             "sfr_context_schema_version": companion["schema_version"],
+                             "sfr_context_analyzer_version": companion["analyzer_version"],
+                             "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete"})
+        if aoi_body_context is not None:
+            companion = review_data["aoi_body_context"]
+            manifest.update({"schema_version": 17,
+                             "aoi_body_context_schema_version": companion["schema_version"],
+                             "aoi_body_context_analyzer_version": companion["analyzer_version"],
+                             "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete"})
         _write_artifact(
             destination, run_dir, ".manifest.pending",
             (json.dumps(manifest, indent=2, ensure_ascii=False) + "\n").encode("utf-8"),
@@ -308,8 +435,10 @@ def save_run(
         _assert_run_path(destination, run_dir)
         final_manifest = run_dir / "manifest.json"
         if final_manifest.exists() or final_manifest.is_symlink():
-            raise StorageError("A run manifest already exists; refusing to overwrite it.")
+            raise StorageError("A run manifest already exists; refusing to overwrite it.", code='save_workspace_error')
         os.replace(run_dir / ".manifest.pending", final_manifest)
         return run_dir
-    except (OSError, RuntimeError) as exc:
+    except OSError as exc:
+        raise StorageError("Could not save the private run. Check destination access and free space; any unfinished run has no final manifest.", code='save_io_error') from exc
+    except RuntimeError as exc:
         raise StorageError("Could not save the private run. Check destination access and free space; any unfinished run has no final manifest.") from exc

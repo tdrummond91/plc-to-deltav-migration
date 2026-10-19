@@ -1,0 +1,1590 @@
+{
+  "analysis": {
+    "access_summary": {
+      "analysis_scope": "explicit_rll_operand_roles",
+      "analyzer_version": "instruction-access-4",
+      "coverage": {
+        "access_gap_operands": 321,
+        "bound_by_role": {
+          "expression_read": 0,
+          "non_data": 0,
+          "read": 13080,
+          "read_write": 616,
+          "unknown": 184,
+          "write": 6581
+        },
+        "calculation_instructions": 45,
+        "counter_invalid_forms": 0,
+        "counter_pseudo_operands_by_kind": {
+          "integer_literal": 0,
+          "placeholder": 6
+        },
+        "expression_containers_by_status": {
+          "parsed": 45,
+          "unsupported": 0
+        },
+        "expression_indexed_roots": 72,
+        "expression_uses_by_binding": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous": 0,
+          "root_bound": 132,
+          "unresolved": 0,
+          "unsupported_address": 0
+        },
+        "expression_uses_total": 132,
+        "expressions_with_binding_gaps": 0,
+        "extended_bound_operands": 175,
+        "extended_instructions": {
+          "counter": 3,
+          "message": 27,
+          "sfc_reset_initial": 0,
+          "sfc_reset_step": 140,
+          "system_get": 5,
+          "system_set": 0
+        },
+        "indexed_roots": 5174,
+        "instructions_by_status": {
+          "argument_count_mismatch": 0,
+          "classified": 17746,
+          "empty_argument": 0,
+          "unsupported_instruction": 128,
+          "unsupported_operand_form": 0
+        },
+        "instructions_total": 17874,
+        "linked_operands": 20461,
+        "operands_by_role": {
+          "expression_read": 45,
+          "non_data": 1039,
+          "read": 15779,
+          "read_write": 616,
+          "unknown": 505,
+          "write": 6599
+        },
+        "operands_total": 24583,
+        "source_rungs": 4606,
+        "timer_instructions": 434,
+        "timer_pseudo_operands_by_kind": {
+          "integer_literal": 0,
+          "placeholder": 868
+        },
+        "unlinked_operands": 4122,
+        "unparsed_rungs": 0
+      },
+      "execution_analysis": "not_implemented",
+      "exporter_version": "access-summary-4",
+      "implicit_effects": "not_analyzed",
+      "initialization_analysis": "not_implemented",
+      "member_validation": "not_implemented",
+      "policy_version": 2,
+      "range_analysis": "not_implemented",
+      "report_kind": "l5x_access_review_summary",
+      "schema_version": 4,
+      "sharing_status": "aggregate_sync_allowed",
+      "status": "partial",
+      "tool_revision": {
+        "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+        "worktree": "clean"
+      }
+    },
+    "binding_context_summary": {
+      "analysis_scope": "unresolved_access_and_condition_context",
+      "analyzer_version": "binding-context-1",
+      "backing_mapping": "not_analyzed",
+      "coverage": {
+        "candidate_address_directions": {
+          "input": 78,
+          "output": 16
+        },
+        "candidate_address_profiles": {
+          "read_and_write": 10,
+          "read_only": 78,
+          "write_only": 6
+        },
+        "candidate_address_uses": 319,
+        "candidate_addresses": 94,
+        "candidate_roots": 11,
+        "expression_binding_gaps": 0,
+        "expression_identity_gaps": 0,
+        "expression_uses": 132,
+        "gap_uses_total": 321,
+        "gaps_by_category": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous_root": 0,
+          "invalid_expanded_suffix": 0,
+          "non_address_value": 0,
+          "non_static_array_index": 2,
+          "other_binding_gap": 0,
+          "rack_ambiguous_candidate": 0,
+          "rack_context_unavailable": 0,
+          "rack_names_unavailable": 0,
+          "rack_no_match": 0,
+          "rack_outside_scope": 0,
+          "rack_suffix_invalid": 0,
+          "rack_unique_candidate": 319,
+          "undeclared_root": 0,
+          "unresolved_scope": 0,
+          "unsupported_address": 0
+        },
+        "gaps_by_kind": {
+          "expression": 0,
+          "operand": 321
+        },
+        "gaps_by_role": {
+          "read": 303,
+          "read_write": 0,
+          "write": 18
+        },
+        "operand_binding_gaps": 321,
+        "operand_identity_gaps": 0,
+        "output_gap_categories": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous_root": 0,
+          "invalid_expanded_suffix": 0,
+          "non_address_value": 0,
+          "non_static_array_index": 0,
+          "other_binding_gap": 0,
+          "rack_ambiguous_candidate": 0,
+          "rack_context_unavailable": 0,
+          "rack_names_unavailable": 0,
+          "rack_no_match": 0,
+          "rack_outside_scope": 0,
+          "rack_suffix_invalid": 0,
+          "rack_unique_candidate": 16,
+          "undeclared_root": 0,
+          "unresolved_scope": 0,
+          "unsupported_address": 0
+        },
+        "output_gap_occurrences": 16,
+        "predicate_gap_categories": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous_root": 0,
+          "invalid_expanded_suffix": 0,
+          "non_address_value": 0,
+          "non_static_array_index": 0,
+          "other_binding_gap": 0,
+          "rack_ambiguous_candidate": 0,
+          "rack_context_unavailable": 0,
+          "rack_names_unavailable": 0,
+          "rack_no_match": 0,
+          "rack_outside_scope": 0,
+          "rack_suffix_invalid": 0,
+          "rack_unique_candidate": 303,
+          "undeclared_root": 0,
+          "unresolved_scope": 0,
+          "unsupported_address": 0
+        },
+        "predicate_gap_occurrences": 303,
+        "predicate_gap_uses": 303,
+        "source_instructions": 17874,
+        "source_operands": 24583,
+        "source_rungs": 4606
+      },
+      "engineering_review": "unreviewed",
+      "exporter_version": "binding-context-summary-1",
+      "member_validation": "not_implemented",
+      "policy_version": 2,
+      "report_kind": "l5x_binding_context_summary",
+      "schema_version": 1,
+      "sharing_status": "aggregate_sync_allowed",
+      "status": "partial",
+      "tool_revision": {
+        "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+        "worktree": "clean"
+      }
+    },
+    "calculation_summary": {
+      "analysis_scope": "cpt_expression_evidence",
+      "analyzer_version": "calculation-evidence-2",
+      "coverage": {
+        "destination_root_bound": 45,
+        "expression_errors": {
+          "depth_limit": 0,
+          "length_limit": 0,
+          "lexical_error": 0,
+          "syntax_error": 0,
+          "token_limit": 0,
+          "unsupported_function": 0
+        },
+        "expressions_by_status": {
+          "parsed": 45,
+          "signature_unresolved": 0,
+          "unsupported": 0
+        },
+        "expressions_with_binding_gaps": 0,
+        "functions_by_spelling": {
+          "ABS": 0,
+          "ACOS": 0,
+          "ACS": 0,
+          "ASIN": 0,
+          "ASN": 0,
+          "ATAN": 0,
+          "ATN": 0,
+          "BCD_TO": 0,
+          "COS": 0,
+          "DEG": 0,
+          "FRD": 0,
+          "LN": 0,
+          "LOG": 0,
+          "RAD": 0,
+          "SIN": 0,
+          "SQR": 4,
+          "SQRT": 0,
+          "TAN": 0,
+          "TOD": 0,
+          "TO_BCD": 0,
+          "TRN": 0,
+          "TRUNC": 0
+        },
+        "nodes_by_kind": {
+          "binary": 223,
+          "function": 4,
+          "group": 95,
+          "literal": 136,
+          "reference": 132,
+          "unary": 2
+        },
+        "nodes_total": 592,
+        "occurrences_by_signature": {
+          "argument_count_mismatch": 0,
+          "empty_argument": 0,
+          "recognized": 45
+        },
+        "occurrences_total": 45,
+        "reference_by_binding": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous": 0,
+          "root_bound": 132,
+          "unresolved": 0,
+          "unsupported_address": 0
+        },
+        "reference_occurrences": 132,
+        "source_instructions": 17874,
+        "source_operands": 24583,
+        "source_rungs": 4606,
+        "unparsed_rungs": 0,
+        "unsupported_functions": {
+          "atan2": 0,
+          "other": 0
+        }
+      },
+      "effect_analysis": "not_implemented",
+      "execution_analysis": "not_implemented",
+      "exporter_version": "calculation-summary-2",
+      "member_validation": "not_implemented",
+      "numeric_analysis": "not_implemented",
+      "policy_version": 2,
+      "report_kind": "l5x_calculation_review_summary",
+      "schema_version": 2,
+      "semantic_analysis": "not_implemented",
+      "sharing_status": "aggregate_sync_allowed",
+      "status": "complete",
+      "tool_revision": {
+        "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+        "worktree": "clean"
+      }
+    },
+    "condition_summary": {
+      "analysis_scope": "local_rung_boolean_conditions",
+      "analyzer_version": "condition-analysis-2",
+      "coverage": {
+        "action_statuses": {
+          "recognized": 4163,
+          "unresolved": 0
+        },
+        "binding_gap_predicates": 303,
+        "branch_joins": 3719,
+        "branch_legs": 8887,
+        "expression_uses": 132,
+        "guard_statuses": {
+          "binding_gaps": 181,
+          "modeled": 3923,
+          "opaque": 59
+        },
+        "node_kinds": {
+          "all": 10534,
+          "any": 3719,
+          "entry": 4606,
+          "opaque_transfer": 459,
+          "pass_through": 2718,
+          "predicate": 10534
+        },
+        "nodes_total": 32570,
+        "opaque_reasons": {
+          "signature_unresolved": 0,
+          "unsupported_condition_behavior": 459
+        },
+        "output_addresses": 2978,
+        "output_opcodes": {
+          "OTE": 1687,
+          "OTL": 1174,
+          "OTU": 1302
+        },
+        "outputs_total": 4163,
+        "outputs_with_branches": 2348,
+        "passthrough_opcodes": {
+          "ABS": 8,
+          "ADD": 32,
+          "CLR": 41,
+          "COP": 92,
+          "CPS": 0,
+          "CPT": 45,
+          "CTU": 3,
+          "DIV": 277,
+          "LN": 2,
+          "MOV": 1131,
+          "MUL": 121,
+          "OSF": 3,
+          "RES": 48,
+          "RTO": 44,
+          "SQR": 18,
+          "SUB": 463,
+          "TON": 390
+        },
+        "predicate_opcodes": {
+          "EQU": 319,
+          "GEQ": 160,
+          "GRT": 212,
+          "LEQ": 909,
+          "LES": 382,
+          "LIM": 9,
+          "NEQ": 74,
+          "XIC": 5057,
+          "XIO": 3412
+        },
+        "rung_statuses": {
+          "parsed": 4606,
+          "unparsed": 0
+        },
+        "rungs_with_outputs": 2983,
+        "source_instructions": 17874,
+        "source_operands": 24583,
+        "source_rungs": 4606,
+        "target_statuses": {
+          "exact_address": 4147,
+          "identity_gap": 0,
+          "signature_unresolved": 0,
+          "unbound": 16
+        }
+      },
+      "engineering_review": "unreviewed",
+      "evaluation_scope": "normal_scan_only",
+      "execution_analysis": "not_implemented",
+      "exporter_version": "condition-summary-2",
+      "policy_version": 2,
+      "report_kind": "l5x_condition_summary",
+      "schema_version": 2,
+      "sharing_status": "aggregate_sync_allowed",
+      "status": "partial",
+      "tool_revision": {
+        "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+        "worktree": "clean"
+      }
+    },
+    "failure_code": null,
+    "pid_member_summary": {
+      "analysis_scope": "pid_documented_member_headers",
+      "analyzer_version": "pid-members-1",
+      "catalog_version": "rockwell-pid-fields-1",
+      "coverage": {
+        "distinct_backing_owners": 46,
+        "duplicate_catalog_fields": 0,
+        "duplicate_member_records": 0,
+        "members_by_group": {
+          "alarms": 276,
+          "internal": 92,
+          "limits": 92,
+          "mode": 552,
+          "process_values": 184,
+          "scaling": 368,
+          "setpoint": 46,
+          "status": 460,
+          "tuning": 276,
+          "unknown": 0
+        },
+        "members_by_status": {
+          "array_header_matched": 46,
+          "dimensions_unmodeled": 0,
+          "matched": 2300,
+          "name_missing": 0,
+          "qualified_attribute": 0,
+          "shape_mismatch": 0,
+          "type_mismatch": 0,
+          "type_missing": 0,
+          "unknown_name": 0,
+          "value_missing": 0
+        },
+        "members_total": 2346,
+        "missing_catalog_fields": 0,
+        "source_pid_partial": 0,
+        "structures_total": 46,
+        "structures_with_duplicates": 0,
+        "structures_with_gaps": 0,
+        "structures_with_missing": 0
+      },
+      "effective_value_selection": "not_implemented",
+      "execution_analysis": "not_implemented",
+      "exporter_version": "pid-member-summary-1",
+      "member_validation": "documented_headers_only",
+      "numeric_analysis": "not_implemented",
+      "policy_version": 2,
+      "report_kind": "l5x_pid_member_review_summary",
+      "schema_version": 1,
+      "sharing_status": "aggregate_sync_allowed",
+      "status": "complete",
+      "tool_revision": {
+        "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+        "worktree": "clean"
+      },
+      "value_analysis": "not_implemented"
+    },
+    "pid_summary": {
+      "analysis_scope": "pid_occurrence_evidence",
+      "analyzer_version": "pid-evidence-1",
+      "coverage": {
+        "backing_owners_with_data": 46,
+        "backing_owners_with_opaque_only": 0,
+        "backing_owners_without_data": 0,
+        "decorated_representation_occurrences": 46,
+        "direct_member_occurrences": 2346,
+        "distinct_backing_owners": 46,
+        "occurrences_by_signature": {
+          "argument_count_mismatch": 0,
+          "empty_argument": 0,
+          "recognized": 46
+        },
+        "occurrences_total": 46,
+        "occurrences_with_backing_owner": 46,
+        "occurrences_with_data": 46,
+        "occurrences_with_multiple_representations": 46,
+        "occurrences_with_multiple_structures": 0,
+        "occurrences_with_opaque_only": 0,
+        "occurrences_without_data": 0,
+        "operands_by_binding": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous": 0,
+          "argument_count_mismatch": 0,
+          "empty": 0,
+          "literal": 138,
+          "non_data": 0,
+          "root_bound": 184,
+          "system_flag": 0,
+          "unresolved": 0,
+          "unsupported_address": 0,
+          "unsupported_expression": 0,
+          "unsupported_instruction": 0
+        },
+        "operands_by_slot": {
+          "control_variable": 46,
+          "inhold_bit": 46,
+          "inhold_value": 46,
+          "master_loop": 46,
+          "pid_structure": 46,
+          "process_variable": 46,
+          "tieback": 46,
+          "unknown": 0
+        },
+        "operands_total": 322,
+        "representation_occurrences": 92,
+        "source_instructions": 17874,
+        "source_operands": 24583,
+        "source_rungs": 4606,
+        "storage_by_status": {
+          "binding_namespace_unsupported": 0,
+          "declaration_not_pid": 0,
+          "dimensions_unmodeled": 0,
+          "first_operand_unbound": 0,
+          "linked": 46,
+          "no_data": 0,
+          "no_decorated_data": 0,
+          "no_pid_structure": 0,
+          "owner_namespace_unsupported": 0,
+          "owner_not_captured": 0,
+          "signature_unresolved": 0,
+          "suffix_not_empty": 0
+        },
+        "structure_occurrences": 46,
+        "unparsed_rungs": 0
+      },
+      "effective_value_selection": "not_implemented",
+      "execution_analysis": "not_implemented",
+      "exporter_version": "pid-summary-1",
+      "initialization_analysis": "not_implemented",
+      "member_validation": "not_implemented",
+      "numeric_analysis": "not_implemented",
+      "policy_version": 2,
+      "report_kind": "l5x_pid_review_summary",
+      "schema_version": 1,
+      "semantic_analysis": "not_implemented",
+      "sharing_status": "aggregate_sync_allowed",
+      "status": "complete",
+      "tool_revision": {
+        "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+        "worktree": "clean"
+      }
+    },
+    "private_run_saved": true,
+    "reference_summary": {
+      "aliases": {
+        "by_reason": {
+          "unresolved": {
+            "aoi_alias_target_not_local": 0,
+            "colon_root_not_declared": 99,
+            "invalid_scope": 0,
+            "root_not_declared": 0
+          },
+          "unsupported_address": {
+            "address_length_limit": 0,
+            "backslash_qualified_address": 0,
+            "empty_address": 0,
+            "expanded_suffix_limit": 0,
+            "malformed_address": 0,
+            "non_static_array_index": 0,
+            "program_qualified_address": 0
+          }
+        },
+        "by_status": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous": 0,
+          "root_bound": 842,
+          "unresolved": 99,
+          "unsupported_address": 0
+        },
+        "total": 941
+      },
+      "analysis_scope": "scoped_root_bindings",
+      "analyzer_version": "source-references-9",
+      "coverage": {
+        "instructions_catalogued": 17617,
+        "instructions_total": 17874,
+        "rungs_analyzed": 4606,
+        "rungs_total": 4606
+      },
+      "effect_analysis": "not_implemented",
+      "exporter_version": "reference-summary-12",
+      "member_validation": "not_implemented",
+      "module_io": {
+        "by_name_origin": {
+          "backplane_slot": 164,
+          "explicit_name": 0,
+          "module_name": 88,
+          "unavailable": 0
+        },
+        "named": 252,
+        "total": 252,
+        "unavailable_by_reason": {
+          "ambiguous_connection_context": 0,
+          "ambiguous_module_context": 0,
+          "ambiguous_parent_module": 0,
+          "ambiguous_parent_port": 0,
+          "ambiguous_upstream_port": 0,
+          "invalid_explicit_name": 0,
+          "invalid_module_name": 0,
+          "invalid_slot": 0,
+          "invalid_suffix": 0,
+          "invalid_upstream_port": 0,
+          "missing_connection_context": 0,
+          "missing_module_context": 0,
+          "missing_parent_module": 0,
+          "missing_parent_port": 0,
+          "missing_upstream_port": 0,
+          "name_length_limit": 0,
+          "port_type_mismatch": 0,
+          "topology_cycle": 0,
+          "topology_depth_limit": 0,
+          "unsupported_port_type": 0
+        }
+      },
+      "operands": {
+        "by_reason": {
+          "unresolved": {
+            "aoi_alias_target_not_local": 0,
+            "colon_root_not_declared": 319,
+            "invalid_scope": 0,
+            "root_not_declared": 0
+          },
+          "unsupported_address": {
+            "address_length_limit": 0,
+            "backslash_qualified_address": 0,
+            "empty_address": 0,
+            "expanded_suffix_limit": 0,
+            "malformed_address": 0,
+            "non_static_array_index": 2,
+            "program_qualified_address": 0
+          }
+        },
+        "by_status": {
+          "alias_cycle": 0,
+          "alias_depth_limit": 0,
+          "ambiguous": 0,
+          "argument_count_mismatch": 0,
+          "empty": 0,
+          "literal": 2533,
+          "non_data": 878,
+          "root_bound": 20286,
+          "system_flag": 1,
+          "unresolved": 319,
+          "unsupported_address": 2,
+          "unsupported_expression": 45,
+          "unsupported_instruction": 519
+        },
+        "malformed_address_shapes": {
+          "alias_target_failure": 0,
+          "contains_brackets": 0,
+          "contains_colon": 0,
+          "contains_dot": 0,
+          "leading_hash_other": 0,
+          "leading_hash_static_address": 0,
+          "other_form": 0
+        },
+        "total": 24583
+      },
+      "policy_version": 2,
+      "rack_candidates": {
+        "analysis_scope": "rack_logical_root_candidates",
+        "backing_mapping": "not_analyzed",
+        "declarations": {
+          "by_direction": {
+            "input": 11,
+            "output": 4
+          },
+          "by_name_origin": {
+            "backplane_slot": 15,
+            "unavailable": 0
+          },
+          "named": 15,
+          "total": 15,
+          "unavailable_by_reason": {
+            "ambiguous_connection_context": 0,
+            "ambiguous_module_context": 0,
+            "ambiguous_parent_module": 0,
+            "ambiguous_parent_port": 0,
+            "ambiguous_upstream_port": 0,
+            "invalid_explicit_name": 0,
+            "invalid_module_name": 0,
+            "invalid_slot": 0,
+            "invalid_suffix": 0,
+            "invalid_upstream_port": 0,
+            "missing_connection_context": 0,
+            "missing_module_context": 0,
+            "missing_parent_module": 0,
+            "missing_parent_port": 0,
+            "missing_upstream_port": 0,
+            "name_length_limit": 0,
+            "port_type_mismatch": 0,
+            "topology_cycle": 0,
+            "topology_depth_limit": 0,
+            "unsupported_port_type": 0,
+            "unsupported_rack_attributes": 0,
+            "unsupported_rack_content": 0,
+            "unsupported_rack_port_type": 0
+          }
+        },
+        "matches": {
+          "alias_operands": {
+            "by_status": {
+              "ambiguous_candidate": 0,
+              "candidate_names_unavailable": 0,
+              "no_candidate_match": 0,
+              "outside_visible_scope": 0,
+              "unique_candidate": 319
+            },
+            "total": 319
+          },
+          "aliases": {
+            "by_status": {
+              "ambiguous_candidate": 0,
+              "candidate_names_unavailable": 0,
+              "no_candidate_match": 0,
+              "outside_visible_scope": 0,
+              "unique_candidate": 99
+            },
+            "total": 99
+          },
+          "direct_operands": {
+            "by_status": {
+              "ambiguous_candidate": 0,
+              "candidate_names_unavailable": 0,
+              "no_candidate_match": 0,
+              "outside_visible_scope": 0,
+              "unique_candidate": 0
+            },
+            "total": 0
+          }
+        }
+      },
+      "report_kind": "l5x_reference_review_summary",
+      "routine_graph": {
+        "analysis_scope": "declared_program_local_jsr_candidate_graph",
+        "call_validation": "not_analyzed",
+        "calls": {
+          "linked": 76,
+          "total": 76,
+          "unlinked": 0
+        },
+        "cycles": {
+          "components": 0,
+          "edges": 0,
+          "nodes": 0
+        },
+        "edges": {
+          "extra_call_occurrences": 8,
+          "repeated_pairs": 3,
+          "self_pairs": 0,
+          "total": 68
+        },
+        "execution": "not_analyzed",
+        "isolated_nodes": 1,
+        "nodes": {
+          "by_body_status": {
+            "language_unmodeled": 14,
+            "rll_structure_parsed": 54,
+            "rll_structure_partial": 1
+          },
+          "by_language": {
+            "FBD": 0,
+            "RLL": 55,
+            "SFC": 14,
+            "ST": 0,
+            "missing": 0,
+            "other": 0
+          },
+          "total": 69
+        },
+        "participating_nodes": 68,
+        "programs": {
+          "main_designations": {
+            "absent": 0,
+            "ambiguous_candidate": 0,
+            "empty": 0,
+            "missing_candidate": 0,
+            "unique_candidate": 3,
+            "unsupported_name": 0
+          },
+          "total": 3
+        }
+      },
+      "routine_instruction_shapes": {
+        "analysis_scope": "parsed_rll_routine_instruction_fields",
+        "by_opcode": {
+          "JSR": {
+            "argument_slots": 163,
+            "by_arity": {
+              "one_field": 0,
+              "three_or_more_second_other": 11,
+              "three_or_more_second_zero": 0,
+              "two_fields_second_other": 0,
+              "two_fields_second_zero": 65,
+              "zero_fields": 0
+            },
+            "noncanonical_spelling": 0,
+            "total": 76
+          },
+          "RET": {
+            "argument_slots": 0,
+            "by_arity": {
+              "one_field": 0,
+              "three_or_more": 0,
+              "two_fields": 0,
+              "zero_fields": 1
+            },
+            "noncanonical_spelling": 0,
+            "total": 1
+          },
+          "SBR": {
+            "argument_slots": 1,
+            "by_arity": {
+              "one_field": 1,
+              "three_or_more": 0,
+              "two_fields": 0,
+              "zero_fields": 0
+            },
+            "noncanonical_spelling": 0,
+            "total": 1
+          }
+        },
+        "parameter_roles": "not_analyzed",
+        "target_resolution": "not_analyzed"
+      },
+      "routine_target_metadata": {
+        "analysis_scope": "parsed_rll_unique_jsr_candidate_metadata",
+        "by_program_type": {
+          "absent": 76,
+          "empty": 0,
+          "explicit_equipment_phase": 0,
+          "explicit_normal": 0,
+          "explicit_sequence": 0,
+          "other_explicit": 0
+        },
+        "by_target_language": {
+          "FBD": 0,
+          "RLL": 62,
+          "SFC": 14,
+          "ST": 0,
+          "missing": 0,
+          "other": 0
+        },
+        "program_type_semantics": "not_analyzed",
+        "target_execution": "not_analyzed",
+        "total": 76,
+        "unclassified_context_by_program_type": {
+          "absent": 76,
+          "empty": 0,
+          "explicit_equipment_phase": 0,
+          "explicit_normal": 0,
+          "explicit_sequence": 0,
+          "other_explicit": 0
+        }
+      },
+      "routine_targets": {
+        "analysis_scope": "parsed_rll_jsr_first_field_candidates",
+        "by_status": {
+          "ambiguous_candidate": 0,
+          "empty_target_field": 0,
+          "missing_candidate": 0,
+          "missing_target_field": 0,
+          "unique_candidate": 76,
+          "unsupported_context": 0,
+          "unsupported_target_name": 0
+        },
+        "call_validation": "not_analyzed",
+        "distinct_targets": 66,
+        "parameter_roles": "not_analyzed",
+        "total": 76,
+        "unique_by_target_context": {
+          "current_routine": 0,
+          "fault_routine": 0,
+          "main_routine": 0,
+          "not_analyzed": 76,
+          "other_routine": 0
+        }
+      },
+      "schema_version": 12,
+      "semantic_analysis": "not_implemented",
+      "sharing_status": "aggregate_sync_allowed",
+      "source_summary": {
+        "analysis_scope": "source_structure_only",
+        "counts": {
+          "aliases": 941,
+          "aoi_definitions": 1,
+          "aoi_local_tags": 2,
+          "aoi_parameters": 6,
+          "controller_tags": 6261,
+          "controllers": 1,
+          "encoded_regions": 0,
+          "instructions": 17874,
+          "module_config_tags": 83,
+          "module_connections": 104,
+          "module_input_tags": 104,
+          "module_output_tags": 65,
+          "module_ports": 137,
+          "module_rack_connections": 11,
+          "module_rack_input_aliases": 11,
+          "module_rack_output_aliases": 4,
+          "modules": 120,
+          "other_tag_definitions": 0,
+          "program_tags": 46,
+          "programs": 3,
+          "routines": 70,
+          "rungs": 4606,
+          "tasks": 3,
+          "total_tag_definitions": 6307,
+          "trends": 78,
+          "user_data_types": 0
+        },
+        "coverage": {
+          "instruction_count_complete": false,
+          "routines": {
+            "encountered": 70,
+            "failed": 1,
+            "parsed": 55,
+            "preserved_unsupported": 14
+          },
+          "rungs": {
+            "encountered": 4606,
+            "excluded": 0,
+            "failed": 0,
+            "parsed": 4606,
+            "preserved_unsupported": 0
+          },
+          "unmodeled_xml": {
+            "distinct_paths": 138,
+            "elements": 59949
+          },
+          "xml_elements": 83942
+        },
+        "diagnostics": {
+          "by_code": {
+            "declaration_context_not_analyzed": 10,
+            "module_rack_backing_not_analyzed": 11,
+            "routine_content_missing": 1,
+            "routine_language_not_analyzed": 14,
+            "withheld": 0
+          },
+          "by_severity": {
+            "error": 1,
+            "info": 14,
+            "warning": 21,
+            "withheld": 0
+          },
+          "total": 36
+        },
+        "exporter_version": "aggregate-summary-4",
+        "instructions": {
+          "counts": {
+            "ABS": 8,
+            "ADD": 32,
+            "AVE": 1,
+            "CLR": 41,
+            "COP": 92,
+            "CPT": 45,
+            "CTU": 3,
+            "DIV": 277,
+            "EQU": 319,
+            "FAL": 1,
+            "GEQ": 160,
+            "GRT": 212,
+            "GSV": 5,
+            "JSR": 76,
+            "LEQ": 909,
+            "LES": 382,
+            "LIM": 9,
+            "LN": 2,
+            "MOV": 1131,
+            "MSG": 27,
+            "MUL": 121,
+            "MVM": 16,
+            "NEQ": 74,
+            "ONS": 133,
+            "OSF": 3,
+            "OTE": 1687,
+            "OTL": 1174,
+            "OTU": 1302,
+            "PID": 46,
+            "RES": 48,
+            "RET": 1,
+            "RTO": 44,
+            "SBR": 1,
+            "SFR": 140,
+            "SQO": 1,
+            "SQR": 18,
+            "SUB": 463,
+            "SWPB": 10,
+            "TON": 390,
+            "XIC": 5057,
+            "XIO": 3412,
+            "withheld": 1
+          },
+          "scope": "successfully_parsed_RLL_rungs_only",
+          "total": 17874
+        },
+        "ladder_metrics": {
+          "maxima": {
+            "height_lanes": 59,
+            "max_branch_depth": 4,
+            "max_legs_in_group": 49,
+            "width_instructions": 18
+          },
+          "scope": "successfully_parsed_RLL_rungs_only",
+          "totals": {
+            "argument_slots": 24583,
+            "branch_groups": 3719,
+            "branch_legs": 8887,
+            "empty_branch_legs": 0,
+            "expression_instruction_calls": 46,
+            "instruction_calls": 17874,
+            "nonempty_argument_fields": 24583
+          }
+        },
+        "parser_version": "source-inventory-3",
+        "policy_version": 2,
+        "report_kind": "l5x_aggregate_review_summary",
+        "routine_types": {
+          "FBD": 0,
+          "RLL": 56,
+          "SFC": 14,
+          "ST": 0,
+          "Sequence": 0,
+          "missing": 0,
+          "withheld": 0
+        },
+        "schema_version": 4,
+        "semantic_analysis": "not_implemented",
+        "sharing_status": "aggregate_sync_allowed",
+        "status": "partial",
+        "tool_revision": {
+          "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+          "worktree": "clean"
+        }
+      },
+      "status": "partial",
+      "symbols": {
+        "ambiguous_groups": 0,
+        "by_kind": {
+          "aoi_local_tag": 2,
+          "aoi_parameter": 6,
+          "module_config_tag": 83,
+          "module_input_tag": 104,
+          "module_output_tag": 65,
+          "tag": 6307
+        },
+        "total": 6567,
+        "unnamed": 0
+      }
+    },
+    "relationship_summary": {
+      "address_identity": "exact_expanded_spelling",
+      "analysis_scope": "exact_address_reuse_and_local_order",
+      "analyzer_version": "relationship-analysis-1",
+      "coverage": {
+        "access_gap_operands": 321,
+        "address_profiles": {
+          "read_and_write": 3660,
+          "read_only": 2703,
+          "unknown_only": 46,
+          "write_only": 1182
+        },
+        "addresses_total": 7591,
+        "barrier_instructions": 3991,
+        "cross_rung_addresses": 3778,
+        "eligible_instructions": 830,
+        "excluded_branched_instructions": 13053,
+        "expression_gap_uses": 0,
+        "expression_uses": 132,
+        "identity_gaps_total": 0,
+        "indexed_expression_uses": 132,
+        "indexed_operands_by_role": {
+          "read": 13080,
+          "read_write": 616,
+          "unknown": 184,
+          "write": 6581
+        },
+        "local_barriers": {
+          "access_not_classified": 0,
+          "invalid_identity": 0,
+          "opcode_not_eligible": 3991,
+          "system_flag": 0,
+          "unresolved_operand": 0,
+          "unsupported_expression": 0
+        },
+        "local_link_kinds": {
+          "expression": 1,
+          "operand": 0
+        },
+        "local_link_rungs": 1,
+        "local_links_total": 1,
+        "multiple_writer_addresses": 1453,
+        "pattern_skips": {
+          "empty": 0,
+          "invalid_expanded_suffix": 0,
+          "unknown_instruction": 128,
+          "unknown_role": 0,
+          "unparsed": 0,
+          "unresolved_address": 192,
+          "unsupported_expression": 0
+        },
+        "patterned_rungs": 4286,
+        "patterns_total": 1489,
+        "rejected_expression_uses": 0,
+        "rejected_operands_by_role": {
+          "read": 0,
+          "read_write": 0,
+          "unknown": 0,
+          "write": 0
+        },
+        "skipped_rungs": 320,
+        "source_instructions": 17874,
+        "source_operands": 24583,
+        "source_rungs": 4606,
+        "unknown_role_operands": 505
+      },
+      "engineering_review": "unreviewed",
+      "execution_analysis": "not_implemented",
+      "exporter_version": "relationship-summary-1",
+      "overlap_analysis": "not_implemented",
+      "policy_version": 2,
+      "report_kind": "l5x_relationship_summary",
+      "schema_version": 1,
+      "sharing_status": "aggregate_sync_allowed",
+      "status": "partial",
+      "tool_revision": {
+        "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+        "worktree": "clean"
+      }
+    },
+    "rung_analysis_summary": {
+      "analysis_scope": "rll_structure_and_candidates",
+      "analyzer_version": "rung-analysis-1",
+      "coverage": {
+        "access_gap_operands": 321,
+        "block_families": {
+          "alarm": 0,
+          "boolean_condition": 10534,
+          "boolean_output": 4299,
+          "calculation": 968,
+          "communication_system": 32,
+          "control_flow": 78,
+          "data_transfer": 1290,
+          "pid_control": 46,
+          "sequence_control": 141,
+          "timer_counter": 485,
+          "unknown": 1
+        },
+        "block_identification": {
+          "known_mnemonic": 81,
+          "roles_known": 17746,
+          "signature_known": 46,
+          "unknown": 1
+        },
+        "branch_legs": 8887,
+        "branches": 3719,
+        "candidate_bases": {
+          "declaration_type": 278,
+          "instruction_signature": 4985,
+          "known_mnemonic": 81,
+          "module_root": 1935,
+          "structural_pattern": 1708,
+          "text_hint": 2850
+        },
+        "candidate_categories": {
+          "alarm": 1319,
+          "boolean_output": 4726,
+          "calculation": 705,
+          "communication_system": 32,
+          "control_flow": 78,
+          "data_transfer": 717,
+          "equipment": 1043,
+          "io_input": 1611,
+          "io_output": 324,
+          "miscellaneous": 0,
+          "pid_control": 751,
+          "sensor": 61,
+          "sequence_control": 29,
+          "timer_counter": 441
+        },
+        "candidates_total": 11837,
+        "comments": {
+          "absent": 3437,
+          "ambiguous": 0,
+          "present": 1169
+        },
+        "empty_legs": 0,
+        "expression_gap_uses": 0,
+        "expression_uses": 132,
+        "identification": {
+          "empty": 0,
+          "identified": 4332,
+          "partial": 208,
+          "unidentified": 66,
+          "unparsed": 0
+        },
+        "missing_number": 0,
+        "missing_type": 0,
+        "results": {
+          "multiple_known_results": 190,
+          "no_known_result": 79,
+          "single_known_result": 1484,
+          "stateful_or_external": 2853
+        },
+        "source_instructions": 17874,
+        "source_operands": 24583,
+        "source_rungs": 4606,
+        "structures": {
+          "branched": 1863,
+          "empty": 0,
+          "series": 2743,
+          "unparsed": 0
+        },
+        "unknown_blocks": 82,
+        "unknown_role_operands": 505
+      },
+      "engineering_review": "unreviewed",
+      "execution_analysis": "not_implemented",
+      "exporter_version": "rung-summary-1",
+      "policy_version": 2,
+      "report_kind": "l5x_rung_analysis_summary",
+      "schema_version": 1,
+      "sharing_status": "aggregate_sync_allowed",
+      "status": "partial",
+      "tool_revision": {
+        "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+        "worktree": "clean"
+      }
+    },
+    "sfc_structure_summary": {
+      "analysis_scope": "sfc_structure_only",
+      "analyzer_version": "sfc-structure-2",
+      "counts": {
+        "annotation_endpoints": {
+          "by_status": {
+            "ambiguous_target": 0,
+            "invalid_id": 0,
+            "missing_attribute": 0,
+            "missing_target": 0,
+            "resolved": 426,
+            "unsupported_kind": 0
+          },
+          "total": 426
+        },
+        "annotation_text": {
+          "by_shape": {
+            "child_only": 280,
+            "direct_only": 0,
+            "empty": 0,
+            "mixed": 0
+          },
+          "child_elements": 280,
+          "text_boxes": 280,
+          "total_characters": 16481
+        },
+        "annotations": {
+          "by_status": {
+            "resolved": 213,
+            "unresolved": 0
+          },
+          "distinct_targets": 213,
+          "distinct_text_boxes": 213,
+          "total": 213
+        },
+        "blocks": {
+          "by_id_status": {
+            "invalid": 0,
+            "missing": 0,
+            "valid": 628
+          },
+          "duplicate_groups": 0,
+          "duplicate_members": 0,
+          "total": 628
+        },
+        "contents": {
+          "by_edit_kind": {
+            "Original": 0,
+            "PendingEdits": 0,
+            "TestEdits": 0,
+            "absent": 14,
+            "empty": 0,
+            "other": 0
+          },
+          "total": 14
+        },
+        "elements": {
+          "by_kind": {
+            "action": 0,
+            "action_list": 0,
+            "attachment": 213,
+            "body": 0,
+            "branch": 14,
+            "condition": 155,
+            "description": 0,
+            "directed_link": 324,
+            "leg": 34,
+            "limit_high": 0,
+            "limit_low": 0,
+            "preset": 0,
+            "sbr_ret": 0,
+            "st_content": 155,
+            "st_line": 329,
+            "step": 145,
+            "stop": 0,
+            "text_box": 280,
+            "text_box_text": 280,
+            "transition": 155,
+            "unmodeled": 0
+          },
+          "total": 2084
+        },
+        "issues": {
+          "by_code": {
+            "annotation_endpoint_unresolved": 0,
+            "block_id_duplicate": 0,
+            "block_id_invalid": 0,
+            "block_id_missing": 0,
+            "content_missing": 0,
+            "edit_kind_unmodeled": 0,
+            "element_unmodeled": 0,
+            "link_endpoint_unresolved": 0,
+            "protection_present": 0,
+            "routine_content_unmodeled": 0,
+            "unexpected_direct_text": 0
+          },
+          "total": 0
+        },
+        "link_endpoints": {
+          "by_status": {
+            "ambiguous_target": 0,
+            "invalid_id": 0,
+            "missing_attribute": 0,
+            "missing_target": 0,
+            "resolved": 648,
+            "unsupported_kind": 0
+          },
+          "total": 648
+        },
+        "links": {
+          "by_status": {
+            "resolved": 324,
+            "unresolved": 0
+          },
+          "total": 324
+        },
+        "routines": {
+          "total": 14,
+          "with_content": 14,
+          "with_protection": 0,
+          "with_unmodeled_content": 0,
+          "without_content": 0
+        },
+        "structured_text": {
+          "lines": 329,
+          "total_characters": 5390
+        }
+      },
+      "exporter_version": "sfc-structure-summary-2",
+      "policy_version": 2,
+      "report_kind": "l5x_sfc_structure_review_summary",
+      "schema_version": 2,
+      "semantic_analysis": "not_implemented",
+      "sharing_status": "aggregate_sync_allowed",
+      "source_sfc_routines": 14,
+      "status": "complete",
+      "tool_revision": {
+        "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+        "worktree": "clean"
+      }
+    },
+    "status": "partial",
+    "tag_data_summary": {
+      "analysis_scope": "tag_data_evidence",
+      "analyzer_version": "tag-data-1",
+      "coverage": {
+        "attribute_pairs": 149266,
+        "contents_by_envelope": {
+          "Data": 11105,
+          "DefaultData": 12
+        },
+        "contents_by_format": {
+          "decorated": 5597,
+          "l5k": 5493,
+          "missing": 0,
+          "other": 27,
+          "raw": 0,
+          "string": 0
+        },
+        "contents_total": 11117,
+        "contents_with_text": 11117,
+        "direct_text_bytes": 221773,
+        "duplicate_groups": {
+          "content": 0,
+          "element": 0,
+          "member": 0,
+          "root": 0
+        },
+        "duplicate_records": {
+          "content": 0,
+          "element": 0,
+          "member": 0,
+          "root": 0
+        },
+        "elements_by_kind": {
+          "array": 44,
+          "array_member": 114,
+          "data_value": 4666,
+          "data_value_member": 31899,
+          "element": 6050,
+          "opaque": 27,
+          "structure": 1177,
+          "structure_member": 550,
+          "unmodeled": 0
+        },
+        "elements_total": 44527,
+        "elements_with_text": 2175,
+        "issues_by_code": {
+          "content_empty": 0,
+          "duplicate_content": 0,
+          "duplicate_element": 0,
+          "duplicate_member": 0,
+          "duplicate_root": 0,
+          "format_unsupported": 5520,
+          "namespace_unmodeled": 0,
+          "shape_unmodeled": 0,
+          "unexpected_direct_text": 0
+        },
+        "issues_total": 5520,
+        "owners_by_kind": {
+          "aoi_local_tag": 2,
+          "aoi_parameter": 6,
+          "module_config_tag": 83,
+          "module_input_tag": 104,
+          "module_output_tag": 65,
+          "tag": 6307
+        },
+        "owners_total": 6567,
+        "owners_with_data": 5624,
+        "owners_without_data": 943,
+        "source_xml_elements": 83942
+      },
+      "effective_value_selection": "not_implemented",
+      "exporter_version": "tag-data-summary-1",
+      "member_validation": "not_implemented",
+      "policy_version": 2,
+      "report_kind": "l5x_tag_data_review_summary",
+      "schema_version": 1,
+      "sharing_status": "aggregate_sync_allowed",
+      "status": "partial",
+      "tool_revision": {
+        "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+        "worktree": "clean"
+      },
+      "value_analysis": "not_implemented"
+    }
+  },
+  "diagnostic_sample": null,
+  "report_kind": "l5x_work_machine_check",
+  "run_id": "20261016T023847Z-8e935525",
+  "schema_version": 28,
+  "status": "partial",
+  "targeted_samples": {
+    "reason": "none",
+    "record": {
+      "budget_scope": "new_informative_examples",
+      "cases": [
+        {
+          "sample_id": "sample_1",
+          "slot": "dynamic_index_1",
+          "status": "included"
+        },
+        {
+          "sample_id": "sample_2",
+          "slot": "dynamic_index_2",
+          "status": "included"
+        },
+        {
+          "sample_id": "sample_3",
+          "slot": "unknown_block_1",
+          "status": "included"
+        },
+        {
+          "sample_id": "sample_4",
+          "slot": "opaque_ons_1",
+          "status": "included"
+        },
+        {
+          "sample_id": "sample_5",
+          "slot": "opaque_sfr_1",
+          "status": "included"
+        },
+        {
+          "sample_id": "sample_6",
+          "slot": "branched_output_1",
+          "status": "included"
+        }
+      ],
+      "charged_rungs": 6,
+      "max_total_rungs": 40,
+      "prior_reserved_rungs": 2,
+      "request_id": "rung-cases-1",
+      "samples": [
+        {
+          "id": "sample_1",
+          "literal_kinds": {
+            "LITERAL_1": "integer",
+            "LITERAL_2": "integer"
+          },
+          "rung_text": "LEQ(ROOT_1,LITERAL_1)[MOV(ROOT_2,ROOT_3 [ ROOT_1 ]),ADD(ROOT_1,LITERAL_2,ROOT_1)];",
+          "unlisted_opcode": null
+        },
+        {
+          "id": "sample_2",
+          "literal_kinds": {
+            "LITERAL_1": "integer",
+            "LITERAL_2": "integer",
+            "LITERAL_3": "integer"
+          },
+          "rung_text": "XIC(ROOT_1 . MEMBER_1)[LIM(LITERAL_1,ROOT_2,LITERAL_2)MOV(ROOT_3,ROOT_4 [ ROOT_2 ]),ADD(ROOT_2,LITERAL_3,ROOT_2),RES(ROOT_1)];",
+          "unlisted_opcode": null
+        },
+        {
+          "id": "sample_3",
+          "literal_kinds": {
+            "LITERAL_1": "integer",
+            "LITERAL_2": "integer",
+            "LITERAL_3": "integer"
+          },
+          "rung_text": "[MOV(ROOT_1 [ LITERAL_1 ],ROOT_2 . MEMBER_1),MOV(ROOT_1 [ LITERAL_2 ],ROOT_2 . MEMBER_2),MOV(ROOT_1 [ LITERAL_3 ],ROOT_2 . MEMBER_3),UNLISTED_OP_1(ROOT_2)];",
+          "unlisted_opcode": "DayOfWeek"
+        },
+        {
+          "id": "sample_4",
+          "literal_kinds": {},
+          "rung_text": "[XIC(ROOT_1)ONS(ROOT_2),XIC(ROOT_3)ONS(ROOT_4)]OTL(ROOT_5);",
+          "unlisted_opcode": null
+        },
+        {
+          "id": "sample_5",
+          "literal_kinds": {},
+          "rung_text": "[XIC(ROOT_1),XIC(ROOT_2)][SFR(ROOT_3,ROOT_4),OTU(ROOT_5)];",
+          "unlisted_opcode": null
+        },
+        {
+          "id": "sample_6",
+          "literal_kinds": {
+            "LITERAL_1": "integer",
+            "LITERAL_2": "integer",
+            "LITERAL_3": "real",
+            "LITERAL_4": "integer",
+            "LITERAL_5": "integer",
+            "LITERAL_6": "integer"
+          },
+          "rung_text": "[MOV(ROOT_1 [ LITERAL_1 ],ROOT_2),EQU(ROOT_1 [ LITERAL_2 ],LITERAL_3)OTE(ROOT_3),EQU(ROOT_1 [ LITERAL_4 ],LITERAL_3)OTE(ROOT_4),EQU(ROOT_1 [ LITERAL_5 ],LITERAL_3)OTE(ROOT_5),EQU(ROOT_1 [ LITERAL_6 ],LITERAL_3)OTE(ROOT_6)];",
+          "unlisted_opcode": null
+        }
+      ],
+      "schema_version": 1,
+      "source_rungs": 4606,
+      "total_reserved_rungs": 8
+    },
+    "schema_version": 1,
+    "status": "selected"
+  },
+  "tests": {
+    "application": {
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skipped": 2,
+        "tests_run": 991,
+        "unexpected_successes": 0
+      },
+      "failed_test_ids": [],
+      "failure_ids_omitted": 0,
+      "schema_version": 1,
+      "status": "passed"
+    },
+    "helpers": {
+      "counts": {
+        "errors": 0,
+        "expected_failures": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests_run": 139,
+        "unexpected_successes": 0
+      },
+      "failed_test_ids": [],
+      "failure_ids_omitted": 0,
+      "schema_version": 1,
+      "status": "passed"
+    }
+  },
+  "tool_revision": {
+    "commit": "bfd53e1457fa87d2f783188743450fde0adf2e2f",
+    "worktree": "clean"
+  },
+  "workflow_version": "work-check-28"
+}

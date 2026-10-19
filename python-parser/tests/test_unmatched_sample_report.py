@@ -225,12 +225,12 @@ class UnmatchedSampleReportTests(unittest.TestCase):
             capture.assert_called_once_with(source)
             self.assertEqual(result['status'], 'partial')
             self.assertTrue(result['private_run_saved'])
-            self.assertEqual(result['diagnostic_sample'], report()['diagnostic_sample'])
+            self.assertIsNone(result['diagnostic_sample'])
             saved, = (root / 'confidential/workspaces/work-check').glob('run-*')
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), SOURCE)
             self.assertEqual(source.read_bytes(), SOURCE)
             references = json.loads((saved / 'references.json').read_text(encoding='utf-8'))
-            self.assertEqual(references['operands'][0]['raw_text'], result['diagnostic_sample']['raw_text'])
+            self.assertEqual(references['operands'][0]['raw_text'], report()['diagnostic_sample']['raw_text'])
 
     def test_all_returned_reports_remain_valid_and_unchanged(self) -> None:
         paths = list((ROOT / 'public/inspection').glob('work-check-*.json'))

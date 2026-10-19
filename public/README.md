@@ -35,3 +35,23 @@ development needs only the generated work-machine feedback at each run boundary.
 Edit this material deliberately as development advances. Do not direct production report output here. A file being in public/ does not automatically make it suitable for publication; review new content before committing.
 
 For the first parsing discussion, read [L5X structure and branch locations](docs/planning/L5X_STRUCTURE.md).
+
+14. [Current rung analysis and candidates](docs/reviews/RUNG_ANALYSIS_REVIEW.md),
+    with the [Phase 1 completion gate](docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md).
+
+15. [Current exact-address relationships and operand-reuse patterns](docs/reviews/RELATIONSHIP_REVIEW.md).
+
+16. [Current Boolean conditions and output actions](docs/reviews/CONDITION_REVIEW.md).
+
+17. [Confirmed binding gaps and rack context](docs/reviews/BINDING_CONTEXT_REVIEW.md).
+
+18. [Fixed targeted diagnostic rung examples](docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
+
+19. [Custom-instruction declarations and symbolic array selectors](docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md),
+    with the [invented context report](examples/instruction-context-demo.html).
+
+20. [Stored-state conditions and SFC reset targets](docs/reviews/STATEFUL_SEQUENCE_REVIEW.md),
+    with the [invented stored-state and sequence report](examples/stateful-sequence-demo.html).
+
+21. [AOI bodies and unmatched SFR target context](docs/reviews/AOI_BODY_REVIEW.md),
+    with the [invented body-context report](examples/aoi-body-demo.html).

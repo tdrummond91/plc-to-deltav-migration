@@ -246,7 +246,7 @@ class DiagnosticReportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             work_check.render_work_check_report(payload)
 
-    def test_analysis_uses_captured_records_for_single_actual_operand(self) -> None:
+    def test_current_analysis_suppresses_legacy_rotating_raw_operand(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve()
             source = root / "toy.L5X"
@@ -254,9 +254,8 @@ class DiagnosticReportTests(unittest.TestCase):
             with patch.object(work_check, "capture_snapshot", wraps=work_check.capture_snapshot) as capture:
                 result = work_check._analyze(root, source, root, {"commit": COMMIT, "worktree": "clean"})
             capture.assert_called_once_with(source)
-            self.assertEqual(result["diagnostic_sample"], {
-                "kind": "direct_malformed_operand", "opcode": "TON", "argument_index": 1, "raw_text": "Preset?",
-            })
+            self.assertIsNone(result["diagnostic_sample"])
+            self.assertNotIn("Preset?", json.dumps(result))
             self.assertNotIn("ToyTimer", json.dumps(result))
 
 
@@ -495,6 +494,59 @@ class GitAndWorkflowTests(unittest.TestCase):
                 revision={"commit": COMMIT, "worktree": "clean"})
             analysis_payload["calculation_summary"] = build_calculation_summary(
                 snapshot, inventory, references, analyze_calculations(snapshot, inventory, references),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.rung_analysis import analyze_rungs
+            from plc_workbench.rung_analysis_summary import build_rung_summary
+            access = analyze_access(inventory, references, schema_version=4, snapshot=snapshot, calculations=calculations)
+            analysis_payload["rung_analysis_summary"] = build_rung_summary(
+                snapshot, inventory, references, access, calculations,
+                analyze_rungs(snapshot, inventory, references, access, calculations),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.relationships import analyze_relationships
+            from plc_workbench.relationship_summary import build_relationship_summary
+            rung_analysis = analyze_rungs(snapshot, inventory, references, access, calculations)
+            relationships = analyze_relationships(snapshot, inventory, references, access, calculations, rung_analysis)
+            analysis_payload["relationship_summary"] = build_relationship_summary(
+                snapshot, inventory, references, access, calculations, rung_analysis, relationships,
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.conditions import analyze_conditions
+            from plc_workbench.condition_summary import build_condition_summary
+            conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
+                                            schema_version=3)
+            analysis_payload["condition_summary"] = build_condition_summary(
+                snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions,
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.binding_context import analyze_binding_context
+            from plc_workbench.binding_context_summary import build_binding_context_summary
+            binding_context = analyze_binding_context(
+                snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
+            analysis_payload["binding_context_summary"] = build_binding_context_summary(
+                snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions, binding_context,
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.custom_instruction_context import analyze_custom_instruction_context
+            from plc_workbench.custom_instruction_summary import build_custom_instruction_summary
+            from plc_workbench.indexed_access import analyze_indexed_access
+            from plc_workbench.indexed_access_summary import build_indexed_access_summary
+            companion_inputs = (snapshot, inventory, references, access, calculations,
+                                rung_analysis, relationships, conditions, binding_context)
+            analysis_payload["custom_instruction_summary"] = build_custom_instruction_summary(
+                *companion_inputs, analyze_custom_instruction_context(*companion_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            analysis_payload["indexed_access_summary"] = build_indexed_access_summary(
+                *companion_inputs, analyze_indexed_access(*companion_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.sfr_context import analyze_sfr_context
+            from plc_workbench.sfr_summary import build_sfr_summary
+            sfc_structure = analyze_sfc_structure(snapshot, inventory)
+            sfr_inputs = (snapshot, inventory, references, access, calculations, sfc_structure)
+            analysis_payload["sfr_summary"] = build_sfr_summary(
+                *sfr_inputs, analyze_sfr_context(*sfr_inputs, schema_version=2),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.aoi_body_context import analyze_aoi_body_context
+            from plc_workbench.aoi_body_summary import build_aoi_body_summary
+            body_inputs = (*companion_inputs, analyze_custom_instruction_context(*companion_inputs))
+            analysis_payload["aoi_body_summary"] = build_aoi_body_summary(
+                *body_inputs, analyze_aoi_body_context(*body_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))

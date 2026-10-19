@@ -1,6 +1,53 @@
 # Private engineering review report
 
-## Current CPT access follow-up (2026-10-15)
+## Current conditional-output follow-up (2026-10-15)
+
+Conditional outputs explains incoming conditions for OTE, OTL and OTU records,
+including outputs inside branches and unresolved targets. A compact node table
+shows ALL/ANY relationships, predicate occurrences, rung entry and explicit
+unknown transfers. Node links preserve shared structure without expanding every
+path. Guard quality, target identity and normal-scan action remain separate.
+
+Rung and exact-address dossiers link to their outputs. Module declaration kinds
+provide source context only. These records do not establish equipment, alarms,
+shutdown effects, final values or execution schedules. Review9/manifest12 saves
+sixteen artifacts; work24 adds a closed condition summary. The independent demo
+contains 120 rungs. Continue automated Phase 1 analysis before team review.
+See [scope and validation](CONDITION_REVIEW.md).
+
+## Historical relationship follow-up (2026-10-15)
+
+The Address relationships view separates exact suffixes beneath each root.
+Open an address to inspect ordinary reads, writes, stateful uses, unknown roles,
+CPT read occurrences and participating rungs. Rung, CPT and PID evidence links
+navigate into these dossiers. Missing readers/writers are investigation leads;
+implicit, external and non-RLL uses have not been excluded.
+
+Possible local calculation links retain producer, read and write evidence within
+eligible series segments. Operand-reuse patterns distinguish reused addresses,
+same-root members, constants and CPT structure. Excluded rungs explain the gap;
+no equality or link establishes runtime behavior. Review8/manifest11 saves fifteen
+artifacts, including relationships.json. Work23 exports only count summaries.
+The invented demo now has 92 rungs. Continue automated Phase 1 analysis; no team
+engineering review is requested now. See [scope and validation](RELATIONSHIP_REVIEW.md).
+
+## Historical rung-analysis follow-up (2026-10-15)
+
+[Rung analysis](RUNG_ANALYSIS_REVIEW.md) adds the primary Engineering analysis
+view: every rung, overlapping candidate families, evidence/gap filters,
+ordered blocks and a readable branch outline. Candidates explain their source
+links, rules and missing knowledge. Known functions, possible functions and
+unclassified/empty rungs remain discoverable. Name/comment clues stay weak;
+internal coils do not become physical outputs through naming alone.
+
+This is the first broad interpretation layer, not the completion of Phase 1.
+The work-machine returns have been automated results, not human feedback.
+Continue the [automated analysis sequence](../planning/PHASE_1_ENGINEERING_ANALYSIS.md)
+before team review. Review7/manifest10 saves fourteen hashed artifacts, adding
+rung-analysis.json; work22 adds a closed count-only summary. The invented HTML
+demo includes normal, ambiguous and deliberately unsupported cases.
+
+## Historical CPT access follow-up (2026-10-15)
 
 [CPT access](CPT_ACCESS_REVIEW.md) adds destination writes and separately counted
 expression reads. Tag access includes expression-only roots, repeated reads,

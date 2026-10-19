@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Independently invented parser input. Not controller-ready logic. -->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.00" TargetType="Controller">
+  <Controller Name="BodyContextDemo">
+    <AddOnInstructionDefinitions>
+      <AddOnInstructionDefinition Name="DemoBlend" Revision="1.0">
+        <Description><![CDATA[Invented body ownership and access example.]]></Description>
+        <Parameters>
+          <Parameter Name="InputValue" DataType="REAL" Usage="Input" Required="false" Visible="false"/>
+          <Parameter Name="OutputValue" DataType="REAL" Usage="Output" Required="false" Visible="true"/>
+          <Parameter Name="QuietValue" DataType="REAL" Usage="Input" Required="false" Visible="false"/>
+          <Parameter Name="NoObservedUse" DataType="DINT" Usage="Input" Required="false" Visible="false"/>
+          <Parameter Name="AliasValue" TagType="Alias" AliasFor="Accumulator" DataType="REAL" Usage="Input" Required="false" Visible="true"/>
+        </Parameters>
+        <LocalTags>
+          <LocalTag Name="Accumulator" DataType="REAL"/>
+          <LocalTag Name="Trace" DataType="REAL" Dimensions="55"/>
+          <LocalTag Name="NoObservedLocalUse" DataType="BOOL"/>
+        </LocalTags>
+        <Routines>
+          <Routine Name="Logic" Type="RLL"><RLLContent>
+        <Rung Number="0" Type="N"><Comment><![CDATA[Declared Usage and observed operand roles remain separate.]]></Comment><Text><![CDATA[MOV(InputValue,OutputValue);]]></Text></Rung>
+        <Rung Number="1" Type="N"><Text><![CDATA[ADD(AliasValue,InputValue,Accumulator);]]></Text></Rung>
+        <Rung Number="2" Type="N"><Text><![CDATA[CPT(OutputValue,AliasValue+InputValue+InputValue);]]></Text></Rung>
+        <Rung Number="3" Type="N"><Comment><![CDATA[An unknown role is not evidence that a parameter is unused.]]></Comment><Text><![CDATA[InventedOpaque(QuietValue);]]></Text></Rung>
+        <Rung Number="4" Type="N"><Comment><![CDATA[Invented pagination example 1.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[0]);]]></Text></Rung>
+        <Rung Number="5" Type="N"><Comment><![CDATA[Invented pagination example 2.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[1]);]]></Text></Rung>
+        <Rung Number="6" Type="N"><Comment><![CDATA[Invented pagination example 3.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[2]);]]></Text></Rung>
+        <Rung Number="7" Type="N"><Comment><![CDATA[Invented pagination example 4.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[3]);]]></Text></Rung>
+        <Rung Number="8" Type="N"><Comment><![CDATA[Invented pagination example 5.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[4]);]]></Text></Rung>
+        <Rung Number="9" Type="N"><Comment><![CDATA[Invented pagination example 6.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[5]);]]></Text></Rung>
+        <Rung Number="10" Type="N"><Comment><![CDATA[Invented pagination example 7.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[6]);]]></Text></Rung>
+        <Rung Number="11" Type="N"><Comment><![CDATA[Invented pagination example 8.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[7]);]]></Text></Rung>
+        <Rung Number="12" Type="N"><Comment><![CDATA[Invented pagination example 9.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[8]);]]></Text></Rung>
+        <Rung Number="13" Type="N"><Comment><![CDATA[Invented pagination example 10.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[9]);]]></Text></Rung>
+        <Rung Number="14" Type="N"><Comment><![CDATA[Invented pagination example 11.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[10]);]]></Text></Rung>
+        <Rung Number="15" Type="N"><Comment><![CDATA[Invented pagination example 12.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[11]);]]></Text></Rung>
+        <Rung Number="16" Type="N"><Comment><![CDATA[Invented pagination example 13.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[12]);]]></Text></Rung>
+        <Rung Number="17" Type="N"><Comment><![CDATA[Invented pagination example 14.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[13]);]]></Text></Rung>
+        <Rung Number="18" Type="N"><Comment><![CDATA[Invented pagination example 15.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[14]);]]></Text></Rung>
+        <Rung Number="19" Type="N"><Comment><![CDATA[Invented pagination example 16.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[15]);]]></Text></Rung>
+        <Rung Number="20" Type="N"><Comment><![CDATA[Invented pagination example 17.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[16]);]]></Text></Rung>
+        <Rung Number="21" Type="N"><Comment><![CDATA[Invented pagination example 18.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[17]);]]></Text></Rung>
+        <Rung Number="22" Type="N"><Comment><![CDATA[Invented pagination example 19.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[18]);]]></Text></Rung>
+        <Rung Number="23" Type="N"><Comment><![CDATA[Invented pagination example 20.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[19]);]]></Text></Rung>
+        <Rung Number="24" Type="N"><Comment><![CDATA[Invented pagination example 21.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[20]);]]></Text></Rung>
+        <Rung Number="25" Type="N"><Comment><![CDATA[Invented pagination example 22.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[21]);]]></Text></Rung>
+        <Rung Number="26" Type="N"><Comment><![CDATA[Invented pagination example 23.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[22]);]]></Text></Rung>
+        <Rung Number="27" Type="N"><Comment><![CDATA[Invented pagination example 24.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[23]);]]></Text></Rung>
+        <Rung Number="28" Type="N"><Comment><![CDATA[Invented pagination example 25.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[24]);]]></Text></Rung>
+        <Rung Number="29" Type="N"><Comment><![CDATA[Invented pagination example 26.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[25]);]]></Text></Rung>
+        <Rung Number="30" Type="N"><Comment><![CDATA[Invented pagination example 27.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[26]);]]></Text></Rung>
+        <Rung Number="31" Type="N"><Comment><![CDATA[Invented pagination example 28.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[27]);]]></Text></Rung>
+        <Rung Number="32" Type="N"><Comment><![CDATA[Invented pagination example 29.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[28]);]]></Text></Rung>
+        <Rung Number="33" Type="N"><Comment><![CDATA[Invented pagination example 30.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[29]);]]></Text></Rung>
+        <Rung Number="34" Type="N"><Comment><![CDATA[Invented pagination example 31.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[30]);]]></Text></Rung>
+        <Rung Number="35" Type="N"><Comment><![CDATA[Invented pagination example 32.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[31]);]]></Text></Rung>
+        <Rung Number="36" Type="N"><Comment><![CDATA[Invented pagination example 33.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[32]);]]></Text></Rung>
+        <Rung Number="37" Type="N"><Comment><![CDATA[Invented pagination example 34.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[33]);]]></Text></Rung>
+        <Rung Number="38" Type="N"><Comment><![CDATA[Invented pagination example 35.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[34]);]]></Text></Rung>
+        <Rung Number="39" Type="N"><Comment><![CDATA[Invented pagination example 36.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[35]);]]></Text></Rung>
+        <Rung Number="40" Type="N"><Comment><![CDATA[Invented pagination example 37.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[36]);]]></Text></Rung>
+        <Rung Number="41" Type="N"><Comment><![CDATA[Invented pagination example 38.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[37]);]]></Text></Rung>
+        <Rung Number="42" Type="N"><Comment><![CDATA[Invented pagination example 39.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[38]);]]></Text></Rung>
+        <Rung Number="43" Type="N"><Comment><![CDATA[Invented pagination example 40.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[39]);]]></Text></Rung>
+        <Rung Number="44" Type="N"><Comment><![CDATA[Invented pagination example 41.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[40]);]]></Text></Rung>
+        <Rung Number="45" Type="N"><Comment><![CDATA[Invented pagination example 42.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[41]);]]></Text></Rung>
+        <Rung Number="46" Type="N"><Comment><![CDATA[Invented pagination example 43.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[42]);]]></Text></Rung>
+        <Rung Number="47" Type="N"><Comment><![CDATA[Invented pagination example 44.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[43]);]]></Text></Rung>
+        <Rung Number="48" Type="N"><Comment><![CDATA[Invented pagination example 45.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[44]);]]></Text></Rung>
+        <Rung Number="49" Type="N"><Comment><![CDATA[Invented pagination example 46.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[45]);]]></Text></Rung>
+        <Rung Number="50" Type="N"><Comment><![CDATA[Invented pagination example 47.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[46]);]]></Text></Rung>
+        <Rung Number="51" Type="N"><Comment><![CDATA[Invented pagination example 48.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[47]);]]></Text></Rung>
+        <Rung Number="52" Type="N"><Comment><![CDATA[Invented pagination example 49.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[48]);]]></Text></Rung>
+        <Rung Number="53" Type="N"><Comment><![CDATA[Invented pagination example 50.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[49]);]]></Text></Rung>
+        <Rung Number="54" Type="N"><Comment><![CDATA[Invented pagination example 51.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[50]);]]></Text></Rung>
+        <Rung Number="55" Type="N"><Comment><![CDATA[Invented pagination example 52.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[51]);]]></Text></Rung>
+        <Rung Number="56" Type="N"><Comment><![CDATA[Invented pagination example 53.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[52]);]]></Text></Rung>
+        <Rung Number="57" Type="N"><Comment><![CDATA[Invented pagination example 54.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[53]);]]></Text></Rung>
+        <Rung Number="58" Type="N"><Comment><![CDATA[Invented pagination example 55.]]></Comment><Text><![CDATA[MOV(InputValue,Trace[54]);]]></Text></Rung>
+          </RLLContent></Routine>
+          <Routine Name="Prescan" Type="RLL"><RLLContent>
+            <Rung Number="0" Type="N"><Text><![CDATA[CLR(Accumulator);]]></Text></Rung>
+          </RLLContent></Routine>
+        </Routines>
+      </AddOnInstructionDefinition>
+      <AddOnInstructionDefinition Name="DemoText" Revision="1.0">
+        <Parameters><Parameter Name="Value" DataType="DINT" Usage="InOut" Required="true" Visible="true"/></Parameters>
+        <LocalTags/>
+        <Routines><Routine Name="Logic" Type="ST"><STContent><Line Number="0">Value := Value + 1;</Line></STContent></Routine></Routines>
+      </AddOnInstructionDefinition>
+    </AddOnInstructionDefinitions>
+    <Tags>
+      <Tag Name="BlendInstance" TagType="Base" DataType="DemoBlend"/>
+      <Tag Name="BlendAlias" TagType="Alias" AliasFor="BlendInstance"/>
+      <Tag Name="BlendArray" TagType="Base" DataType="DemoBlend" Dimensions="3"/>
+      <Tag Name="Container" TagType="Base" DataType="DemoBlend"/>
+      <Tag Name="WrongType" TagType="Base" DataType="DINT"/>
+      <Tag Name="TextInstance" TagType="Base" DataType="DemoText"/>
+      <Tag Name="Cursor" TagType="Base" DataType="DINT"/>
+    </Tags>
+    <Programs><Program Name="Example"><Tags>
+      <Tag Name="States" TagType="Base" DataType="SFC_STEP" Dimensions="4"/>
+      <Tag Name="MissingStep" TagType="Base" DataType="SFC_STEP"/>
+    </Tags><Routines>
+      <Routine Name="Main" Type="RLL"><RLLContent>
+        <Rung Number="0" Type="N"><Comment><![CDATA[Literal markup: <script>window.fixtureLeak=true</script>]]></Comment><Text><![CDATA[DemoBlend(BlendInstance);]]></Text></Rung>
+        <Rung Number="1" Type="N"><Text><![CDATA[DemoBlend(BlendAlias);]]></Text></Rung>
+        <Rung Number="2" Type="N"><Text><![CDATA[DemoBlend(BlendArray[1]);]]></Text></Rung>
+        <Rung Number="3" Type="N"><Text><![CDATA[DemoBlend(BlendArray);]]></Text></Rung>
+        <Rung Number="4" Type="N"><Text><![CDATA[DemoBlend(Container.Member);]]></Text></Rung>
+        <Rung Number="5" Type="N"><Text><![CDATA[DemoBlend(WrongType);]]></Text></Rung>
+        <Rung Number="6" Type="N"><Text><![CDATA[DemoBlend(MissingInstance);]]></Text></Rung>
+        <Rung Number="7" Type="N"><Text><![CDATA[DemoBlend(1);]]></Text></Rung>
+        <Rung Number="8" Type="N"><Text><![CDATA[DemoBlend(BlendArray[Cursor]);]]></Text></Rung>
+        <Rung Number="9" Type="N"><Text><![CDATA[DemoText(TextInstance);]]></Text></Rung>
+        <Rung Number="10" Type="N"><Text><![CDATA[MissingDefinition(BlendInstance);]]></Text></Rung>
+        <Rung Number="11" Type="N"><Text><![CDATA[SFR(SelectedChart,States[1]);]]></Text></Rung>
+        <Rung Number="12" Type="N"><Text><![CDATA[SFR(SelectedChart,States[0]);]]></Text></Rung>
+        <Rung Number="13" Type="N"><Text><![CDATA[SFR(SelectedChart,MissingStep);]]></Text></Rung>
+        <Rung Number="14" Type="N"><Text><![CDATA[SFR(EditedChart,States[1]);]]></Text></Rung>
+      </RLLContent></Routine>
+      <Routine Name="SelectedChart" Type="SFC"><SFCContent>
+        <Step ID="0" Operand="States[0]" InitialStep="true"/>
+      </SFCContent></Routine>
+      <Routine Name="PeerChart" Type="SFC"><SFCContent>
+        <Step ID="0" Operand="States[1]" InitialStep="true"/>
+      </SFCContent></Routine>
+      <Routine Name="EditedChart" Type="SFC">
+        <SFCContent OnlineEditType="Original"><Step ID="0" Operand="States[0]" InitialStep="true"/></SFCContent>
+        <SFCContent OnlineEditType="PendingEdits"><Step ID="0" Operand="States[1]" InitialStep="true"/></SFCContent>
+      </Routine>
+      <Routine Name="ProtectedChart" Type="SFC" SourceProtected="true"><SFCContent>
+        <Step ID="0" Operand="States[1]" InitialStep="true"/>
+      </SFCContent></Routine>
+    </Routines></Program>
+    <Program Name="OtherProgram"><Tags><Tag Name="States" TagType="Base" DataType="SFC_STEP" Dimensions="4"/></Tags><Routines>
+      <Routine Name="ForeignProgramChart" Type="SFC"><SFCContent><Step ID="0" Operand="States[1]" InitialStep="true"/></SFCContent></Routine>
+    </Routines></Program></Programs>
+  </Controller>
+</RSLogix5000Content>

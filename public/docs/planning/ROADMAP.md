@@ -1,6 +1,13 @@
 # Implementation roadmap and acceptance gates
 
-Status: Phase 1 source inventory, scoped root references, SFC structural/annotation capture and bounded summary exports are implemented. Returned `90923ab` confirms the current SFC structural slice with zero issues; engineering interpretation and Phases 2-5 remain open. See the [current state and provisional iteration estimates](../reviews/PROJECT_STATE_REVIEW.md). Build coherent complete slices with runnable reports, tests and handoff updates; batch related changes before requesting work-machine feedback.
+Status: updated 2026-10-15. The source/reference/SFC, PID member and calculation
+foundation is implemented. The active objective is comprehensive automated
+engineering analysis and readable candidate groups before team review. Work-PC
+pushes are automated validation results, not human feedback. Follow the
+[Phase 1 analysis plan and completion gate](PHASE_1_ENGINEERING_ANALYSIS.md).
+Do not treat operand coverage, family labeling or passing tests as completion of
+engineering understanding. Batch coherent analysis changes before requesting a
+work-machine run; continue locally whenever useful progress is possible.
 
 ## Confirmed product phases (2026-10-12)
 

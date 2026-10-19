@@ -1,7 +1,8 @@
 """Private, snapshot-bound evidence for the offline engineering review report.
 
-Patterns compare exact ordered syntax only. Findings expose existing gaps; they
-do not infer equipment, dependencies, instruction effects, or engineering intent.
+Patterns compare exact ordered syntax. Findings expose existing gaps; the
+optional rung companion adds explicit, unreviewed structure and purpose
+candidates without asserting execution, dependencies, or confirmed intent.
 This module performs no filesystem, process, or network operations.
 """
 from __future__ import annotations
@@ -18,6 +19,14 @@ from .models import InventoryResult, SourceSnapshot
 from .pid import PidResult, analyze_pid
 from .pid_members import PidMemberResult, analyze_pid_members
 from .calculations import CalculationResult, analyze_calculations
+from .rung_analysis import RungAnalysisResult, analyze_rungs
+from .relationships import RelationshipResult, analyze_relationships
+from .conditions import ConditionResult, analyze_conditions
+from .binding_context import BindingContextResult, analyze_binding_context
+from .custom_instruction_context import CustomInstructionContextResult, analyze_custom_instruction_context
+from .indexed_access import IndexedAccessResult, analyze_indexed_access
+from .sfr_context import SfrContextResult, analyze_sfr_context
+from .aoi_body_context import AoiBodyContextResult, analyze_aoi_body_context
 from .references import ReferenceResult, analyze_references
 from .sfc_structure import SfcStructureResult, analyze_sfc_structure
 from .source import analyze_snapshot
@@ -27,6 +36,15 @@ MAX_REVIEW_BYTES = 64 * 1024 * 1024
 # Review3/4/5 combine the established evidence with bounded companion payloads.
 # Historical review1/2 retain their original ceiling.
 MAX_REVIEW_V3_BYTES = 128 * 1024 * 1024
+# Review9 adds a separately bounded 32 MiB condition companion. Reserve that
+# allowance alongside the established report; review1-8 keep their old limits.
+MAX_REVIEW_V9_BYTES = 160 * 1024 * 1024
+# Review10 changes transfer semantics without increasing the companion budget.
+MAX_REVIEW_V10_BYTES = 160 * 1024 * 1024
+MAX_REVIEW_V11_BYTES = 168 * 1024 * 1024
+MAX_REVIEW_V12_BYTES = 184 * 1024 * 1024
+MAX_REVIEW_V13_BYTES = 192 * 1024 * 1024
+MAX_REVIEW_V14_BYTES = 200 * 1024 * 1024
 MAX_REVIEW_FINDINGS = 500_000
 MAX_REVIEW_PATTERNS = 100_000
 _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
@@ -34,6 +52,10 @@ _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
 
 class ReviewError(ValueError):
     """A fixed-message error that never exposes private evidence or OS details."""
+
+
+class ReviewSizeLimitError(ReviewError):
+    """A report exceeded its versioned combined UTF-8 payload budget."""
 
 
 def _fail() -> None:
@@ -78,15 +100,23 @@ def _json_native(value: Any) -> Any:
 def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     """Count UTF-8 bytes without retaining millions of small encoder chunks."""
     rendered = io.StringIO() if retain else None
-    limit = (MAX_REVIEW_V3_BYTES if (data.get('schema_version'), data.get('report_version'))
+    version = (data.get('schema_version'), data.get('report_version'))
+    limit = (MAX_REVIEW_V14_BYTES if version == (14, 'engineering-review-14') else
+             MAX_REVIEW_V13_BYTES if version == (13, 'engineering-review-13') else
+             MAX_REVIEW_V12_BYTES if version == (12, 'engineering-review-12') else
+             MAX_REVIEW_V11_BYTES if version == (11, 'engineering-review-11') else
+             MAX_REVIEW_V10_BYTES if version == (10, 'engineering-review-10') else
+             MAX_REVIEW_V9_BYTES if version == (9, 'engineering-review-9') else
+             MAX_REVIEW_V3_BYTES if version
              in ((3, 'engineering-review-3'), (4, 'engineering-review-4'),
-                 (5, 'engineering-review-5'), (6, 'engineering-review-6')) else MAX_REVIEW_BYTES)
+                 (5, 'engineering-review-5'), (6, 'engineering-review-6'),
+                 (7, 'engineering-review-7'), (8, 'engineering-review-8')) else MAX_REVIEW_BYTES)
     total = 0
     for chunk in json.JSONEncoder(ensure_ascii=False, separators=(',', ':'),
                                   allow_nan=False).iterencode(data):
         total += len(chunk.encode('utf-8'))
         if total > limit:
-            _fail()
+            raise ReviewSizeLimitError('Engineering review exceeds the report size limit.')
         if rendered is not None:
             rendered.write(chunk)
     return rendered.getvalue() if rendered is not None else ''
@@ -186,7 +216,15 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       tag_data: TagDataResult | None = None,
                       pid: PidResult | None = None,
                       pid_members: PidMemberResult | None = None,
-                      calculations: CalculationResult | None = None) -> dict[str, Any]:
+                      calculations: CalculationResult | None = None,
+                      rung_analysis: RungAnalysisResult | None = None,
+                      relationships: RelationshipResult | None = None,
+                      conditions: ConditionResult | None = None,
+                      binding_context: BindingContextResult | None = None,
+                      custom_instruction_context: CustomInstructionContextResult | None = None,
+                      indexed_access: IndexedAccessResult | None = None,
+                      sfr_context: SfrContextResult | None = None,
+                      aoi_body_context: AoiBodyContextResult | None = None) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -208,6 +246,37 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             _fail()
         if calculations is not None and (pid_members is None or pid is None or tag_data is None or access is None):
             _fail()
+        if rung_analysis is not None and (calculations is None or pid_members is None or pid is None
+                                         or tag_data is None or access is None):
+            _fail()
+        if relationships is not None:
+            for companion, expected_type, version in (
+                    (relationships, RelationshipResult, 1), (rung_analysis, RungAnalysisResult, 1),
+                    (access, AccessResult, 4), (calculations, CalculationResult, 2)):
+                if (type(companion) is not expected_type or type(companion.schema_version) is not int
+                        or companion.schema_version != version):
+                    _fail()
+        if conditions is not None:
+            if (type(conditions) is not ConditionResult or type(conditions.schema_version) is not int
+                    or conditions.schema_version not in (1, 2, 3) or type(relationships) is not RelationshipResult):
+                _fail()
+        if binding_context is not None:
+            if (type(binding_context) is not BindingContextResult or type(binding_context.schema_version) is not int
+                    or binding_context.schema_version != 1 or type(conditions) is not ConditionResult
+                    or conditions.schema_version not in (2, 3)):
+                _fail()
+        if custom_instruction_context is not None or indexed_access is not None:
+            if (type(custom_instruction_context) is not CustomInstructionContextResult
+                    or type(indexed_access) is not IndexedAccessResult or binding_context is None):
+                _fail()
+        if sfr_context is not None or (conditions is not None and conditions.schema_version == 3):
+            if (type(sfr_context) is not SfrContextResult or custom_instruction_context is None
+                    or indexed_access is None or conditions is None or conditions.schema_version != 3):
+                _fail()
+        if aoi_body_context is not None or (sfr_context is not None and sfr_context.schema_version == 2):
+            if (type(aoi_body_context) is not AoiBodyContextResult or sfr_context is None
+                    or sfr_context.schema_version != 2):
+                _fail()
         canonical_inventory = analyze_snapshot(snapshot)
         if not _strict_equal(canonical_inventory, inventory):
             _fail()
@@ -255,6 +324,58 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             canonical_pid_members = analyze_pid_members(
                 snapshot, canonical_inventory, canonical_references, canonical_tag_data, canonical_pid)
             if not _strict_equal(canonical_pid_members, pid_members):
+                _fail()
+        canonical_rungs = None
+        if rung_analysis is not None:
+            if type(rung_analysis) is not RungAnalysisResult:
+                _fail()
+            canonical_rungs = analyze_rungs(snapshot, canonical_inventory, canonical_references,
+                                           canonical_access, canonical_calculations)
+            if not _strict_equal(canonical_rungs, rung_analysis):
+                _fail()
+        canonical_relationships = None
+        if relationships is not None:
+            canonical_relationships = analyze_relationships(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_calculations, canonical_rungs)
+            if not _strict_equal(canonical_relationships, relationships):
+                _fail()
+        canonical_conditions = None
+        if conditions is not None:
+            canonical_conditions = analyze_conditions(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_calculations, canonical_rungs, canonical_relationships,
+                schema_version=conditions.schema_version)
+            if not _strict_equal(canonical_conditions, conditions):
+                _fail()
+        canonical_binding_context = None
+        if binding_context is not None:
+            canonical_binding_context = analyze_binding_context(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_calculations, canonical_rungs, canonical_relationships, canonical_conditions)
+            if not _strict_equal(canonical_binding_context, binding_context):
+                _fail()
+        canonical_custom_context = canonical_indexed_access = None
+        if custom_instruction_context is not None:
+            companion_inputs = (snapshot, canonical_inventory, canonical_references, canonical_access,
+                                canonical_calculations, canonical_rungs, canonical_relationships,
+                                canonical_conditions, canonical_binding_context)
+            canonical_custom_context = analyze_custom_instruction_context(*companion_inputs)
+            canonical_indexed_access = analyze_indexed_access(*companion_inputs)
+            if (not _strict_equal(canonical_custom_context, custom_instruction_context)
+                    or not _strict_equal(canonical_indexed_access, indexed_access)):
+                _fail()
+        canonical_sfr_context = None
+        if sfr_context is not None:
+            canonical_sfr_context = analyze_sfr_context(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_calculations, canonical_sfc, schema_version=sfr_context.schema_version)
+            if not _strict_equal(canonical_sfr_context, sfr_context):
+                _fail()
+        canonical_aoi_body = None
+        if aoi_body_context is not None:
+            canonical_aoi_body = analyze_aoi_body_context(*companion_inputs, canonical_custom_context)
+            if not _strict_equal(canonical_aoi_body, aoi_body_context):
                 _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)
@@ -318,8 +439,61 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             })
             if canonical_calculations.status == 'partial':
                 data['status'] = 'partial'
+        if canonical_rungs is not None:
+            data.update({
+                'schema_version': 7, 'report_version': 'engineering-review-7',
+                'analysis_scope': 'source_evidence_with_rung_structure_and_purpose_candidates',
+                'semantic_analysis': 'structural_and_candidate_evidence',
+                'rung_analysis': canonical_rungs.to_dict(),
+            })
+            if canonical_rungs.status == 'partial':
+                data['status'] = 'partial'
+        if canonical_relationships is not None:
+            data.update({
+                'schema_version': 8, 'report_version': 'engineering-review-8',
+                'analysis_scope': 'source_evidence_with_rung_candidates_and_exact_address_relationships',
+                'relationships': canonical_relationships.to_dict(),
+            })
+            if canonical_relationships.status == 'partial':
+                data['status'] = 'partial'
+        if canonical_conditions is not None:
+            review_version = 9 if canonical_conditions.schema_version == 1 else 10
+            data.update({
+                'schema_version': review_version, 'report_version': f'engineering-review-{review_version}',
+                'analysis_scope': 'source_evidence_with_exact_addresses_and_local_boolean_conditions',
+                'conditions': canonical_conditions.to_dict(),
+            })
+            if canonical_conditions.status == 'partial':
+                data['status'] = 'partial'
+        if canonical_binding_context is not None:
+            data.update({
+                'schema_version': 11, 'report_version': 'engineering-review-11',
+                'binding_context': canonical_binding_context.to_dict(),
+            })
+            if canonical_binding_context.status == 'partial':
+                data['status'] = 'partial'
+        if canonical_custom_context is not None:
+            data.update({
+                'schema_version': 12, 'report_version': 'engineering-review-12',
+                'custom_instruction_context': canonical_custom_context.to_dict(),
+                'indexed_access': canonical_indexed_access.to_dict(),
+            })
+            if 'partial' in (canonical_custom_context.status, canonical_indexed_access.status):
+                data['status'] = 'partial'
+        if canonical_sfr_context is not None:
+            data.update({'schema_version': 13, 'report_version': 'engineering-review-13',
+                         'sfr_context': canonical_sfr_context.to_dict()})
+            if canonical_sfr_context.status == 'partial':
+                data['status'] = 'partial'
+        if canonical_aoi_body is not None:
+            data.update({'schema_version': 14, 'report_version': 'engineering-review-14',
+                         'aoi_body_context': canonical_aoi_body.to_dict()})
+            if canonical_aoi_body.status == 'partial':
+                data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
+    except ReviewSizeLimitError:
+        raise
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
         _fail()
 
@@ -330,13 +504,28 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          tag_data: TagDataResult | None = None,
                          pid: PidResult | None = None,
                          pid_members: PidMemberResult | None = None,
-                         calculations: CalculationResult | None = None) -> None:
+                         calculations: CalculationResult | None = None,
+                         rung_analysis: RungAnalysisResult | None = None,
+                         relationships: RelationshipResult | None = None,
+                         conditions: ConditionResult | None = None,
+                         binding_context: BindingContextResult | None = None,
+                         custom_instruction_context: CustomInstructionContextResult | None = None,
+                         indexed_access: IndexedAccessResult | None = None,
+                         sfr_context: SfrContextResult | None = None,
+                         aoi_body_context: AoiBodyContextResult | None = None) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
         if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
                                           access=access, tag_data=tag_data, pid=pid,
-                                          pid_members=pid_members, calculations=calculations), data):
+                                          pid_members=pid_members, calculations=calculations,
+                                          rung_analysis=rung_analysis, relationships=relationships,
+                                          conditions=conditions, binding_context=binding_context,
+                                          custom_instruction_context=custom_instruction_context,
+                                          indexed_access=indexed_access, sfr_context=sfr_context,
+                                          aoi_body_context=aoi_body_context), data):
             return
+    except ReviewSizeLimitError:
+        raise
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
         pass
     _fail()
@@ -346,5 +535,7 @@ def render_review_json(data: dict[str, Any]) -> str:
     """Serialize PRIVATE data; persistence callers must validate it first."""
     try:
         return _bounded_json(data)
+    except ReviewSizeLimitError:
+        raise
     except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
         _fail()

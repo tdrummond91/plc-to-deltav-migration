@@ -1,17 +1,34 @@
 # PLC analysis workbench
 
+Latest checkpoint: returned `871b700` passed 1,128 application cases (two expected
+Windows skips) and 139 helpers. All 133 ONS instructions now have stored-state
+conditions, leaving one opaque coil guard. SFR targets match for 139 of 140 calls.
+Work31 adds AOI body/instance relationships and diagnostic context for unmatched
+SFR targets. Earlier analysis and the six-example reservation are preserved.
+See [scope and validation](public/docs/reviews/AOI_BODY_REVIEW.md).
+The next step is the normal work-machine run; team review remains deferred.
+
+Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected
+skip) and 139 helpers, but reported a save-stage failure and no analysis counts.
+The [save repair](public/docs/reviews/SAVE_FAILURE_REVIEW.md) gives review9 its
+additional bounded condition allowance and adds precise, source-free work25
+failure codes. The private cause remained unconfirmed at that checkpoint.
+Phase 1 analysis continues before team review.
+
+Earlier successful analysis baseline:
+
 Status: updated 2026-10-15. Phase 1 includes source inventory, I/O declarations,
 reference bindings, routine-call candidates, SFC structure/notes, PID stored
-member evidence and a private offline source explorer. Returned `cbb2965`
-confirms all 175 new counter/message/system/SFC access instructions classified,
-with all 175 data operands bound and no new binding gaps. All 695 application
-cases passed (one expected skip), as did 139 helpers.
-The [CPT access integration](public/docs/reviews/CPT_ACCESS_REVIEW.md) adds
-possible destination writes and separately traced expression reads to Tag access.
-The next work-machine run checks its projected 45 CPT classifications and 132
-reads. Calculations remain unevaluated. Execution, dependencies and broader
+member evidence, calculations, rung structure and a private offline source
+explorer. Returned `f7d91f0` confirms 7,591 exact addresses and 4,286 rungs in
+1,489 operand-reuse patterns, with all eight earlier summaries unchanged.
+All 821 application cases passed (one expected skip), as did 139 helpers.
+The [conditional-output analysis](public/docs/reviews/CONDITION_REVIEW.md)
+adds source-ordered series/parallel guards and distinct OTE/OTL/OTU actions,
+while preserving unknown block behavior and binding gaps. Its next work-machine
+run measures those guards against the private source. Execution and broader
 engineering interpretation remain incomplete. Editable corrections, PCSD and
-FHX are later phases. Manual engineering/UI review remains optional.
+FHX are later phases. Automated analysis continues before team review.
 
 The development listener remains disabled and paused. Manual work-machine checks
 automatically commit the validated feedback report locally; fetching, pulling
@@ -30,7 +47,7 @@ Start with [CODEX_HANDOFF.md](CODEX_HANDOFF.md). Read [the architecture](public/
 ## Agreed direction
 
 - Keep command-line argument parsing and presentation separate from the reusable analysis functions.
-- Keep real exports and private engineering artifacts under root `confidential/`; approved count summaries can be synced in `public/inspection/`.
+- Keep real exports and private engineering artifacts under root `confidential/`; approved count summaries and bounded diagnostic examples can be synced in `public/inspection/`.
 - Retain immutable source snapshots and versioned analysis runs; use Git for application code and synthetic tests.
 - Publish machine-readable JSON results and coverage reports at every stage.
 - Show both the source hierarchy and relationships across rungs, programs, tasks, and controllers.
@@ -70,7 +87,9 @@ On the work machine, Codex may inspect the project read-only and produce handoff
 filename on the first run and remembers it locally for later runs. It tests the
 already checked out clean named branch, including `main`, using explicit parser/helper test lists,
 saves private analysis and automatically commits only the new validated feedback
-under `public/inspection/`: counts plus at most one short actual mystery operand.
+under `public/inspection/`: counts plus a fixed request containing at most six
+targeted rung examples with plant names and values substituted. The request
+replays the same record on later runs; new legacy single-operand samples are disabled.
 Update code manually before running, then review the
 report and run `git push` when ready. See the [work-machine procedure](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
@@ -95,7 +114,7 @@ binding/coverage counts, module naming and gap-reason counts, plus the structura
 summary. Follow the
 [current work-machine procedure](public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
-Unit test source belongs in `python-parser/tests/`. Private reports, reviewer workbooks, source snapshots and checkpoints belong under `confidential/`; approved aggregate reports are the explicit sync exception. Real data must not be placed in synthetic fixtures or application documentation.
+Unit test source belongs in `python-parser/tests/`. Private reports, reviewer workbooks, source snapshots and checkpoints belong under `confidential/`; approved aggregate reports and bounded diagnostic examples are the explicit sync exceptions. Real data must not be placed in synthetic fixtures or application documentation.
 
 ## First development input
 
@@ -106,6 +125,6 @@ Repository roles:
 - `python-parser/`: application source, dependency files, and test code.
 - `confidential/`: actual exports and every derived private artifact.
 
-The full repository is the portable development bundle; `public/` complements the Python source rather than duplicating it. The work-machine runner automatically stages and commits only its new validated feedback report, including at most one authorized mystery-operand example. Review it and manually push when ready. Earlier reports in `public/inspection/local/` remain ignored and are not included automatically. Detailed production outputs and raw logs stay private.
+The full repository is the portable development bundle; `public/` complements the Python source rather than duplicating it. The work-machine runner automatically stages and commits only its new validated feedback report, including the fixed targeted-sample request. Review it and manually push when ready. Earlier reports in `public/inspection/local/` remain ignored and are not included automatically. Detailed production outputs and raw logs stay private.
 
 For the new-copy workflow, read [fresh Git setup](public/docs/planning/GIT_FRESH_START.md).

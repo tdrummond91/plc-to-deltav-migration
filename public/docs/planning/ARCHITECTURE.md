@@ -33,6 +33,22 @@ flowchart LR
 
 The AI adapter is optional and explicitly configured. Parsing and ordinary reporting must work offline. CLI and GUI call the same services and use the same validation rules; neither owns a separate interpretation of the source.
 
+## Current analysis direction (2026-10-15)
+
+Automated engineering interpretation precedes the first team review. The
+work-machine pushes received so far are generated validation evidence, not
+approved classifications. The [Phase 1 analysis plan](PHASE_1_ENGINEERING_ANALYSIS.md)
+defines the scope and review gate. Build unreviewed candidates now, with
+traceable rules, evidence, competing interpretations and missing information.
+The later correction/checkpoint infrastructure governs durable human decisions;
+it does not block generating preliminary classifications and readable reports.
+
+The active rung-analysis layer accounts for every rung and block, structural
+paths, explicit access endpoints, comments and uncertain function groups. It is
+a foundation for cross-rung loops, equipment, alarm effects, calculation chains
+and stronger patterns. Syntax shape alone does not determine purpose, and a
+rung can contribute to several candidate engineering functions.
+
 ## PCSD discovery before schema design
 
 PCSD means Process Control Strategy Document. In the earlier MOD migration it

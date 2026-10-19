@@ -1,8 +1,159 @@
 # Data contracts, traceability, and checkpoints
 
+## AOI body and SFR gap revision (2026-10-16)
+
+AOI body context1 links existing body and access IDs without duplicating source
+totals. SFR context2 adds bounded gap diagnostics while preserving schema1 and
+its default. Review14 embeds both under 200 MiB JSON / 232 MiB HTML limits.
+Manifest17 still hashes sixteen artifacts. Work31 adds AOI body summary1 and
+SFR summary2 inside the unchanged 64 KiB outer cap. Earlier analysis versions,
+condition3 and the frozen diagnostic sample request remain unchanged. See
+[scope and verification](../reviews/AOI_BODY_REVIEW.md).
+Work31 renders compact JSON; versions1-30 retain their historical whitespace.
+
+## Stored-state and SFC target revision (2026-10-15)
+
+Condition3 adds one occurrence-level ONS stored-state node and propagated state
+ancestry flags; condition1/2 defaults and replay remain frozen. SFR context1
+adds bounded chart/step candidates with separate edit-content outcomes. Review13
+embeds this 8 MiB context under 192 MiB JSON / 224 MiB HTML caps. Manifest16 retains
+sixteen artifacts. Work30 uses condition summary3 and SFR summary1 under the
+unchanged 64 KiB outer cap. Existing sample requests keep condition2 selection
+semantics and replay the frozen record. See
+[scope and verification](../reviews/STATEFUL_SEQUENCE_REVIEW.md).
+
+## Instruction context revision (2026-10-15)
+
+Custom-instruction context1 and indexed-access1 add bounded derived private
+evidence without changing earlier companions. Review12 embeds both 8 MiB indices
+under a 184 MiB JSON / 216 MiB HTML cap; earlier caps remain frozen. Manifest15
+retains sixteen artifacts. Work29 adds two closed count summaries under the same
+64 KiB outer cap as work28; the targeted sample record replays unchanged.
+See [source interpretation and verification](../reviews/INSTRUCTION_CONTEXT_REVIEW.md).
+
+## Targeted diagnostic revision (2026-10-15)
+
+Work28 adds top-level targeted_samples schema1 and permits a 64 KiB outer report.
+Its immutable record is capped at 16 KiB and six rungs under one fixed request;
+public history and an ignored local reservation prevent automatic rotation.
+The new-information budget reserves the two historical operand clues, and the
+legacy diagnostic_sample must now be null. Work1-27 keep their original fields,
+validation and byte caps. All eleven summaries and review11/manifest14's sixteen
+artifacts are unchanged. See [selection and accounting](../reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
+
+## Binding context revision (2026-10-15)
+
+BindingContext1 is an 8 MiB bounded index of existing unresolved-use evidence,
+embedded in review11 with no additional artifact. Candidate logical addresses
+use a separate namespace and never replace existing bindings or exact addresses.
+Manifest14 retains 16 artifacts. Review11 allows 168 MiB JSON / 200 MiB HTML;
+all earlier caps/contracts remain frozen. Work27 requires the closed 4 KiB
+binding-context summary1, preserves its ten earlier summaries, and admits the
+fixed binding_context_error code within the unchanged 48 KiB outer envelope.
+See [context contract and source evidence](../reviews/BINDING_CONTEXT_REVIEW.md).
+
+## Condition transfer revision (2026-10-15)
+
+Private condition2 keeps condition1's dataclass shape and 32 MiB cap, adds
+`pass_through` nodes and the fixed 17-spelling `passthrough_opcodes` coverage map.
+Each pass retains one incoming child and source/operand occurrences. Data-binding
+gaps remain separate from Boolean transfer. Explicit condition1 stays byte-compatible.
+Condition summary2 remains 4 KiB. Review10/manifest13 keeps 16 artifacts and 160/192 MiB
+JSON/HTML caps; all previous version contracts and budgets remain unchanged.
+Work26 requires condition summary2 and 48 KiB outer reports. Work24/25 still require
+condition1. Pass/predicate/coil counts share the single withheld opcode allowance.
+See [instruction catalogue and replay](../reviews/CONDITION_TRANSFER_REVIEW.md).
+
+## Save diagnostics and condition report budget (2026-10-15)
+
+Work25 adds only five closed save failure codes: review_size_limit,
+review_validation_error, review_render_error, save_io_error and
+save_workspace_error. Nested contracts and the 48 KiB outer cap are unchanged;
+versions1-24 keep their failure vocabularies. New save failures require passed
+tests, null summaries and private_run_saved=false. A finalized save followed by
+a console failure retains private_run_saved=true with unexpected_error.
+
+Review9 now allows 160 MiB JSON / 192 MiB HTML to reserve the existing bounded
+32 MiB condition companion alongside earlier evidence. Review1-8 retain their
+prior budgets. Review/manifest/condition schemas remain 9/12/1. See
+[save failure evidence](../reviews/SAVE_FAILURE_REVIEW.md).
+
+
 Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
 
-## Current CPT access contract (2026-10-15)
+## Current condition contract (2026-10-15)
+
+Private condition schema1 (`condition-analysis-1`) authenticates the full prior
+relationship1/rung1/access4/calculation2 and source evidence chain. Ordered DAG
+nodes preserve rung entry, predicate occurrences, ALL/ANY joins and opaque
+instruction transfers without expanding combinations or merging repeated reads.
+Each OTE/OTL/OTU record retains its incoming guard, normal-scan action and separate
+target status. No source values are evaluated and no final runtime result is
+claimed. Binding gaps and unmodeled transfer behavior remain distinct.
+
+Optional review9/manifest12 adds `boolean-conditions.json` as artifact16 while
+retaining the fourteen earlier non-HTML artifact bytes. All prior optional paths
+remain available. Private evidence is capped at 32 MiB with incremental record/ID
+budgets and native-only serialization; review9 allows 160 MiB JSON / 192 MiB HTML
+caps. Public condition summary1 contains closed counts only, capped at 4 KiB.
+
+Work24/25 reconcile those counts against source, opcode, rung and relationship
+populations. No names, graph IDs, operands, guard text or addresses enter that
+summary. Work22-25 permit 48 KiB outer reports; work1-21 retain 32 KiB. The normal
+runner commits only its new validated feedback file locally; Git network
+synchronization stays manual. See [condition review](../reviews/CONDITION_REVIEW.md).
+
+## Historical relationship contract (2026-10-15)
+
+Private relationship schema1 (`relationship-analysis-1`) authenticates snapshot,
+inventory, references, access4, calculation2 and rung-analysis1. Exact final-root
+and expanded suffix identities retain source spelling; invalid composed suffixes
+stay separate gaps. Address records hold source operand IDs by role and CPT read
+node IDs, with deduplicated rung/instruction memberships. Unknown roles never
+become reads/writes. No Cartesian writer-reader expansion is stored.
+
+Possible local links are limited to eligible contiguous unbranched instructions;
+reads precede writes and another write to the same root invalidates older member
+candidates. Operand-reuse patterns preserve branch shape, opcode/arity/roles,
+root reuse, exact suffix spelling, constants and CPT structure. Snapshot IDs,
+representatives and memberships are evidence, not persistent correction keys or
+proof of equivalent behavior. Execution and overlap analysis remain unimplemented.
+
+Optional review8/manifest11 adds `relationships.json` as artifact15. This path
+requires all prior companions and preserves thirteen older non-HTML artifact
+bytes. All optional older review/manifest paths remain available. The private
+companion permits 32 MiB, with incremental record/link/suffix budgets and native
+JSON types only; review8 retains the 128 MiB JSON / 160 MiB HTML limits.
+
+Work23 requires closed count-only `analysis.relationship_summary` schema1
+(maximum 6 KiB). Source counts, binding populations, identities, pattern coverage,
+branch populations and local links are cross-checked against existing summaries.
+No names, IDs, suffixes, rung bodies or pattern templates enter the public summary.
+Work22 and23 permit a 48 KiB outer report, including publisher admission; work1-21
+retain 32 KiB. Earlier contracts and historical report replay remain strict.
+See [relationship review](../reviews/RELATIONSHIP_REVIEW.md).
+
+## Historical rung-analysis contract (2026-10-15)
+
+Rung-analysis1 / rung-analysis-1 authenticates snapshot/inventory/references,
+access4 and calculation2 before deriving every rung and captured block. Records
+link structural endpoints, branch/empty paths, separate source/CPT uses,
+metadata gaps and unreviewed multi-label candidates with rule/evidence IDs.
+No execution simulation, physical-channel typing, dead-code proof or confirmed
+equipment/loop count is claimed. Snapshot IDs are not durable correction IDs.
+
+Optional review7 / manifest10 adds rung-analysis.json as the fourteenth hashed
+artifact. The private companion allows 32 MiB, bounded records/evidence links
+and a shared hint-text scan budget. Review retains the existing 128 MiB JSON /
+160 MiB HTML caps. Omitting the new companion retains older replay paths.
+
+Rung summary1 has fixed vocabularies/counts only and a 4 KiB cap. Work22 reconciles
+its populations with the existing summaries and allows 48 KiB for the complete
+report, including the actual publisher. Work1-21 remain capped at 32 KiB.
+Existing companion schemas and bytes remain unchanged. See
+[RUNG_ANALYSIS_REVIEW.md](../reviews/RUNG_ANALYSIS_REVIEW.md).
+
+## Historical CPT access contract (2026-10-15)
 
 Access4 / instruction-access-4 requires the snapshot and canonical calculation2
 companion. Exact two-slot nonempty CPTs classify a destination write and an
@@ -885,7 +1036,7 @@ Include:
 - source references and relevant context;
 - proposed English, alternatives, uncertain tokens, and reason for abstention;
 - model/provider, prompt/glossary version, input digest, response provenance;
-- estimated confidence percent (0–100 or null);
+- estimated confidence percent (0-100 or null);
 - confidence basis (`model_estimate`, `rule_score`, `calibrated`, or unavailable);
 - status: proposed / unresolved / approved / corrected / rejected / deferred;
 - final reviewer-approved English and reviewer comment.

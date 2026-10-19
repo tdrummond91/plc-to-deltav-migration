@@ -2,6 +2,41 @@
 
 Prepared: 2026-10-08, planning revision 0.2.
 
+## Current save repair checkpoint (2026-10-15)
+
+See [save-failure validation](docs/reviews/SAVE_FAILURE_REVIEW.md). The new work
+return passed its tests but did not supply condition coverage. The repair adds
+versioned report headroom and fixed failure categories; another normal run is
+needed before claiming private-source success.
+
+## Historical condition checkpoint (2026-10-15)
+
+See the [condition validation record](docs/reviews/CONDITION_REVIEW.md) for
+canonical evidence, private/public bounds, historical compatibility, independent
+review, browser checks, scale testing and actual isolated launcher runs. The
+latest real return `f7d91f0` confirms the prior relationship bundle with 821
+application cases (one expected skip) and 139 helpers. The next run measures
+conditional-output coverage; team feedback has not started.
+
+## Historical relationship checkpoint (2026-10-15)
+
+See the [relationship validation record](docs/reviews/RELATIONSHIP_REVIEW.md)
+for independent review, canonical artifact and summary comparisons, actual
+isolated Bash runs, historical report replay, browser checks and scale evidence.
+The latest real return `4a3406b` confirms the prior rung-analysis bundle with
+778 application cases (one expected skip) and 139 helpers. Team review has not
+started; the next run supplies automated relationship coverage.
+
+## Historical rung-analysis checkpoint (2026-10-15)
+
+The [rung-analysis validation record](docs/reviews/RUNG_ANALYSIS_REVIEW.md)
+records the full development suite, independent review, final UI checks, two
+actual isolated launcher runs, fourteen artifact hashes, legacy byte comparisons,
+historical report replay and browser/scale checks. Work-machine pushes are
+automated run results; team engineering feedback has not started. Follow the
+[Phase 1 completion gate](docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md) before
+requesting that review.
+
 ## Completed checks
 
 - Inspected the copied project's root and both ignore files read-only. Expected folders were present; no .git directory was present at that inspection.
