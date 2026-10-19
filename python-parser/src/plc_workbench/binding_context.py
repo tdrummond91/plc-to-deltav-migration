@@ -213,7 +213,7 @@ def analyze_binding_context(snapshot: SourceSnapshot, inventory: InventoryResult
     try:
         validate_conditions(snapshot, inventory, references, access, calculations, rung_analysis,
                             relationships, conditions)
-        if conditions.schema_version not in (2, 3) or access.schema_version != 4:
+        if conditions.schema_version not in (2, 3, 4, 5, 6) or access.schema_version != 4:
             _invalid()
         result = _derive(inventory, references, access, relationships, conditions)
         render_binding_context_json(result)

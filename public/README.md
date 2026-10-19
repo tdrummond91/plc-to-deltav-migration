@@ -1,11 +1,20 @@
 # Portable development materials
 
+Current checkpoint: [C14 validated; reports ready for review](docs/reviews/PHASE_1_READINESS_REVIEW.md).
+Use the [completion tracker](docs/planning/PRE_TEAM_REVIEW_TRACKER.md) for the
+remaining estimate and the [report guide](docs/reviews/REPORT_REVIEW_GUIDE.md)
+for navigation. The automated pre-review gate is complete for this export.
+Open the existing private report for readability, appearance and engineering
+feedback; no new normal work-machine run is requested.
+
+Historical signal and alarm checkpoints:
+
 Signal4 adds saved guard dependencies and bounded source trails across rungs.
 Search alarm/equipment/sensor wording, follow upstream writers or downstream
 guards, and inspect branches, cycles and explicit stop boundaries.
 See [scope and validation](docs/reviews/SIGNAL_DEPENDENCIES_REVIEW.md).
 
-Latest analysis bundle: [explicit alarm source evidence](docs/reviews/ALARM_EVIDENCE_REVIEW.md)
+Earlier analysis bundle: [explicit alarm source evidence](docs/reviews/ALARM_EVIDENCE_REVIEW.md)
 and its [invented report](examples/alarm-evidence-review-demo.html). This adds
 source declarations and configuration alongside the existing ladder, signal,
 PID, calculation and sequence views. Automated Phase 1 development continues.
@@ -39,8 +48,9 @@ read-only inventory, reference, SFC and offline engineering-review CLI commands
 are implemented. Editable engineering records, PCSD and FHX generation remain
 planned. Download/open the invented HTML demonstration in a browser to explore
 the report interface; GitHub's source view does not execute its navigation.
-Manual source or interface review can wait until you are ready; current parser
-development needs only the generated work-machine feedback at each run boundary.
+The current source-analysis reports are ready for review. Preserve report/run
+and record IDs with feedback; the report does not yet store corrections across
+changing source exports.
 
 Edit this material deliberately as development advances. Do not direct production report output here. A file being in public/ does not automatically make it suitable for publication; review new content before committing.
 

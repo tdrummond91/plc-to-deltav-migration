@@ -18,7 +18,10 @@ from .targeted_samples import MAX_BYTES, REQUEST_ID, render_targeted_samples_jso
 
 MAX_HISTORY_FILES = 512
 MAX_HISTORY_BYTES = 32 * 1024 * 1024
-MAX_WORK_REPORT_BYTES = 64 * 1024
+# Pre-parse envelope tracks the current work-check format; a regression guard
+# compares this with its current versioned cap. Older raw file caps remain in
+# force after validation, including whitespace omitted by canonical rendering.
+MAX_WORK_REPORT_BYTES = 144 * 1024
 
 
 class TargetedSampleHistoryError(ValueError):
@@ -104,7 +107,7 @@ def _read(path: Path, limit: int) -> tuple[dict, int]:
 
 
 def _history(root: Path) -> tuple[dict | None, bool]:
-    from .work_check import validate_work_check_report
+    from .work_check import _report_limit, validate_work_check_report
     directory = root / 'public' / 'inspection'
     if not _safe(directory, directory=True, missing=True):
         return None, False
@@ -126,6 +129,8 @@ def _history(root: Path) -> tuple[dict | None, bool]:
         if total_bytes > MAX_HISTORY_BYTES:
             _invalid()
         validate_work_check_report(report)
+        if size > _report_limit(report['schema_version']):
+            _invalid()
         if report['schema_version'] < 28:
             continue
         envelope = report['targeted_samples']

@@ -9,13 +9,71 @@ from plc_workbench.engineering_assemblies import GROUP_BYTES, build_engineering_
 from plc_workbench.engineering_assemblies_summary import (EngineeringAssembliesSummaryError,
     MAX_REPORT_BYTES, build_engineering_assemblies_summary,
     render_engineering_assemblies_summary, validate_engineering_assemblies_summary)
-from test_engineering_assemblies import empty, provider_data
+from test_engineering_assemblies import empty, provider_data, supplemental_data
 
 
 class EngineeringAssembliesSummaryTests(unittest.TestCase):
     def summary(self) -> dict:
         return build_engineering_assemblies_summary(build_engineering_assemblies(provider_data()),
             {'commit': 'a' * 40, 'worktree': 'clean'})
+
+    def summary2(self) -> dict:
+        return build_engineering_assemblies_summary(
+            build_engineering_assemblies(supplemental_data(), schema_version=2))
+
+    def test_schema2_closed_exclusion_cross_tab_and_supplemental_count_are_source_free(self) -> None:
+        summary = self.summary2()
+        rendered = render_engineering_assemblies_summary(summary)
+        self.assertEqual(summary['schema_version'], 2)
+        self.assertEqual(summary['analyzer_version'], 'engineering-assemblies-2')
+        self.assertEqual(summary['exporter_version'], 'engineering-assemblies-summary-2')
+        self.assertEqual(summary['coverage']['supplemental_addresses_total'], 5)
+        self.assertEqual(summary['coverage']['excluded_by_provider_reason']['sfc_context']['binding_or_namespace'], 1)
+        self.assertEqual(summary['coverage']['excluded_by_provider_reason']['file_operations']['dynamic_address'], 1)
+        for forbidden in ('PRIVATE', 'synthetic-snapshot', 'sfc_reference_', '.FileOnly', 'relationship_address_'):
+            self.assertNotIn(forbidden, rendered)
+        self.assertEqual(json.loads(rendered), summary)
+
+    def test_schema2_cross_tab_cannot_disagree_with_either_exclusion_marginal(self) -> None:
+        mutations = (
+            lambda c: c['excluded_by_provider_reason']['sfc_context'].update(binding_or_namespace=0),
+            lambda c: c['excluded_by_provider_reason']['sfc_context'].update(PRIVATE_EXTRA=1),
+            lambda c: c['excluded_by_provider_reason'].update(PRIVATE_EXTRA={}),
+            lambda c: c['excluded_by_provider_reason']['sfc_context'].update(binding_or_namespace=True),
+            lambda c: c.update(supplemental_addresses_total=True),
+            lambda c: c.update(supplemental_addresses_total=c['groups_total'] + 1),
+        )
+        for index, mutate in enumerate(mutations):
+            summary = self.summary2()
+            mutate(summary['coverage'])
+            with self.subTest(index=index), self.assertRaises(EngineeringAssembliesSummaryError):
+                validate_engineering_assemblies_summary(summary)
+        summary = self.summary2()
+        cross_tab = summary['coverage']['excluded_by_provider_reason']
+        cross_tab['sfc_context']['binding_or_namespace'] = 0
+        cross_tab['sfc_context']['dynamic_address'] = 1
+        with self.assertRaises(EngineeringAssembliesSummaryError):
+            validate_engineering_assemblies_summary(summary)
+
+    def test_versioned_coverage_contracts_reject_mixed_schemas(self) -> None:
+        for original, coverage in ((self.summary(), self.summary2()['coverage']),
+                (self.summary2(), self.summary()['coverage'])):
+            original['coverage'] = coverage
+            with self.assertRaises(EngineeringAssembliesSummaryError):
+                validate_engineering_assemblies_summary(original)
+        empty2 = build_engineering_assemblies_summary(build_engineering_assemblies(empty(), schema_version=2))
+        self.assertEqual(empty2['status'], 'complete')
+        self.assertEqual(empty2['coverage']['supplemental_addresses_total'], 0)
+
+    def test_schema2_maximum_width_count_envelope_stays_within_existing_budget(self) -> None:
+        def grow(value):
+            if type(value) is int:
+                return 10**12
+            if type(value) is dict:
+                return {key: grow(item) for key, item in value.items()}
+            return value
+        result = json.dumps(grow(self.summary2()), sort_keys=True, indent=2) + '\n'
+        self.assertLess(len(result.encode('utf-8')), MAX_REPORT_BYTES)
 
     def test_summary_contains_only_closed_counts_and_revision_and_fits_budget(self) -> None:
         summary = self.summary()

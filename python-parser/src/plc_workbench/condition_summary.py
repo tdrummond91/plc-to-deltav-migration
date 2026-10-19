@@ -19,6 +19,7 @@ from .relationships import RelationshipResult
 from .rung_analysis import RungAnalysisResult
 
 MAX_REPORT_BYTES = 4 * 1024
+MAX_REPORT_V4_BYTES = 8 * 1024
 MAX_COUNT = 10**12
 CONSTANTS = {
     **CONDITION_CONSTANTS, 'policy_version': 2, 'report_kind': 'l5x_condition_summary',
@@ -116,7 +117,7 @@ def validate_condition_summary(summary: dict[str, Any]) -> None:
             or stateful_outputs > outputs
             or (stateful_outputs and not stateful)
             or (guards['binding_gaps'] and not (c['binding_gap_predicates'] or stateful_gaps))
-            or (version == 3 and not c['binding_gap_predicates']
+            or (version >= 3 and not c['binding_gap_predicates']
                 and guards['binding_gaps'] > stateful_outputs)
             or (guards['opaque'] and not opaque)
             or c['outputs_with_branches'] > outputs
@@ -128,6 +129,28 @@ def validate_condition_summary(summary: dict[str, Any]) -> None:
             or (not operands and expressions)
             or predicates + passes + stateful + actions['recognized'] > operands):
         _invalid()
+    if version >= 4:
+        transfers, contributors = c['opaque_opcodes'], c['opaque_guard_opcodes']
+        if (sum(transfers.values()) != opaque
+                or any(value > guards['opaque'] or (value and not transfers[opcode])
+                       for opcode, value in contributors.items())
+                or sum(contributors.values()) < guards['opaque']):
+            _invalid()
+    if version >= 5:
+        statuses = c['aoi_identity_statuses']
+        if (statuses['modeled'] != c['passthrough_opcodes']['custom']
+                or sum(statuses.values()) - statuses['modeled'] != c['opaque_opcodes']['withheld']):
+            _invalid()
+        gsv = c['gsv_signature_statuses']
+        if (gsv['modeled'] != c['passthrough_opcodes']['GSV']
+                or sum(gsv.values()) - gsv['modeled'] != c['opaque_opcodes']['GSV']
+                or gsv['namespace'] > c['opaque_reasons']['source_unqualified']
+                or sum(gsv.values()) - gsv['modeled'] - gsv['namespace'] > c['opaque_reasons']['signature_unresolved']):
+            _invalid()
+    if version >= 6:
+        if (sum(c['aoi_body_gap_reasons'].values()) != c['aoi_identity_statuses']['body_unqualified']
+                or sum(c['gsv_instance_gap_forms'].values()) != c['gsv_signature_statuses']['instance_syntax']):
+            _invalid()
     partial = bool(unparsed or opaque or c['binding_gap_predicates'] or stateful_gaps
                    or outputs != targets['exact_address'])
     if summary['status'] != ('partial' if partial else 'complete'):
@@ -151,7 +174,9 @@ def build_condition_summary(snapshot: SourceSnapshot, inventory: InventoryResult
 
 def render_condition_summary(summary: dict[str, Any]) -> str:
     validate_condition_summary(summary)
-    rendered = json.dumps(summary, ensure_ascii=True, sort_keys=True, indent=2) + '\n'
-    if len(rendered) > MAX_REPORT_BYTES:
+    rendered = json.dumps(summary, ensure_ascii=True, sort_keys=True,
+                          indent=1 if summary['schema_version'] >= 5 else 2) + '\n'
+    limit = MAX_REPORT_V4_BYTES if summary['schema_version'] >= 4 else MAX_REPORT_BYTES
+    if len(rendered) > limit:
         _invalid()
     return rendered

@@ -8,9 +8,13 @@ import unittest
 from unittest.mock import Mock, patch
 
 from plc_workbench import targeted_sample_history as history
+from plc_workbench import work_check
 from plc_workbench.work_check import render_work_check_report
 from plc_workbench.targeted_samples import MAX_BYTES, REQUEST_ID, render_targeted_samples_json
 from test_targeted_sample_workflow import record, report
+from test_rack_backing_context_workflow import report as current_report
+from test_control_interpretation_workflow import report as previous_report
+from test_save_diagnostics import failed_report
 
 
 def journal(root: Path) -> Path:
@@ -51,6 +55,66 @@ class TargetedSampleHistoryTests(unittest.TestCase):
             self.assertEqual(outcome, history.sample_envelope('replayed', record()))
             self.assertEqual(json.loads(journal(root).read_bytes()), record())
             builder.assert_not_called()
+
+    def test_history_read_envelope_matches_current_work_report_budget(self) -> None:
+        self.assertEqual(history.MAX_WORK_REPORT_BYTES,
+                         work_check._report_limit(work_check._CONSTANTS['schema_version']))
+        self.assertEqual(history.MAX_HISTORY_FILES, 512)
+        self.assertEqual(history.MAX_HISTORY_BYTES, 32 * 1024 * 1024)
+
+    def test_current_report_above_64k_replays_original_frozen_record_without_selection(self) -> None:
+        payload = current_report()
+        expected = payload['targeted_samples']['record']
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            path = publish(root, payload)
+            original = path.read_bytes()
+            self.assertGreater(len(original), 64 * 1024)
+            self.assertLessEqual(len(original), history.MAX_WORK_REPORT_BYTES)
+            builder = Mock(side_effect=AssertionError('No new selection.'))
+            for _ in range(2):
+                self.assertEqual(history.resolve_targeted_samples(root, builder),
+                                 history.sample_envelope('replayed', expected))
+                self.assertEqual(json.loads(journal(root).read_bytes()), expected)
+                self.assertEqual(path.read_bytes(), original)
+            builder.assert_not_called()
+
+    def test_historical_versions_reject_raw_files_above_their_own_budgets(self) -> None:
+        for payload in (failed_report(1), report(), previous_report()):
+            version = payload['schema_version']
+            encoded = render_work_check_report(payload).encode('utf-8')
+            content = encoded + b' ' * (work_check._report_limit(version) + 1 - len(encoded))
+            self.assertLess(len(content), history.MAX_WORK_REPORT_BYTES)
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder).resolve()
+                path = root / 'public/inspection/work-check-padded.json'
+                path.parent.mkdir(parents=True)
+                path.write_bytes(content)
+                builder = Mock(side_effect=AssertionError('No new selection.'))
+                self.assertEqual(history.resolve_targeted_samples(root, builder),
+                                 history.sample_envelope('unavailable'))
+                self.assertFalse(journal(root).exists())
+                self.assertEqual(path.read_bytes(), content)
+                builder.assert_not_called()
+
+    def test_current_raw_file_at_limit_replays_but_over_limit_fails_closed(self) -> None:
+        payload = current_report()
+        expected = payload['targeted_samples']['record']
+        encoded = render_work_check_report(payload).encode('utf-8')
+        for extra in (0, 1):
+            content = encoded + b' ' * (history.MAX_WORK_REPORT_BYTES + extra - len(encoded))
+            with self.subTest(extra=extra), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder).resolve()
+                path = root / 'public/inspection/work-check-current.json'
+                path.parent.mkdir(parents=True)
+                path.write_bytes(content)
+                builder = Mock(side_effect=AssertionError('No new selection.'))
+                outcome = history.resolve_targeted_samples(root, builder)
+                self.assertEqual(outcome, history.sample_envelope('unavailable') if extra
+                                 else history.sample_envelope('replayed', expected))
+                self.assertEqual(journal(root).exists(), not extra)
+                self.assertEqual(path.read_bytes(), content)
+                builder.assert_not_called()
 
     def test_identical_public_replays_and_local_reservation_agree(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

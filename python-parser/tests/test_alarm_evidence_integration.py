@@ -209,7 +209,7 @@ class AlarmEvidenceIntegrationTests(unittest.TestCase):
             self.assertEqual(save.call_args.kwargs['alarm_evidence'], captured()[26])
             saved, = (root/'runs').iterdir()
             self.assertEqual((saved/'snapshot.L5X').read_bytes(), SOURCE)
-            from test_engineering_assemblies_workflow import captured as latest_captured, options as latest_options
+            from test_engineering_assemblies_rack_workflow import captured as latest_captured, options as latest_options
             latest = latest_captured(SOURCE)
             current = review.build_review_data(*latest[:4], **latest_options(latest))
             self.assertEqual((saved/'review.html').read_bytes(), review_html.render_review_html(current).encode())

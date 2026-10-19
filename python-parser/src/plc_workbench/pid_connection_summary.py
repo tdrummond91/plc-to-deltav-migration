@@ -13,6 +13,7 @@ from .models import InventoryResult, SourceSnapshot
 from .pid import PidResult
 from .pid_connections import (COUNT_MAPS, COVERAGE_KEYS, MAX_PID_CONNECTION_BYTES,
     MAX_PID_CONNECTION_JSON_BYTES, MAX_PID_CONNECTION_RECORDS, PID_CONNECTION_CONSTANTS,
+    PID_CONNECTION_CONSTANTS_V2,
     PidConnectionResult, _partial, validate_pid_connections)
 from .pid_members import PidMemberResult
 from .references import ReferenceResult
@@ -24,6 +25,8 @@ MAX_REPORT_BYTES = 4096
 CONSTANTS = {**PID_CONNECTION_CONSTANTS, 'policy_version': 2,
     'report_kind': 'l5x_pid_connection_review_summary',
     'exporter_version': 'pid-connection-summary-1', 'sharing_status': 'aggregate_sync_allowed'}
+CONSTANTS_V2 = {**CONSTANTS, **PID_CONNECTION_CONSTANTS_V2,
+                'exporter_version': 'pid-connection-summary-2'}
 
 
 class PidConnectionSummaryError(ValueError):
@@ -42,7 +45,10 @@ def _keys(value: Any, expected: set[str] | frozenset[str]) -> None:
 def validate_pid_connection_summary(summary: dict[str, Any]) -> None:
     """Enforce closed vocabulary, disjoint partitions and conservative capacities."""
     _keys(summary, set(CONSTANTS) | {'status', 'tool_revision', 'coverage'})
-    for key, value in CONSTANTS.items():
+    if type(summary['schema_version']) is not int or summary['schema_version'] not in (1, 2):
+        _invalid()
+    constants = CONSTANTS_V2 if summary['schema_version'] == 2 else CONSTANTS
+    for key, value in constants.items():
         if type(summary[key]) is not type(value) or summary[key] != value:
             _invalid()
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
@@ -126,7 +132,8 @@ def build_pid_connection_summary(snapshot: SourceSnapshot, inventory: InventoryR
     try:
         validate_pid_connections(snapshot, inventory, references, access, calculations,
             rung_analysis, relationships, conditions, tag_data, pid, pid_members, result)
-        summary = {**CONSTANTS, 'status': result.status, 'coverage': deepcopy(result.coverage),
+        constants = CONSTANTS_V2 if result.schema_version == 2 else CONSTANTS
+        summary = {**constants, 'status': result.status, 'coverage': deepcopy(result.coverage),
                    'tool_revision': dict(revision) if revision is not None else
                    {'commit': None, 'worktree': 'unavailable'}}
         render_pid_connection_summary(summary)

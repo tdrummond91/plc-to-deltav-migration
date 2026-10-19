@@ -17,7 +17,7 @@ from .access import AccessResult
 from .calculations import CalculationResult
 from .conditions import ConditionResult, validate_conditions
 from .execution_context import (ExecutionContextResult, _derive as _execution_derive,
-    render_execution_context_json)
+    render_execution_context_json, _with_boundaries as _execution_boundaries)
 from .models import InventoryResult, SourceSnapshot
 from .output_context import (BooleanOutputContextResult, _derive as _output_derive,
     _provenance, render_output_context_json)
@@ -407,7 +407,7 @@ def analyze_signal_context(snapshot: SourceSnapshot, inventory: InventoryResult,
     """Authenticate the common chain once and replay each companion derivation."""
     try:
         constants = signal_context_constants(schema_version)
-        if type(conditions) is not ConditionResult or type(conditions.schema_version) is not int or conditions.schema_version != 3:
+        if type(conditions) is not ConditionResult or type(conditions.schema_version) is not int or conditions.schema_version not in (3, 4, 5, 6):
             _invalid()
         validate_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
         validate_tag_data(snapshot, inventory, tag_data)
@@ -417,7 +417,11 @@ def analyze_signal_context(snapshot: SourceSnapshot, inventory: InventoryResult,
             (stateful_objects, StatefulObjectResult, render_stateful_objects_json,
              lambda: _stateful_derive(snapshot, inventory, access, relationships, conditions, tag_data)),
             (execution_context, ExecutionContextResult, render_execution_context_json,
-             lambda: _execution_derive(snapshot, inventory, references, access, conditions)),
+             lambda: (_execution_boundaries(snapshot, inventory, references,
+                 _execution_derive(snapshot, inventory, references, access, conditions),
+                 schema_version=execution_context.schema_version)
+                 if execution_context.schema_version >= 2 else
+                 _execution_derive(snapshot, inventory, references, access, conditions))),
         )
         for supplied, expected_type, render, derive in companions:
             if type(supplied) is not expected_type:

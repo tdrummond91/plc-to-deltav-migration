@@ -10,6 +10,8 @@ from unittest.mock import patch
 
 from plc_workbench.engineering_assemblies import (EngineeringAssembliesError,
     FLAGS, GROUP_BYTES, MAX_ENGINEERING_ASSEMBLIES_BYTES, PROVIDERS, build_engineering_assemblies)
+from plc_workbench.relationships import _identifier
+from plc_workbench.references import MAX_ADDRESS_LENGTH
 from test_signal_candidates_workflow import captured, options
 
 SOURCE = Path(__file__).resolve().parents[2] / 'public/fixtures/synthetic/engineering_assemblies_demo.L5X'
@@ -30,7 +32,174 @@ def rows(result: dict, relation: str) -> list[dict]:
     return [row for row in result['memberships'] if row['relation'] == relation]
 
 
+def supplemental_data() -> dict:
+    """Invented static provider rows with no legacy relationship address."""
+    data = empty()
+    for provider in ('relationships', 'sfc_context', 'file_operations'):
+        data[provider]['snapshot'] = {'id': 'synthetic-snapshot'}
+    addresses, references = [], []
+    for index, suffix in enumerate(('', '.Flag', '[01].Flag', '[1].Flag', '.Flag')):
+        address = _identifier('sfc_context_address_', 'synthetic-snapshot', 'PRIVATE_TARGET', suffix)
+        if all(row['id'] != address for row in addresses):
+            addresses.append({'id': address, 'target_id': 'PRIVATE_TARGET', 'suffix': suffix,
+                'relationship_address_id': None})
+        references.append({'id': f'sfc_reference_{index}', 'address_id': address,
+            'status': 'exact_address', 'binding_status': 'root_bound'})
+    references.append({'id': 'sfc_gap', 'status': 'binding_gap'})
+    data['sfc_context'].update(addresses=addresses, references=references)
+    data['file_operations']['occurrences'] = [{'id': 'file_instruction', 'rung_id': 'file_rung',
+        'qualification': 'qualified', 'context_status': 'modeled'}]
+    slots = []
+    for index, suffix in enumerate(('.Flag', '.FileOnly')):
+        slots.append({'id': f'file_slot_{index}', 'instruction_id': 'file_instruction', 'rung_id': 'file_rung',
+            'status': 'exact_address', 'role': 'read',
+            'address_id': _identifier('relationship_address_', 'synthetic-snapshot', 'PRIVATE_TARGET', suffix),
+            'binding': {'status': 'root_bound', 'target_id': 'PRIVATE_TARGET', 'suffix': suffix}})
+    slots.append({'id': 'file_dynamic', 'instruction_id': 'file_instruction', 'status': 'symbolic_address'})
+    data['file_operations']['slots'] = slots
+    return data
+
+
 class EngineeringAssembliesTests(unittest.TestCase):
+    def test_schema2_accepts_canonical_alias_suffix_at_inclusive_length_limit(self) -> None:
+        half = MAX_ADDRESS_LENGTH // 2 - 1
+        aliases = (b'<Tag Name="AliasA" TagType="Alias" AliasFor="Pump.' + b'A' * half
+            + b'"/><Tag Name="AliasB" TagType="Alias" AliasFor="AliasA.' + b'B' * half + b'"/>')
+        source = SOURCE.read_bytes().replace(b'<Tag Name="Permit"', aliases + b'<Tag Name="Permit"', 1)
+        source = source.replace(b'Pump AND State.X', b'AliasB AND State.X')
+        data = provider_data(source)
+        exact = next(row for row in data['sfc_context']['addresses'] if len(row['suffix']) == MAX_ADDRESS_LENGTH)
+        self.assertIsNone(exact['relationship_address_id'])
+        result = build_engineering_assemblies(data, schema_version=2)
+        supplemental = next(row for row in result['supplemental_addresses'] if row['suffix'] == exact['suffix'])
+        self.assertEqual(supplemental['target_id'], exact['target_id'])
+        self.assertTrue(any(row['group_id'] == supplemental['id'] for row in rows(result, 'sfc_reference')))
+        self.assertEqual(result['scan_status'], 'complete')
+
+    def test_schema2_canonical_sfc_and_fal_only_addresses_join_without_changing_providers(self) -> None:
+        source = SOURCE.read_bytes().replace(b'Pump AND State.X',
+            b'Control.DN AND Counter.DN AND MissingName').replace(
+                b'AVE(Samples[0],0,Scaled,Control,?,?);',
+                b'FAL(Control,?,?,ALL,Scaled,Counter.ACC+Samples[Index]);')
+        data = provider_data(source)
+        before = deepcopy(data)
+        legacy = build_engineering_assemblies(data)
+        current = build_engineering_assemblies(data, schema_version=2)
+        self.assertEqual(data, before)
+        self.assertEqual(legacy['coverage']['excluded_by_reason']['missing_address'], 4)
+        self.assertEqual(current['coverage']['excluded_by_reason']['missing_address'], 0)
+        self.assertEqual(current['coverage']['supplemental_addresses_total'], 4)
+        self.assertEqual(current['coverage']['memberships_by_provider']['sfc_context'], 2)
+        self.assertEqual(current['coverage']['memberships_by_provider']['file_operations'], 3)
+        self.assertEqual(current['coverage']['excluded_by_provider_reason']['sfc_context']['binding_or_namespace'], 1)
+        self.assertEqual(current['coverage']['excluded_by_provider_reason']['file_operations']['dynamic_address'], 1)
+        self.assertFalse({row['id'] for row in current['supplemental_addresses']}
+            & {row['id'] for row in data['relationships']['addresses']})
+        for provider in PROVIDERS - {'sfc_context', 'file_operations'}:
+            old_rows = [{key: value for key, value in row.items() if key != 'id'}
+                for row in legacy['memberships'] if row['provider'] == provider]
+            new_rows = [{key: value for key, value in row.items() if key != 'id'}
+                for row in current['memberships'] if row['provider'] == provider]
+            self.assertEqual(old_rows, new_rows)
+
+    def test_schema2_supplements_only_qualified_static_provider_identities(self) -> None:
+        data = supplemental_data()
+        before = deepcopy(data)
+        legacy = build_engineering_assemblies(data)
+        result = build_engineering_assemblies(data, schema_version=2)
+        self.assertEqual(data, before)
+        self.assertEqual(legacy, build_engineering_assemblies(data, schema_version=1))
+        self.assertNotIn('supplemental_addresses', legacy)
+        self.assertEqual(legacy['coverage']['excluded_by_reason']['missing_address'], 7)
+        self.assertEqual(result['analyzer_version'], 'engineering-assemblies-2')
+        self.assertEqual(result['coverage']['supplemental_addresses_total'], 5)
+        self.assertEqual(result['coverage']['memberships_by_provider']['sfc_context'], 5)
+        self.assertEqual(result['coverage']['memberships_by_provider']['file_operations'], 2)
+        self.assertEqual(result['coverage']['excluded_by_reason']['missing_address'], 0)
+        self.assertEqual(result['coverage']['excluded_total'], 2)
+        self.assertEqual(result['coverage']['excluded_by_provider_reason']['sfc_context']['binding_or_namespace'], 1)
+        self.assertEqual(result['coverage']['excluded_by_provider_reason']['file_operations']['dynamic_address'], 1)
+        self.assertEqual(result['coverage']['multiprovider_groups'], 1)
+        self.assertEqual({row['suffix'] for row in result['supplemental_addresses']},
+            {'', '.Flag', '[01].Flag', '[1].Flag', '.FileOnly'})
+        for row in result['supplemental_addresses']:
+            self.assertEqual(set(row), {'id', 'target_id', 'suffix'})
+            self.assertEqual(row['id'], _identifier('relationship_address_', 'synthetic-snapshot', row['target_id'], row['suffix']))
+        self.assertEqual(result, build_engineering_assemblies(data, schema_version=2))
+
+    def test_schema2_rejects_tampered_identity_snapshot_and_binding_without_disclosure(self) -> None:
+        mutations = (
+            lambda data: data['file_operations']['snapshot'].update(id='PRIVATE_OTHER_SNAPSHOT'),
+            lambda data: data['sfc_context']['snapshot'].update(id='PRIVATE_OTHER_SNAPSHOT'),
+            lambda data: data['sfc_context']['addresses'][0].update(relationship_address_id='PRIVATE_FORGED'),
+            lambda data: data['sfc_context']['addresses'][0].update(id='PRIVATE_FORGED'),
+            lambda data: data['sfc_context']['addresses'][0].update(suffix='PRIVATE_ROOT'),
+            lambda data: data['sfc_context']['references'][0].update(binding_status='namespace_gap'),
+            lambda data: data['file_operations']['slots'][0].update(address_id='PRIVATE_FORGED'),
+            lambda data: data['file_operations']['slots'][0]['binding'].update(status='unresolved'),
+            lambda data: data['file_operations']['slots'][0]['binding'].update(suffix='[PRIVATE_DYNAMIC]'),
+            lambda data: data['file_operations']['slots'][0]['binding'].update(suffix=True),
+        )
+        for index, mutate in enumerate(mutations):
+            data = supplemental_data()
+            mutate(data)
+            with self.subTest(index=index), self.assertRaises(EngineeringAssembliesError) as error:
+                build_engineering_assemblies(data, schema_version=2)
+            self.assertNotIn('PRIVATE', str(error.exception))
+        for version in (True, '2', 0, 3, None):
+            with self.subTest(version=version), self.assertRaises(EngineeringAssembliesError):
+                build_engineering_assemblies(empty(), schema_version=version)
+
+    def test_schema2_reserves_supplemental_rows_atomically_with_membership(self) -> None:
+        data = supplemental_data()
+        result = build_engineering_assemblies(data, schema_version=2)
+        for limit, value in (('MAX_ASSEMBLY_MEMBERSHIPS', 1), ('MAX_ASSEMBLY_GROUPS', 1),
+                ('MAX_ASSEMBLY_VISITS', 6), ('MAX_ENGINEERING_ASSEMBLIES_BYTES', result['budget']['retained_bytes'] - 1)):
+            with self.subTest(limit=limit), patch('plc_workbench.engineering_assemblies.' + limit, value):
+                bounded = build_engineering_assemblies(data, schema_version=2)
+                self.assertEqual(bounded['scan_status'], 'truncated')
+                self.assertEqual({row['id'] for row in bounded['supplemental_addresses']},
+                    {row['id'] for row in bounded['groups']})
+                self.assertLessEqual(bounded['coverage']['visited_rows'] + bounded['coverage']['visited_links'],
+                    bounded['budget']['max_visits'])
+                self.assertLessEqual(bounded['budget']['retained_bytes'], bounded['budget']['max_bytes'])
+                self.assertLess(len(json.dumps(bounded).encode()), bounded['budget']['retained_bytes'])
+
+    def test_schema2_supplemental_record_bytes_are_charged_before_admission(self) -> None:
+        data = supplemental_data()
+        data['sfc_context'].update(addresses=[], references=[])
+        data['file_operations']['slots'] = [data['file_operations']['slots'][0]]
+        slot = data['file_operations']['slots'][0]
+        suffix = '.' + 'A' * 60_000
+        slot['binding']['suffix'] = suffix
+        slot['address_id'] = _identifier('relationship_address_', 'synthetic-snapshot', 'PRIVATE_TARGET', suffix)
+        with patch('plc_workbench.engineering_assemblies.MAX_ENGINEERING_ASSEMBLIES_BYTES', 40_000):
+            result = build_engineering_assemblies(data, schema_version=2)
+        self.assertEqual(result['scan_status'], 'truncated')
+        self.assertEqual(result['groups'], [])
+        self.assertEqual(result['memberships'], [])
+        self.assertEqual(result['supplemental_addresses'], [])
+        self.assertLessEqual(result['budget']['retained_bytes'], 40_000)
+
+    def test_schema2_projection_needs_no_process_filesystem_or_network(self) -> None:
+        data = supplemental_data()
+        with patch('builtins.open', side_effect=AssertionError('file access')), \
+                patch('subprocess.Popen', side_effect=AssertionError('process')), \
+                patch('socket.socket', side_effect=AssertionError('network')):
+            self.assertEqual(len(build_engineering_assemblies(data, schema_version=2)['supplemental_addresses']), 5)
+
+    def test_schema2_file_expressions_require_qualified_occurrence_and_static_binding(self) -> None:
+        data = supplemental_data()
+        node = deepcopy(data['file_operations']['slots'][1])
+        node.update(id='file_expression', kind='reference')
+        data['file_operations'].update(slots=[], expression_nodes=[node])
+        result = build_engineering_assemblies(data, schema_version=2)
+        self.assertEqual([row['source_id'] for row in rows(result, 'file_read')], ['file_expression'])
+        data['file_operations']['occurrences'][0]['qualification'] = 'namespace_gap'
+        result = build_engineering_assemblies(data, schema_version=2)
+        self.assertFalse(rows(result, 'file_read'))
+        self.assertEqual(result['coverage']['excluded_by_provider_reason']['file_operations']['binding_or_namespace'], 1)
+
     def test_real_provider_projection_is_pure_deterministic_and_closed(self) -> None:
         data = provider_data()
         before = deepcopy(data)

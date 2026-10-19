@@ -91,6 +91,12 @@
     const sourceId=group==='tasks'?row.task_id:group==='programs'?row.program_id:row.routine_id;
     if(['tasks','programs','routine_contexts'].includes(group)&&sourceId)byExecutionSource.set(sourceId,row.id);
   }));
+  const byExecutionContent=new Map((executionContext?.boundary_contents||[]).map(row=>[row.id,row]));
+  const byExecutionSfcDeclaration=new Map((executionContext?.sfc_declarations||[]).map(row=>[row.id,row]));
+  const byExecutionCallBoundary=new Map((executionContext?.call_boundaries||[]).map(row=>[row.call_id,row]));
+  const executionContentsByRoutine=new Map(),executionArgumentsByOccurrence=new Map();
+  (executionContext?.boundary_contents||[]).forEach(row=>add(executionContentsByRoutine,row.routine_id,row));
+  (executionContext?.argument_contexts||[]).forEach(row=>add(executionArgumentsByOccurrence,row.occurrence_id,row));
   const access = data.access || null;
   const tagData = data.tag_data || null;
   const pid = data.pid || null, pidOccurrences = pid?.occurrences || [];
@@ -108,7 +114,8 @@
   const relationships = data.relationships || null, addresses = relationships?.addresses || [];
   const engineeringAssemblies=data.engineering_assemblies||null,assemblyGroups=engineeringAssemblies?.groups||[],assemblyMemberships=engineeringAssemblies?.memberships||[];
   const byAssembly=new Map(assemblyGroups.map(g=>[g.id,g])),byAssemblyMembership=new Map(assemblyMemberships.map(m=>[m.id,m]));
-  const assemblyByInstruction=new Map();assemblyMemberships.forEach(m=>{if(m.instruction_id)add(assemblyByInstruction,m.instruction_id,m);});
+  const assemblyByInstruction=new Map(),assemblyByRelatedAddress=new Map(),assemblyByRackUse=new Map();
+  assemblyMemberships.forEach(m=>{if(m.instruction_id)add(assemblyByInstruction,m.instruction_id,m);if(m.related_address_id)add(assemblyByRelatedAddress,m.related_address_id,m);for(const id of m.rack_source_use_ids||[])add(assemblyByRackUse,id,m);});
   const ASSEMBLY_PROVIDERS={signal_context:'Boolean signals',pid_connections:'PID connections',calculation_paths:'Calculations',stateful_objects:'Timers and counters',sfc_context:'Sequence transitions',file_operations:'File and array operations'};
   const ASSEMBLY_HINT_FLAGS=new Set(['alarm_wording','equipment_wording','sensor_wording','module_input','module_output']);
   const conditions = data.conditions || null, conditionalOutputs = conditions?.outputs || [];
@@ -119,11 +126,18 @@
   const outputConditionReads=outputContext?.condition_reads||[];
   let outputConditionParents=null;
   const signalContext=data.signal_context||null,signalOutputs=signalContext?.outputs||[],signalAddresses=signalContext?.addresses||[],signalReads=signalContext?.condition_reads||[];
-  const bySignalOutput=new Map(signalOutputs.map(o=>[o.id,o])),bySignalAddress=new Map(signalAddresses.map(a=>[a.id,a]));
+  const bySignalOutput=new Map(signalOutputs.map(o=>[o.id,o])),bySignalOutputInstruction=new Map(signalOutputs.map(o=>[o.instruction_id,o])),bySignalAddress=new Map(signalAddresses.map(a=>[a.id,a]));
   const bySignalRead=new Map(signalReads.map(r=>[r.id,r])),bySignalRung=new Map((signalContext?.rung_contexts||[]).map(r=>[r.id,r]));
   const signalReadsByNode=new Map();signalReads.forEach(r=>add(signalReadsByNode,r.condition_node_id,r));
   const SIGNAL_NODE_LIMIT=5000,SIGNAL_EDGE_LIMIT=10000;
   const fileOperations=data.file_operations||null,fileOccurrences=fileOperations?.occurrences||[];
+  const communicationContext=data.communication_context||null,communicationOccurrences=communicationContext?.occurrences||[];
+  const byCommunication=new Map(communicationOccurrences.map(o=>[o.instruction_id,o]));
+  const byCommunicationParameter=new Map((communicationContext?.parameters||[]).map(p=>[p.source_id,p]));
+  const communicationEndpoints=new Map(),communicationByOwner=new Map(),communicationByRung=new Map(),tagConnectionsByOwner=new Map();
+  (communicationContext?.endpoints||[]).forEach(e=>add(communicationEndpoints,e.parameter_id,e));
+  communicationOccurrences.forEach(o=>{if(o.owner_id)add(communicationByOwner,o.owner_id,o);add(communicationByRung,o.rung_id,o);});
+  (communicationContext?.tag_connections||[]).forEach(c=>add(tagConnectionsByOwner,c.owner_id,c));
   const alarmEvidence=data.alarm_evidence||null;
   const alarmDeclarations=alarmEvidence?.declarations||[],alarmContainers=alarmEvidence?.containers||[],alarmElements=alarmEvidence?.elements||[];
   const alarmRows=[...alarmDeclarations,...alarmContainers,...alarmElements],byAlarm=new Map(alarmRows.map(r=>[r.id,r]));
@@ -183,8 +197,16 @@
   const byCandidateAddress = new Map(candidateAddresses.map(a=>[a.id,a]));
   const byRackCandidate = new Map((refs.rack_candidates?.candidates || []).map(c=>[c.source_id,c]));
   const byRackMatch = new Map([...(refs.rack_candidates?.matches?.direct_operands || []),...(refs.rack_candidates?.matches?.alias_operands || [])].map(m=>[m.source_id,m]));
+  const byReferenceSymbol=new Map((refs.symbols||[]).map(s=>[s.id,s]));
+  const rackBacking=data.rack_backing_context||null,rackBackingRoots=rackBacking?.roots||[],rackBackingAddresses=rackBacking?.addresses||[],rackBackingUses=rackBacking?.uses||[];
+  const byRackBackingRoot=new Map(rackBackingRoots.map(r=>[r.id,r])),byRackBackingCandidate=new Map(rackBackingRoots.map(r=>[r.candidate_id,r]));
+  const byRackBackingAddress=new Map(rackBackingAddresses.map(a=>[a.id,a])),byRackBackingUse=new Map(rackBackingUses.map(u=>[u.id,u]));
+  const byRackBackingSource=new Map(rackBackingUses.map(u=>[u.kind+':'+u.source_id,u])),rackBackingUsesByAddress=new Map(),rackBackingUsesByInstruction=new Map();
   const localLinks = relationships?.local_links || [], reusePatterns = relationships?.patterns || [];
   const byAddress = new Map(addresses.map(a=>[a.id,a])), byUseAddress = new Map();
+  // Supplemental addresses belong to the assembly projection only. They do
+  // not invent legacy read/write uses or alter the base relationship index.
+  const byAssemblyAddress=new Map([...addresses,...(engineeringAssemblies?.supplemental_addresses||[])].map(a=>[a.id,a]));
   const byReusePattern = new Map(reusePatterns.map(p=>[p.id,p]));
   const byRungReuse = new Map((relationships?.rung_patterns || []).map(p=>[p.rung_id,p]));
   const addressesByRoot = new Map(), linksByRung = new Map(), linksByAddress = new Map();
@@ -252,6 +274,7 @@
   const elementLinks = new Map(), elementNotes = new Map(), entityAliases = new Map();
   const routinePatterns = new Map(), entityPathCache = new Map();
   function add(map, key, row) { if (!key) return; if (!map.has(key)) map.set(key, []); map.get(key).push(row); }
+  rackBackingUses.forEach(u=>{add(rackBackingUsesByAddress,u.address_id,u);if(u.kind==='rll')add(rackBackingUsesByInstruction,byOperandAccess.get(u.source_id)?.instruction_id,u);});
   addresses.forEach(a=>{
     add(addressesByRoot,a.target_id,a);
     ['read_operand_ids','write_operand_ids','read_write_operand_ids','unknown_operand_ids','expression_use_ids'].forEach(key=>a[key].forEach(id=>byUseAddress.set(id,a)));
@@ -326,6 +349,9 @@
   headings.assemblies=['Cross-rung source groups','See exact-address evidence from signals, PID, calculations, timers and sequences together, with related rungs and unresolved context.'];
   headings.fileoperations=['File and array operations','Inspect copies, averages, file arithmetic and sequencer writes, with operand roles, symbolic ranges and unresolved evidence.'];
   headings.alarmevidence=['Alarm source evidence','Inspect explicit declarations, tag-based conditions, definition templates, messages and exported settings. These source records do not establish alarm execution or shutdown behavior.'];
+  headings.communication=['Communication source context','Connect MSG occurrences to exported control parameters and local endpoint candidates; retain remote fields and alternatives separately.'];
+  headings.residuals=['Unresolved analysis','Inspect remaining catalogue, binding and condition questions alongside the source context already captured.'];
+  headings.rackbacking=['Rack source addresses','Follow qualified exported rack declarations into captured adapter Slot members. Source correspondence remains separate from physical wiring, runtime values and the original binding model.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
   if(executionContext){labels.executioncontext='Execution context';navCounts.executioncontext=executionContext.calls.length;}
@@ -333,6 +359,7 @@
   if(engineeringAssemblies){labels.assemblies='Cross-rung groups';navCounts.assemblies=assemblyGroups.length;}
   if(fileOperations){labels.fileoperations='File and array operations';navCounts.fileoperations=fileOccurrences.length;}
   if(alarmEvidence)labels.alarmevidence='Alarm source evidence';
+  if(communicationContext){labels.communication='Communication context';navCounts.communication=communicationOccurrences.length;labels.residuals='Unresolved analysis';}
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
   if(relationships){labels.relationships='Address relationships';navCounts.relationships=addresses.length;}
   if(statefulObjects){labels.statefulobjects='Timers, counters & resets';navCounts.statefulobjects=statefulOccurrences.length;}
@@ -340,6 +367,7 @@
   if(conditions){labels.conditions=outputContext?'Boolean output context':'Conditional outputs';navCounts.conditions=conditionalOutputs.length;}
   if(instructionConditions){labels.transfers='Instruction conditions';navCounts.transfers=conditionTransfers.length;}
   if(bindingContext){labels.bindingcontext='Binding gaps & context';navCounts.bindingcontext=bindingContextGaps.length;}
+  if(rackBacking){labels.rackbacking='Rack source addresses';navCounts.rackbacking=rackBackingAddresses.length;}
   if(customContext&&indexedAccess){labels.instructioncontext='Instruction & index context';navCounts.instructioncontext=customCalls.length+indexedUses.length;}
   if(sfrContext){labels.sfrcontext='Sequence reset context';navCounts.sfrcontext=sfrCalls.length;}
   if(access){labels.access='Tag access';navCounts.access=accessRoots.length;}
@@ -467,7 +495,7 @@
     else if(byElement.has(id))openDetail('element',id);
     else if(byContent.has(id)){const c=byContent.get(id);openDetail('sfc',c.routine_id,{contentId:id});}
   }
-  function go(view) { backStack.length=0;state={view,query:'',filter:'all',detail:null,contentId:null,listPages:{}};render(true); }
+  function go(view,selection={}) { backStack.length=0;state={view,query:'',filter:'all',detail:null,contentId:null,listPages:{},...selection};render(true); }
   function goBack() { if(backStack.length){state=backStack.pop();render(true);} }
   const searchIndex = new Map();
   function searchable(row, words) { searchIndex.set(row,words.join(' ').toLocaleLowerCase()); }
@@ -504,6 +532,9 @@
   indexedUses.forEach(u=>searchable(u,[short(indexedRaw(u),200),human(u.kind),human(u.role),human(u.disposition),short(sourceName(u.rung_id),120)]));
   sfrCalls.forEach(c=>searchable(c,[short(sourceName(c.instruction_id),120),short(sourceName(c.target_routine_id),120),human(c.routine_status),human(c.chart_status),human(c.selector_kind),short(sourceName(c.rung_id),120)]));
   candidateAddresses.forEach(a=>searchable(a,[candidateAddressName(a),human(a.profile)]));
+  rackBackingRoots.forEach(r=>searchable(r,[rackBackingRootName(r),human(r.direction),human(r.disposition),short(rackBackingDestination(r),240)]));
+  rackBackingAddresses.forEach(a=>searchable(a,[rackBackingAddressName(a),human(a.direction),human(a.disposition),short(rackBackingDestination(a),240),a.data_type]));
+  rackBackingUses.forEach(u=>searchable(u,[short(rackBackingUseName(u),180),human(u.kind),human(u.role),human(u.disposition),rackBackingAddressName(byRackBackingAddress.get(u.address_id))]));
   localLinks.forEach(l=>searchable(l,[addressName(byAddress.get(l.address_id)),sourceName(l.rung_id),sourceName(l.producer_instruction_id),sourceName(l.consumer_instruction_id),l.read_kind==='expression'?'Expression read':'Operand read']));
   reusePatterns.forEach(p=>searchable(p,[rungName(byRung.get(p.representative_rung_id)),byRung.get(p.representative_rung_id)?.text,p.rung_ids.length>1?'Repeated operand reuse':'Single occurrence',p.address_variables+' address variables']));
   (relationships?.identity_gaps || []).forEach(g=>searchable(g,[byOperand.get(g.id)?.raw_text,byCalculationNode.get(g.id)?.raw_text,'Expanded suffix cannot form an address',g.kind]));
@@ -532,7 +563,8 @@
   signalOutputs.forEach(o=>searchable(o,[o.opcode,byOperand.get(o.target_operand_id)?.raw_text,sourceName(o.rung_id),entityPath(o.routine_id),human(o.guard_quality),human(o.target_status),signalPatternLabel(o)]));
   signalReads.forEach(r=>searchable(r,[byOperand.get(r.id)?.raw_text,r.kind,r.status,sourceName(r.rung_id),entityPath(byRung.get(r.rung_id)?.parent_id)]));
   fileOccurrences.forEach(o=>searchable(o,[o.opcode,human(o.signature_status),human(o.context_status),human(o.expression_status),sourceName(o.rung_id),byRung.get(o.rung_id)?.comment,entityPath(o.routine_id),...o.slot_ids.map(id=>byFileSlot.get(id)?.raw_text)]));
-  assemblyGroups.forEach(g=>searchable(g,[addressName(byAddress.get(g.address_id)),...g.providers.map(p=>ASSEMBLY_PROVIDERS[p]),...g.boundary_flags.map(assemblyFlag),g.scan_status,...g.membership_ids.flatMap(id=>{const m=byAssemblyMembership.get(id);return m?[assemblyRelation(m),byOperand.get(m.source_id)?.raw_text,byExpressionUse.get(m.source_id)?.raw_text]:[];})]));
+  assemblyGroups.forEach(g=>searchable(g,[addressName(byAssemblyAddress.get(g.address_id)),...g.providers.map(p=>ASSEMBLY_PROVIDERS[p]),...g.boundary_flags.map(assemblyFlag),g.scan_status,...g.membership_ids.flatMap(id=>{const m=byAssemblyMembership.get(id);return m?[assemblyRelation(m),byOperand.get(m.source_id)?.raw_text,byExpressionUse.get(m.source_id)?.raw_text]:[];})]));
+  communicationOccurrences.forEach(o=>searchable(o,[short(byOperand.get(o.control_operand_id)?.raw_text,160),short(entityName(o.owner_id),160),human(o.status),short(sourceName(o.rung_id),200),...o.parameter_ids.flatMap(id=>Object.entries(byCommunicationParameter.get(id)?.attributes||{}).slice(0,24).flatMap(([k,v])=>[short(k,80),short(v,160)]))]));
   function matches(row) { return !state.query || (searchIndex.get(row)||'').includes(state.query.toLocaleLowerCase()); }
   function toolbarFor(placeholder, filterOptions=[]) {
     const box=node('div','toolbar'), search=node('div','search-wrap'), input=node('input');
@@ -570,6 +602,8 @@
     if(indexedAccess){const row=node('div','status-row');row.append(node('span','','Symbolic array selector context'),badge(indexedAccess.status));capture.append(row);}
     if(aoiBody){const row=node('div','status-row');row.append(node('span','','AOI body and instance context'),badge(aoiBody.status));capture.append(row);}
     if(sfrContext){const row=node('div','status-row');row.append(node('span','','SFR routine and step context'),badge(sfrContext.status));capture.append(row);}
+    if(engineeringAssemblies){const row=node('div','status-row');row.append(node('span','','Exact-address source groups'),badge(engineeringAssemblies.status));capture.append(row);}
+    if(communicationContext){const row=node('div','status-row');row.append(node('span','','Stored communication source'),badge(communicationContext.status));capture.append(row);}
     capture.append(node('p','row-note',fmt(bySfcRoutine.size)+' SFC routines · '+fmt((sfc.links||[]).length)+' structural links · '+fmt((sfc.annotations||[]).length)+' note attachments'));
     const start=panel('Start your review','Each view links back to the exact evidence in this captured source snapshot.');
     if(rungAnalysis){const b=button('',()=>go('engineering'),'jump-card');const copy=node('span');copy.append(node('strong','','Explore engineering analysis'),node('small','','Follow function families, branch structure and uncertainty before reviewing individual instructions.'));b.append(copy,node('span','jump-arrow','→'));start.append(b);}
@@ -582,6 +616,7 @@
     if(statefulObjects)content.append(button('Explore timers, counters and resets',()=>go('statefulobjects')));
     if(sfcConditions)content.append(button('Explore sequence conditions',()=>go('sequenceconditions')));
     if(calculationPaths)content.append(button('Explore calculation inputs and destinations',()=>go('calculationpaths')));
+    if(communicationContext){content.append(button('Explore communication source context',()=>go('communication')),button('Inspect unresolved analysis',()=>go('residuals')));}
     const meta=panel('Snapshot details','This report is read-only. IDs belong to this byte snapshot and are not persistent equipment or correction identities.');
     meta.append(values({'Source size':fmt(data.snapshot.size_bytes)+' bytes','SHA-256':data.snapshot.sha256,'Report format':data.report_version,'Inventory parser':inv.parser_version,'Reference analyzer':refs.analyzer_version,'SFC analyzer':sfc.analyzer_version}));content.append(meta);
   }
@@ -668,11 +703,12 @@
   function addressRootPreview(id){
     // A shared declaration may have a very long name and thousands of suffix
     // groups. Keep it once in source evidence, not in every label/search row.
-    if(!addressRootPreviews.has(id))addressRootPreviews.set(id,short(entityName(id),ADDRESS_ROOT_PREVIEW));
+    if(!addressRootPreviews.has(id))addressRootPreviews.set(id,short(addressRootName(id),ADDRESS_ROOT_PREVIEW));
     return addressRootPreviews.get(id);
   }
+  function addressRootName(id){return byEntity.get(id)?.name||byReferenceSymbol.get(id)?.name||entityName(id);}
   function addressName(a){return addressRootPreview(a.target_id)+short(a.suffix || '',ADDRESS_SUFFIX_PREVIEW);}
-  function shortenedAddress(a){return entityName(a.target_id).length>ADDRESS_ROOT_PREVIEW||(a.suffix || '').length>ADDRESS_SUFFIX_PREVIEW;}
+  function shortenedAddress(a){return addressRootName(a.target_id).length>ADDRESS_ROOT_PREVIEW||(a.suffix || '').length>ADDRESS_SUFFIX_PREVIEW;}
   function addressPreviewNote(){return node('p','row-note','Long address labels and their search text use shortened previews. Open an address dossier for the full suffix, and its declaration for the full root name. Exact identities remain separate.');}
   function addressProfile(a){return ({read_and_write:'Captured reads and writes',read_only:'No captured explicit writer',write_only:'No captured explicit reader',unknown_only:'Unknown roles only'})[a.profile] || human(a.profile);}
   function addressNotice(){const box=node('div');box.append(notice('Exact spelling, captured occurrences','A dossier groups one resolved declaration and its expanded suffix spelling. Different spellings remain separate; this does not validate members or prove whether two addresses overlap. Missing captured readers or writers do not establish dead or uninitialized logic.'));if(addresses.some(shortenedAddress))box.append(addressPreviewNote());return box;}
@@ -749,6 +785,46 @@
     const sectionNode=section(title,'Candidates are retained independently. A name match does not validate invocation or execution.');
     sectionNode.append(table(['Candidate source','Available context'],ids,id=>[sourceCell(id),executionEntityLink(id)],caption));content.append(sectionNode);
   }
+  function executionBoundaryContent(c){
+    if(c.language==='SFC'){
+      const body=section('Exact SFC declared boundaries','Subroutine/Return elements and their In/Ret attributes are captured source declarations. Missing, empty and nonempty text remain distinct; this view does not parse parameter lists, pair JSR fields, select an active edit or model SFC execution.');
+      body.append(values({'Content qualification':human(c.status),'Subroutine/Return declarations':c.sfc_declaration_ids.length}));
+      const sources=node('div','inline-links');sources.append(executionEntityLink(c.routine_id),sourceCell(c.source_sfc_content_id));body.append(sources);
+      if(c.status==='qualified_sfc'&&!c.sfc_declaration_ids.length)body.append(node('p','row-note','No Subroutine/Return element is captured in this qualified SFC content.'));
+      if(Object.keys(c.raw_attributes).length)body.append(values(c.raw_attributes));
+      body.append(table(['Source declaration','In attribute disposition','Ret attribute disposition','Raw exported attributes'],c.sfc_declaration_ids.map(id=>byExecutionSfcDeclaration.get(id)).filter(Boolean),d=>[sourceCell(d.source_sfc_element_id),human(d.in_attribute_status),human(d.ret_attribute_status),values(d.raw_attributes)],'Exact SFC Subroutine/Return declarations'),technical({'Content identity':c.id,'Exact content location':c.content_locator}));content.append(body);return;
+    }
+    const body=section('Exact RLL content boundaries','This source container retains its own SBR and RET population. Multiple returns do not select a path; captured contents do not select an active edit.');
+    body.append(values({'Content qualification':human(c.status),'Captured rungs':c.rungs_total,'Parsed rungs':c.parsed_rungs,'SBR occurrences':c.sbr_control_ids.length,'RET occurrences':c.ret_control_ids.length}),executionEntityLink(c.routine_id));
+    if(Object.keys(c.raw_attributes).length)body.append(values(c.raw_attributes));
+    body.append(executionTable('control_occurrences',[...c.sbr_control_ids,...c.ret_control_ids].map(id=>byExecution.get(id)?.row).filter(Boolean),'Exact content SBR and RET occurrences'),technical({'Content identity':c.id,'Exact content location':c.content_locator}));content.append(body);
+  }
+  function executionBoundaryAssociation(r){
+    const b=byExecutionCallBoundary.get(r.id);if(!b)return;
+    const p=section('Call to exact source content','A unique program-local routine candidate is associated only with one qualified complete '+(executionContext.schema_version>=3?'RLL or SFC':'RLL')+' content. Source field shapes do not validate an RLL calling convention or parameter count.');
+    p.append(values({'Association':human(b.status),'Direct target content count':b.target_content_count,'Boundary population':human(b.boundary_profile),'Call field shape':human(b.field_shape),'Second field spelling':human(b.second_field_kind)}));content.append(p);
+    const c=byExecutionContent.get(b.target_content_id);if(c)executionBoundaryContent(c);
+  }
+  function executionArgumentCandidates(r){
+    if(executionContext.schema_version<2||!['JSR','SBR','RET'].includes(r.opcode))return;
+    const p=section('Lexical field candidates','Positions preserve source order. The JSR first field names a routine; other fields receive only lexical dispositions. A root candidate and suffix do not validate member existence, types, parameter roles or value transfer.');
+    p.append(table(['Source position / field','Disposition','Declaration candidate','Expanded root candidate','Suffix / alias evidence'],executionArgumentsByOccurrence.get(r.id)||[],a=>{
+      const source=node('div');source.append(node('span','mono',(a.argument_index+1)+': '+(r.raw_arguments[a.argument_index]||'(empty)')),sourceCell(a.operand_id));
+      const aliases=node('div');aliases.append(node('span','mono',a.suffix||'(root)'));a.alias_chain.forEach(id=>aliases.append(sourceCell(id)));if(a.reason)aliases.append(node('p','row-note',human(a.reason)));
+      return[source,human(a.status),sourceCell(a.symbol_id),sourceCell(a.target_id),aliases];
+    },'Execution lexical field candidates'));content.append(p);
+  }
+  function documentedControlOperation(opcode){
+    const operation={
+      JSR:'During normal execution, an enabled JSR invokes the specified routine. If that invocation returns normally, execution resumes at the instruction following the JSR. The captured call link does not establish parameter mapping, return timing or the outgoing Boolean condition.',
+      SBR:'SBR receives the input data supplied by a JSR; Rockwell places it first in the routine. The captured fields are not yet interpreted as parameter destinations. The applicable Logix outgoing Boolean rule remains unresolved here; no constant-true or pass-through condition is substituted.',
+      RET:'When enabled during normal execution, RET transfers any return parameters and ends the subroutine scan. A zero-field RET still represents a return. It does not become a no-op or a false rung-condition result. This view does not compute which return path is taken.',
+      SFR:'During normal execution, an enabled SFR resets the specified chart to the selected step and stops and resets stored actions in that chart. Selector 0 denotes the initial step. These documented operations do not establish that this occurrence executes, which actions are active, final values or its outgoing Boolean condition.'
+    }[opcode];
+    if(!operation)return;
+    const p=section('Documented instruction operation',operation);
+    p.append(node('p','row-note','Rockwell Studio 5000 instruction reference. This operation description does not validate the captured signature or remove any source, target or condition gap.'));content.append(p);
+  }
   function executionContextDetail(found){
     if(!found){content.append(empty('No captured execution context'));return;}
     const {group,row:r}=found;
@@ -756,7 +832,7 @@
     const summary=panel('Captured source context',executionIntros[group]);
     summary.append(values({'Qualification':executionQualification(r),...(r.status?{'Candidate result':human(r.status),'Lexical result before qualification':human(r.lexical_status)}:{}),...(r.body_status?{'Body evidence':human(r.body_status),'In a lexical call cycle':r.in_lexical_call_cycle?'Yes; execution is unproven':'No captured cycle'}:{})}));
     const directId=group==='tasks'?r.task_id:group==='programs'?r.program_id:group==='routine_contexts'?r.routine_id:r.instruction_id||r.schedule_id||r.program_id;
-    summary.append(sourceCell(directId));if(r.rung_id)summary.append(sourceCell(r.rung_id));content.append(summary);
+    const sourceLinks=node('div','inline-links');sourceLinks.append(sourceCell(directId));if(r.rung_id)sourceLinks.append(sourceCell(r.rung_id));summary.append(sourceLinks);content.append(summary);
     if(r.raw_attributes){const raw=section('Raw exported attributes','Every value retains its source spelling; missing attributes supply no default.');raw.append(values(r.raw_attributes));content.append(raw);}
     if(group==='tasks'){
       executionLinkedSection('Program schedule rows','Source order and repeated declarations remain visible.','schedules',r.schedule_ids,'Task program schedules');
@@ -778,7 +854,9 @@
       executionLinkedSection('Outgoing routine calls','Every captured call remains visible, including unresolved targets.','calls',r.outgoing_call_ids,'Routine outgoing calls');
       executionLinkedSection('Entry associations','Main and fault designations with a unique qualified candidate.','designations',r.designation_ids,'Routine entry associations');
       executionLinkedSection('Control boundaries','Source instructions retain their incoming condition and label candidates.','control_occurrences',r.control_occurrence_ids,'Routine control boundaries');
+      (executionContentsByRoutine.get(r.routine_id)||[]).forEach(executionBoundaryContent);
     }else{
+      documentedControlOperation(r.opcode);
       content.append(executionEntityLink(r.caller_routine_id));
       if(group==='calls')executionCandidateSection(r.candidate_routine_ids,'Routine declaration candidates','Call routine candidates');
       else{
@@ -788,6 +866,9 @@
       const args=section('Captured arguments and parameter unknowns','These are source argument positions only. All captured fields remain in source order, including the JSR target field. SBR and RET values are not matched to call parameters; roles and types remain unresolved.');
       args.append(values({'Argument shape':human(r.argument_shape),'Captured fields':r.argument_count,'Empty field count':r.empty_argument_indices.length}));
       args.append(table(['Source position','Raw field','Evidence'],r.raw_arguments,(raw,index)=>[index+1,node('span','mono',raw||'(empty)'),r.empty_argument_indices.includes(index)?'Empty field':'Unvalidated source text'],'Execution captured arguments'));content.append(args);
+      if(group==='calls')executionBoundaryAssociation(r);
+      else if(['SBR','RET'].includes(r.opcode))(executionContentsByRoutine.get(r.caller_routine_id)||[]).filter(c=>c.content_locator===r.content_locator).forEach(executionBoundaryContent);
+      executionArgumentCandidates(r);
       const guard=section('Incoming condition evidence','This shared condition describes source-local context before the instruction. It does not prove the call or boundary executes.');
       guard.append(values({'Quality':human(r.guard_quality),'Contains branch join':r.has_branch?'Yes':'No','Contains stored-state condition':r.has_stateful?'Yes':'No','Contains namespace gap':r.has_namespace_gap?'Yes':'No'}));content.append(guard);
       if(r.guard_id)conditionGraph(r.guard_id,'Execution incoming condition nodes','Incoming condition');
@@ -807,6 +888,7 @@
   }
   function sfrCallDetail(c){
     setDetailHeading('SEQUENCE RESET CONTEXT','SFR target candidates',sourceName(c.rung_id));content.append(sfrNotice());
+    documentedControlOperation('SFR');
     const p=panel('Captured reset call','The existing operand signature and routine candidate remain separate from SFC step matching.');p.append(values({'Signature':human(c.signature_status),'Routine candidate':human(c.routine_status),'Routine candidate count':c.routine_candidate_count,'Chart context':human(c.chart_status),'Selector kind':human(c.selector_kind),'Selector binding':human(c.selector_binding_status)}),sourceCell(c.instruction_id),sourceCell(c.rung_id));if(c.target_operand_id)p.append(sourceCell(c.target_operand_id));if(c.target_routine_id)p.append(sourceCell(c.target_routine_id));content.append(p);
     const versions=section('Exported content candidates','Every content keeps its own result. Open a candidate step for its exact Operand, InitialStep marker, source attributes and chart context. No version is selected as effective.');
     versions.append(table(['Content version','Edit kind','Candidate result','Candidate count','Step candidates'],c.content_matches,m=>{
@@ -851,11 +933,15 @@
     const c=customContext.coverage,i=indexedAccess.coverage,totals=panel('Context coverage','These counts explain source evidence; they do not reduce existing binding or condition gaps.');
     totals.append(values({'Unrecognized instruction occurrences':c.unknown_family_calls,'Unique declaration candidates':c.calls_by_status.unique_candidate,'Custom definitions':c.definitions_total,'Parameter declarations':c.parameters_total,'Routine declarations':c.routines_total,'Definitions with encoded regions':c.definitions_with_encoded_regions,'Indexed source occurrences':i.uses_total,'Symbolically parsed occurrences':i.symbolic_uses,'Dynamic selectors':i.dynamic_selectors,'Possible index reads':i.index_read_occurrences,'Bound index-read roots':i.bound_index_reads}));content.append(totals);
     if(aoiBody){const bodies=panel('AOI body context','Routine ownership and possible access evidence remain separate from call effects. Zero observed accesses does not mean unused.');bodies.append(values({'Indexed definitions':aoiBodyDeclarations.length,'Owned routines':aoiBodyRoutines.length,'Declared parameters and local tags':aoiBodySymbols.length,'Call instance contexts':aoiBodyCalls.length}));content.append(bodies);}
+    if(state.filter!=='indexed'){
     const calls=section('Custom-instruction occurrences','Open a call to follow its candidate declaration and inspect parameters, source routines and protection markers.');calls.append(customCallTable(customCalls.filter(matches),'Custom instruction occurrences'));content.append(calls);
     const declarations=section('Custom declarations','Definitions are shown even when no unknown instruction occurrence names them.');declarations.append(table(['Declaration','Name context','Parameters / routines','Encoded / protected context'],customDeclarations.filter(matches),d=>[
       button(short(entityName(d.source_id),160),()=>openDetail('customdeclaration',d.source_id),'text-link'),human(d.status),d.parameters.length+' / '+d.routines.length,fmt(d.encoded_region_ids.length)+' encoded regions · '+human(d.protection_marker)
     ],'Custom declarations'));content.append(declarations);
+    }
+    if(state.filter!=='custom'){
     const indexed=section('Symbolic indexed operands','Expression containers, unknown-role slots, dynamic alias targets and unsupported grammar stay in separate dispositions.');indexed.append(indexedUseTable(indexedUses.filter(matches),'Indexed source occurrences'));content.append(indexed);
+    }
   }
   function customCallDetail(c){
     setDetailHeading('CUSTOM INSTRUCTION CONTEXT',sourceName(c.instruction_id),sourceName(c.rung_id));content.append(contextNotice());
@@ -879,12 +965,25 @@
     p.append(values({'Declaration candidate':human(c.declaration_status),'Instance context':human(c.instance_status),'Root binding':human(c.binding_status),'Address shape':human(c.address_shape),'Declared type-name comparison':human(c.datatype_status)}));
     const links=node('div','inline-links');if(c.first_operand_id)links.append(sourceCell(c.first_operand_id));if(c.symbol_id)links.append(primary(sourceCell(c.symbol_id),'Directly named declaration'));if(c.target_id)links.append(primary(sourceCell(c.target_id),'Resolved root declaration'));p.append(links);
     if(c.alias_chain.length)p.append(table(['Alias declaration'],c.alias_chain,id=>[sourceCell(id)],'Instance alias chain'));content.append(p);
+    if(aoiBody?.schema_version>=2){
+      const shape=aoiBody.call_shapes.find(x=>x.instruction_id===c.instruction_id);
+      if(shape){const slots=panel('Call field counts','Counts compare the captured fields with required declarations. They do not assign positional roles or validate the call; hidden optional parameters need no call field.');slots.append(values({'Source fields':shape.argument_count,'Fields after instance':shape.trailing_field_count,'Declared required parameters':shape.required_parameter_count,'Observation':human(shape.status)}));content.append(slots);}
+      aoiNamedMembers(aoiBody.member_contexts.filter(x=>x.target_id===c.target_id));
+    }
+  }
+  function aoiNamedMembers(rows){
+    const p=section('Named parameter member associations','Exact scalar instance members link to unique Input/Output declarations. Observed access stays separate from declared Usage. These links do not establish a call effect, positional mapping or runtime value.');
+    p.append(table(['Source use','Instance / member','Association','Declared parameter','Observed role','Body evidence'],rows,r=>[
+      sourceCell(r.use_id),primary(sourceCell(r.target_id),r.suffix),human(r.status),sourceCell(r.parameter_id),human(r.role),
+      r.parameter_id&&byAoiBodySymbol.has(r.parameter_id)?button('Inspect declared symbol accesses',()=>openDetail('aoisymbol',r.parameter_id),'text-link'):'No matched parameter'
+    ],'AOI named parameter associations'));content.append(p);
   }
   function aoiDeclarationSymbols(d){
     content.append(aoiNotice());const p=section('Declaration-owned symbols','Direct-name indexes retain the symbol written in source; resolved-root indexes follow aliases. An occurrence may be in both, so those columns must not be added.');
     p.append(table(['Parameter / local tag','Declared kind / Usage','Context','Direct slots / leaves','Resolved slots / leaves','Inspect'],[...d.parameter_ids,...d.local_tag_ids],id=>{
       const x=byAoiBodySymbol.get(id);return[sourceCell(id),primary(human(x?.kind),byEntity.get(id)?.attributes?.Usage||'No Usage metadata'),human(x?.context_status),x?fmt(x.direct_operand_ids.length)+' / '+fmt(x.direct_expression_use_ids.length):'0 / 0',x?fmt(x.resolved_operand_ids.length)+' / '+fmt(x.resolved_expression_use_ids.length):'0 / 0',x?button('Inspect observed accesses',()=>openDetail('aoisymbol',id),'text-link'):'Unavailable'];
     },'AOI declaration-owned symbols'));content.append(p);
+    if(aoiBody?.schema_version>=2)aoiNamedMembers(aoiBody.member_contexts.filter(x=>x.declaration_id===d.declaration_id));
   }
   function aoiRoutineDetail(r){
     setDetailHeading('AOI OWNED BODY',sourceName(r.routine_id),sourceName(r.declaration_id));content.append(aoiNotice());
@@ -913,9 +1012,89 @@
     const reads=section('Possible index reads','Repeated references remain separate occurrences. These reads choose an index; they are not data-flow edges or proof of execution.');reads.append(table(['Index reference','Selector position','Root binding','Declaration / suffix'],u.index_reads,r=>[node('span','mono',raw.slice(r.start,r.end)),r.selector_index+1,human(r.binding.status),calculationBinding(r.binding)],'Symbolic index read occurrences'));content.append(reads);
   }
   function bindingGapName(g){return short(g?.kind==='expression'?byCalculationNode.get(g.source_id)?.raw_text:byOperand.get(g?.source_id)?.raw_text,180)||'(blank source)';}
+  function rackBackingRootName(r){return r?short(byRackCandidate.get(r.candidate_id)?.name||'(unnamed rack candidate)',180):'No rack candidate';}
+  function rackBackingAddressName(a){return a?rackBackingRootName(byRackBackingRoot.get(a.root_id))+(a.suffix||''):'No address correspondence';}
+  function rackBackingDestination(a){return a?.disposition==='associated'&&a.backing_tag_id?(byReferenceSymbol.get(a.backing_tag_id)?.name||byEntity.get(a.backing_tag_id)?.name||byEntity.get(a.backing_tag_id)?.locator||'Source declaration unavailable')+(a.backing_suffix||''):'No qualified destination';}
+  function rackBackingUseName(u){return u.kind==='rll'?byOperand.get(u.source_id)?.raw_text||'(operand unavailable)':bySequenceReference.get(u.source_id)?.raw_text||'(transition reference unavailable)';}
+  function rackBackingNotice(){return notice('Exported source correspondence only','A qualified rack declaration and captured adapter Slot structure can establish a source address. '+(engineeringAssemblies?.schema_version>=3?'Qualified occurrences join cross-rung source groups with their correspondence evidence. Original bindings and condition gaps remain visible.':'The original bindings, condition gaps and exact-address groups remain unchanged.')+' Source correspondence does not establish physical wiring, process service, active configuration, runtime values or execution. Module direction and observed instruction role remain separate.');}
+  function rackAssemblyLinks(uses){
+    const linked=new Set(),p=panel('Cross-rung source associations','Follow the source group to its writers, condition inputs and related outputs. Each retained occurrence links back to its qualification evidence.');
+    let visits=0,truncated=false;
+    collect: for(const u of uses){
+      if(++visits>5000){truncated=true;break;}
+      for(const m of assemblyByRackUse.get(u.id)||[]){
+        if(++visits>5000){truncated=true;break collect;}
+        for(const id of [m.group_id,m.related_address_id])if(id&&!linked.has(id)){
+          if(linked.size>=500){truncated=true;break collect;}linked.add(id);
+        }
+      }
+    }
+    p.append(table(['Qualified source group'],[...linked],id=>[assemblyLink(id)],'Rack cross-rung groups',{emptyTitle:'No qualified membership retained',emptyDetail:'Check occurrence qualification and grouping scan limits; this does not prove absence of related logic.'}));
+    if(truncated)p.append(notice('Rack group links truncated','Display limits are 5,000 visits and 500 groups. Search Cross-rung groups for the remaining evidence.'));
+    return p;
+  }
+  function rackBackingUseLink(u){return button('Inspect rack source occurrence: '+human(u.disposition),()=>openDetail('rackuse',u.id),'text-link');}
+  function rackBackingSourceLink(u){
+    if(u.kind==='rll')return sourceCell(u.source_id);
+    const context=bySequenceContextReference.get(u.source_id);if(context)return sequenceContextLink(context);
+    const original=bySequenceReference.get(u.source_id),transition=bySequenceCondition.get(original?.transition_id);
+    return transition?button('Open transition source',()=>openDetail('sequencecondition',transition.id),'text-link'):node('span','muted','Source context unavailable');
+  }
+  function rackBackingUseTable(rows,caption){return table(['Source occurrence','Source kind / role','Occurrence qualification','Candidate address','Original evidence'],rows,u=>[
+    primary(rackBackingUseLink(u),short(rackBackingUseName(u),180)),human(u.kind)+' / '+human(u.role),human(u.disposition),u.address_id?button(rackBackingAddressName(byRackBackingAddress.get(u.address_id)),()=>openDetail('rackaddress',u.address_id),'text-link'):'No address correspondence',rackBackingSourceLink(u)
+  ],caption);}
+  function rackBackingAddressTable(rows,caption){return table(['Rack candidate address','Address qualification','Adapter source address','Source type','Captured occurrences'],rows,a=>[
+    button(rackBackingAddressName(a),()=>openDetail('rackaddress',a.id),'text-link'),human(a.disposition),rackBackingDestination(a),a.data_type||'Unverified',(rackBackingUsesByAddress.get(a.id)||[]).length
+  ],caption);}
+  function rackBackingToolbar(){
+    toolbarFor('Search rack candidates, source addresses, qualification or role',[['all','All qualifications'],['associated','Source correspondence established'],['gaps','Source correspondence gaps']]);
+    const label=node('label','filter-wrap','Rack evidence'),select=node('select');select.setAttribute('aria-label','Rack evidence');
+    [['addresses','Candidate addresses'],['uses','Source occurrences'],['roots','Rack declarations']].forEach(([value,text])=>{const option=node('option','',text);option.value=value;select.append(option);});
+    select.value=state.rackBackingMode||'addresses';select.addEventListener('change',()=>{state.rackBackingMode=select.value;state.listPages={};render();});label.append(select);toolbar.querySelector('.toolbar').append(label);
+  }
+  function rackBackingMatches(row){return matches(row)&&(state.filter==='all'||state.filter==='associated'&&row.disposition==='associated'||state.filter==='gaps'&&row.disposition!=='associated');}
+  function rackBackingList(){
+    content.append(rackBackingNotice());
+    const summary=panel('Source correspondence coverage','Address-level qualification and occurrence-level source qualification are separate. A supported address can still have a rejected alias or source occurrence.');
+    summary.append(values({'Rack declarations':rackBackingRoots.length,'Qualified rack declarations':rackBackingRoots.filter(r=>r.disposition==='associated').length,'Candidate addresses':rackBackingAddresses.length,'Qualified source addresses':rackBackingAddresses.filter(a=>a.disposition==='associated').length,'Source occurrences':rackBackingUses.length,'Qualified occurrences':rackBackingUses.filter(u=>u.disposition==='associated').length,'Occurrences with gaps':rackBackingUses.filter(u=>u.disposition!=='associated').length}));content.append(summary);
+    if(state.rackBackingMode==='uses')content.append(rackBackingUseTable(rackBackingUses.filter(rackBackingMatches),'Rack source occurrences'));
+    else if(state.rackBackingMode==='roots')content.append(table(['Rack declaration','Module direction','Source qualification','Adapter source prefix','Module'],rackBackingRoots.filter(rackBackingMatches),r=>[
+      button(rackBackingRootName(r),()=>openDetail('rackroot',r.id),'text-link'),human(r.direction),human(r.disposition),rackBackingDestination(r),sourceCell(r.module_id)
+    ],'Rack source declarations'));
+    else content.append(rackBackingAddressTable(rackBackingAddresses.filter(rackBackingMatches),'Rack source addresses'));
+  }
+  function rackBackingRootDetail(r){
+    setDetailHeading('RACK SOURCE DECLARATION',rackBackingRootName(r),human(r.disposition));content.append(rackBackingNotice());
+    const p=panel('Declaration qualification');p.append(values({'Disposition':human(r.disposition),'Module direction':human(r.direction),'Selected exported slot':r.slot??'Unavailable','Adapter source prefix':rackBackingDestination(r),'Backing symbol name origin':human(byReferenceSymbol.get(r.backing_tag_id)?.name_origin||'unavailable')}));
+    const evidence=[['candidate_id','Rack declaration'],['module_id','Module'],['rack_connection_id','Rack connection'],['adapter_id','Adapter'],['backing_tag_id','Backing declaration'],['content_id','Captured data representation'],['root_element_id','Captured module-type structure'],['array_element_id','Slot array'],['slot_element_id','Selected array element'],['slot_structure_id','Selected slot structure'],['data_member_id','Data member'],['fault_member_id','Fault member']];
+    p.append(table(['Evidence','Source'],evidence.filter(([key])=>r[key]),([key,label])=>[label,sourceCell(r[key])],'Rack declaration source evidence'));content.append(p);
+    content.append(rackBackingAddressTable(rackBackingAddresses.filter(a=>a.root_id===r.id),'Rack declaration addresses'),technical({'Rack source declaration ID':r.id}));
+  }
+  function rackBackingAddressDetail(a){
+    setDetailHeading('RACK SOURCE ADDRESS',rackBackingAddressName(a),human(a.disposition));content.append(rackBackingNotice());
+    const p=panel('Address correspondence','This is the source-address qualification result. Each use below retains its own source and alias qualification.');
+    p.append(values({'Disposition':human(a.disposition),'Module direction':human(a.direction),'Captured suffix':a.suffix||'(root)','Adapter source address':rackBackingDestination(a),'Source member type':a.data_type||'Unverified'}));
+    p.append(button('Inspect rack declaration evidence',()=>openDetail('rackroot',a.root_id),'text-link'));
+    if(a.backing_tag_id)p.append(sourceCell(a.backing_tag_id));if(a.member_element_id)p.append(sourceCell(a.member_element_id));
+    if(a.candidate_address_id&&byCandidateAddress.has(a.candidate_address_id))p.append(candidateAddressLink(a.candidate_address_id));content.append(p);
+    const uses=rackBackingUsesByAddress.get(a.id)||[];
+    if(engineeringAssemblies?.schema_version>=3)content.append(rackAssemblyLinks(uses));
+    content.append(rackBackingUseTable(uses,'Rack address occurrences'),technical({'Rack source address ID':a.id}));
+  }
+  function rackBackingUseDetail(u){
+    setDetailHeading('RACK SOURCE OCCURRENCE',short(rackBackingUseName(u),180),human(u.disposition));content.append(rackBackingNotice());
+    const p=panel('Occurrence qualification','Address correspondence does not override a source or alias qualification gap. Original evidence remains available below.');
+    p.append(sourceText(rackBackingUseName(u)),values({'Disposition':human(u.disposition),'Source kind':human(u.kind),'Observed role':human(u.role)}),rackBackingSourceLink(u));
+    const a=byRackBackingAddress.get(u.address_id);if(a)p.append(button('Inspect address correspondence',()=>openDetail('rackaddress',a.id),'text-link'));
+    if(u.kind==='rll'&&byBindingContext.has(u.source_id))p.append(bindingContextLink(u.source_id));content.append(p);
+    if(engineeringAssemblies?.schema_version>=3)content.append(rackAssemblyLinks([u]));
+    if(u.predicate_node_id)conditionGraph(u.predicate_node_id,'Rack source predicate context','Original predicate with binding gap');
+    const output=byConditionalOutput.get(u.output_id);if(output){const out=section('Original output-target evidence','The base condition model retains its original target status.');out.append(conditionalOutputTable([output],'Rack source output context'));content.append(out);}
+    content.append(technical({'Rack source use ID':u.id,'Original source ID':u.source_id}));
+  }
   function bindingCategory(category){return ({rack_unique_candidate:'Unique rack-name candidate',rack_suffix_invalid:'Rack candidate with invalid expanded suffix',rack_ambiguous_candidate:'Ambiguous rack-name candidates',rack_names_unavailable:'Rack candidate names unavailable',rack_outside_scope:'Rack candidate outside visible scope',rack_no_match:'No rack-name match',rack_context_unavailable:'No existing rack-match evidence',non_static_array_index:'Non-static array index',unsupported_address:'Unsupported address form',undeclared_root:'Undeclared root',unresolved_scope:'Unresolved source scope',alias_cycle:'Alias cycle',alias_depth_limit:'Alias depth limit',ambiguous_root:'Ambiguous root',invalid_expanded_suffix:'Invalid expanded suffix',non_address_value:'Value is not an address',other_binding_gap:'Other binding gap'})[category] || human(category);}
   function bindingContextLink(id){return byBindingContext.has(id)?button('Explain binding gap',()=>openDetail('bindingcontext',id),'text-link'):node('span','muted','No indexed binding gap');}
-  function bindingContextNotice(){return notice('Candidate context does not resolve a binding','Rack-name candidates come from captured module topology. Their adapter backing data, member mapping, data types and physical channels have not been validated. Logical candidate addresses group matching candidate and suffix spelling only; they never join the exact-address groups. Read and write roles come from instruction access evidence, independently of module input/output direction.');}
+  function bindingContextNotice(){return notice('Candidate context does not resolve a binding',rackBacking?'This historical binding view keeps its original gaps and candidate groups. Separate rack source-address evidence can establish qualified adapter Slot correspondences; inspect its per-occurrence qualification and source links. Neither a candidate nor that source correspondence establishes physical wiring or runtime values. Read/write roles remain separate from module direction.':'Rack-name candidates come from captured module topology. Their adapter backing data, member mapping, data types and physical channels have not been validated. Logical candidate addresses group matching candidate and suffix spelling only; they never join the exact-address groups. Read and write roles come from instruction access evidence, independently of module input/output direction.');}
   function bindingSourceCell(g){const use=bindingUse(g);return g.kind==='expression'?button(bindingGapName(g),()=>openDetail('calculation',use.instruction_id,{focusCalculationNode:g.source_id}),'text-link'):sourceCell(g.source_id);}
   function candidateAddressName(a){return short(byRackCandidate.get(a.candidate_id)?.name || '(unnamed candidate)',120)+short(a.suffix || '',100);}
   function candidateAddressLink(id){const a=byCandidateAddress.get(id);return a?button('Candidate address: '+candidateAddressName(a),()=>openDetail('candidateaddress',a.id),'text-link'):node('span','muted','No logical candidate address');}
@@ -949,6 +1128,7 @@
     links.append(button('Open rack alias source',()=>openSource(candidate.source_id),'text-link'));
     if(candidate.connection_id)links.append(button('Open connection',()=>openSource(candidate.connection_id),'text-link'));
     if(candidate.module_id)links.append(button('Open module: '+short(entityName(candidate.module_id),100),()=>openSource(candidate.module_id),'text-link'));
+    const backing=byRackBackingCandidate.get(candidateId);if(backing)links.append(button('Inspect rack source correspondence',()=>openDetail('rackroot',backing.id),'text-link'));
     box.append(links,technical({'Candidate source ID':candidate.source_id,'Connection ID':candidate.connection_id,'Module ID':candidate.module_id}));return box;
   }
   function bindingContextDetail(g){
@@ -958,6 +1138,7 @@
     source.append(sourceText(raw),values({'Occurrence kind':human(g.kind),'Operand role':human(use.role),'Binding status':human(use.binding_status),'Binding reason':use.binding_reason?human(use.binding_reason):'No separate binding reason','Expanded suffix':use.suffix || '(empty suffix)','Gap context':bindingCategory(g.category)}));
     const links=node('div','inline-links');links.append(bindingSourceCell(g),sourceCell(use.instruction_id),sourceCell(use.rung_id));source.append(links);content.append(source);
     if(byIndexedSource.has(g.source_id))content.append(indexedSourceLink(g.source_id));
+    const backingUse=byRackBackingSource.get('rll:'+g.source_id);if(backingUse)content.append(rackBackingUseLink(backingUse));
     const chain=use.alias_chain || [];
     if(chain.length){const aliases=section('Captured alias chain','Declaration order follows the recorded chain. Open a declaration to read its complete target and source attributes.');aliases.append(table(['Position','Alias declaration','Declared target preview'],chain,(id,index)=>[index+1,sourceCell(id),short(byEntity.get(id)?.attributes?.AliasFor || '(target absent)',180)],'Binding context alias chain'));content.append(aliases);}
     const match=byRackMatch.get(g.source_id);
@@ -1126,10 +1307,17 @@
     if(m.relation.startsWith('file_')){const s=byFileSlot.get(m.source_id);return human(m.relation)+(s?.kind?' · '+human(s.kind):'');}
     return human(m.relation);
   }
-  function assemblyLink(id){const g=byAssembly.get(id),a=byAddress.get(id);return g?button(short(addressName(byAddress.get(g.address_id)),160),()=>openDetail('assembly',id),'text-link'):a?button(short(addressName(a),160),()=>openDetail('address',id),'text-link'):node('span','muted','No exact address retained');}
+  function assemblyLink(id){const g=byAssembly.get(id),a=byAddress.get(id);return g?button(short(addressName(byAssemblyAddress.get(g.address_id)),160),()=>openDetail('assembly',id),'text-link'):a?button(short(addressName(a),160),()=>openDetail('address',id),'text-link'):node('span','muted','No exact address retained');}
   function assemblyEvidence(m){
+    const original=assemblyOriginalEvidence(m),proofs=m.rack_source_use_ids||[];
+    if(!proofs.length)return original;
+    const links=node('div','inline-links');links.append(original);
+    for(const id of proofs){const use=byRackBackingUse.get(id);if(use)links.append(button('Rack qualification: '+short(rackBackingUseName(use),100),()=>openDetail('rackuse',id),'text-link'));}
+    return links;
+  }
+  function assemblyOriginalEvidence(m){
     if(m.provider==='signal_context'){
-      const o=bySignalOutput.get(m.instruction_id)||bySignalOutput.get(m.source_id);
+      const o=bySignalOutputInstruction.get(m.instruction_id)||bySignalOutput.get(m.source_id);
       if(o&&(m.relation==='boolean_output'||m.relation==='guard_condition'))return button('Output guard and source fields',()=>openDetail('signaloutput',o.id),'text-link');
       const r=bySignalRead.get(m.source_id);if(r)return button('Condition operand and original rung',()=>openDetail('rung',r.rung_id,{focusOperand:r.id}),'text-link');
     }
@@ -1153,6 +1341,58 @@
     if(expression)return button('Expression reference',()=>openDetail('calculation',expression.instruction_id,{focusCalculationNode:m.source_id}),'text-link');
     return sourceCell(m.instruction_id||m.rung_id||m.source_id);
   }
+  function assemblySource(m){
+    const sequence=m.provider==='sfc_context'?(bySequenceContext.get(m.source_id)||bySequenceContextReference.get(m.source_id)):null;
+    return sourceCell(m.rung_id||m.instruction_id||bySequenceCondition.get(sequence?.transition_id)?.transition_id||m.source_id);
+  }
+  function communicationName(o){return 'MSG · '+short(byOperand.get(o.control_operand_id)?.raw_text||entityName(o.owner_id)||'(unresolved control)',160);}
+  function communicationGap(o){return o.status!=='linked'||o.parameter_ids.some(id=>(communicationEndpoints.get(id)||[]).some(e=>e.status!=='root_candidate'));}
+  function communicationNotice(){return notice('Stored communication source',communicationContext.schema_version>=3?'Documented message types, service identities and bounded selector encodings describe exported configuration. Parsed selectors do not establish target support, effective configuration, transfer extent or successful delivery. Configured endpoint roles remain separate from runtime effects. Duplicate representations stay separate, and remote fields are not bound to local tags.':communicationContext.schema_version>=2?'Documented message types and communication codes describe exported configuration. Local source/destination roles are configured intentions, independent of root binding. Duplicate representations stay separate. Generic services, runtime changes, transfer ranges, successful delivery and remote effects remain unresolved. Remote fields are not bound to local tags.':'Parameters are exported source records, not a live connection or an effective configuration. Local endpoint candidates do not assign runtime read/write roles or transferred ranges. RemoteElement and ConnectionPath remain authored remote context; they are not resolved against local tags. Message families, protocols and remote effects remain unmodeled.');}
+  function communicationTable(rows,caption){return table(['MSG occurrence','Control declaration','Parameter records','Source association / gaps','Rung'],rows,o=>[
+    button(communicationName(o),()=>openDetail('communication',o.instruction_id),'text-link'),sourceCell(o.owner_id),o.parameter_ids.length,
+    primary(human(o.status),communicationGap(o)?'Inspect unresolved source context':'Source association captured; behavior unmodeled'),sourceCell(o.rung_id)
+  ],caption);}
+  function tagConnectionTable(rows,caption){return table(['Owner','Source kind','Qualification','Exported fields / text','Source location'],rows,c=>{
+    const fields=node('div');fields.append(values(c.attributes));if(c.direct_text)fields.append(sourceText(c.direct_text));
+    return [sourceCell(c.owner_id),c.kind,human(c.status),fields,node('span','mono',c.locator)];
+  },caption);}
+  function communicationList(){
+    content.append(communicationNotice());
+    const c=communicationContext.coverage,p=panel('Communication source coverage','Repeated MSG calls and multiple stored representations remain separate. Matching totals do not imply one-to-one connections.');
+    p.append(values({'MSG occurrences':communicationOccurrences.length,'Stored parameter records':c.parameter_records,'Local endpoint fields':c.endpoints_total,'Produced / consumed metadata records':c.tag_connection_records}));content.append(p);
+    if(communicationContext.schema_version>=2){
+      const configured=panel('Configured message families','These counts describe parameter records, including alternatives and uncalled owners. Complete source capture does not mean complete behavioral interpretation.');
+      configured.append(table(['Family','Parameter records'],Object.entries(c.message_families).filter(([,n])=>n),r=>[human(r[0]),fmt(r[1])],'Configured message families'),
+        values({'Catalogued type records':c.message_type_statuses.catalogued,'Unknown type records':c.message_type_statuses.unknown,'Missing or empty type':c.message_type_statuses.missing+c.message_type_statuses.empty,'Missing / invalid / unknown communication method':c.communication_methods.missing+c.communication_methods.invalid+c.communication_methods.unknown,'Distinct linked owners':c.owners_with_linked_occurrences,'Distinct linked parameter records':c.linked_parameter_records}));content.append(configured);
+    }
+    if(communicationContext.schema_version>=3){const generic=panel('Generic service source observations','These populations count stored parameter records and repeated linked calls separately. Parsed selectors are source encoding evidence, not validated remote configuration.');generic.append(table(['Service identity / disposition','Stored parameter records','Linked call occurrences'],[...new Set([...Object.keys(c.generic_parameter_services),...Object.keys(c.generic_linked_occurrence_services)])].filter(key=>c.generic_parameter_services[key]||c.generic_linked_occurrence_services[key]),key=>[human(key),c.generic_parameter_services[key]||0,c.generic_linked_occurrence_services[key]||0],'Generic service populations'),values({'All selectors parsed':c.generic_parameter_completeness.all_selectors_parsed,'Selector gaps':c.generic_parameter_completeness.selector_gaps}));content.append(generic);}
+    content.append(communicationTable(communicationOccurrences.filter(o=>matches(o)&&(state.filter==='all'||state.filter==='gaps'&&communicationGap(o)||state.filter==='linked'&&!communicationGap(o))),'Communication occurrences'));
+    const metadata=section('Produced and consumed tag metadata','These direct tag child records retain authored attributes and locations. A record does not establish remote availability, scheduling, a physical channel or a runtime value.');
+    metadata.append(tagConnectionTable((communicationContext.tag_connections||[]).filter(c=>!state.query||matches(byEntity.get(c.owner_id))),'Produced and consumed metadata'));content.append(metadata);
+  }
+  function communicationDetail(o){
+    setDetailHeading('COMMUNICATION SOURCE',communicationName(o),'Instruction, stored parameters and local endpoint candidates');content.append(communicationNotice());
+    const meta=panel('Source association'),sourceLinks=node('div','inline-links');sourceLinks.append(sourceCell(o.instruction_id),sourceCell(o.owner_id));meta.append(values({'Association':human(o.status),'Parameter records':o.parameter_ids.length,...(o.generic_service?{'Generic service observation':human(o.generic_service)}:{})}),sourceLinks);content.append(meta);
+    if(!o.parameter_ids.length)content.append(notice('No qualified parameter association','Inspect the control binding and stored data. Missing, unsupported, member and array controls are not matched to a root representation by guessing.'));
+    for(const id of o.parameter_ids){
+      const parameter=byCommunicationParameter.get(id);if(!parameter)continue;
+      const p=section('Stored MessageParameters','Each representation remains separate; no effective configuration is selected.');
+      const sourceLinks=node('div','inline-links');sourceLinks.append(sourceCell(parameter.source_id),sourceCell(parameter.content_id));
+      p.append(values({'Qualification':human(parameter.status)}),sourceLinks,values(parameter.attributes));
+      if(parameter.interpretation){const i=parameter.interpretation;p.append(values({'Type interpretation':human(i.message_type_status),'Configured family':human(i.family),'Configured direction':human(i.direction),'Communication method':human(i.communication_method)}),table(['Configured field','Source observation'],Object.entries(i.field_shapes),r=>[r[0],human(r[1])],'Communication field observations'));}
+      if(parameter.interpretation?.generic){const g=parameter.interpretation.generic;p.append(values({'Generic service identity':human(g.service),'Selector encoding completeness':human(g.completeness)}),table(['Selector','Authored text','Encoding disposition','Parsed integer'],Object.entries(g.selector_statuses),([field,status])=>[field,node('span','mono',parameter.attributes[field]??'(absent)'),human(status),g.selector_values[field]===null?'No parsed value':String(g.selector_values[field])],'Generic message selectors'),node('p','row-note','A catalogued service identity does not resolve device support or transfer behavior. Source selectors and their parsed values do not change the existing configured endpoint roles.'));}
+      if(parameter.direct_text)p.append(sourceText(parameter.direct_text));
+      p.append(table(['Field','Authored endpoint','Candidate status','Resolved declaration candidate','Expanded suffix','Binding detail'],communicationEndpoints.get(id)||[],e=>[
+        e.field,node('span','mono',e.raw_text),human(e.status),sourceCell(e.binding?.target_id),node('span','mono',e.binding?.suffix||''),
+        primary(human(e.binding?.status||'not resolved'),e.authored_role?'Configured role: '+human(e.authored_role):human(e.binding?.reason||'Root binding does not verify member type, bounds or runtime direction'))
+      ],'Communication local endpoint candidates'));
+      content.append(p);
+    }
+    if(byInstructionAccess.has(o.instruction_id)){
+      const p=panel('Instruction evidence','Control operand access remains distinct from message payload effects.');
+      p.append(engineeringLimitsCell(engineeringInstructionEvidence(o.instruction_id)),sourceCell(o.rung_id));content.append(p);
+    }
+  }
   function assemblyToolbar(){toolbarFor('Search exact addresses, captured roles or context gaps',[
     ['all','All source groups'],['multi_rung','Across multiple rungs'],['multi_provider','Multiple evidence types'],['gaps','Unresolved or behavioral boundaries'],['truncated','Incomplete grouping scans'],...Object.entries(ASSEMBLY_PROVIDERS)
   ]);}
@@ -1160,6 +1400,7 @@
     content.append(assemblyNotice());
     const c=engineeringAssemblies.coverage,p=panel('Grouping coverage','Scan completion describes this bounded grouping rule. It does not establish complete engineering understanding.');
     p.append(values({'Exact-address groups':assemblyGroups.length,'Retained source memberships':assemblyMemberships.length,'Groups spanning rungs':assemblyGroups.filter(g=>g.rung_ids.length>1).length,'Groups with several evidence types':assemblyGroups.filter(g=>g.providers.length>1).length,'Incomplete scans':assemblyGroups.filter(g=>g.scan_status!=='complete').length}));content.append(p);
+    if(engineeringAssemblies.schema_version>=3){const known=c.known_non_address_guard_inputs_by_kind,projection=panel('Qualified rack and non-address inputs','Rack memberships retain their source proof. Literal values and system flags remain in the original guard dossier; they do not need address groups and are not counted as binding failures.');projection.append(values({'Memberships supported by rack correspondence':c.rack_memberships_total,'Literal guard inputs':known.literal,'System-flag guard inputs':known.system_flag}));content.append(projection);}
     if(engineeringAssemblies.scan_status==='truncated')content.append(notice('Check grouping limits','A bounded scan retained a subset. Review scan status and omitted evidence before interpreting absent relationships.'));
     const sourceGaps=engineeringAssemblies.source_gaps||[];
     if(sourceGaps.length){
@@ -1170,10 +1411,10 @@
   }
   function assemblyNeighbors(group,members){
     const rows=[],seen=new Set(),instructions=new Set();let visits=0,truncated=false;
-    const retain=(m,other,related,relation)=>{
+    const retain=(m,other,related,relation,reverse=false)=>{
       if(!related||related===group.id)return true;
       const key=JSON.stringify([related,m.instruction_id,m.source_id,other?.source_id||'',relation]);if(seen.has(key))return true;
-      if(rows.length>=500){truncated=true;return false;}seen.add(key);rows.push({id:related,m,other,relation});return true;
+      if(rows.length>=500){truncated=true;return false;}seen.add(key);rows.push({id:related,m,other,relation,reverse});return true;
     };
     for(const m of members){
       if(visits>=5000){truncated=true;break;}visits++;
@@ -1185,17 +1426,25 @@
       }
       if(truncated)break;
     }
+    if(!truncated&&engineeringAssemblies.schema_version>=3)for(const m of assemblyByRelatedAddress.get(group.id)||[]){
+      if(visits>=5000){truncated=true;break;}visits++;
+      if(!retain(m,null,m.group_id,m.relation==='guard_condition'?'Output whose guard reads this address':'Reverse captured relationship',true))break;
+    }
     return {rows,visits,truncated};
   }
   function assemblyDetail(g){
-    setDetailHeading('CROSS-RUNG SOURCE GROUP',short(addressName(byAddress.get(g.address_id)),180),'Exact-address anchor with source-linked evidence');content.append(assemblyNotice());
+    const address=byAssemblyAddress.get(g.address_id);
+    setDetailHeading('CROSS-RUNG SOURCE GROUP',short(addressName(address),180),'Exact-address anchor with source-linked evidence');content.append(assemblyNotice());
     const members=g.membership_ids.map(id=>byAssemblyMembership.get(id)).filter(Boolean),summary=panel('What this group contains');
-    summary.append(values({'Evidence types':g.providers.map(p=>ASSEMBLY_PROVIDERS[p]||human(p)).join(', '),'Source memberships':members.length,'Related rungs':g.rung_ids.length,'Grouping scan':human(g.scan_status),'Context boundaries':g.boundary_flags.map(assemblyFlag).join(', ')||'No additional grouping boundary recorded'}),button('All captured uses of this exact address',()=>openDetail('address',g.address_id),'text-link'));content.append(summary);
+    summary.append(values({'Evidence types':g.providers.map(p=>ASSEMBLY_PROVIDERS[p]||human(p)).join(', '),'Source memberships':members.length,'Related rungs':g.rung_ids.length,'Grouping scan':human(g.scan_status),'Context boundaries':g.boundary_flags.map(assemblyFlag).join(', ')||'No additional grouping boundary recorded'}));
+    if(byAddress.has(g.address_id))summary.append(button('All captured uses of this exact address',()=>openDetail('address',g.address_id),'text-link'));
+    else summary.append(notice('Supplemental exact address','Qualified sequence, file or rack source evidence supplies this anchor. The base ladder access catalogue has no address record; no base read/write uses were added.'),sourceCell(address.target_id),values({'Exact expanded suffix':address.suffix||'(root)'}));
+    content.append(summary);
     if(g.scan_status!=='complete')content.append(notice('Incomplete grouping scan','The retained memberships are a subset; an absent link does not establish absence in the export.'));
     const occurrences=section('Source roles and relationships','Each row keeps its source occurrence. Named PID slots and members describe source context; they do not replace unknown base access roles. Repeated contacts and alternative writers remain separate.');
-    occurrences.append(table(['Evidence type','Captured role','Source occurrence','Related address','Inspect evidence','Remaining context'],members,m=>[ASSEMBLY_PROVIDERS[m.provider]||human(m.provider),assemblyRelation(m),sourceCell(m.rung_id||m.instruction_id||m.source_id),m.related_address_id?assemblyLink(m.related_address_id):'—',assemblyEvidence(m),m.context_flags.map(assemblyFlag).join(' · ')||'No additional membership boundary recorded'],'Cross-rung group memberships'));content.append(occurrences);
+    occurrences.append(table(['Evidence type','Captured role','Source occurrence','Related address','Inspect evidence','Remaining context'],members,m=>[ASSEMBLY_PROVIDERS[m.provider]||human(m.provider),assemblyRelation(m),assemblySource(m),m.related_address_id?assemblyLink(m.related_address_id):'—',assemblyEvidence(m),m.context_flags.map(assemblyFlag).join(' · ')||'No additional membership boundary recorded'],'Cross-rung group memberships'));content.append(occurrences);
     const neighbors=assemblyNeighbors(g,members),links=section('Related addresses in captured instructions','These connections come from explicit source relationships or memberships in the same instruction. They do not imply a transfer through a PID, timer, file range or unknown block. Follow one address at a time to inspect its own writers and conditions.');
-    links.append(table(['Related exact address','Association basis','Anchor role','Other role','Source evidence'],neighbors.rows,row=>[assemblyLink(row.id),row.relation,assemblyRelation(row.m),row.other?assemblyRelation(row.other):'See original relationship',assemblyEvidence(row.m)],'Cross-rung related addresses',{emptyTitle:'No neighboring exact addresses retained',emptyDetail:'This is not proof of a dead end or unused logic.'}));
+    links.append(table(['Related exact address','Association basis','Anchor role','Other role','Source evidence'],neighbors.rows,row=>[assemblyLink(row.id),row.relation,row.reverse?(row.m.relation==='guard_condition'?'Guard input':'Related source address'):assemblyRelation(row.m),row.reverse?assemblyRelation(row.m):row.other?assemblyRelation(row.other):'See original relationship',assemblyEvidence(row.m)],'Cross-rung related addresses',{emptyTitle:'No neighboring exact addresses retained',emptyDetail:'This is not proof of a dead end or unused logic.'}));
     if(neighbors.truncated)links.append(notice('Related-address display truncated','Showing a bounded subset after '+fmt(neighbors.visits)+' visits; limits are 5,000 visits and 500 links. Inspect the original provider dossier for the rest.'));content.append(links);
     const rungsSection=section('Related rungs and edit context','Different rungs, routines and captured edit versions remain separate; no active edit or execution order is selected.');
     rungsSection.append(table(['Rung','Routine','Captured content / edit context'],g.rung_ids,id=>{const r=bySignalRung.get(id);return [sourceCell(id),sourceCell(byRung.get(id)?.parent_id),r?button('Inspect exact content and edit attributes',()=>openDetail('signalrung',id),'text-link'):'Inspect the original source occurrence'];},'Cross-rung group source rungs'));content.append(rungsSection);
@@ -1553,6 +1802,17 @@
     panelNode.append(values({'Outgoing condition':'incoming AND NOT storage-before','Storage after this occurrence':'incoming','Known false incoming':'outgoing false; storage cleared','Storage identity':n.operand_ids.length&&byUseAddress.has(n.operand_ids[0])?'Exact address spelling available; member/type validity unverified':'Unresolved storage identity'}),statefulNotice());
     if(n.operand_ids.length){const links=node('div','inline-links');links.append(sourceCell(n.operand_ids[0]),addressCell(n.operand_ids[0]));panelNode.append(links);}return panelNode;
   }
+  function aoiConditionProof(n){
+    const p=section('AOI outgoing-condition evidence',n.aoi_identity_status==='modeled'?'The bounded source proof found a unique qualified scalar instance and definition, optional scalar enable parameters, and a complete normal Logic body whose supported operations do not write EnableIn or EnableOut. This supports preserving the incoming condition during normal execution.':'The bounded source proof stopped at the first blocking check. The outgoing condition remains opaque; this status does not establish other properties of the definition or call.');
+    p.append(values({'Proof disposition':human(n.aoi_identity_status),...(n.aoi_body_gap_reason?{'First body qualification gap':human(n.aoi_body_gap_reason)}:{}),'Checked body instructions':n.aoi_checked_instructions,'Checked writes':n.aoi_checked_writes}));
+    const links=node('div','inline-links');for(const [key,label] of [['aoi_declaration_id','Definition'],['aoi_instance_id','Instance'],['aoi_logic_id','Normal Logic'],['aoi_enableout_id','EnableOut declaration']])if(n[key]){const item=node('div');item.append(node('span','muted',label+': '),sourceCell(n[key]));links.append(item);}p.append(links,node('p','row-note','This condition rule does not pair positional parameters, validate data types, execute the AOI body, infer final values or model faults, prescan or other scan modes.'));return p;
+  }
+  function gsvSignatureEvidence(n){
+    const reasons={modeled:'The four source fields satisfy the bounded syntax rule for documented normal-execution condition transfer.',argument_count:'The source does not contain exactly four fields.',empty_field:'The class, attribute or destination field is empty; only the instance field may be empty.',class_token:'The class field is not a supported identifier token.',instance_syntax:'The nonempty instance field does not have a supported address spelling.',attribute_token:'The attribute field is not a supported identifier token.',destination_syntax:'The destination field does not have a supported address spelling.',namespace:'The instruction source or supporting source context is not namespace-qualified.'};
+    const p=section('GSV source-signature evidence','This is the first disposition from the existing bounded syntax check. It does not identify an object/attribute catalogue match or validate destination type, value, fault behavior or execution.');p.append(values({'Signature disposition':human(n.gsv_signature_status),...(n.gsv_instance_gap_form?{'Unsupported instance form':human(n.gsv_instance_gap_form)}:{})}),node('p','row-note',reasons[n.gsv_signature_status]));
+    if(n.gsv_signature_status==='instance_syntax'&&n.gsv_instance_gap_form==='question_mark')p.append(node('p','row-note','The captured instance field is ?. Rockwell documents ? as an operand-entry marker; the reviewed GSV references do not establish it as an unused-instance equivalent. This signature remains unresolved, so its outgoing condition stays opaque.'));
+    return p;
+  }
   function transferTable(rows,caption){return table(['Instruction occurrence','Normal-scan condition transfer','Incoming condition evidence','Operand preview','Rung'],rows,n=>[
     button(transferOpcode(n),()=>openDetail('transfer',n.id),'text-link'),transferLabel(n),conditionGuardLabel(conditionQuality(byConditionNode.get(n.child_ids[0]))),
     node('div','snippet',n.operand_ids.slice(0,4).map(id=>short(byOperand.get(id)?.raw_text || '(blank)',80)).join(' · ')+(n.operand_ids.length>4?' · additional operands':'')),sourceCell(n.rung_id)
@@ -1562,6 +1822,10 @@
     if(conditions.schema_version>=3)content.append(statefulNotice());
     const summary=panel('Instruction occurrences','Each row retains its own source occurrence, including instructions on rungs with no coil output. A pass-through rule can still have an unknown or unbound incoming condition.');
     summary.append(values({'Instruction transfers':conditionTransfers.length,'Documented pass-through':conditionTransfers.filter(n=>n.kind==='pass_through').length,...(conditions.schema_version>=3?{'Stored-state transfer':conditionTransfers.filter(n=>n.kind==='stateful_transfer').length}:{}),'Unknown transfer':conditionTransfers.filter(n=>n.kind==='opaque_transfer').length}));content.append(summary);
+    if(conditions.schema_version>=4){const gaps=panel('Remaining transfer families','Coil guard counts overlap when more than one unresolved opcode contributes to the same guard. A documented outgoing condition does not prove data effects or instruction completion.');gaps.append(table(['Opcode','Opaque occurrences','Coil guards containing this opcode'],Object.entries(conditions.coverage.opaque_opcodes).filter(([op,n])=>n||conditions.coverage.opaque_guard_opcodes[op]),r=>[r[0],fmt(r[1]),fmt(conditions.coverage.opaque_guard_opcodes[r[0]])],'Residual condition families'));content.append(gaps);}
+    if(conditions.schema_version>=5){const proof=panel('AOI condition proof coverage','Each custom occurrence retains the first blocking disposition or the supported source proof. Routine transfers remain opaque.');proof.append(table(['Proof disposition','Custom occurrences'],Object.entries(conditions.coverage.aoi_identity_statuses).filter(([,n])=>n),r=>[human(r[0]),r[1]],'AOI condition proof dispositions'));content.append(proof);}
+    if(conditions.schema_version>=5){const signatures=panel('GSV source-signature coverage','Fixed dispositions explain the existing source-syntax gate; no new GSV behavior is inferred.');signatures.append(table(['First signature disposition','GSV occurrences'],Object.entries(conditions.coverage.gsv_signature_statuses).filter(([,n])=>n),r=>[human(r[0]),r[1]],'GSV signature dispositions'));content.append(signatures);}
+    if(conditions.schema_version>=6){const gaps=panel('Remaining source qualification gaps','Fixed categories identify the first unproved source check. They do not establish runtime behavior.');gaps.append(table(['AOI body gap','Occurrences'],Object.entries(conditions.coverage.aoi_body_gap_reasons).filter(([,n])=>n),r=>[human(r[0]),r[1]],'AOI body qualification gaps'),table(['Unsupported GSV instance form','Occurrences'],Object.entries(conditions.coverage.gsv_instance_gap_forms).filter(([,n])=>n),r=>[human(r[0]),r[1]],'GSV instance form gaps'));content.append(gaps);}
     content.append(transferTable(conditionTransfers.filter(n=>matches(n)&&(state.filter==='all'||n.kind===state.filter)),'Instruction condition transfers'));
   }
   function transferDetail(n){
@@ -1571,6 +1835,8 @@
     const summary=panel('Captured instruction occurrence',n.kind==='pass_through'?'The documented normal-scan rule preserves the incoming rung condition. Data binding gaps do not alter this transfer rule.':n.kind==='stateful_transfer'?'The outgoing condition uses the stored value immediately before this occurrence. Normal evaluation also updates storage.':'The incoming rung condition is retained as context. Outgoing condition behavior remains unmodeled.');
     summary.append(values({'Opcode':transferOpcode(n),'Transfer':transferLabel(n),'Incoming condition evidence':conditionGuardLabel(conditionQuality(incoming)),'Outgoing condition evidence':conditionGuardLabel(conditionQuality(n)),'Reason':human(n.reason)}));
     const links=node('div','inline-links');links.append(sourceCell(n.instruction_id),sourceCell(n.rung_id));summary.append(links);content.append(summary);
+    if(n.aoi_identity_status)content.append(aoiConditionProof(n));
+    if(n.gsv_signature_status)content.append(gsvSignatureEvidence(n));
     const operands=n.operand_ids.map(id=>byOperandAccess.get(id)).filter(Boolean);
     if(operands.length){const evidence=section('Separate operand-access evidence','Possible reads and writes and their bindings do not establish execution, data validity or the final value. They are separate from the Boolean condition-transfer rule.');evidence.append(accessBindingTable(operands,'Instruction transfer operand access'));content.append(evidence);}
     if(n.kind==='stateful_transfer')content.append(statefulPanel(n));
@@ -1625,6 +1891,8 @@
       detail.append(values({'Node kind':human(selected.kind),'Includes a branch join':selected.has_branch?'Yes':'No',...(conditions?.schema_version>=3?{'Contains stored-state condition':selected.has_stateful?'Yes':'No'}:{}),'Reason':selected.reason?human(selected.reason):'No gap from this rule'}));
       if(selected.instruction_id)detail.append(sourceCell(selected.instruction_id));
       if(selected.kind==='stateful_transfer')detail.append(statefulPanel(selected));
+      if(selected.aoi_identity_status)detail.append(aoiConditionProof(selected));
+      if(selected.gsv_signature_status)detail.append(gsvSignatureEvidence(selected));
       if(instructionConditions&&['pass_through','stateful_transfer','opaque_transfer'].includes(selected.kind)&&state.detail?.type!=='transfer')detail.append(button('Inspect instruction condition transfer',()=>openDetail('transfer',selected.id),'text-link'));
       if(selected.child_ids.length)detail.append(table(['Input occurrence','Condition node','Meaning'],selected.child_ids,(id,i)=>[i+1,childLink(id),conditionNodeLabel(byConditionNode.get(id))],'Selected condition inputs'));
       if(selected.operand_ids.length)detail.append(table(['Source operand','Exact address evidence','Occurrence identity'],selected.operand_ids,id=>[sourceCell(id),addressCell(id),technical({'Operand ID':id})],'Selected condition operands'));
@@ -1669,14 +1937,28 @@
       if(f.signature_status==='recognized'&&f.qualification==='qualified')for(const slotId of f.slot_ids){const slot=byFileSlot.get(slotId);if(slot?.role&&slot.role!=='unknown')slotContext.set(slotId,'file_role');}
       limits.push('File ranges, symbolic selectors and runtime values remain unevaluated');
     }
+    const message=byCommunication.get(id);
+    if(message){
+      const endpointCount=message.parameter_ids.reduce((n,p)=>n+(communicationEndpoints.get(p)||[]).length,0);
+      add('message','MSG stored parameters','Association: '+human(message.status)+'; parameter records: '+message.parameter_ids.length+'; local endpoint fields: '+endpointCount,communicationGap(message),()=>openDetail('communication',id));
+      limits.push(communicationContext?.schema_version>=2?'Configured direction and communication method are separate from runtime payload, delivery and remote behavior':'Message payload direction, protocol and remote behavior remain unmodeled');
+    }
     const executionId=byExecutionInstruction.get(id),execution=byExecution.get(executionId),x=execution?.row;
     if(x){
       const target=x.target_routine_id?byExecution.get(byExecutionSource.get(x.target_routine_id))?.row:null;
       const caller=byExecution.get(byExecutionSource.get(x.caller_routine_id))?.row;
       const targetGap=target&&target.body_status!=='rll_structure_parsed';
-      add('execution','Call / boundary context','Candidate: '+human(x.status)+'; '+executionQualification(x)+'; arguments: '+human(x.argument_shape)+'; incoming condition: '+human(x.guard_quality)+(caller?'; caller body: '+human(caller.body_status):'')+(target?'; target body: '+human(target.body_status):''),!x.qualified||!['unique_candidate','not_applicable'].includes(x.status)||!!x.empty_argument_indices?.length||x.guard_quality!=='modeled'||!!targetGap||!!caller&&caller.body_status!=='rll_structure_parsed',()=>openDetail('executioncontext',executionId));
+      const boundary=byExecutionCallBoundary.get(executionId);
+      add('execution','Call / boundary context','Candidate: '+human(x.status)+'; '+executionQualification(x)+'; arguments: '+human(x.argument_shape)+'; incoming condition: '+human(x.guard_quality)+(caller?'; caller body: '+human(caller.body_status):'')+(target?'; target body: '+human(target.body_status):'')+(boundary?'; exact content: '+human(boundary.status)+'; boundary population: '+human(boundary.boundary_profile):''),!x.qualified||!['unique_candidate','not_applicable'].includes(x.status)||!!x.empty_argument_indices?.length||x.guard_quality!=='modeled'||!!targetGap||!!caller&&caller.body_status!=='rll_structure_parsed'||!!boundary&&boundary.status!=='associated',()=>openDetail('executioncontext',executionId));
       if(x.qualified)for(const operandId of block?.operand_ids||[])slotContext.set(operandId,'execution_field');
       limits.push('Call fields have no validated parameter roles, types or value flow');
+    }
+    const reset=bySfrCall.get(id);
+    if(reset){
+      const matched=reset.content_matches.filter(m=>m.status==='unique_candidate').length;
+      const gap=reset.signature_status!=='classified'||reset.routine_status!=='unique_candidate'||reset.chart_status!=='available'||!reset.content_matches.length||matched!==reset.content_matches.length;
+      add('sfr','Sequence reset target context','Signature: '+human(reset.signature_status)+'; routine: '+human(reset.routine_status)+'; chart: '+human(reset.chart_status)+'; selector: '+human(reset.selector_kind)+'; matched exported contents: '+matched+' / '+reset.content_matches.length,gap,()=>openDetail('sfrcall',id));
+      limits.push('Reset target candidates do not establish active steps, selected edits, reset effects or outgoing conditions');
     }
     const custom=byCustomCall.get(id),instance=byAoiBodyCall.get(id);
     if(custom){
@@ -1687,9 +1969,10 @@
       const detail='Declaration: '+human(custom.status)+(metadata?'; protection: '+human(metadata.protection_marker)+'; encoded regions: '+metadata.encoded_region_ids.length:'')+(instance?'; instance: '+human(instance.instance_status)+'; type: '+human(instance.datatype_status)+'; address shape: '+human(instance.address_shape):'; instance context unavailable')+(aoiBody?'; bodies: '+(!bodies.length?'unavailable':[...new Set(bodies.map(r=>human(r?.body_status)))].join(', '))+'; symbol context gaps: '+symbolGaps:'; body context unavailable');
       add('custom','AOI / custom context',detail,custom.status!=='unique_candidate'||declarationGap||symbolGaps>0||!!instance&&(instance.instance_status!=='bound_root_context'||instance.datatype_status!=='matching_type_name'||!['root','static_element'].includes(instance.address_shape))||bodyGap,()=>openDetail('customcall',id));
       if(instance?.first_operand_id&&instance.instance_status==='bound_root_context')slotContext.set(instance.first_operand_id,'aoi_instance');
-      limits.push('AOI parameter mapping, call validity and effects remain unmodeled');
+      limits.push(aoiBody?.schema_version>=2?'Exact named members may link to declared parameters; positional call mapping, call validity and effects remain unmodeled':'AOI parameter mapping, call validity and effects remain unmodeled');
     }
     const transfer=transferByInstruction.get(id);
+    for(const u of rackBackingUsesByInstruction.get(id)||[]){const a=byRackBackingAddress.get(u.address_id);add('rack','Rack source address','Occurrence: '+human(u.disposition)+(a?'; candidate: '+rackBackingAddressName(a)+'; source correspondence: '+rackBackingDestination(a):'; no address correspondence'),u.disposition!=='associated',()=>openDetail('rackuse',u.id));}
     if(transfer?.kind==='opaque_transfer')limits.push('Opaque condition transfer remains unresolved');
     if(transfer?.has_binding_gap)limits.push('Incoming condition includes binding gaps');
     if(transfer?.has_stateful)limits.push('Incoming condition includes stored state');
@@ -1717,7 +2000,7 @@
     const unknownBlocks=new Set(analyzedRungs.flatMap(a=>a.unknown_block_ids)),unknownSlots=new Set(analyzedRungs.flatMap(a=>a.operand_ids_by_role.unknown));
     const panelNode=panel('Evidence across analysis views','Base catalogue groups and roles remain unchanged. Additional records explain captured source without proving equipment purpose, execution or shutdown behavior. Counts below use distinct instruction occurrences; one instruction can appear in more than one provider row.');
     panelNode.append(values({'Base unknown blocks':unknownBlocks.size,'Base unknown-role operands':unknownSlots.size,'Instructions with additional context':entries.filter(e=>e.providers.length).length,'Rungs with additional context':analyzedRungs.filter(a=>engineeringRungEvidence(a).some(e=>e.providers.length)).length,'Base unknown blocks with additional context':entries.filter(e=>unknownBlocks.has(e.id)&&e.providers.length).length,'Base unknown blocks without additional context':entries.filter(e=>unknownBlocks.has(e.id)&&!e.providers.length).length}));
-    const cohorts=[['pid','PID slots / storage',!!pid],['execution','Call / boundary context',!!executionContext],['file','File / array slots',!!fileOperations],['custom','AOI / custom context',!!customContext]];
+    const cohorts=[['pid','PID slots / storage',!!pid],['execution','Call / boundary context',!!executionContext],['file','File / array slots',!!fileOperations],['custom','AOI / custom context',!!customContext],...(sfrCalls.length?[['sfr','Sequence reset target context',true]]:[]),...(rackBacking?[['rack','Rack source addresses',true]]:[]),...(communicationContext?[['message','MSG stored parameters',true]]:[])];
     panelNode.append(table(['Additional evidence','Instructions','With provider gaps','Availability'],cohorts,([key,label,available])=>{
       const matches=entries.filter(e=>e.providers.some(p=>p.kind===key));return[label,matches.length,matches.filter(e=>e.providers.some(p=>p.kind===key&&p.gap)).length,available?'Captured in this report':'Unavailable in this report'];
     },'Engineering additional evidence coverage'));
@@ -1729,6 +2012,67 @@
     const links=node('div','inline-links');
     for(const [available,label,view] of [[fileOperations,'Explore file and array operations','fileoperations'],[sfrContext,'Explore sequence reset context','sfrcontext'],[customContext&&indexedAccess,'Explore instruction & index context','instructioncontext'],[executionContext,'Explore execution context','executioncontext'],[conditions,'Explore conditional outputs','conditions'],[instructionConditions,'Explore instruction conditions','transfers'],[bindingContext,'Explore binding gaps & context','bindingcontext'],[relationships,'Explore address relationships','relationships']])if(available)links.append(button(label,()=>go(view),'text-link'));
     panelNode.append(links);return panelNode;
+  }
+  let residualCache=null;
+  function residualEntries(){
+    if(residualCache)return residualCache;
+    const unknownBlocks=new Set(analyzedRungs.flatMap(a=>a.unknown_block_ids)),unknownSlots=new Set(analyzedRungs.flatMap(a=>a.operand_ids_by_role.unknown));
+    residualCache=[];
+    for(const id of new Set(analyzedRungs.flatMap(a=>a.block_ids))){
+      const block=byRungBlock.get(id),e=engineeringInstructionEvidence(id),categories=[];
+      const unknownOperands=(block?.operand_ids||[]).filter(i=>unknownSlots.has(i));
+      if(unknownBlocks.has(id))categories.push('catalogue');
+      if(unknownOperands.length)categories.push('roles');
+      if(e.transfer?.kind==='opaque_transfer')categories.push('opaque');
+      if(e.bindingIds.length||e.transfer?.has_binding_gap)categories.push('binding');
+      if(e.providers.some(p=>p.gap))categories.push('provider');
+      if(categories.length)residualCache.push({id,block,e,categories,unknownOperands});
+    }
+    return residualCache;
+  }
+  const RESIDUAL_LABELS={catalogue:'Base block function unresolved',roles:'Base operand roles unresolved',opaque:'Outgoing condition unmodeled',binding:'Binding evidence incomplete',provider:'Specialized context has gaps'};
+  function residualNext(row){
+    const notes=[];
+    if(row.categories.includes('opaque')){
+      const opcode=(row.block?.opcode||'').toUpperCase();
+      if(opcode==='SFR'&&bySfrCall.has(row.id))notes.push('Documented operation: enabled SFR resets the specified chart and its stored actions. Source interpretation: captured reset fields and candidate dispositions explain available source context; target gaps remain visible. Outgoing Boolean transfer still requires applicable vendor evidence; reset execution and final state are not computed.');
+      else if(opcode==='JSR'&&byExecutionInstruction.has(row.id))notes.push('Documented operation: enabled JSR invokes a routine and resumes after a normal return. Parameter mapping requires a verified RLL exporter convention; outgoing Boolean transfer and return timing remain unresolved.');
+      else if(opcode==='SBR'&&byExecutionInstruction.has(row.id))notes.push('Documented operation: SBR receives JSR input data. Its exported field convention and Logix outgoing Boolean rule require vendor or controlled-version evidence. Repeating unchanged source capture cannot supply either rule.');
+      else if(opcode==='RET'&&byExecutionInstruction.has(row.id))notes.push('Documented operation: enabled RET ends the subroutine scan, including when no fields are captured. Parameter mapping requires a verified exporter convention; return paths are not computed and no Boolean pass-through is inferred.');
+      else if(opcode==='GSV'&&transferByInstruction.get(row.id)?.gsv_instance_gap_form==='question_mark')notes.push('Source evidence boundary: the captured GSV instance is ?. Its meaning as an unused-instance placeholder requires applicable vendor or controlled-exporter evidence. The original source signature and opaque condition remain visible.');
+      else notes.push('Parser investigation: an instruction-specific condition rule or explicit control-flow treatment is still needed.');
+    }
+    if(row.categories.includes('catalogue')||row.categories.includes('roles'))notes.push('Reconcile the source signature with specialized evidence. Named slots and raw fields alone do not resolve effects.');
+    if(row.categories.includes('binding'))notes.push('Inspect exact binding and alias evidence; missing declarations, namespace conflicts and runtime selectors require different remedies.');
+    if(row.categories.includes('provider'))notes.push('Open the provider dossier for the precise missing or conflicting source evidence.');
+    return notes.join(' ');
+  }
+  function residualList(){
+    const entries=residualEntries(),p=panel('Remaining instruction questions','One row per instruction occurrence with a recorded gap. Categories overlap. Captured context does not close unimplemented semantics, and this list is not a team-readiness approval.');
+    p.append(values({'Instruction occurrences with questions':entries.length,'Base block gaps without additional context':entries.filter(r=>r.categories.includes('catalogue')&&!r.e.providers.length).length,'Opaque outgoing conditions':entries.filter(r=>r.categories.includes('opaque')).length,'Base unknown-role operands':entries.reduce((n,r)=>n+r.unknownOperands.length,0)}));content.append(p);
+    const matchesResidual=r=>!state.query||matches(byRung.get(r.block?.rung_id))||matches(byCommunication.get(r.id))||(r.block?.opcode||'').toLocaleLowerCase().includes(state.query.toLocaleLowerCase());
+    const selected=entries.filter(r=>matchesResidual(r)&&(state.filter==='all'||state.filter==='unexplained'&&r.categories.includes('catalogue')&&!r.e.providers.length||r.categories.includes(state.filter)));
+    content.append(table(['Instruction / source','Remaining question','Captured context','Required follow-up','Evidence and limits'],selected,r=>[
+      primary(sourceCell(r.id),sourceName(r.block?.rung_id)),r.categories.map(k=>RESIDUAL_LABELS[k]).join(' · '),engineeringProviderCell(r.e),residualNext(r),engineeringLimitsCell(r.e)
+    ],'Unresolved instruction analysis'));
+    const other=section('Source and structural questions','These populations are separate from instruction rows and can overlap them. Open the evidence to distinguish missing source, unresolved interpretation and runtime information.');
+    const cohorts=[
+      ['Binding and alias contexts',bindingContextGaps.length,'Inspect exported declarations, alias chains and namespace evidence; rack-name candidates remain unconfirmed.','bindingcontext'],
+      ...(rackBacking?[['Rack source occurrences with gaps',rackBackingUses.filter(u=>u.disposition!=='associated').length,'Inspect failed source qualification separately from the preserved base binding gaps. Physical channel and runtime behavior are not established by an associated source address.','rackbacking',{rackBackingMode:'uses',filter:'gaps'}]]:[]),
+      ['Indexed source occurrences',indexedUses.length,'Symbolic selectors, unknown-role fields and unsupported forms remain distinct. A parsed selector alone does not establish a runtime element.','instructioncontext',{filter:'indexed'}],
+      ['Sequence transition gaps',sequenceConditions.filter(sequenceConditionGaps).length,'Inspect the preserved transition and reference dispositions; unsupported syntax remains parser work.','sequenceconditions',{filter:'gap'}],
+      ['Rungs without a known local result',analyzedRungs.filter(a=>a.result_kind==='no_known_result').length,'Calls, state changes or external effects may explain this; absence of a local destination does not prove a dead end.','engineering',{engineeringShape:'no_result'}],
+      ['Rungs without a clear comment',analyzedRungs.filter(a=>a.comment_status!=='present').length,'Authored purpose is absent or ambiguous; instruction evidence remains available.','engineering',{engineeringShape:'comment'}],
+      ['Rungs with missing identifiers',analyzedRungs.filter(a=>a.missing_metadata.length).length,'Inspect source metadata; do not manufacture identifiers as authored evidence.','engineering',{engineeringShape:'metadata'}],
+      ['Read-only exact addresses',addresses.filter(a=>a.profile==='read_only').length,'No supported local write was indexed; external producers, initialization, dynamic uses or missing source remain possible.','relationships',{relationshipMode:'addresses',filter:'read_only'}],
+      ['Write-only exact addresses',addresses.filter(a=>a.profile==='write_only').length,'No supported local read was indexed; external consumers, HMI, dynamic uses or missing source remain possible.','relationships',{relationshipMode:'addresses',filter:'write_only'}]
+    ];
+    other.append(table(['Question population','Count','Investigation / missing information','Inspect'],cohorts,r=>[r[0],r[1],r[2],button('Open evidence',()=>go(r[3],r[4]),'text-link')],'Residual source populations'));content.append(other);
+    if(executionContext){
+      const missing=executionContext.routine_contexts.filter(r=>r.body_status!=='rll_structure_parsed'&&!bySfcRoutine.has(r.routine_id)&&byAoiBodyRoutine.get(r.routine_id)?.body_status!=='supported_rll');
+      const bodies=section('Routine body questions','SFC bodies and supported AOI bodies have dedicated source views. Other incomplete or unsupported bodies remain linked below; this is not a proof of execution reachability.');
+      bodies.append(table(['Routine','Body status','Inspect context'],missing,r=>{const aoi=byAoiBodyRoutine.get(r.routine_id);return[sourceCell(r.routine_id),human(aoi?.body_status||r.body_status),aoi?button('Inspect AOI body',()=>openDetail('aoiroutine',r.routine_id),'text-link'):button('Routine source and callers',()=>openDetail('executioncontext',r.id),'text-link')];},'Residual routine bodies'));content.append(bodies);
+    }
   }
   function engineeringBasis(c){return ({instruction_signature:'Instruction signature',known_mnemonic:'Mnemonic only',structural_pattern:'Structural pattern',module_root:'Module root evidence',declaration_type:'Declared type evidence',text_hint:'Text hint only'})[c.basis] || human(c.basis);}
   function engineeringReason(c){
@@ -1903,6 +2247,8 @@
       else stored.append(empty('No Data or DefaultData captured on this declaration','Absence in this export does not supply a zero, default or inherited value. For aliases, inspect the resolved declaration separately.'));
       content.append(stored);
     }
+    if(communicationByOwner.has(e.id))content.append(communicationTable(communicationByOwner.get(e.id),'Object MSG occurrences'));
+    if(tagConnectionsByOwner.has(e.id))content.append(tagConnectionTable(tagConnectionsByOwner.get(e.id),'Object communication metadata'));
     if(bySfcRoutine.has(e.id))content.append(button('Open SFC structure',()=>openDetail('sfc',e.id)));
     const ownRungs=entityRungs.get(e.id)||[];if(ownRungs.length){const p=section('Routine ladder');p.append(rungList(ownRungs));content.append(p);}
     const child=entityChildren.get(e.id)||[];if(child.length){const p=section('Child declarations');p.append(table(['Object','Type','Description'],child,x=>[link(x.name || '(unnamed)',x.id),human(x.kind),short(x.description || '')],'Child declarations'));content.append(p);}
@@ -1941,6 +2287,7 @@
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
     if(byRungAnalysis.has(r.id))engineeringRungDetail(r,byRungAnalysis.get(r.id));
     if(fileOperationsByRung.has(r.id)){const p=section('File and array operations on this rung','Open an occurrence for its documented slots, starting addresses and range limitations.');p.append(fileOperationTable(fileOperationsByRung.get(r.id),'Rung file operations'));content.append(p);}
+    if(communicationByRung.has(r.id)){const p=section('Communication source on this rung','Open each MSG occurrence to inspect its control binding and captured parameter records.');p.append(communicationTable(communicationByRung.get(r.id),'Rung MSG occurrences'));content.append(p);}
     if(sfrCallsByRung.has(r.id)){const reset=section('SFR target context on this rung','Candidate matches do not establish reset execution or outgoing condition.');reset.append(sfrCallTable(sfrCallsByRung.get(r.id),'Rung SFR target contexts'));content.append(reset);}
     if(indexedByRung.has(r.id)){const indexed=section('Indexed source context on this rung','Array roots and possible selector reads stay separate from exact-address relationships.');indexed.append(indexedUseTable(indexedByRung.get(r.id),'Rung indexed source context'));content.append(indexed);}
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
@@ -2011,6 +2358,7 @@
     const original=bySequenceReference.get(r.condition_reference_id),transition=bySequenceCondition.get(r.transition_id),a=bySequenceAddress.get(r.address_id),g=bySequenceGap.get(r.gap_id);
     setDetailHeading('SEQUENCE REFERENCE CONTEXT',original?.raw_text||'Reference',entityPath(r.routine_id));content.append(sequenceContextNotice());
     const summary=panel('Reference source');summary.append(values({'Context qualification':human(r.status),'Original root binding':human(r.binding_status),'Content version':human(r.edit_kind)}));const sourceLinks=node('div','inline-links');if(transition)sourceLinks.append(button('Open transition: '+sequenceConditionName(transition),()=>openDetail('sequencecondition',transition.id),'text-link'));sourceLinks.append(sourceCell(r.content_id));summary.append(sourceLinks);if(original)summary.append(calculationBinding(original.binding));if(a)summary.append(sequenceAddressLink(a));content.append(summary);
+    const backingUse=byRackBackingSource.get('sfc:'+r.condition_reference_id);if(backingUse)content.append(rackBackingUseLink(backingUse));
     if(g){const gap=section('Binding diagnostic','Candidate names from another scope or a chart operand remain hints. They do not repair the original binding. TRUE/FALSE spellings, when reported, are lexical observations only.');gap.append(values({'Diagnostic':human(g.kind),'Lexical category':human(g.lexical_kind),'Lookup root':g.root_text||'(unavailable)'}),sourceCell(g.lookup_scope_id));
       for(const [field,label] of [['outside_scope_entity_ids','Same-name declarations outside lookup scope'],['unqualified_outside_scope_entity_ids','Unqualified same-name declarations outside lookup scope']])if(g[field].length){const p=panel(label);p.append(table(['Declaration candidate'],g[field],id=>[sourceCell(id)],label));gap.append(p);}content.append(gap);}
     const steps=section('Chart-step candidates','Each association retains the candidate content and routine. Same-content, other-edit and peer-chart candidates are kept separate; none selects an effective step.');steps.append(sequenceStepTable(r.step_link_ids.map(id=>bySequenceStepLink.get(id)).filter(Boolean)));content.append(steps);
@@ -2393,8 +2741,8 @@
     if(c.master.owner_id)masterLinks.append(sourceCell(c.master.owner_id));
     master.append(masterLinks);
     master.append(pidTable(c.master.occurrence_ids.map(id=>byPid.get(id)).filter(Boolean),'PID explicit master candidates'));content.append(master);
-    const incoming=section('Incoming condition evidence','These links reuse the captured condition nodes immediately before this PID occurrence. They are context evidence, not a PID execution guard; outgoing PID condition behavior remains unmodeled.');
     const transfer=transferByInstruction.get(p.id);
+    const incoming=section('Incoming condition evidence','These links reuse the captured condition nodes immediately before this PID occurrence. They are context evidence, not a PID execution guard. '+(pidConnections.schema_version>=2&&transfer?.kind==='pass_through'?'The documented normal-execution PID rule preserves the incoming rung condition; loop state, data effects and faults are not evaluated.':'Outgoing PID condition behavior remains unmodeled in this saved view.'));
     incoming.append(table(['Incoming source condition','Condition evidence','Source rung'],c.incoming_condition_ids,id=>{
       const n=byConditionNode.get(id);return [transfer?button(conditionNodeLabel(n),()=>openDetail('transfer',transfer.id,{focusConditionNode:id}),'text-link'):sourceCell(n?.instruction_id),conditionGuardLabel(conditionQuality(n)),sourceCell(p.rung_id)];
     },'PID incoming conditions',{emptyTitle:'No incoming condition context captured',emptyDetail:'The absence of a link does not establish unconditional execution.'}));content.append(incoming);
@@ -2793,6 +3141,8 @@
     content.replaceChildren();
     if(state.view==='overview')overview();
     else if(state.view==='assemblies')assembliesList();
+    else if(state.view==='communication')communicationList();
+    else if(state.view==='residuals')residualList();
     else if(state.view==='engineering')engineeringList();
     else if(state.view==='relationships')relationshipsList();
     else if(state.view==='conditions')conditionsList();
@@ -2801,6 +3151,7 @@
     else if(state.view==='executioncontext')executionContextList();
     else if(state.view==='transfers')transfersList();
     else if(state.view==='bindingcontext')bindingContextList();
+    else if(state.view==='rackbacking')rackBackingList();
     else if(state.view==='instructioncontext')instructionContextList();
     else if(state.view==='sfrcontext')sfrContextList();
     else if(state.view==='objects')objectList();
@@ -2824,6 +3175,7 @@
       const d=state.detail;
       if(d.type==='entity')objectDetail(byEntity.get(d.id));
       else if(d.type==='assembly')assemblyDetail(byAssembly.get(d.id));
+      else if(d.type==='communication')communicationDetail(byCommunication.get(d.id));
       else if(d.type==='rung')rungDetail(byRung.get(d.id));
       else if(d.type==='sfc')sfcDetail(bySfcRoutine.get(d.id));
       else if(d.type==='element')elementDetail(byElement.get(d.id));
@@ -2845,6 +3197,9 @@
       else if(d.type==='outputaddress')outputContextAddressDetail(byOutputAddress.get(d.id));
       else if(d.type==='transfer')transferDetail(byConditionNode.get(d.id));
       else if(d.type==='bindingcontext')bindingContextDetail(byBindingContext.get(d.id));
+      else if(d.type==='rackroot')rackBackingRootDetail(byRackBackingRoot.get(d.id));
+      else if(d.type==='rackaddress')rackBackingAddressDetail(byRackBackingAddress.get(d.id));
+      else if(d.type==='rackuse')rackBackingUseDetail(byRackBackingUse.get(d.id));
       else if(d.type==='customcall')customCallDetail(byCustomCall.get(d.id));
       else if(d.type==='customdeclaration')customDeclarationDetail(byCustomDeclaration.get(d.id));
       else if(d.type==='aoiroutine')aoiRoutineDetail(byAoiBodyRoutine.get(d.id));
@@ -2867,6 +3222,8 @@
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));
       if(state.view==='engineering')engineeringToolbar();
       else if(state.view==='assemblies')assemblyToolbar();
+      else if(state.view==='communication')toolbarFor('Search controls, parameter fields or source gaps',[['all','All MSG occurrences'],['gaps','Source association gaps'],['linked','Source associations captured']]);
+      else if(state.view==='residuals')toolbarFor('Search opcode or rung source',[['all','All instruction questions'],['unexplained','Base block gaps without context'],...Object.entries(RESIDUAL_LABELS)]);
       else if(state.view==='relationships')relationshipsToolbar();
       else if(state.view==='conditions')conditionsToolbar();
       else if(state.view==='statefulobjects')statefulObjectsToolbar();
@@ -2875,7 +3232,8 @@
       else if(state.view==='signalcontext')signalToolbar();
       else if(state.view==='transfers')toolbarFor('Search instruction opcodes, operand previews or rung context',[['all','All transfers'],['pass_through','Documented pass-through'],...(conditions?.schema_version>=3?[['stateful_transfer','ONS stored-state transfer']]:[]),['opaque_transfer','Unknown transfer']]);
       else if(state.view==='bindingcontext')bindingContextToolbar();
-      else if(state.view==='instructioncontext')toolbarFor('Search instruction names, declarations, index expressions or context status');
+      else if(state.view==='rackbacking')rackBackingToolbar();
+      else if(state.view==='instructioncontext')toolbarFor('Search instruction names, declarations, index expressions or context status',[['all','All instruction and index context'],['indexed','Indexed source occurrences'],['custom','Custom instruction context']]);
       else if(state.view==='sfrcontext')toolbarFor('Search SFR routines, selector kinds, chart context or rung names');
       else if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
       else if(state.view==='ladder')toolbarFor('Search rung text, comments or routine names',countsFilter(rungs,'parse_status'));

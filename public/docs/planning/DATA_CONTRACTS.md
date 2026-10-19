@@ -1,5 +1,129 @@
 # Data contracts, traceability, and checkpoints
 
+## Qualified rack assemblies contract (2026-10-19)
+
+`engineering_assemblies_schema_version=3` requires the full rack correspondence
+bundle. Work53/review35/manifest38 derive the assembly projection after canonical
+rack replay, preserving all other provider payloads and historical versions.
+Qualified rack uses join exact backing-tag/suffix groups with per-membership
+`rack_source_use_ids`. Known literal/system-flag guard inputs have separate
+counts; they are not binding exclusions. No value, physical-I/O or runtime
+interpretation is added. Same-source forward/reverse links retain qualification,
+branch and original condition gaps.
+
+The source group budget remains 64 MiB, 100,000 memberships, 20,000 groups and
+500,000 visits. Review JSON/HTML remain 472/504 MiB, sixteen private artifacts;
+public reports remain 144 KiB. Closed assembly3 counters and cross-provider
+checks reconcile projected rack membership capacity. Source names, values and
+proof IDs stay private. Git transport and sample-history policy are unchanged.
+See the [C13 audit and C14 validation](../reviews/RACK_ASSEMBLY_REVIEW.md).
+
+## Rack source correspondence contract (2026-10-19)
+
+`include_rack_backing_context=True` requires residual diagnostics and selects
+review34 / manifest37 / work52. The source-authenticated companion1 retains
+separate declarations, deduplicated addresses and individual RLL/SFC uses.
+Source links, alias qualification, typed Slot/Data/Fault evidence and fixed
+rejection reasons support the correspondence. It does not rewrite original
+references, access, conditions, SFC bindings or exact-address groups. Captured
+scalar envelopes must be well formed; scalar values are not interpreted.
+
+Private companion capacity is 8 MiB; its closed aggregate summary is 8 KiB.
+Review JSON/HTML limits are 472/504 MiB. Sixteen artifact names and public
+144 KiB remain unchanged. Work52 requires the new summary on successful
+analysis, null on failure/not-run, its exact revision/version, and cross-provider
+population conservation against rack2, binding context and SFC conditions.
+Every old rack disposition is conserved; the previously unmapped Slot partition
+is split into associated and explicit gap outcomes. Historical schemas/caps,
+canonical replay and frozen sample reservations remain unchanged. No new raw
+source field is shared. Work-PC Git transport is manual.
+
+See [qualification, investigation and validation](../reviews/RACK_SOURCE_MAPPING_REVIEW.md).
+
+## Residual source diagnostics contract (2026-10-19)
+
+`include_residual_diagnostics=True` requires the complete control-interpretation
+bundle and selects review33 / manifest36 / work51. Condition6 adds fixed first
+AOI-body-gap and GSV-instance-form partitions; execution3 joins qualified SFC
+contents and declared interfaces; rack summary2 adds fixed catalog, direction,
+representation and authored-layout counts. No new raw source sample is selected.
+Bindings, positional call roles and runtime behavior are not inferred from these
+shape observations. Existing defaults and prior schema byte contracts remain.
+
+Private condition/execution limits stay 32/16 MiB, summaries 8 KiB each.
+Rack summary2 allows 8 KiB while summary1 retains 4 KiB. Review JSON/HTML remain
+464/496 MiB, sixteen private artifacts; work51 and history preread 144 KiB.
+Publication explicitly dispatches work51 then enforces its closed nested
+versions, population conservation, canonical bytes and own report limit.
+The work-PC workflow keeps Git transport manual.
+
+See [C11 evidence and next checks](../reviews/RESIDUAL_DIAGNOSTICS_REVIEW.md).
+
+## Control interpretation contract (2026-10-19)
+
+The complete opt-in `include_control_interpretation=True` requires the preceding residual bundle.
+Review32/manifest35/work50 select condition5, PID connections2, execution2 and
+communication3. AOI2, assemblies2 and signal5 stay selected. Every nested
+version is authenticated by canonical source replay; reusable defaults and
+historical report contracts remain unchanged.
+
+Condition5 adds fixed AOI proof and GSV signature-disposition counters, with
+private source evidence links. PID2 changes incoming-node association only.
+Execution2 stores per-content SBR/RET populations once and links calls to them;
+argument dispositions carry no parameter roles. Communication3 separately
+counts all parameter records, distinct linked records and linked calls.
+
+Private limits remain condition 32 MiB, execution 16 MiB, PID 8 MiB and communication 8 MiB.
+Their public summaries allow 8 KiB/8 KiB/4 KiB/8 KiB respectively. Condition summary5
+uses indent1 to retain its 8 KiB bound; schemas1-4 keep their prior serialization.
+Review32 uses 464 MiB JSON/496 MiB HTML and work50 uses 128 KiB. History preread,
+per-version raw limits, sample reservation and sixteen artifact names remain.
+The public writer explicitly dispatches work50 under its own cap.
+
+Work50 also requires a bounded rack-backing investigation summary from existing
+captured module, adapter and backing data evidence. Its closed count categories
+contain no identifiers, catalog values, paths or raw source. It does not change
+bindings, private artifact schemas, or frozen sample selection.
+
+See [source rules and verification](../reviews/CONTROL_INTERPRETATION_REVIEW.md).
+
+## Residual interpretation contract (2026-10-19)
+
+Condition4, AOI body2 and communication2 are a combined opt-in through
+`include_residual_interpretation=True`, requiring the full assemblies2 review.
+CLI/work select review31/manifest34/work49; defaults and prior schemas retain
+support. Source, access and base classifications remain unchanged. Condition
+ancestry can change downstream derived context, which is replayed from the
+selected condition model. Named members and configured roles do not establish
+runtime effects, call validity or type compatibility.
+
+Private condition (32 MiB) and communication (8 MiB) bounds remain. AOI body2
+allows 16 MiB; AOI body1 retains its 8 MiB limit. New companion summaries each
+allow 8 KiB; review31 allows 464 MiB JSON / 496 MiB HTML.
+Work49 allows 128 KiB; sample-history pre-read tracks this, then enforces each
+historical raw/canonical schema cap. Total history of 512 files / 32 MiB and frozen
+sample eligibility/budget remain unchanged. There are still sixteen private
+artifacts and no automatic Git network operations on the work machine.
+
+See [rules, source references and verification](../reviews/RESIDUAL_INTERPRETATION_REVIEW.md).
+
+## Residual source context (2026-10-18)
+
+Assemblies2 adds `{id, target_id, suffix}` supplemental anchors from qualified
+canonical SFC/file evidence, retaining the exact snapshot/declaration/suffix
+identity and all legacy provider payloads. Summary2 adds a closed exclusion
+cross-tab and supplemental count. Communication1 joins MSG/control/parameter
+records and scoped local endpoint candidates, with source-only produced/consumed
+metadata. Remote fields, runtime roles and effective configuration stay separate.
+
+Review30/manifest33/work48 select these companions together; reusable defaults
+retain assemblies1/communication-off behavior. Sixteen artifact names remain;
+the new source context is embedded in review.html. Bounds: assemblies 64 MiB,
+communication 8 MiB, review JSON 456 MiB / HTML 488 MiB; summaries 8/4 KiB;
+work48 112 KiB (maximum-width fixture 107,787 bytes). Source replay authenticates the
+new context and all preceding evidence. Historical gates/budgets remain frozen.
+See [contract, investigation and validation](../reviews/RESIDUAL_SOURCE_REVIEW.md).
+
 ## Exact-address engineering assemblies (2026-10-18)
 
 Engineering assemblies1 groups qualified occurrences from signal, PID connection,

@@ -1,6 +1,51 @@
 # L5X engineering review, calculations and source structure
 
-**Cross-rung groups** brings exact-address source uses together across Boolean
+**Current bundle:** assemblies3 joins qualified rack occurrences to backing-address
+source groups, retains per-occurrence qualification, adds reverse guard-output
+navigation and counts known non-address inputs separately from binding failures.
+Review35/manifest38/work53 preserve the earlier source models, sixteen private
+artifacts and manual Git transport. See the
+[current audit](../public/docs/reviews/PHASE_1_READINESS_REVIEW.md),
+[reader guide](../public/docs/reviews/REPORT_REVIEW_GUIDE.md) and
+[completion tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md).
+Return `adc5475` validates this bundle with all 2,103 application cases (two
+expected skips) and 139 helpers passing. The automated pre-review gate closes
+for this export. The existing report is ready for readability/appearance and
+engineering review; no further normal source run is planned before feedback.
+Historical bundle checkpoints below describe their status when implemented.
+
+Prior bundle: preserved PID condition links, exact routine-content boundaries,
+lexical call fields, narrowly proven AOI output conditions, precise GSV signature
+gaps, catalogued generic message services and fixed-count rack-backing diagnostics.
+Review32/manifest35/work50 retain
+sixteen private artifacts and manual Git transport. See the
+[current review](../public/docs/reviews/CONTROL_INTERPRETATION_REVIEW.md),
+[reader guide](../public/docs/reviews/REPORT_REVIEW_GUIDE.md),
+[invented report](../public/examples/control-interpretation-review-demo.html)
+and [completion tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md).
+Final work-machine verification remains; team readiness has not been declared.
+
+Prior bundle: documented output-condition rules, configured MSG families
+and exact named AOI parameter-member links. Review31/manifest34/work49 keep
+sixteen private artifacts and manual Git transport. See the
+[residual interpretation review](../public/docs/reviews/RESIDUAL_INTERPRETATION_REVIEW.md),
+[invented report](../public/examples/residual-interpretation-review-demo.html)
+and [completion tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md).
+Team readiness has not yet been declared.
+
+Prior bundle: **Communication context** joins MSG occurrences to stored MessageParameters
+and local endpoint candidates; remote fields remain separately attributed.
+**Unresolved analysis** brings remaining catalogue, binding and condition
+questions together with their captured evidence. **Cross-rung groups** now also
+includes qualified sequence/file addresses absent from the base ladder index.
+Review30/manifest33/work48 keep sixteen saved artifacts. Git pull/push remain
+manual; the ordinary script commits validated feedback locally.
+See the [residual-source review](../public/docs/reviews/RESIDUAL_SOURCE_REVIEW.md),
+[invented report](../public/examples/residual-source-review-demo.html), and
+[current tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md).
+These reports are still under automated analysis; team readiness has not been declared.
+
+Prior bundle: **Cross-rung groups** brings exact-address source uses together across Boolean
 guards, PID slots/address uses, calculations, timers/counters, SFC conditions and
 file operations. Search a group, inspect its captured roles and rungs, and follow
 links back to the original evidence. Unknown roles, branches, competing writers,
@@ -11,14 +56,14 @@ See [scope and validation](../public/docs/reviews/ENGINEERING_ASSEMBLIES_REVIEW.
 the [invented report](../public/examples/engineering-assemblies-review-demo.html)
 and the [current completion tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md).
 
-Signal5 adds **Grouped source candidates**: exact condition/output associations
+Prior bundle: Signal5 adds **Grouped source candidates**: exact condition/output associations
 seeded by qualified alarm/equipment/sensor wording or module input/output roots.
 Engineering analysis also brings specialized block evidence into its dossiers,
 while retaining unknown roles and base classifications. Review28/manifest31/work46
 keep sixteen artifacts and manual Git transport. See [scope and validation](../public/docs/reviews/SIGNAL_CANDIDATES_REVIEW.md)
 and the [invented report](../public/examples/signal-candidates-review-demo.html).
 
-Signal4 adds saved guard dependencies and bounded source trails across rungs.
+Prior bundle: Signal4 adds saved guard dependencies and bounded source trails across rungs.
 Search alarm/equipment/sensor wording, follow upstream writers or downstream
 guards, and inspect branches, cycles and explicit stop boundaries.
 See [scope and validation](../public/docs/reviews/SIGNAL_DEPENDENCIES_REVIEW.md).

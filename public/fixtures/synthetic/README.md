@@ -362,3 +362,14 @@ chart links, an attached note and literal script-looking comment text.
 The deliberate invalid cases are not controller-ready code. See
 [scope and verification](../../docs/reviews/SFC_CONTEXT_REVIEW.md) and the
 [generated report](../../examples/sfc-context-demo.html).
+
+## Residual source context demo
+
+`residual_source_demo.L5X` is entirely invented: eight RLL rungs, a transition
+with sequence-only references, AVE-only file addresses, six MSG occurrences
+with aliases/repeated calls/missing or alternate parameters/namespace gaps,
+produced and consumed metadata, an unknown block and a missing routine body.
+It contains no plant-derived names, values or ladder examples. The saved
+[report](../../examples/residual-source-review-demo.html) exercises navigation
+and qualification; its sample message-family strings are deliberately invented
+and must never be treated as a real protocol catalogue.

@@ -6,7 +6,8 @@ import json
 import re
 from typing import Any
 
-from .engineering_assemblies import (ASSEMBLY_CONSTANTS, COUNT_MAPS, COVERAGE_KEYS,
+from .engineering_assemblies import (ASSEMBLY_CONSTANTS, ASSEMBLY_CONSTANTS_V2, ASSEMBLY_CONSTANTS_V3,
+    COUNT_MAPS, COUNT_MAPS_V3, COVERAGE_KEYS, COVERAGE_KEYS_V2, COVERAGE_KEYS_V3, EXCLUSION_REASONS,
     FIXED_BYTES, GAP_REASONS, GROUP_BYTES, MAX_ASSEMBLY_GROUPS,
     MAX_ASSEMBLY_MEMBERSHIPS, MAX_ASSEMBLY_VISITS, MAX_ENGINEERING_ASSEMBLIES_BYTES,
     PROVIDERS)
@@ -16,6 +17,10 @@ CONSTANTS = {**ASSEMBLY_CONSTANTS, 'policy_version': 2,
     'report_kind': 'l5x_engineering_assemblies_review_summary',
     'exporter_version': 'engineering-assemblies-summary-1',
     'sharing_status': 'aggregate_sync_allowed'}
+CONSTANTS_V2 = {**CONSTANTS, **ASSEMBLY_CONSTANTS_V2,
+    'exporter_version': 'engineering-assemblies-summary-2'}
+CONSTANTS_V3 = {**CONSTANTS, **ASSEMBLY_CONSTANTS_V3,
+    'exporter_version': 'engineering-assemblies-summary-3'}
 
 
 class EngineeringAssembliesSummaryError(ValueError):
@@ -31,10 +36,18 @@ def _keys(value: Any, expected: set[str] | frozenset[str]) -> None:
         _invalid()
 
 
+def _version(value: Any) -> int:
+    if type(value) is not dict or type(value.get('schema_version')) is not int or value['schema_version'] not in {1, 2, 3}:
+        _invalid()
+    return value['schema_version']
+
+
 def validate_engineering_assemblies_summary(summary: dict[str, Any]) -> None:
     """Reject open vocabulary, bool counts, impossible partitions and budgets."""
-    _keys(summary, set(CONSTANTS) | {'status', 'scan_status', 'coverage', 'tool_revision'})
-    for key, value in CONSTANTS.items():
+    version = _version(summary)
+    constants = {1: CONSTANTS, 2: CONSTANTS_V2, 3: CONSTANTS_V3}[version]
+    _keys(summary, set(constants) | {'status', 'scan_status', 'coverage', 'tool_revision'})
+    for key, value in constants.items():
         if type(summary[key]) is not type(value) or summary[key] != value:
             _invalid()
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
@@ -54,15 +67,33 @@ def validate_engineering_assemblies_summary(summary: dict[str, Any]) -> None:
     else:
         _invalid()
     c = summary['coverage']
-    _keys(c, COVERAGE_KEYS)
+    _keys(c, {1: COVERAGE_KEYS, 2: COVERAGE_KEYS_V2, 3: COVERAGE_KEYS_V3}[version])
+    count_maps = COUNT_MAPS_V3 if version == 3 else COUNT_MAPS
     for key, value in c.items():
         values = (value,)
-        if key in COUNT_MAPS:
-            _keys(value, COUNT_MAPS[key])
+        if key == 'excluded_by_provider_reason':
+            _keys(value, PROVIDERS)
+            for provider in PROVIDERS:
+                _keys(value[provider], EXCLUSION_REASONS)
+            values = (count for row in value.values() for count in row.values())
+        elif key in count_maps:
+            _keys(value, count_maps[key])
             values = value.values()
         if any(type(item) is not int or not 0 <= item <= 10**12 for item in values):
             _invalid()
     groups, members = c['groups_total'], c['memberships_total']
+    if version >= 2:
+        excluded = c['excluded_by_provider_reason']
+        if (c['supplemental_addresses_total'] > groups
+                or c['supplemental_addresses_total'] > c['memberships_by_relation']['sfc_reference']
+                    + c['memberships_by_provider']['file_operations']
+                    + (c['rack_memberships_total'] if version == 3 else 0)
+                or c['retained_bytes'] < FIXED_BYTES + groups * GROUP_BYTES + members * 16
+                    + c['supplemental_addresses_total'] * 16
+                or any(sum(excluded[name].values()) != c['excluded_by_provider'][name] for name in PROVIDERS)
+                or any(sum(row[reason] for row in excluded.values()) != c['excluded_by_reason'][reason]
+                    for reason in EXCLUSION_REASONS)):
+            _invalid()
     flagged, flags, member_flags = c['groups_with_boundary_flags'], c['groups_by_flag'], c['memberships_by_flag']
     if (groups > MAX_ASSEMBLY_GROUPS or members > MAX_ASSEMBLY_MEMBERSHIPS
             or groups > members or bool(groups) != bool(members)
@@ -87,6 +118,15 @@ def validate_engineering_assemblies_summary(summary: dict[str, Any]) -> None:
             or c['source_gap_counts'] < c['providers_by_status']['partial'] + c['providers_by_status']['missing']):
         _invalid()
     relation, provider = c['memberships_by_relation'], c['memberships_by_provider']
+    if version == 3:
+        rack = c['rack_memberships_by_relation']
+        if (sum(rack.values()) != c['rack_memberships_total']
+                or any(count > relation[key] for key, count in rack.items())
+                or rack['unknown'] != 0
+                or sum(rack.values()) - rack['sfc_reference'] > provider['signal_context']
+                or rack['sfc_reference'] > provider['sfc_context']
+                or sum(c['known_non_address_guard_inputs_by_kind'].values()) > c['visited_links']):
+            _invalid()
     exclusive = {'pid_connections': ('pid_slot', 'pid_address_use'),
         'calculation_paths': ('calculation_input', 'calculation_output'),
         'stateful_objects': ('stateful_control', 'stateful_member'),
@@ -113,10 +153,13 @@ def build_engineering_assemblies_summary(result: dict[str, Any],
         tool_revision: dict[str, Any] | None = None) -> dict[str, Any]:
     """Publish fixed counts only; evidence, labels and source IDs never cross."""
     try:
-        for key, expected in ASSEMBLY_CONSTANTS.items():
+        version = _version(result)
+        result_constants = {1: ASSEMBLY_CONSTANTS, 2: ASSEMBLY_CONSTANTS_V2, 3: ASSEMBLY_CONSTANTS_V3}[version]
+        constants = {1: CONSTANTS, 2: CONSTANTS_V2, 3: CONSTANTS_V3}[version]
+        for key, expected in result_constants.items():
             if type(result[key]) is not type(expected) or result[key] != expected:
                 _invalid()
-        summary = {**CONSTANTS, 'status': result['status'], 'scan_status': result['scan_status'],
+        summary = {**constants, 'status': result['status'], 'scan_status': result['scan_status'],
             'coverage': deepcopy(result['coverage']),
             'tool_revision': deepcopy(tool_revision if tool_revision is not None
                 else {'commit': None, 'worktree': 'unavailable'})}

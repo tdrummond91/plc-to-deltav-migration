@@ -246,7 +246,9 @@ class CalculationPathWorkflowTests(unittest.TestCase):
             saved, = (root / 'runs').iterdir()
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), data)
             from test_engineering_assemblies_workflow import captured as latest_captured, options as latest_options
-            expected = review.build_review_data(*latest_captured(data)[:4], **latest_options(latest_captured(data)))
+            from test_engineering_assemblies_rack_workflow import captured as current_captured, options as current_options
+            current_parts = current_captured(data)
+            expected = review.build_review_data(*current_parts[:4], **current_options(current_parts))
             self.assertEqual((saved / 'review.html').read_bytes(), review_html.render_review_html(expected).encode())
             path.write_bytes(data)
             with patch('plc_workbench.calculation_paths.analyze_calculation_paths', side_effect=CalculationPathError('PRIVATE_SENTINEL')):

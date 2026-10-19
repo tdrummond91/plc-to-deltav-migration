@@ -270,7 +270,7 @@ def _review(args: argparse.Namespace) -> int:
         rung_analysis = analyze_rungs(snapshot, inventory, references, access, calculations)
         relationships = analyze_relationships(snapshot, inventory, references, access, calculations, rung_analysis)
         conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
-                                        schema_version=3)
+                                        schema_version=6)
         binding_context = analyze_binding_context(
             snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
         companion_inputs = (snapshot, inventory, references, access, calculations,
@@ -278,13 +278,13 @@ def _review(args: argparse.Namespace) -> int:
         custom_context = analyze_custom_instruction_context(*companion_inputs)
         indexed_access = analyze_indexed_access(*companion_inputs)
         sfr_context = analyze_sfr_context(snapshot, inventory, references, access, calculations, sfc, schema_version=2)
-        aoi_body = analyze_aoi_body_context(*companion_inputs, custom_context)
+        aoi_body = analyze_aoi_body_context(*companion_inputs, custom_context, schema_version=2)
         tag_data = analyze_tag_data(snapshot, inventory)
         pid = analyze_pid(snapshot, inventory, references, tag_data)
         pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
         pid_connections = analyze_pid_connections(
             snapshot, inventory, references, access, calculations, rung_analysis, relationships,
-            conditions, tag_data, pid, pid_members)
+            conditions, tag_data, pid, pid_members, schema_version=2)
         calculation_paths = analyze_calculation_paths(
             snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
         output_context = analyze_output_context(
@@ -296,7 +296,7 @@ def _review(args: argparse.Namespace) -> int:
             snapshot, inventory, references, access, calculations, rung_analysis,
             relationships, sfc, sfr_context, sfc_conditions)
         execution_context = analyze_execution_context(
-            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
+            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions, schema_version=3)
         signal_context = analyze_signal_context(
             snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions,
             tag_data, output_context, stateful_objects, execution_context, schema_version=5)
@@ -312,9 +312,11 @@ def _review(args: argparse.Namespace) -> int:
                          output_context=output_context, stateful_objects=stateful_objects, sfc_conditions=sfc_conditions, sfc_context=sfc_context,
                          execution_context=execution_context, signal_context=signal_context,
                          file_operations=file_operations, alarm_evidence=alarm_evidence,
-                         include_engineering_assemblies=True)
+                         include_engineering_assemblies=True, engineering_assemblies_schema_version=3,
+                         include_communication_context=True, include_residual_interpretation=True, include_control_interpretation=True,
+                         include_residual_diagnostics=True, include_rack_backing_context=True)
         print(f"Private review report: {saved / 'review.html'}")
-        # The saved manifest includes the derived assembly status, including
+        # The saved manifest includes the derived assembly and communication status, including
         # bounded truncation, alongside the independently captured providers.
         try:
             manifest = json.loads((saved / 'manifest.json').read_text(encoding='utf-8'))

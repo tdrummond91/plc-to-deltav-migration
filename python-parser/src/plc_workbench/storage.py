@@ -103,6 +103,12 @@ def save_run(
     sfc_structure: SfcStructureResult | None = None,
     include_review: bool = False,
     include_engineering_assemblies: bool = False,
+    engineering_assemblies_schema_version: int = 1,
+    include_communication_context: bool = False,
+    include_residual_interpretation: bool = False,
+    include_control_interpretation: bool = False,
+    include_residual_diagnostics: bool = False,
+    include_rack_backing_context: bool = False,
     access: AccessResult | None = None,
     tag_data: TagDataResult | None = None,
     pid: PidResult | None = None,
@@ -135,6 +141,21 @@ def save_run(
     try:
         if type(include_review) is not bool or (include_review and (references is None or sfc_structure is None)):
             raise StorageError("A review run requires inventory, references and SFC structure.")
+        if (type(engineering_assemblies_schema_version) is not int
+                or engineering_assemblies_schema_version not in (1, 2, 3)
+                or type(include_communication_context) is not bool
+                or include_communication_context != (engineering_assemblies_schema_version in (2, 3))
+                or (include_communication_context and not include_engineering_assemblies)
+                or type(include_residual_interpretation) is not bool
+                or (include_residual_interpretation and not include_communication_context)
+                or type(include_control_interpretation) is not bool
+                or (include_control_interpretation and not include_residual_interpretation)
+                or type(include_residual_diagnostics) is not bool
+                or (include_residual_diagnostics and not include_control_interpretation)
+                or type(include_rack_backing_context) is not bool
+                or (include_rack_backing_context and not include_residual_diagnostics)
+                or (engineering_assemblies_schema_version == 3 and not include_rack_backing_context)):
+            raise StorageError("Communication context requires a compatible assemblies review run.")
         if (type(include_engineering_assemblies) is not bool
                 or (include_engineering_assemblies and (not include_review
                     or type(getattr(signal_context, 'schema_version', None)) is not int
@@ -242,7 +263,13 @@ def save_run(
                                                 output_context=output_context, stateful_objects=stateful_objects, sfc_conditions=sfc_conditions, sfc_context=sfc_context,
                                                 execution_context=execution_context, signal_context=signal_context,
                                                 file_operations=file_operations, alarm_evidence=alarm_evidence,
-                                                include_engineering_assemblies=include_engineering_assemblies)
+                                                include_engineering_assemblies=include_engineering_assemblies,
+                                                engineering_assemblies_schema_version=engineering_assemblies_schema_version,
+                                                include_communication_context=include_communication_context,
+                                                include_residual_interpretation=include_residual_interpretation,
+                                                include_control_interpretation=include_control_interpretation,
+                                                include_residual_diagnostics=include_residual_diagnostics,
+                                                include_rack_backing_context=include_rack_backing_context)
                 review_html = render_review_html(review_data).encode("utf-8")
             except (ReviewSizeLimitError, ReviewHtmlSizeLimitError) as exc:
                 raise StorageError("Private engineering review exceeds its report size limit.", code='review_size_limit') from exc
@@ -560,6 +587,26 @@ def save_run(
                              "engineering_assemblies_schema_version": companion["schema_version"],
                              "engineering_assemblies_analyzer_version": companion["analyzer_version"],
                              "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete"})
+        if include_communication_context:
+            companion = review_data["communication_context"]
+            manifest.update({"schema_version": 33,
+                             "communication_context_schema_version": companion["schema_version"],
+                             "communication_context_analyzer_version": companion["analyzer_version"],
+                             "status": "partial" if "partial" in (manifest["status"], companion["status"]) else "complete"})
+        if include_residual_interpretation:
+            manifest["schema_version"] = 34
+        if include_control_interpretation:
+            manifest["schema_version"] = 35
+        if include_residual_diagnostics:
+            manifest["schema_version"] = 36
+        if include_rack_backing_context:
+            companion = review_data["rack_backing_context"]
+            manifest.update(schema_version=37,
+                            rack_backing_context_schema_version=companion["schema_version"],
+                            rack_backing_context_analyzer_version=companion["analyzer_version"],
+                            status="partial" if "partial" in (manifest["status"], companion["status"]) else "complete")
+        if engineering_assemblies_schema_version == 3:
+            manifest["schema_version"] = 38
         _write_artifact(
             destination, run_dir, ".manifest.pending",
             (json.dumps(manifest, indent=2, ensure_ascii=False) + "\n").encode("utf-8"),

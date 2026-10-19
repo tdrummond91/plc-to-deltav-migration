@@ -57,15 +57,21 @@ def publish_summary(output: Path, rendered: str, *, input_path: Path) -> None:
         # bounded and immutable targeted sample request.
         # Bound parsing first, then retain the original cap for every other
         # contract; a caller cannot obtain the larger allowance via a flag.
-        from .work_check import MAX_REPORT_V22_BYTES, MAX_REPORT_V28_BYTES, MAX_REPORT_V32_BYTES, MAX_REPORT_V39_BYTES, MAX_REPORT_V40_BYTES, MAX_REPORT_V41_BYTES, MAX_REPORT_V42_BYTES, MAX_REPORT_V43_BYTES, MAX_REPORT_V44_BYTES, MAX_REPORT_V45_BYTES, MAX_REPORT_V46_BYTES, MAX_REPORT_V47_BYTES
+        from .work_check import MAX_REPORT_V22_BYTES, MAX_REPORT_V28_BYTES, MAX_REPORT_V32_BYTES, MAX_REPORT_V39_BYTES, MAX_REPORT_V40_BYTES, MAX_REPORT_V41_BYTES, MAX_REPORT_V42_BYTES, MAX_REPORT_V43_BYTES, MAX_REPORT_V44_BYTES, MAX_REPORT_V45_BYTES, MAX_REPORT_V46_BYTES, MAX_REPORT_V47_BYTES, MAX_REPORT_V48_BYTES, MAX_REPORT_V49_BYTES, MAX_REPORT_V50_BYTES, MAX_REPORT_V51_BYTES, MAX_REPORT_V52_BYTES, MAX_REPORT_V53_BYTES
         supplied_bytes = len(rendered.encode('utf-8'))
-        if supplied_bytes > max(MAX_REPORT_BYTES, MAX_REPORT_V22_BYTES, MAX_REPORT_V28_BYTES, MAX_REPORT_V32_BYTES, MAX_REPORT_V39_BYTES, MAX_REPORT_V40_BYTES, MAX_REPORT_V41_BYTES, MAX_REPORT_V42_BYTES, MAX_REPORT_V43_BYTES, MAX_REPORT_V44_BYTES, MAX_REPORT_V45_BYTES, MAX_REPORT_V46_BYTES, MAX_REPORT_V47_BYTES):
+        if supplied_bytes > max(MAX_REPORT_BYTES, MAX_REPORT_V22_BYTES, MAX_REPORT_V28_BYTES, MAX_REPORT_V32_BYTES, MAX_REPORT_V39_BYTES, MAX_REPORT_V40_BYTES, MAX_REPORT_V41_BYTES, MAX_REPORT_V42_BYTES, MAX_REPORT_V43_BYTES, MAX_REPORT_V44_BYTES, MAX_REPORT_V45_BYTES, MAX_REPORT_V46_BYTES, MAX_REPORT_V47_BYTES, MAX_REPORT_V48_BYTES, MAX_REPORT_V49_BYTES, MAX_REPORT_V50_BYTES, MAX_REPORT_V51_BYTES, MAX_REPORT_V52_BYTES, MAX_REPORT_V53_BYTES):
             raise SummaryOutputError('Summary exceeds its publication size limit.')
         try:
             payload = json.loads(rendered)
             current_work = (type(payload) is dict and payload.get('report_kind') == 'l5x_work_machine_check'
-                            and type(payload.get('schema_version')) is int and payload['schema_version'] in (22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47))
-            limit = (MAX_REPORT_V47_BYTES if current_work and payload["schema_version"] == 47
+                            and type(payload.get('schema_version')) is int and payload['schema_version'] in (22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53))
+            limit = (MAX_REPORT_V53_BYTES if current_work and payload["schema_version"] == 53
+                     else MAX_REPORT_V52_BYTES if current_work and payload["schema_version"] == 52
+                     else MAX_REPORT_V51_BYTES if current_work and payload["schema_version"] == 51
+                     else MAX_REPORT_V50_BYTES if current_work and payload["schema_version"] == 50
+                     else MAX_REPORT_V49_BYTES if current_work and payload["schema_version"] == 49
+                     else MAX_REPORT_V48_BYTES if current_work and payload["schema_version"] == 48
+                     else MAX_REPORT_V47_BYTES if current_work and payload["schema_version"] == 47
                      else MAX_REPORT_V46_BYTES if current_work and payload["schema_version"] == 46
                      else MAX_REPORT_V45_BYTES if current_work and payload["schema_version"] == 45
                      else MAX_REPORT_V44_BYTES if current_work and payload["schema_version"] == 44

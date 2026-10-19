@@ -352,7 +352,7 @@ def analyze_output_context(snapshot: SourceSnapshot, inventory: InventoryResult,
         conditions: ConditionResult) -> BooleanOutputContextResult:
     """Authenticate conditions3 and its complete prior chain, then qualify it."""
     try:
-        if type(conditions) is not ConditionResult or conditions.schema_version != 3:
+        if type(conditions) is not ConditionResult or conditions.schema_version not in (3, 4, 5, 6):
             _invalid()
         validate_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
         result = _derive(snapshot, inventory, access, rung_analysis, relationships, conditions)

@@ -206,14 +206,17 @@ class ExecutionContextWorkflowTests(unittest.TestCase):
             capture.assert_called_once_with(path)
             save.assert_called_once()
             self.assertEqual(save.call_args.args[1].data, data)
-            self.assertEqual(save.call_args.kwargs['execution_context'], captured(data)[23])
+            from test_engineering_assemblies_rack_workflow import captured as current_execution
+            self.assertEqual(save.call_args.kwargs['execution_context'], current_execution(data)[23])
             self.assertEqual((code, error), (3, ''))
             saved, = (root / 'runs').iterdir()
             self.assertEqual((saved / 'snapshot.L5X').read_bytes(), data)
             manifest = json.loads((saved / 'manifest.json').read_bytes())
-            self.assertEqual((manifest['schema_version'], manifest['status']), (32, 'partial'))
+            self.assertEqual((manifest['schema_version'], manifest['status']), (38, 'partial'))
             from test_engineering_assemblies_workflow import captured as latest_captured, options as latest_options
-            expected = review.build_review_data(*latest_captured(data)[:4], **latest_options(latest_captured(data)))
+            from test_engineering_assemblies_rack_workflow import captured as current_captured, options as current_options
+            current_parts = current_captured(data)
+            expected = review.build_review_data(*current_parts[:4], **current_options(current_parts))
             self.assertEqual((saved / 'review.html').read_bytes(), review_html.render_review_html(expected).encode())
 
     def test_cli_execution_failure_is_source_free_and_allocates_nothing(self) -> None:

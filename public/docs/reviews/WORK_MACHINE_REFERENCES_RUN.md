@@ -1,6 +1,66 @@
 # Work-machine check: local results and manual publication
 
-Current checkpoint (2026-10-18): **R2 exact-address engineering assemblies**.
+## Current action: review the saved C14 report
+
+Return `adc5475` validates C14 and closes the automated pre-review gate for this
+export. Open the existing latest private `review.html` using the
+[reading guide](REPORT_REVIEW_GUIDE.md). No new work-check run or feedback push
+is requested. See the [readiness assessment](PHASE_1_READINESS_REVIEW.md) for
+the completed checks and questions to carry into engineering review.
+
+## Validated C14 run: qualified rack groups
+
+The current bundle is C14: assemblies3 joins qualified rack occurrences to
+cross-rung source groups and distinguishes known non-address guard values from
+binding failures. Work53/review35/manifest38 preserve sixteen private artifacts,
+the preceding source models and frozen samples. See the
+[C13 return and C14 checks](RACK_ASSEMBLY_REVIEW.md) and
+[current tracker](../planning/PRE_TEAM_REVIEW_TRACKER.md) for readiness.
+
+After the tested development bundle is pushed, run from the work-PC repository
+root:
+
+```bash
+git pull
+bash ./run-work-check.sh
+git push
+```
+
+The script retains the selected local L5X, runs tests, saves private reports and
+creates the validated local feedback commit. It never fetches, pulls or pushes.
+No new sample or classification is requested. Existing reports can be opened
+without a rerun using the [reading guide](REPORT_REVIEW_GUIDE.md).
+
+## Historical C9 R3 run: residual source context
+
+After the tested development bundle is pushed, use the repository root on the
+work PC (the script retains the previously selected local L5X):
+
+```bash
+git pull
+bash ./run-work-check.sh
+git push
+```
+
+The script runs tests, saves the private report, validates the bounded feedback
+and creates its local feedback commit. It never fetches, pulls or pushes. Keep
+`A19CHL02-unencrypted.L5X` and all private engineering artifacts local. No new
+sample or manual classification is requested for this run.
+
+This run measures assemblies2 supplemental sequence/file addresses and
+communication1 MSG/control/parameter/local-candidate associations. New private
+views are **Communication context** and **Unresolved analysis**. Expected same
+export: 78 additional exact-address memberships with zero missing-address
+exclusions; binding and runtime-selector gaps remain. The returned report uses
+work48; the saved report/manifest use review30/manifest33, with sixteen artifacts.
+
+Team review is still pending R3 closeout and final report checks. See the
+[current tracker](../planning/PRE_TEAM_REVIEW_TRACKER.md) and
+[residual investigation ledger](RESIDUAL_SOURCE_REVIEW.md).
+
+## Historical exact-address engineering assemblies checkpoint
+
+Historical checkpoint (2026-10-18): **R2 exact-address engineering assemblies**.
 
 Return `d6c5fc1` validated clean `f5399e6`: 1,743 application cases (two
 expected Windows skips) and 139 helpers passed. All 54 work reports validate.

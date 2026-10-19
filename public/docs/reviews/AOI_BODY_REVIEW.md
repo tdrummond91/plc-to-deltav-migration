@@ -1,5 +1,78 @@
 # AOI body ownership and unmatched SFR target context
 
+## Exact named parameter members (2026-10-19)
+
+AOI body context2 adds source associations for explicit operand and expression
+uses of an exact `.ParameterName` on a scalar declared AOI instance. The resolved
+root's datatype must select one AOI in that root's controller, and the member must
+select one Input or Output parameter. Program shadowing, caller aliases and
+parameter-to-local-tag aliases retain their existing identities and suffixes.
+The original access role stays unchanged; declared Usage does not rewrite it.
+The parameter ID links to the existing declaration-owned body observations.
+Repeated calls do not duplicate those observations or external member uses.
+A captured call is not required to establish this named type/member association.
+
+Whole-instance uses with an empty suffix remain outside the member population.
+Arrays, indexed/nested members, InOut and system parameters, local tags exposed
+as members, duplicate declarations or symbols, protected evidence and foreign
+namespace dependencies do not produce a positive association. Unbound uses stay
+in the existing binding coverage. Missing type/declaration evidence is not
+replaced by a name-based guess. Matching a parameter name does not validate its
+datatype, bounds, runtime invocation or resulting effects.
+
+Separate per-declaration signatures preserve required, optional, system and
+unclassified parameter IDs in source order. Per-call shape rows retain total,
+trailing and empty field counts, plus a cardinality-only comparison when the
+declaration signature is available. Equal counts do not establish positional
+mapping or valid argument types. Optional hidden parameters do not generate
+missing-argument findings. Exported EnableIn/EnableOut are identified separately;
+their supplied attributes do not create ordinary required argument positions.
+
+The [AOI programming manual, PM010N](https://literature.rockwellautomation.com/idc/groups/literature/documents/pm/1756-pm010_-en-p.pdf)
+describes required arguments, visibility and access to Input/Output instance
+members on printed pages 27-29; page 35 describes parameter display order. The
+[import/export manual, RM014D](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf)
+describes the system parameters on printed page 101. These facts support the
+named association and signature observations above. They do not establish a
+general neutral-RLL positional serialization rule.
+
+The JSR/SBR/RET neutral-RLL layout question recorded in
+[ROUTINE_CALL_SHAPE_REVIEW.md](ROUTINE_CALL_SHAPE_REVIEW.md) remains unresolved.
+A future closed diagnostic could report each call's lexical field bindings and
+its target routine's SBR/RET boundary populations, partitioned by exact content
+container. Input-count partitioning and position-to-position associations need
+primary syntax evidence before implementation; invented examples are not that
+evidence. Neither this companion nor such a diagnostic selects a return path or
+projects called-body effects into callers.
+
+Schema1 remains the default and preserves its rendered private and summary
+bytes. Explicit `schema_version=2` adds `member_contexts`, `parameter_signatures`
+and `call_shapes`; canonical replay uses the supplied version. Schema1 private
+output retains its 8 MiB cap; schema2 has a 16 MiB cap, with link reservation
+before collection and versioned bounds during derivation, native-container
+inspection, serialization and replay. The larger schema2 allowance follows an
+invented 4,606-rung capacity probe with 4,605 calls to one shared instance and
+9,210 external member uses that exceeded the earlier 8 MiB bound. Link-byte
+reservations accumulate while a row is built and are replaced by that row's
+actual retained bytes; completed rows and the cumulative 250,000-link limit
+remain charged. This avoids charging each link again after its row is retained.
+The identical probe passes under the normal 16 MiB limit: canonical private
+output is 14,536,368 bytes, retaining all 4,605 calls and call-shape records,
+9,210 matched member contexts, two parameters, one instance root and one body
+rung/instruction. Its 4,569-byte summary passes source replay and rendering.
+The earlier permanent reservation accounting charged 17,380,580 bytes for that
+same evidence, including link bytes already charged in completed rows.
+
+Summary2 has an 8 KiB cap and closed status/count partitions; summary1 retains
+its 4 KiB cap. The final focused AOI context, summary, member and workflow suite
+passes 72 tests, including frozen schema1 bytes, versioned limits, pending
+reservation replacement, cumulative links and exact serialization boundaries.
+The suite covers exact roles and IDs, expressions, repeated
+calls, aliases, scope, metadata gaps, protection, arrays, forged evidence,
+resource bounds and frozen schema1 bytes. Pipeline/report integration is a
+separate part of the current bundle; these focused checks do not claim a new
+work-machine return or close the Phase 1 gates.
+
 ## Confirmed work-machine return
 
 Return `4018156` tested clean `4b04e28`: 1,183 application cases and 139 helpers

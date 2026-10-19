@@ -177,3 +177,14 @@ R2 is ready for a normal work-machine run. Its returned provider/gap/budget
 counts must be analyzed before closing R2. Reports are not yet at the R4
 team-review gate; no manual classification or aesthetics review is requested
 for this run.
+
+## Returned export validation (2026-10-18)
+
+Return `cdad803` tested clean `158868d`: 1,786 application cases (two expected
+skips), 139 helpers and all 55 historical reports passed. Assembly scans were
+complete: 54,123 memberships, 7,408 groups, 3,759 spanning rungs and 1,527
+spanning providers. All 25 preceding summaries and frozen samples were unchanged.
+This closes the supported R2 grouping deliverable. The 78 missing-address
+exclusions comprise 74 SFC references and four file slots; four SFC binding
+gaps and one dynamic file slot are separate. The full reconciliation, runtime
+and R3 follow-up are recorded in [RESIDUAL_SOURCE_REVIEW.md](RESIDUAL_SOURCE_REVIEW.md).

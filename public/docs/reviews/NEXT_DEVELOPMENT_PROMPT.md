@@ -5,7 +5,266 @@ It owns the completed-cycle checklist and remaining estimate. Update it after
 every returned run; explain estimate changes rather than reconstructing progress
 from historical notes.
 
-Current checkpoint (2026-10-18): **R2 exact-address engineering assemblies**.
+Current checkpoint (2026-10-19): **C14 validated; reports ready for review**.
+
+Return `adc5475`, testing clean `a53ca67`, passes all 2,103 application cases
+(two expected skips) and 139 helpers. All 61 historical reports validate and
+replay exactly. All 28 non-assembly summary families and frozen sample envelopes
+are unchanged. The complete assembly scan retains 55,230 memberships across
+7,580 groups, including 1,029 rack-qualified memberships; signal and SFC
+exclusions are zero. Only two dynamic calculation destinations and one dynamic
+file address remain excluded.
+
+The tracker records **fourteen completed cycles and zero further normal
+work-machine cycles planned before review**. R3 and R4 close for presentation
+of this tested export. Original partial statuses, opaque transfers and source
+limits remain visible; engineering interpretations are still unreviewed.
+Independent audit found no further concrete parser omission requiring another
+normal run. Do not reopen the run loop without new evidence or a specific defect.
+
+Tyler's next action is to open the existing latest private `review.html`, check
+readability/navigation/appearance, then involve the engineering team. No code
+reading or parser rerun is required. Preserve report/run and record IDs with
+feedback. Missing source, vendor/exporter semantics, runtime values and target
+design decisions have separate questions; the editable correction workflow,
+PCSD and FHX remain later phases. Work-PC Git transport remains manual.
+
+Read [the readiness assessment](PHASE_1_READINESS_REVIEW.md) and
+[report guide](REPORT_REVIEW_GUIDE.md). Preserve the known unresolved-view wording caveat about
+base rack bindings versus qualified correspondence. Resume implementation from
+specific review findings or new source evidence, not another unchanged-source run.
+
+## Historical C13 grouping checkpoint
+
+Historical checkpoint (2026-10-19): **C13 audited; cross-rung rack associations prepared for C14**.
+
+Return `c67be2e`, testing clean `eebe469`, passes 2,074 application cases
+(two expected skips) and 139 helpers. All 60 historical reports validate and
+replay exactly. All fifteen rack declarations, 94 addresses, 319 RLL uses and
+four SFC uses associate. All 28 preceding summaries and frozen samples are
+unchanged; no new raw sample is needed.
+
+Independent audit found that assemblies2 does not consume those qualified rack
+identities, and miscounts literal/system-flag guard inputs as binding failures.
+It also drops 41 already-exact guard links when their sixteen rack output
+targets are excluded. These are implementation gaps, not engineering questions.
+
+Assemblies3 joins qualified rack occurrences by exact backing-tag/suffix
+identity and retains per-membership source proof. Known non-address values
+have separate counts. Forward and reverse source links expose related outputs;
+original bindings, conditions, signal and SFC providers remain unchanged.
+Work53/review35/manifest38 retain sixteen artifacts, 144 KiB public reports and
+472/504 MiB review JSON/HTML limits. Reusable defaults and historical schemas
+remain replayable. Current work/CLI selects the full bundle with assemblies3.
+
+C14 must reconcile recovered predicates, output targets, guard memberships and
+four SFC references, plus known non-address skips. Do not equate all 2,136
+historical signal exclusions with missing rack associations. Inspect every
+remaining exclusion and scan limit; preserve every unrelated summary and the
+complete frozen sample envelope. Source-only grouping does not establish
+physical wiring, live flow, engineering identity or shutdown behavior.
+
+The tracker records **thirteen completed cycles and one remaining centrally
+(range one to two), fourteen total**. This explicit extension addresses the
+newly confirmed downstream omission. R3/R4 remain open pending C14 validation.
+Work-PC transport remains manual: pull, run the script, then push its local
+feedback commit. Existing reports are readable without another run; team
+review remains pending the completion gates.
+
+Read [the C13 audit and C14 validation](RACK_ASSEMBLY_REVIEW.md). Continue local investigation
+until the next work-PC run or a genuine source question is required.
+
+## Historical rack source correspondence checkpoint
+
+Historical checkpoint (2026-10-19): **C12 audited; rack source correspondence prepared for C13**.
+
+Return `a5ccae8`, testing clean `a58f3c0`, passes 2,045 application cases
+(two expected skips) and 139 helpers. All 59 historical reports validate and
+replay exactly. The AOI condition proof now qualifies; all 76 routine calls
+associate with captured target contents, including fourteen SFC callees with
+no captured interface declaration. All fifteen rack declarations qualify for
+the captured Slot layout. Source populations, all 104 signal fields, 46 PID
+incoming links, assembly evidence and frozen samples remain unchanged.
+
+The new `include_rack_backing_context=True` requires the preceding residual
+bundle and selects review34 / manifest37 / work52. It adds an independently
+qualified rack source-address overlay with RLL and SFC occurrence links.
+Original bindings, conditions and groups remain unchanged. Exact captured
+module/adapter/declaration/Slot/member evidence is required; physical wiring,
+active values and runtime execution are outside this proof. Sixteen private
+artifacts and the 144 KiB public envelope remain; the additional private
+companion allows 8 MiB. No additional plant samples are requested.
+
+The report now exposes rack declarations, addresses and individual uses, joins
+SFR target dossiers, and opens the exact unresolved population selected by a
+count. GSV `?`, call-field semantics and outgoing control flow retain precise
+source/vendor boundaries. Do not infer undocumented control transfer rules.
+
+C13 must reconcile 319 RLL candidate uses / 94 addresses / eleven used roots,
+fifteen declarations and four SFC gaps; inspect every non-associated result.
+Expect the independent overlay to add evidence without changing prior summary
+families. Audit saved reports, scan/resource limits, all historical reports and
+the complete frozen-sample envelope before deciding whether R3/R4 can close.
+
+The tracker records **twelve completed cycles and one remaining centrally
+(range one to two), thirteen total**. R3/R4 remain open and team review is not
+requested yet. Work-machine transport remains manual: pull, run the script,
+then push its locally committed report.
+
+Read [the C12 audit and C13 validation](RACK_SOURCE_MAPPING_REVIEW.md). Continue local investigation
+until the next work-PC run or a genuine source question is required.
+
+## Historical residual source diagnostics checkpoint
+
+Historical checkpoint (2026-10-19): **C11 audited; residual source diagnostics prepared for C12**.
+
+Return `908873f`, testing clean `3a4d997`, passes 1,995 application cases (two
+expected skips) and 139 helpers. All 58 historical reports validate and replay.
+All 46 PID incoming links are restored. Six generic MSG services are recognized;
+all 104 signal fields and the frozen six-example/eight-reserved-unit envelope
+are unchanged. Rack evidence exposes a different family/layout than the initial
+Data-array probe, and AOI help/revision metadata explains its first rejection.
+
+The new opt-in `include_residual_diagnostics=True` selects condition6,
+execution3 and rack summary2 under review33 / manifest36 / work51. It requires
+`include_control_interpretation=True` and the preceding bundles. The current
+CLI/work entry points select this chain; reusable defaults and old schemas stay
+replayable. Sixteen private artifacts, public 144 KiB, and manual work-PC Git
+transport remain. No additional source samples are requested.
+
+C12 must return precise AOI/GSV gap categories, SFC declared-interface outcomes
+for the fourteen SFC callees, and joint rack direction/catalog/representation/
+layout counts. Preserve the restored 46 PID links and unrelated evidence. Then
+implement any source-supported remaining rules and finish report verification.
+The tracker records **eleven completed cycles and two remaining centrally
+(range one to three), total thirteen**. This explicit third extension is for
+rack layout identification before mapping, not a reset of prior cycles. R3/R4
+remain open; team classification/readability review is not requested yet.
+
+Read [the C11 audit and next checks](RESIDUAL_DIAGNOSTICS_REVIEW.md). Continue through local investigation,
+tests and review until a work-PC run or a genuine source question is required.
+
+## Historical control interpretation checkpoint
+
+Historical checkpoint (2026-10-19): **R3 control interpretation and R4 verification**.
+
+Return 883002a validates clean 7dcc4fa: 1,920 application cases (two expected
+skips), 139 helpers, and all 57 historical public reports pass. Condition4
+resolves 106 transfers; all 27 MSG configurations classify; four named AOI
+members link. Source/access populations, all 104 signal fields, memberships
+and frozen samples remain unchanged. A PID reader regression dropped 46
+incoming condition links and added one partial assembly provider.
+
+The current bundle repairs that reader under PID connections2 and adds
+condition5 bounded AOI EnableOut proof/GSV failure diagnostics, execution2
+exact routine-content and lexical argument context, and communication3 explicit
+generic-service selector interpretation. Review32/manifest35/work50 keep sixteen
+artifacts and the 128 KiB public limit. The combined opt-in is
+`include_control_interpretation=True`, requiring the preceding residual bundle; reusable defaults and
+historical replay remain supported. Work-PC pull/push remain manual.
+
+Independent readiness review found rack backing still uninvestigated beyond
+logical candidates. Work50 now includes fixed joint diagnostic counts from the
+captured module/adapter/backing shape; no raw configuration is shared. The
+tracker records ten completed cycles and two remaining centrally (range one to
+three), an explicit extension to twelve because that investigation was omitted.
+C11 informs the rack rule/source-boundary work planned for C12. R3 and R4 are
+open. Do not ask for team classifications before source investigation and
+report verification are complete. No additional plant sample is requested.
+
+Next return must restore 46 PID incoming links, explain the one GSV disposition,
+check the AOI proof outcome, reconcile the 76 call boundaries/164 argument
+fields and six generic services, reconcile rack diagnostics against 11 rack
+connections/15 declarations, and preserve all unrelated coverage and frozen
+samples. Inspect the same export's saved report/scan/resource results against
+the completion gate. Source omissions, runtime choices and engineering design
+remain distinct from unfinished parser work.
+
+Read [the audit and implementation](CONTROL_INTERPRETATION_REVIEW.md) and [the reader guide](REPORT_REVIEW_GUIDE.md). Local test, capacity and browser evidence
+is recorded in the current review; update that record and the tracker after C11.
+
+## Historical residual interpretation checkpoint
+
+Historical checkpoint (2026-10-19): **R3 residual interpretation**.
+
+Return `31cc08b` validates clean `dad1f6d`: 1,848 application cases (two expected
+skips), 139 helpers and all 56 historical public reports pass. All 78 omitted
+sequence/file memberships are recovered (54,201 total, 7,486 groups). All 27
+MSG occurrences link to stored parameters; local fields are 21 LocalElement
+and six DestinationTag, with two produced-tag metadata records. Prior summary
+families and frozen six-example/eight-reserved-unit samples are unchanged.
+
+The next bundle adds condition4 documented output propagation and residual
+opcode/guard diagnostics, communication2 configured families/methods/local
+roles, and AOI body2 exact named parameter-member links and call-field counts.
+Review31/manifest34/work49 preserve sixteen private artifacts. Work49 uses a
+128 KiB closed public envelope; historical report caps remain unchanged.
+Reusable defaults remain historical; `include_residual_interpretation=True`
+selects the complete new interpretation chain. Work-PC Git transport stays
+manual, with only validated report commits local to the script.
+
+Local validation caught and repaired the public writer's missing work49 cap
+and stale current-CLI/test fixtures. Focused retests pass: 48 work-check, 32
+workflow and 15 publication/integration cases, plus guarded CLI checks. The
+full 2,205-case run was not repeated after those repairs; its original outcome
+and the successful synthetic capacity checks are recorded in the current review.
+
+The tracker records nine completed cycles and two remaining centrally (range
+one to four), an explicit one-cycle extension beyond the original ten-cycle
+budget. R3 capture succeeded, but source-supported interpretation rules needed
+another bundle. JSR/SBR/RET, SFR and AOI outgoing behavior still require explicit
+investigation. Neutral RLL/ST call signatures differ in the import/export
+manual; do not silently treat the second JSR field as a validated InputCount.
+No new plant excerpt or team classification feedback is requested.
+
+Next: validate the returned condition populations, MSG catalogue/unique-owner
+counts and AOI associations; audit condition-dependent downstream deltas while
+keeping source/access classifications and frozen samples stable. Then finish
+remaining R3 investigations and R4 report/readiness verification. Read
+[the current scope, evidence and validation](RESIDUAL_INTERPRETATION_REVIEW.md) before continuing.
+
+## Historical residual source context checkpoint
+
+Historical checkpoint (2026-10-18): **R3 residual source context**.
+
+Return `cdad803` validated clean `158868d`: 1,786 application cases (two
+expected Windows skips) and 139 helpers passed. All 55 historical work reports
+validate. All 25 preceding summaries, 104 signal coverage fields and the frozen
+six-example/eight-reserved-unit sample envelope are unchanged. Assemblies1
+completed all scans: 54,123 memberships, 7,408 groups, 3,759 spanning rungs and
+1,527 spanning providers. This closes R2. The tracker records eight completed
+cycles and two remaining (range one to four), including the next R3 run.
+
+This bundle adds assemblies2 supplemental exact SFC/file addresses and
+communication1 source context. Review30/manifest33/work48 retain sixteen private
+artifacts. The new Communication context view links MSG calls to stored
+parameters and local root candidates while keeping remote fields separate.
+Unresolved analysis reconciles base gaps with captured context and explicitly
+keeps unfinished condition/parameter semantics as parser investigation.
+
+Expected same-export grouping delta: +78 memberships (74 SFC, four file),
+missing-address exclusions 78 -> zero; unresolved bindings and dynamic selectors
+remain excluded. The next return must also establish MSG association and local
+endpoint dispositions, produced/consumed metadata, resource use and preservation
+of prior evidence. No new plant sample or team feedback is requested.
+
+R3 is still open. Its residual ledger includes condition-transfer rules, AOI/call
+parameter mapping and MSG direction/protocol interpretation; extra source context
+is not semantic closure. Keep those visible and investigate remaining useful
+source-supported rules before R4 readiness. Git transport remains manual and the
+listener remains disabled. See [scope, residual ledger and validation](RESIDUAL_SOURCE_REVIEW.md).
+
+Release validation passed 1,844 application cases (two expected Windows skips)
+and 139 helpers. The full rehearsal exposed a stale sample-history read limit;
+the narrow repair passed 40 guarded focused cases (one expected skip) and two
+fresh canonical saved analyses. Frozen samples, 25 prior summaries, 104 signal
+fields and fifteen non-review artifacts are unchanged. The CLI and invented
+demo match, independent review is clear, and the launcher made one local commit
+with zero Git network calls. Run the ordinary work-PC check next.
+
+## Historical exact-address engineering assemblies checkpoint
+
+Historical checkpoint (2026-10-18): **R2 exact-address engineering assemblies**.
 
 Return `d6c5fc1` validated clean `f5399e6`: 1,743 application cases (two
 expected Windows skips) and 139 helpers passed. All 54 work reports validate.

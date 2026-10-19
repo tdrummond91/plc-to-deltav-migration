@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Entirely invented residual source evidence; no plant names or values. -->
+<RSLogix5000Content xmlns:x="urn:invented-foreign" SoftwareRevision="35.00">
+<Controller Name="InventedResidualSource"><Tags>
+<Tag Name="Permit" DataType="BOOL"/>
+<Tag Name="Command" DataType="BOOL"/>
+<Tag Name="SequenceOnly" DataType="BOOL"/>
+<Tag Name="Step" DataType="SFC_STEP"/>
+<Tag Name="FileOnly" DataType="REAL" Dimensions="8"/>
+<Tag Name="AverageOnly" DataType="REAL"/>
+<Tag Name="FileControl" DataType="CONTROL"/>
+<Tag Name="Incoming" DataType="DINT" Dimensions="8"/>
+<Tag Name="Outgoing" DataType="DINT" Dimensions="8"/>
+<Tag Name="LocalAlias" TagType="Alias" AliasFor="Incoming[2]"/>
+<Tag Name="ReadMessage" DataType="MESSAGE"><Data Format="Message"><MessageParameters MessageType="InventedReadFamily" LocalElement="LocalAlias" RemoteElement="Outgoing" RequestedLength="2" ConnectionPath="invented-peer-route"/></Data></Tag>
+<Tag Name="MessageAlias" TagType="Alias" AliasFor="ReadMessage"/>
+<Tag Name="GenericMessage" DataType="MESSAGE"><Data Format="Message"><MessageParameters MessageType="InventedGenericFamily" DestinationTag="Incoming[0]" ServiceCode="invented-service" ConnectionPath="other-invented-route"/></Data></Tag>
+<Tag Name="NoParameters" DataType="MESSAGE"/>
+<Tag Name="AmbiguousMessage" DataType="MESSAGE"><Data Format="Message"><MessageParameters LocalElement="Outgoing[0]"/></Data><Data Format="Message"><MessageParameters LocalElement="Incoming[0]"/></Data></Tag>
+<Tag Name="ForeignMessage" DataType="MESSAGE"><Data Format="Message"><MessageParameters x:Marker="foreign" LocalElement="Incoming[0]"/></Data></Tag>
+<Tag Name="ProducedValue" DataType="DINT" TagType="Produced"><ProduceInfo PLCMappingFile="invented-map"/></Tag>
+<Tag Name="ConsumedValue" DataType="DINT" TagType="Consumed"><ConsumeInfo Producer="invented-peer" RemoteTag="invented-remote-tag"/></Tag>
+</Tags><Programs><Program Name="Demo" MainRoutineName="Main"><Routines>
+<Routine Name="Main" Type="RLL"><RLLContent>
+<Rung Number="0" Type="N"><Comment>File-only addresses must be visible without inventing legacy uses</Comment><Text>AVE(FileOnly[0],0,AverageOnly,FileControl,?,?);</Text></Rung>
+<Rung Number="1" Type="N"><Comment>Repeated alias calls retain separate source occurrences</Comment><Text>XIC(Permit)MSG(MessageAlias)MSG(ReadMessage);</Text></Rung>
+<Rung Number="2" Type="N"><Comment>Local destination candidate and remote route remain distinct</Comment><Text>MSG(GenericMessage);</Text></Rung>
+<Rung Number="3" Type="N"><Comment>Missing parameters are explicit</Comment><Text>MSG(NoParameters);</Text></Rung>
+<Rung Number="4" Type="N"><Comment>Alternative representations never select an effective configuration</Comment><Text>MSG(AmbiguousMessage);</Text></Rung>
+<Rung Number="5" Type="N"><Comment>Foreign XML is preserved with qualification gaps</Comment><Text>MSG(ForeignMessage);</Text></Rung>
+<Rung Number="6" Type="N"><Comment>Unknown condition transfer remains a parser investigation</Comment><Text>XIC(Permit)MYSTERY(Command)OTE(Command);</Text></Rung>
+<Rung Number="7" Type="N"><Text>MOV(1,Outgoing[0]);</Text></Rung>
+</RLLContent></Routine>
+<Routine Name="MissingBody" Type="RLL"/>
+<Routine Name="Chart" Type="SFC"><SFCContent>
+<Step ID="1" Operand="Step" InitialStep="true"/>
+<Transition ID="2"><Condition><STContent><Line Number="0">SequenceOnly AND Step.X</Line></STContent></Condition></Transition>
+</SFCContent></Routine>
+</Routines></Program></Programs></Controller></RSLogix5000Content>

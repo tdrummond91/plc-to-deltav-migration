@@ -166,8 +166,9 @@ class ConditionWorkflowTests(unittest.TestCase):
             saved, = workspace.iterdir()
             self.assertFalse((saved / 'manifest.json').exists())
 
-    def test_cli_and_runner_save_identical_conditions_and_fixed_safe_failures(self) -> None:
+    def test_cli_and_runner_save_canonical_conditions_and_fixed_safe_failures(self) -> None:
         parts = captured(schema_version=3)
+        current_conditions = captured(schema_version=6)[-1]
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve()
             source = root / 'invented.L5X'
@@ -184,7 +185,7 @@ class ConditionWorkflowTests(unittest.TestCase):
             self.assertEqual(current['execution_context']['coverage']['programs_missing_type'], 1)
             self.assertEqual(current['execution_context']['coverage']['main_designation_gaps'], 1)
             self.assertEqual(current['conditions']['status'], 'complete')
-            self.assertEqual(json.loads((saved / 'boolean-conditions.json').read_bytes()), parts[-1].to_dict())
+            self.assertEqual(json.loads((saved / 'boolean-conditions.json').read_bytes()), current_conditions.to_dict())
             with patch.object(work_check, 'save_run', return_value=root / 'saved') as save:
                 outcome = work_check._analyze(root, source, root, REVISION)
             self.assertIsNone(outcome['failure_code'])

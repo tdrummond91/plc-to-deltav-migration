@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import replace
+import hashlib
 import json
 import unittest
 from unittest.mock import patch
@@ -19,7 +20,7 @@ from test_pid import capture as capture_pid, capture_xml, tag
 from test_pid_members import data, full_members, scalar
 
 
-def connections(inputs):
+def connections(inputs, *, condition_version: int = 3, schema_version: int = 1):
     snapshot, inventory, references, tag_data, pid = inputs
     calculations = analyze_calculations(snapshot, inventory, references)
     access = analyze_access(inventory, references, schema_version=4,
@@ -27,18 +28,20 @@ def connections(inputs):
     rung_analysis = analyze_rungs(snapshot, inventory, references, access, calculations)
     relationships = analyze_relationships(snapshot, inventory, references, access, calculations, rung_analysis)
     conditions = analyze_conditions(snapshot, inventory, references, access, calculations,
-                                    rung_analysis, relationships, schema_version=3)
+                                    rung_analysis, relationships, schema_version=condition_version)
     members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
     args = (snapshot, inventory, references, access, calculations, rung_analysis,
             relationships, conditions, tag_data, pid, members)
-    return (*args, analyze_pid_connections(*args))
+    return (*args, analyze_pid_connections(*args, schema_version=schema_version))
 
 
-def capture(text: str = 'PID(Loop,PV,0,CV,0,0,0);', tags: str | None = None, namespace: str = ''):
+def capture(text: str = 'PID(Loop,PV,0,CV,0,0,0);', tags: str | None = None, namespace: str = '',
+            *, condition_version: int = 3, schema_version: int = 1):
     if tags is None:
         tags = tag(data(full_members()))
     tags += ''.join(tag('', name, 'REAL') for name in ('PV', 'CV', 'Tie', 'Hold', 'HoldValue'))
-    return connections(capture_pid(text, tags, namespace))
+    return connections(capture_pid(text, tags, namespace), condition_version=condition_version,
+                       schema_version=schema_version)
 
 
 def by_suffix(inputs):
@@ -142,6 +145,70 @@ class PidConnectionTests(unittest.TestCase):
         self.assertNotIn(transfer['id'], occurrence['incoming_condition_ids'])
         self.assertEqual(result.execution_analysis, 'not_implemented')
 
+    def test_reviewed_pid_transfer_keeps_incoming_context_and_historical_bytes(self) -> None:
+        historical = capture('[XIC(Hold),XIO(Tie)]PID(Loop,PV,0,CV,0,0,0);')[-1]
+        self.assertEqual(hashlib.sha256(render_pid_connections_json(historical).encode()).hexdigest(),
+                         '4240d3fd09908b7628201aeea7feafed375dce9c97d0d4a1f491f201c8326b6b')
+        for version in (1, 2, 3, 4):
+            with self.subTest(condition_version=version):
+                inputs = capture('[XIC(Hold),XIO(Tie)]PID(Loop,PV,0,CV,0,0,0);',
+                                 condition_version=version, schema_version=2)
+                result = inputs[-1]
+                occurrence = result.occurrences[0]
+                transfer = next(row for row in inputs[7].nodes if row['instruction_id'] == occurrence['id'])
+                self.assertEqual(transfer['kind'], 'pass_through' if version == 4 else 'opaque_transfer')
+                self.assertEqual(occurrence['incoming_condition_ids'], transfer['child_ids'][:1])
+                self.assertNotIn(transfer['id'], occurrence['incoming_condition_ids'])
+                self.assertEqual(result.coverage['incoming_condition_links'], 1)
+                self.assertEqual(result.coverage['occurrences_with_condition_context'], 1)
+                self.assertEqual(result.coverage['occurrences_without_condition_context'], 0)
+                self.assertEqual(result.status, 'complete')
+                self.assertTrue(all(row['role'] == 'unknown' for row in inputs[3].operands[-7:]))
+                validate_pid_connections(*inputs)
+                self.assertEqual(result.coverage, historical.coverage)
+                self.assertEqual(result.occurrences, historical.occurrences)
+                self.assertEqual((result.schema_version, result.analyzer_version), (2, 'pid-connections-2'))
+
+    def test_schema1_condition4_omission_remains_replayable(self) -> None:
+        inputs = capture('XIC(Hold)PID(Loop,PV,0,CV,0,0,0);', condition_version=4)
+        self.assertEqual(inputs[-1].schema_version, 1)
+        self.assertEqual(inputs[-1].occurrences[0]['incoming_condition_ids'], [])
+        self.assertEqual(inputs[-1].coverage['occurrences_without_condition_context'], 1)
+        self.assertEqual(inputs[-1].status, 'partial')
+        validate_pid_connections(*inputs)
+        repaired = analyze_pid_connections(*inputs[:-1], schema_version=2)
+        self.assertEqual(repaired.status, 'complete')
+        self.assertEqual(repaired.coverage['incoming_condition_links'], 1)
+        with self.assertRaises(PidConnectionError):
+            validate_pid_connections(*inputs[:-1], replace(repaired, schema_version=1,
+                                                         analyzer_version='pid-connections-1'))
+
+    def test_version_selection_and_versioned_replay_reject_forgery(self) -> None:
+        inputs = capture(condition_version=4, schema_version=2)
+        for version in (True, 0, 3, '2', None):
+            with self.subTest(version=version), self.assertRaises(PidConnectionError):
+                analyze_pid_connections(*inputs[:-1], schema_version=version)
+        forged = deepcopy(inputs[-1])
+        forged.occurrences[0]['incoming_condition_ids'] = []
+        forged.coverage['incoming_condition_links'] = 0
+        forged.coverage['occurrences_with_condition_context'] = 0
+        forged.coverage['occurrences_without_condition_context'] = 1
+        object.__setattr__(forged, 'status', 'partial')
+        with self.assertRaises(PidConnectionError):
+            validate_pid_connections(*inputs[:-1], forged)
+
+    def test_condition4_malformed_pid_retains_signature_gap_and_opaque_transfer(self) -> None:
+        inputs = capture('XIC(Hold)PID(Loop,PV);', condition_version=4, schema_version=2)
+        result = inputs[-1]
+        occurrence = result.occurrences[0]
+        transfer = next(row for row in inputs[7].nodes if row['instruction_id'] == occurrence['id'])
+        self.assertEqual((transfer['kind'], transfer['reason']), ('opaque_transfer', 'signature_unresolved'))
+        self.assertEqual(occurrence['incoming_condition_ids'], transfer['child_ids'][:1])
+        self.assertEqual(occurrence['control_status'], 'unavailable')
+        self.assertEqual(result.coverage['slots_by_status']['signature_unresolved'], 2)
+        self.assertEqual(result.status, 'partial')
+        validate_pid_connections(*inputs)
+
     def test_namespace_alias_gaps_do_not_become_supported_member_accesses(self) -> None:
         tags = tag(data(full_members())) + '<Tag Name="Alias" TagType="Alias" x:AliasFor="Loop.SP"/>'
         inputs = capture('MOV(PV,Alias)CPT(CV,Alias+1)PID(Loop,PV,0,CV,0,0,0);',
@@ -159,11 +226,12 @@ class PidConnectionTests(unittest.TestCase):
         for xml in (base.replace('Name="P"', 'x:Name="P"'),
                     base.replace('<Rung ', '<x:Rung ').replace('</Rung>', '</x:Rung>'),
                     base.replace('<Text>', '<x:Text>').replace('</Text>', '</x:Text>')):
-            with self.subTest(xml=xml):
-                result = connections(capture_xml(xml))[-1]
-                self.assertEqual(result.occurrences[0]['control_status'], 'namespace_gap')
-                self.assertEqual(result.occurrences[0]['incoming_condition_ids'], [])
-                self.assertEqual(result.coverage['slots_by_status']['namespace_gap'], 1)
+            for version in (3, 4):
+                with self.subTest(xml=xml, condition_version=version):
+                    result = connections(capture_xml(xml), condition_version=version, schema_version=2)[-1]
+                    self.assertEqual(result.occurrences[0]['control_status'], 'namespace_gap')
+                    self.assertEqual(result.occurrences[0]['incoming_condition_ids'], [])
+                    self.assertEqual(result.coverage['slots_by_status']['namespace_gap'], 1)
 
     def test_program_scope_shadowing_does_not_join_same_named_owners(self) -> None:
         controller = tag(data(full_members()))

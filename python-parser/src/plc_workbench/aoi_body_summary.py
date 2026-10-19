@@ -12,6 +12,7 @@ from .calculations import CalculationResult
 from .conditions import ConditionResult
 from .aoi_body_context import (
     CONTEXT_CONSTANTS, COUNT_MAPS, COVERAGE_KEYS, MAX_RECORDS,
+    CONTEXT_CONSTANTS_V2, COUNT_MAPS_V2, COVERAGE_KEYS_V2,
     AoiBodyContextResult, validate_aoi_body_context, coverage_status,
 )
 from .custom_instruction_context import CustomInstructionContextResult
@@ -21,8 +22,10 @@ from .relationships import RelationshipResult
 from .rung_analysis import RungAnalysisResult
 
 MAX_REPORT_BYTES = 4 * 1024
+MAX_REPORT_BYTES_V2 = 8 * 1024
 CONSTANTS = {**CONTEXT_CONSTANTS, 'policy_version': 2, 'report_kind': 'l5x_aoi_body_summary',
              'exporter_version': 'aoi-body-summary-1', 'sharing_status': 'aggregate_sync_allowed'}
+CONSTANTS_V2 = {**CONSTANTS, **CONTEXT_CONSTANTS_V2, 'exporter_version': 'aoi-body-summary-2'}
 
 
 class AoiBodySummaryError(ValueError):
@@ -39,8 +42,14 @@ def _keys(value: Any, keys: set[str] | frozenset[str]) -> None:
 
 
 def validate_aoi_body_summary(summary: dict[str, Any]) -> None:
-    _keys(summary, set(CONSTANTS) | {'status', 'coverage', 'tool_revision'})
-    for key, value in CONSTANTS.items():
+    if type(summary) is not dict or type(summary.get('schema_version')) is not int or summary['schema_version'] not in {1, 2}:
+        _invalid()
+    version = summary['schema_version']
+    constants = CONSTANTS if version == 1 else CONSTANTS_V2
+    count_maps = COUNT_MAPS if version == 1 else COUNT_MAPS_V2
+    coverage_keys = COVERAGE_KEYS if version == 1 else COVERAGE_KEYS_V2
+    _keys(summary, set(constants) | {'status', 'coverage', 'tool_revision'})
+    for key, value in constants.items():
         if type(summary[key]) is not type(value) or summary[key] != value:
             _invalid()
     revision = summary['tool_revision']
@@ -56,12 +65,12 @@ def validate_aoi_body_summary(summary: dict[str, Any]) -> None:
     else:
         _invalid()
     c = summary['coverage']
-    _keys(c, COVERAGE_KEYS)
+    _keys(c, coverage_keys)
     counts = []
-    for key, vocabulary in COUNT_MAPS.items():
+    for key, vocabulary in count_maps.items():
         _keys(c[key], vocabulary)
         counts.extend(c[key].values())
-    counts.extend(c[key] for key in COVERAGE_KEYS - COUNT_MAPS.keys())
+    counts.extend(c[key] for key in coverage_keys - count_maps.keys())
     if any(type(value) is not int or not 0 <= value <= MAX_RECORDS for value in counts):
         _invalid()
     groups = {
@@ -108,7 +117,67 @@ def validate_aoi_body_summary(summary: dict[str, Any]) -> None:
             or dtype['unsupported_context'] > instance['unsupported_context']
             or instance['declaration_unavailable'] > shape['not_analyzed']):
         _invalid()
-    if type(summary['status']) is not str or summary['status'] != coverage_status(c):
+    if version == 2:
+        _validate_parameter_counts(c)
+    if type(summary['status']) is not str or summary['status'] != coverage_status(c, version):
+        _invalid()
+
+
+def _validate_parameter_counts(c: dict[str, Any]) -> None:
+    matched = c['matched_member_contexts']
+    members, calls = c['member_contexts_total'], c['calls_total']
+    shapes, observations = c['calls_by_field_shape'], c['calls_by_signature_observation']
+    roles, signatures = c['matched_members_by_role'], c['signatures_by_status']
+    if (sum(c['members_by_status'].values()) != members
+            or sum(c['members_by_kind'].values()) != members
+            or c['members_by_status']['matched_parameter'] != matched
+            or sum(c['matched_members_by_usage'].values()) != matched
+            or sum(c['matched_members_by_role'].values()) != matched
+            or c['members_by_kind']['operand'] > c['source_operands']
+            or c['members_by_kind']['expression'] > c['source_expression_uses']
+            # Expression containers and non-data fields cannot be root-bound
+            # member candidates. Unknown roles can be bound (for example PID).
+            or roles['expression_read'] or roles['non_data']
+            # Only expression leaves have a guaranteed read role. Some leaves
+            # may be unmatched, so require the feasible lower bound, not equality.
+            or roles['read'] < max(0, matched - c['members_by_kind']['operand'])
+            or not c['matched_parameters'] <= min(matched, c['parameters_total'])
+            or not c['matched_instance_roots'] <= matched
+            or bool(matched) != bool(c['matched_parameters'])
+            or bool(matched) != bool(c['matched_instance_roots'])
+            or sum(c['signatures_by_status'].values()) != c['definitions_total']
+            or sum(c[f'signature_{key}_parameters'] for key in ('required', 'optional', 'system', 'unclassified')) != c['parameters_total']
+            or sum(shapes.values()) != calls or sum(observations.values()) != calls
+            or c['call_argument_fields'] > c['source_operands']
+            or c['call_argument_fields'] < shapes['one_field'] + 2 * shapes['multiple_fields']
+            or c['call_trailing_fields'] != c['call_argument_fields'] - calls + shapes['zero_fields']
+            or c['call_empty_fields'] > c['call_argument_fields']
+            or observations['missing_instance_field'] != shapes['zero_fields']
+            or observations['empty_fields'] > c['call_empty_fields']
+            or bool(observations['empty_fields']) != bool(c['call_empty_fields'])
+            or observations['no_required_parameters'] > shapes['one_field']
+            or observations['required_field_count_equal'] > shapes['multiple_fields']
+            or observations['more_than_required_fields'] > shapes['multiple_fields']
+            or c['definitions_total'] * 2 + c['routines_total'] + c['parameters_total']
+                + c['local_tags_total'] + calls * 2 + members > MAX_RECORDS):
+        _invalid()
+    if not shapes['multiple_fields'] and c['call_argument_fields'] != shapes['one_field']:
+        _invalid()
+    if not c['signatures_by_status']['available'] and any(observations[key] for key in (
+            'no_required_parameters', 'required_field_count_equal',
+            'fewer_than_required_fields', 'more_than_required_fields')):
+        _invalid()
+    if not c['signature_required_parameters'] and (observations['required_field_count_equal']
+            or observations['fewer_than_required_fields']):
+        _invalid()
+    classified = sum(c[f'signature_{key}_parameters'] for key in ('required', 'optional', 'system'))
+    classifiable_signatures = signatures['available'] + signatures['unsupported_metadata']
+    if (c['signature_unclassified_parameters'] < signatures['unsupported_metadata']
+            or (c['signature_unclassified_parameters'] and signatures['available'] == c['definitions_total'])
+            or (classified and not classifiable_signatures)
+            # Only the two system names can be classified, and duplicate names
+            # make a signature ambiguous before any parameter classification.
+            or c['signature_system_parameters'] > 2 * classifiable_signatures):
         _invalid()
 
 
@@ -124,7 +193,8 @@ def build_aoi_body_summary(snapshot: SourceSnapshot, inventory: InventoryResult,
         validate_aoi_body_context(snapshot, inventory, references, access, calculations,
                                   rung_analysis, relationships, conditions, binding_context,
                                   custom_instruction_context, result)
-        summary = {**CONSTANTS, 'status': result.status, 'coverage': deepcopy(result.coverage),
+        constants = CONSTANTS if result.schema_version == 1 else CONSTANTS_V2
+        summary = {**constants, 'status': result.status, 'coverage': deepcopy(result.coverage),
                    'tool_revision': revision if revision is not None else {'commit': None, 'worktree': 'unavailable'}}
         validate_aoi_body_summary(summary)
         summary['tool_revision'] = dict(summary['tool_revision'])
@@ -136,6 +206,6 @@ def build_aoi_body_summary(snapshot: SourceSnapshot, inventory: InventoryResult,
 def render_aoi_body_summary(summary: dict[str, Any]) -> str:
     validate_aoi_body_summary(summary)
     rendered = json.dumps(summary, sort_keys=True, indent=2, ensure_ascii=True) + '\n'
-    if len(rendered) > MAX_REPORT_BYTES:
+    if len(rendered) > (MAX_REPORT_BYTES if summary['schema_version'] == 1 else MAX_REPORT_BYTES_V2):
         _invalid()
     return rendered

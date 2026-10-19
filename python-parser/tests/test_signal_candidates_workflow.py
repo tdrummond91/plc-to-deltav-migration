@@ -179,9 +179,11 @@ class SignalCandidatesWorkflowTests(unittest.TestCase):
             self.assertEqual((code, error), (3, ''))
             saved, = (root / 'runs').iterdir()
             manifest = json.loads((saved / 'manifest.json').read_bytes())
-            self.assertEqual((manifest['schema_version'], manifest['review_schema_version']), (32, 29))
+            self.assertEqual((manifest['schema_version'], manifest['review_schema_version']), (38, 35))
             parts = captured()
-            expected = review.build_review_data(*parts[:4], **options(parts), include_engineering_assemblies=True)
+            from test_engineering_assemblies_rack_workflow import captured as current_captured, options as current_options
+            current_parts = current_captured(SOURCE)
+            expected = review.build_review_data(*current_parts[:4], **current_options(current_parts))
             self.assertEqual((saved / 'review.html').read_bytes(), review_html.render_review_html(expected).encode())
 
 

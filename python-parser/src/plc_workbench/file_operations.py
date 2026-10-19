@@ -402,7 +402,7 @@ def analyze_file_operations(snapshot: SourceSnapshot, inventory: InventoryResult
         rung_analysis: RungAnalysisResult, relationships: RelationshipResult,
         conditions: ConditionResult, tag_data: TagDataResult) -> FileOperationResult:
     try:
-        if type(conditions) is not ConditionResult or conditions.schema_version != 3:
+        if type(conditions) is not ConditionResult or conditions.schema_version not in (3, 4, 5, 6):
             _invalid()
         validate_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
         validate_tag_data(snapshot, inventory, tag_data)

@@ -30,6 +30,7 @@ from .signal_context import SignalContextResult, analyze_signal_context
 from .file_operations import FileOperationResult, analyze_file_operations
 from .alarm_evidence import AlarmEvidenceResult, analyze_alarm_evidence
 from .engineering_assemblies import build_engineering_assemblies
+from .communication_context import analyze_communication_context
 from .rung_analysis import RungAnalysisResult, analyze_rungs
 from .relationships import RelationshipResult, analyze_relationships
 from .conditions import ConditionResult, analyze_conditions
@@ -42,6 +43,7 @@ from .references import ReferenceResult, analyze_references
 from .sfc_structure import SfcStructureResult, analyze_sfc_structure
 from .source import analyze_snapshot
 from .tag_data import TagDataResult, analyze_tag_data
+from .rack_backing_context import analyze_rack_backing_context
 
 MAX_REVIEW_BYTES = 64 * 1024 * 1024
 # Review3/4/5 combine the established evidence with bounded companion payloads.
@@ -71,6 +73,12 @@ MAX_REVIEW_V26_BYTES = 360 * 1024 * 1024
 MAX_REVIEW_V27_BYTES = 376 * 1024 * 1024
 MAX_REVIEW_V28_BYTES = 384 * 1024 * 1024
 MAX_REVIEW_V29_BYTES = 448 * 1024 * 1024
+MAX_REVIEW_V30_BYTES = 456 * 1024 * 1024
+MAX_REVIEW_V31_BYTES = 464 * 1024 * 1024
+MAX_REVIEW_V32_BYTES = 464 * 1024 * 1024
+MAX_REVIEW_V33_BYTES = 464 * 1024 * 1024
+MAX_REVIEW_V34_BYTES = 472 * 1024 * 1024
+MAX_REVIEW_V35_BYTES = 472 * 1024 * 1024
 MAX_REVIEW_FINDINGS = 500_000
 MAX_REVIEW_PATTERNS = 100_000
 _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
@@ -127,7 +135,13 @@ def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     """Count UTF-8 bytes without retaining millions of small encoder chunks."""
     rendered = io.StringIO() if retain else None
     version = (data.get('schema_version'), data.get('report_version'))
-    limit = (MAX_REVIEW_V29_BYTES if version == (29, 'engineering-review-29') else
+    limit = (MAX_REVIEW_V35_BYTES if version == (35, 'engineering-review-35') else
+             MAX_REVIEW_V34_BYTES if version == (34, 'engineering-review-34') else
+             MAX_REVIEW_V33_BYTES if version == (33, 'engineering-review-33') else
+             MAX_REVIEW_V32_BYTES if version == (32, 'engineering-review-32') else
+             MAX_REVIEW_V31_BYTES if version == (31, 'engineering-review-31') else
+             MAX_REVIEW_V30_BYTES if version == (30, 'engineering-review-30') else
+             MAX_REVIEW_V29_BYTES if version == (29, 'engineering-review-29') else
              MAX_REVIEW_V28_BYTES if version == (28, 'engineering-review-28') else
              MAX_REVIEW_V27_BYTES if version == (27, 'engineering-review-27') else
              MAX_REVIEW_V26_BYTES if version == (26, 'engineering-review-26') else
@@ -276,7 +290,13 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       signal_context: SignalContextResult | None = None,
                       file_operations: FileOperationResult | None = None,
                       alarm_evidence: AlarmEvidenceResult | None = None,
-                      include_engineering_assemblies: bool = False) -> dict[str, Any]:
+                      include_engineering_assemblies: bool = False,
+                      engineering_assemblies_schema_version: int = 1,
+                      include_communication_context: bool = False,
+                      include_residual_interpretation: bool = False,
+                      include_control_interpretation: bool = False,
+                      include_residual_diagnostics: bool = False,
+                      include_rack_backing_context: bool = False) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -290,12 +310,42 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                 or type(snapshot.data) is not bytes or type(snapshot.size_bytes) is not int
                 or type(snapshot.id) is not str or type(snapshot.sha256) is not str):
             _fail()
+        if (type(engineering_assemblies_schema_version) is not int
+                or engineering_assemblies_schema_version not in (1, 2, 3)
+                or type(include_communication_context) is not bool
+                or (include_communication_context != (engineering_assemblies_schema_version in (2, 3)))
+                or (include_communication_context and not include_engineering_assemblies)
+                or type(include_residual_interpretation) is not bool
+                or (include_residual_interpretation and not include_communication_context)
+                or type(include_control_interpretation) is not bool
+                or (include_control_interpretation and not include_residual_interpretation)
+                or type(include_residual_diagnostics) is not bool
+                or (include_residual_diagnostics and not include_control_interpretation)
+                or type(include_rack_backing_context) is not bool
+                or (include_rack_backing_context and not include_residual_diagnostics)
+                or (engineering_assemblies_schema_version == 3 and not include_rack_backing_context)):
+            _fail()
         if (type(include_engineering_assemblies) is not bool
                 or (include_engineering_assemblies and
                     (type(signal_context) is not SignalContextResult
                      or type(signal_context.schema_version) is not int
                      or signal_context.schema_version != 5))):
             _fail()
+        if (include_residual_interpretation and
+                (getattr(conditions, 'schema_version', None) != (6 if include_residual_diagnostics else 5 if include_control_interpretation else 4)
+                 or getattr(aoi_body_context, 'schema_version', None) != 2)):
+            _fail()
+        if not include_residual_interpretation and (
+                getattr(conditions, 'schema_version', None) in (4, 5, 6)
+                or getattr(aoi_body_context, 'schema_version', None) == 2):
+            _fail()
+        for companion, expected_version in (
+                (pid_connections, 2 if include_control_interpretation else 1),
+                (execution_context, 3 if include_residual_diagnostics else 2 if include_control_interpretation else 1)):
+            if companion is not None and (
+                    type(companion.schema_version) is not int
+                    or companion.schema_version != expected_version):
+                _fail()
         if tag_data is not None and access is None:
             _fail()
         if pid is not None and (tag_data is None or access is None):
@@ -316,20 +366,20 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                     _fail()
         if conditions is not None:
             if (type(conditions) is not ConditionResult or type(conditions.schema_version) is not int
-                    or conditions.schema_version not in (1, 2, 3) or type(relationships) is not RelationshipResult):
+                    or conditions.schema_version not in (1, 2, 3, 4, 5, 6) or type(relationships) is not RelationshipResult):
                 _fail()
         if binding_context is not None:
             if (type(binding_context) is not BindingContextResult or type(binding_context.schema_version) is not int
                     or binding_context.schema_version != 1 or type(conditions) is not ConditionResult
-                    or conditions.schema_version not in (2, 3)):
+                    or conditions.schema_version not in (2, 3, 4, 5, 6)):
                 _fail()
         if custom_instruction_context is not None or indexed_access is not None:
             if (type(custom_instruction_context) is not CustomInstructionContextResult
                     or type(indexed_access) is not IndexedAccessResult or binding_context is None):
                 _fail()
-        if sfr_context is not None or (conditions is not None and conditions.schema_version == 3):
+        if sfr_context is not None or (conditions is not None and conditions.schema_version in (3, 4, 5, 6)):
             if (type(sfr_context) is not SfrContextResult or custom_instruction_context is None
-                    or indexed_access is None or conditions is None or conditions.schema_version != 3):
+                    or indexed_access is None or conditions is None or conditions.schema_version not in (3, 4, 5, 6)):
                 _fail()
         if aoi_body_context is not None or (sfr_context is not None and sfr_context.schema_version == 2):
             if (type(aoi_body_context) is not AoiBodyContextResult or sfr_context is None
@@ -462,7 +512,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                 _fail()
         canonical_aoi_body = None
         if aoi_body_context is not None:
-            canonical_aoi_body = analyze_aoi_body_context(*companion_inputs, canonical_custom_context)
+            canonical_aoi_body = analyze_aoi_body_context(*companion_inputs, canonical_custom_context,
+                                                             schema_version=aoi_body_context.schema_version)
             if not _strict_equal(canonical_aoi_body, aoi_body_context):
                 _fail()
         canonical_pid_connections = None
@@ -470,7 +521,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             canonical_pid_connections = analyze_pid_connections(
                 snapshot, canonical_inventory, canonical_references, canonical_access,
                 canonical_calculations, canonical_rungs, canonical_relationships,
-                canonical_conditions, canonical_tag_data, canonical_pid, canonical_pid_members)
+                canonical_conditions, canonical_tag_data, canonical_pid, canonical_pid_members,
+                schema_version=pid_connections.schema_version)
             if not _strict_equal(canonical_pid_connections, pid_connections):
                 _fail()
         canonical_calculation_paths = None
@@ -513,7 +565,8 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         if execution_context is not None:
             canonical_execution_context = analyze_execution_context(
                 snapshot, canonical_inventory, canonical_references, canonical_access,
-                canonical_calculations, canonical_rungs, canonical_relationships, canonical_conditions)
+                canonical_calculations, canonical_rungs, canonical_relationships, canonical_conditions,
+                schema_version=execution_context.schema_version)
             if not _strict_equal(canonical_execution_context, execution_context):
                 _fail()
         canonical_signal_context = None
@@ -709,12 +762,45 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
             data.update({'schema_version': 27, 'report_version': 'engineering-review-27'})
         if canonical_signal_context is not None and canonical_signal_context.schema_version == 5:
             data.update({'schema_version': 28, 'report_version': 'engineering-review-28'})
-        if include_engineering_assemblies:
+        if include_engineering_assemblies and engineering_assemblies_schema_version != 3:
             # Derive only from the canonically replayed providers above. This
             # report companion is never accepted as a caller supplied model.
-            assemblies = build_engineering_assemblies(data)
+            assemblies = build_engineering_assemblies(data, schema_version=engineering_assemblies_schema_version)
             data.update({'schema_version': 29, 'report_version': 'engineering-review-29',
                          'engineering_assemblies': assemblies})
+            if assemblies['status'] == 'partial':
+                data['status'] = 'partial'
+        if include_communication_context:
+            communication = analyze_communication_context(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_tag_data, calculations=canonical_calculations,
+                schema_version=3 if include_control_interpretation else 2 if include_residual_interpretation else 1)
+            data.update({'schema_version': 30, 'report_version': 'engineering-review-30',
+                         'communication_context': communication.to_dict()})
+            if communication.status == 'partial':
+                data['status'] = 'partial'
+        if include_residual_interpretation:
+            data.update(schema_version=31, report_version='engineering-review-31')
+        if include_control_interpretation:
+            data.update(schema_version=32, report_version='engineering-review-32')
+        if include_residual_diagnostics:
+            data.update(schema_version=33, report_version='engineering-review-33')
+        if include_rack_backing_context:
+            rack_backing = analyze_rack_backing_context(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_calculations, canonical_rungs, canonical_relationships,
+                canonical_conditions, canonical_binding_context, canonical_tag_data,
+                canonical_sfc, canonical_sfc_conditions)
+            data.update(schema_version=34, report_version='engineering-review-34',
+                        rack_backing_context=rack_backing.to_dict())
+            if rack_backing.status == 'partial':
+                data['status'] = 'partial'
+        if engineering_assemblies_schema_version == 3:
+            # Rack source correspondence must be replayed before deriving joins.
+            # Earlier providers and historical assembly versions stay intact.
+            assemblies = build_engineering_assemblies(data, schema_version=3)
+            data.update(schema_version=35, report_version='engineering-review-35',
+                        engineering_assemblies=assemblies)
             if assemblies['status'] == 'partial':
                 data['status'] = 'partial'
         _bounded_json(data, retain=False)
@@ -750,7 +836,13 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          signal_context: SignalContextResult | None = None,
                          file_operations: FileOperationResult | None = None,
                          alarm_evidence: AlarmEvidenceResult | None = None,
-                         include_engineering_assemblies: bool = False) -> None:
+                         include_engineering_assemblies: bool = False,
+                         engineering_assemblies_schema_version: int = 1,
+                         include_communication_context: bool = False,
+                      include_residual_interpretation: bool = False,
+                      include_control_interpretation: bool = False,
+                      include_residual_diagnostics: bool = False,
+                      include_rack_backing_context: bool = False) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
         if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
@@ -767,7 +859,13 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                                           sfc_conditions=sfc_conditions, sfc_context=sfc_context,
                                           execution_context=execution_context, signal_context=signal_context,
                                           file_operations=file_operations, alarm_evidence=alarm_evidence,
-                                          include_engineering_assemblies=include_engineering_assemblies), data):
+                                          include_engineering_assemblies=include_engineering_assemblies,
+                                          engineering_assemblies_schema_version=engineering_assemblies_schema_version,
+                                          include_communication_context=include_communication_context,
+                                          include_residual_interpretation=include_residual_interpretation,
+                                          include_control_interpretation=include_control_interpretation,
+                                          include_residual_diagnostics=include_residual_diagnostics,
+                                          include_rack_backing_context=include_rack_backing_context), data):
             return
     except ReviewSizeLimitError:
         raise

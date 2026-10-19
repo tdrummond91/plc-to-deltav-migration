@@ -1,6 +1,18 @@
 # Artifact validation record
 
-## Exact-address engineering assemblies checkpoint
+## Residual source context checkpoint
+
+Return `cdad803` validates `158868d` and closes R2: complete assembly scans,
+1,786 application cases (two expected skips), 139 helpers, all 55 historical
+reports and unchanged prior summaries/sample envelope. The next R3 bundle adds
+assemblies2 and communication1 under review30/manifest33/work48. Its investigation
+ledger and release evidence are in [RESIDUAL_SOURCE_REVIEW.md](docs/reviews/RESIDUAL_SOURCE_REVIEW.md).
+Local release checks passed 1,844 application cases (two expected skips), 139
+helpers, the focused sample-history repair and final canonical artifact checks.
+The repaired history reader replays the frozen record from larger valid reports.
+R3 and final readiness remain open; no new plant sample is requested.
+
+## Historical exact-address engineering assemblies checkpoint
 
 Return `d6c5fc1` validated `f5399e6`: 1,743 application cases (two expected
 Windows skips), 139 helpers and all 54 historical/current work reports passed.
@@ -22,7 +34,7 @@ Release rehearsal passed 1,743 application cases (two expected skips), 139 helpe
 Detailed evidence is recorded in [SIGNAL_CANDIDATES_REVIEW.md](docs/reviews/SIGNAL_CANDIDATES_REVIEW.md).
 No new plant source sample is requested; Git transport remains manual.
 
-## Current guard dependency and source trail checkpoint (2026-10-17)
+## Historical guard dependency and source trail checkpoint (2026-10-17)
 
 See [guard dependency validation](docs/reviews/SIGNAL_DEPENDENCIES_REVIEW.md)
 for returned work-machine evidence, canonical compatibility, bounds, independent

@@ -210,6 +210,8 @@ class WorkCheckTestsTests(unittest.TestCase):
         excluded = {
             "test_feedback_listener", "test_revision", "test_work_check", "test_work_check_bootstrap",
             "test_work_check_tests", "test_summary_cli", "test_reference_cli",
+            "test_control_operation_ui", "test_rack_backing_context_ui", "test_residual_navigation_ui",
+            "test_engineering_assemblies_rack_ui",
         }
         selected = set(driver.WORK_MACHINE_MODULES["application"])
         self.assertFalse(selected & excluded)
@@ -220,6 +222,10 @@ class WorkCheckTestsTests(unittest.TestCase):
         self.assertTrue({'test_pid', 'test_pid_summary', 'test_pid_workflow'} <= selected)
         self.assertTrue({'test_pid_members', 'test_pid_member_summary', 'test_pid_member_workflow'} <= selected)
         self.assertTrue({'test_calculations', 'test_calculation_summary', 'test_calculation_workflow'} <= selected)
+        self.assertTrue({"test_communication_context", "test_communication_context_summary",
+                         "test_r3_context_workflow"} <= selected)
+        self.assertTrue({"test_engineering_assemblies_rack", "test_engineering_assemblies_rack_summary",
+                         "test_engineering_assemblies_rack_workflow"} <= selected)
         self.assertIn("test_rung_syntax", driver.WORK_MACHINE_MODULES["helpers"])
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -242,6 +248,27 @@ class WorkCheckTestsTests(unittest.TestCase):
             self.assertEqual(payload["status"], "passed")
             self.assertEqual(payload["counts"]["tests_run"], 1)
             self.assertFalse(marker.exists())
+
+    def test_new_communication_and_integration_selection_has_no_process_or_socket_access(self) -> None:
+        modules = ("test_communication_context", "test_communication_context_summary", "test_r3_context_workflow",
+                   "test_output_conditions", "test_aoi_parameter_members", "test_residual_interpretation_workflow",
+                   "test_control_interpretation_workflow", "test_aoi_condition_identity", "test_routine_boundaries",
+                   "test_residual_diagnostics_workflow", "test_condition_body_diagnostics",
+                   "test_rack_backing_context", "test_rack_backing_context_summary", "test_rack_backing_context_workflow",
+                   "test_sfc_routine_boundaries", "test_rack_backing_summary")
+        root = driver._checkout_root()
+        with (
+            patch.object(driver, "WORK_MACHINE_MODULES", {"application": modules}),
+            patch("subprocess.Popen", side_effect=AssertionError("Parser tests must not launch processes")) as process,
+            patch("socket.socket", side_effect=AssertionError("Parser tests must not open sockets")) as connection,
+        ):
+            stream = io.StringIO()
+            suite = driver._load_work_machine_suite(root, "application")
+            payload = driver.run_suite(suite, stream=stream)
+            self.assertEqual(payload["status"], "passed", stream.getvalue())
+            self.assertGreaterEqual(payload["counts"]["tests_run"], 45)
+            process.assert_not_called()
+            connection.assert_not_called()
 
     def test_selected_suites_do_not_spawn_processes_or_open_sockets(self) -> None:
         # Developer-only boundary test: catch new process/network fixtures added

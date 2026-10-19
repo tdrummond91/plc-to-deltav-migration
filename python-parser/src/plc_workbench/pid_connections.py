@@ -54,6 +54,8 @@ PID_CONNECTION_CONSTANTS = {
     'cascade_analysis': 'not_implemented', 'engineering_loop_identity': 'not_implemented',
     'numeric_analysis': 'not_implemented', 'effective_value_selection': 'not_implemented',
 }
+PID_CONNECTION_CONSTANTS_V2 = {**PID_CONNECTION_CONSTANTS,
+    'schema_version': 2, 'analyzer_version': 'pid-connections-2'}
 _ROLES = ('read', 'write', 'read_write', 'unknown')
 _DIRECT_MEMBER = re.compile(r'\.([A-Za-z_][A-Za-z0-9_]*)', re.ASCII)
 _SEMANTIC_ATTRIBUTES = frozenset({'Name', 'TagType', 'AliasFor', 'DataType', 'Dimensions', 'Type'})
@@ -145,7 +147,7 @@ def _provenance(snapshot: SourceSnapshot, inventory: InventoryResult):
 
 def _derive(snapshot: SourceSnapshot, inventory: InventoryResult, access: AccessResult,
             relationships: RelationshipResult, conditions: ConditionResult,
-            pid: PidResult, pid_members: PidMemberResult) -> PidConnectionResult:
+            pid: PidResult, pid_members: PidMemberResult, *, schema_version: int = 1) -> PidConnectionResult:
     if any(len(rows) > MAX_PID_CONNECTION_RECORDS for rows in
            (pid.occurrences, pid.operands, relationships.addresses, access.operands, access.expression_uses)):
         _invalid()
@@ -167,8 +169,14 @@ def _derive(snapshot: SourceSnapshot, inventory: InventoryResult, access: Access
         if owner is not None:
             owner_occurrences[owner].append(occurrence['id'])
     incoming: dict[str, list[str]] = defaultdict(list)
+    transfer_kinds = {'opaque_transfer', 'pass_through'} if schema_version == 2 else {'opaque_transfer'}
     for node in conditions.nodes:
-        if (node['kind'] == 'opaque_transfer' and node['instruction_id'] in controls
+        # The incoming evidence survives a refined outgoing transfer rule.
+        # Condition4 models qualified PID occurrences as pass-through; older
+        # conditions and unsupported signatures still retain opaque transfers.
+        # Schema1 stays frozen, including its historical condition4 omission.
+        # Both companions are authenticated before these source IDs are joined.
+        if (node['kind'] in transfer_kinds and node['instruction_id'] in controls
                 and node['child_ids']):
             incoming[node['instruction_id']].append(node['child_ids'][0])
     coverage = {key: dict.fromkeys(sorted(values), 0) for key, values in COUNT_MAPS.items()}
@@ -296,8 +304,9 @@ def _derive(snapshot: SourceSnapshot, inventory: InventoryResult, access: Access
         coverage['occurrences_with_condition_context' if context else 'occurrences_without_condition_context'] += 1
     coverage.update(occurrences_total=len(occurrences), slots_total=len(slots), addresses_total=len(addresses))
     partial = _partial(coverage)
+    constants = PID_CONNECTION_CONSTANTS_V2 if schema_version == 2 else PID_CONNECTION_CONSTANTS
     return PidConnectionResult(dict(pid.snapshot), 'partial' if partial else 'complete',
-                               occurrences, slots, addresses, coverage)
+                               occurrences, slots, addresses, coverage, **constants)
 
 
 def _partial(c: dict[str, Any]) -> bool:
@@ -315,13 +324,16 @@ def analyze_pid_connections(snapshot: SourceSnapshot, inventory: InventoryResult
         references: ReferenceResult, access: AccessResult, calculations: CalculationResult,
         rung_analysis: RungAnalysisResult, relationships: RelationshipResult,
         conditions: ConditionResult, tag_data: TagDataResult, pid: PidResult,
-        pid_members: PidMemberResult) -> PidConnectionResult:
+        pid_members: PidMemberResult, *, schema_version: int = 1) -> PidConnectionResult:
     """Authenticate both canonical chains before joining IDs conservatively."""
     try:
+        if type(schema_version) is not int or schema_version not in (1, 2):
+            _invalid()
         validate_conditions(snapshot, inventory, references, access, calculations, rung_analysis,
                             relationships, conditions)
         validate_pid_members(snapshot, inventory, references, tag_data, pid, pid_members)
-        result = _derive(snapshot, inventory, access, relationships, conditions, pid, pid_members)
+        result = _derive(snapshot, inventory, access, relationships, conditions, pid, pid_members,
+                         schema_version=schema_version)
         render_pid_connections_json(result)
         return result
     except PidConnectionError:
@@ -338,7 +350,8 @@ def validate_pid_connections(snapshot: SourceSnapshot, inventory: InventoryResul
     try:
         render_pid_connections_json(result)
         expected = analyze_pid_connections(snapshot, inventory, references, access, calculations,
-            rung_analysis, relationships, conditions, tag_data, pid, pid_members)
+            rung_analysis, relationships, conditions, tag_data, pid, pid_members,
+            schema_version=result.schema_version)
         if not _strict_record_match(vars(expected), vars(result)):
             _invalid()
     except PidConnectionError:
@@ -351,6 +364,12 @@ def render_pid_connections_json(result: PidConnectionResult) -> str:
     """Serialize bounded native containers; source authentication is separate."""
     try:
         if type(result) is not PidConnectionResult or vars(result).keys() != set(PidConnectionResult.__dataclass_fields__):
+            _invalid()
+        if type(result.schema_version) is not int or result.schema_version not in (1, 2):
+            _invalid()
+        constants = PID_CONNECTION_CONSTANTS_V2 if result.schema_version == 2 else PID_CONNECTION_CONSTANTS
+        if any(type(getattr(result, key)) is not type(value) or getattr(result, key) != value
+               for key, value in constants.items()):
             _invalid()
         budget = MAX_PID_CONNECTION_BYTES
         frames = [(iter((vars(result),)), None)]

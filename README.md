@@ -1,6 +1,22 @@
 # PLC analysis workbench
 
-Latest checkpoint: return `4eca393` passed 1,469 application cases (two expected
+Latest checkpoint: C14 return `adc5475`, testing `a53ca67`, passed 2,103
+application cases (two expected skips) and 139 helpers. Qualified rack evidence
+now contributes 1,029 cross-rung memberships; signal/SFC assembly exclusions
+are zero. All scans complete and prior source summaries remain unchanged.
+The [completion tracker](public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md)
+records fourteen completed cycles and zero further normal runs before review.
+See the [readiness assessment](public/docs/reviews/PHASE_1_READINESS_REVIEW.md),
+[report reading guide](public/docs/reviews/REPORT_REVIEW_GUIDE.md) and
+[invented report](public/examples/control-interpretation-review-demo.html).
+Reports are ready for Tyler's readability/appearance check and team engineering
+review with explicit residual questions. Open the existing latest private
+`review.html`; no rerun or code reading is required. Work-machine Git transport
+remains manual; the script creates its local validated feedback commit.
+
+Historical execution checkpoint:
+
+Earlier checkpoint: return `4eca393` passed 1,469 application cases (two expected
 Windows skips) and 139 helpers. All earlier analysis and frozen examples are
 unchanged. Analysis/save/summary time improved 9%; total time stayed near 10:40
 because tests took longer. The next bundle adds source-declared scheduling,

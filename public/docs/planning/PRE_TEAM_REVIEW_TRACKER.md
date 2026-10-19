@@ -1,15 +1,24 @@
 # Pre-team-review completion tracker
 
-Updated 2026-10-18. This is the current estimate and checklist for finishing
+Updated 2026-10-19. This is the current estimate and checklist for finishing
 automated Phase 1 analysis before Tyler presents the reports to the team.
 Read this first for progress; use linked reviews for detailed evidence.
 
 ## Current estimate and next action
 
-**Plan for three more work-machine cycles, with a range of two to five.**
-Return `d6c5fc1` has closed R1 after validating `f5399e6`. R2 is the current
-bundle, verified locally and awaiting its export return; this requested run
-counts toward these three cycles.
+**Automated pre-review gate complete for this tested export: zero further
+normal work-machine cycles planned before review.** C14 return `adc5475`,
+testing clean `a53ca67`, passes 2,103 application cases (two expected skips) and
+139 helpers. It validates 1,029 rack-backed memberships, zero signal/SFC
+assembly exclusions and complete scans. All 28 unrelated summaries and frozen
+samples are unchanged. Independent audit found no further concrete parser
+omission requiring a normal source run.
+
+Fourteen cycles are complete. Tyler can open the existing latest private report
+for readability, navigation and appearance checks, then engineering review.
+No rerun is needed. R3/R4 close for presenting the source analysis; engineering
+approval, runtime validation and later project phases remain separate.
+See the [readiness assessment](../reviews/PHASE_1_READINESS_REVIEW.md).
 One cycle means a coherent development bundle, a work-machine run,
 and analysis of its returned feedback. Local commits and tests are not cycles.
 
@@ -18,27 +27,32 @@ and six completed since then. Those six returns and the next return are
 reconciled below. The original conversational estimate was not recorded against a commit; this file
 establishes an explicit baseline rather than inventing that historical anchor.
 The original six completed cycles plus four planned cycles established the
-working ten-cycle budget. Seven are now complete and three remain; this is
+working ten-cycle budget. The previous central projection was eleven cycles:
+R3 source capture consumed its first cycle before the remaining interpretation
+rules were complete. This explicit one-cycle extension is recorded below.
+The first rack-backing investigation extended the projection to twelve; its
+returned layout gaps now extend it explicitly to thirteen.
+The C13 downstream grouping audit extends it to fourteen.
+C14 validates that final bundle. Fourteen are now complete and zero remain
+before review; this is
 a cycle budget, not a percentage of Phase 1 completion. Earlier estimates in historical
 reviews are superseded for current planning, and their text remains intact.
 
 | Measure | Current state |
 |---|---|
-| Completed cycles in this reconciled window | 7 |
-| Remaining central estimate | 3 |
-| Remaining planning range | 2-5 |
-| Latest analyzed return | `d6c5fc1`, testing `f5399e6` |
-| Current parser bundle | R2: exact-address engineering assemblies, ready for export validation |
-| Immediate user action | On work PC: pull, run the ordinary script, then push manually |
-| Team classification or code review needed now | No |
+| Completed cycles in this reconciled window | 14 |
+| Remaining normal work-machine cycles before review | 0 |
+| Latest analyzed return | adc5475, testing a53ca67 |
+| Current parser bundle | C14 validated: rack source groups, non-address accounting and report links |
+| Immediate user action | Open the existing latest private review.html and check readability/navigation/appearance |
+| Team engineering review | Ready to begin with the explicit residual-question register |
 
-The range assumes the same export and scope. Two cycles requires combining
-the interpretation and gap-closeout bundles. Four or five allows targeted
-corrections or another bounded diagnostic return. A broader source gap or
-unexpected rule failure can exceed the range, but must trigger an explicit
-estimate change with evidence. Do not silently reset the estimate.
+The former one-to-two-cycle range is closed by C14. A newly discovered defect
+or new export may require another development/validation cycle, but none is
+currently requested. Record such work separately with its evidence instead of
+silently reopening or resetting this completed estimate.
 
-## Seven completed cycles
+## Fourteen completed cycles
 
 Checked means the stated bundle was implemented and its work-machine return
 was analyzed. It does not mean all engineering interpretations are confirmed.
@@ -68,6 +82,65 @@ was analyzed. It does not mean all engineering interpretations are confirmed.
 - [x] **C7 - Grouped candidate validation (R1).** Feature `f5399e6`, return
   `d6c5fc1`. Candidate pair partitions reconcile with zero scan truncation.
   [Return and next bundle](../reviews/ENGINEERING_ASSEMBLIES_REVIEW.md).
+- [x] **C8 - Cross-rung source groups (R2).** Feature `158868d`, return
+  `cdad803`. All scans complete: 54,123 memberships, 7,408 exact-address
+  groups, 3,759 spanning rungs and 1,527 spanning providers. All 25 preceding
+  summaries and frozen samples are unchanged. Missing exact addresses and
+  MSG source context carry forward explicitly into R3.
+
+- [x] **C9 - Residual source capture (first R3 bundle).** Feature `dad1f6d`,
+  return `31cc08b`. All 78 missing-address memberships recovered (54,201 total,
+  7,486 groups); 27 MSG occurrences link to stored parameters, with 27 local
+  root candidates and two produced-tag metadata records. All 25 earlier summary
+  families, 104 signal fields and the frozen sample envelope are unchanged.
+  Tests: 1,848 application cases with two expected skips, 139 helpers. All 56
+  historical reports validate. This closes capture subtasks, not R3 semantics.
+
+- [x] **C10 - Residual interpretation validation.** Feature 7dcc4fa,
+  return 883002a. Opaque transfers fall 326 to 220; all 27 MSG configurations
+  classify and four AOI members link. All 104 signal fields, 22 of 27 summary
+  families and the full frozen sample envelope are unchanged. PID condition
+  links regress 46 to zero, causing one additional partial assembly provider;
+  the next bundle repairs the reader under version2. Tests: 1,920 application
+  cases (two expected skips), 139 helpers; all 57 historical reports validate.
+  [Audit and next bundle](../reviews/CONTROL_INTERPRETATION_REVIEW.md).
+
+- [x] **C11 - Control interpretation and first rack investigation.** Feature
+  `3a4d997`, return `908873f`. Restores46 PID links and the second complete
+  assembly provider; six generic services recognized. The one AOI/GSV gap and
+  fourteen SFC call targets are narrowed; all 15 rack declarations expose a
+  different family/layout than the first probe. All104 signal fields,22 prior
+  summary families and frozen samples are unchanged. Tests: 1,995 application
+  cases (two expected skips), 139 helpers; all 58 historical reports validate.
+  [Audit and next checks](../reviews/RESIDUAL_DIAGNOSTICS_REVIEW.md).
+
+- [x] **C12 - Residual diagnostics and source qualification.** Feature
+  `a58f3c0`, return `a5ccae8`. AOI modeled; all 76 call targets associated,
+  including fourteen SFC contents with no declared interface. All fifteen rack
+  declarations have qualified 1756-EN2T Slot layouts. One GSV question-mark
+  instance remains unresolved. All 104 signal fields, 25 preceding summary
+  families and the frozen sample envelope are unchanged. Tests: 2,045
+  application cases (two expected skips), 139 helpers; all 59 historical
+  reports validate. [Audit and next checks](../reviews/RACK_SOURCE_MAPPING_REVIEW.md).
+
+- [x] **C13 - Qualified rack source correspondence and report verification.**
+  Feature `eebe469`, return `c67be2e`. All 15 declarations, 94 addresses,
+  319 RLL uses and four SFC uses associate with zero overlay gaps. All 28 prior
+  summary families and frozen samples are unchanged. Tests: 2,074 application
+  cases (two expected skips), 139 helpers; all 60 historical reports validate.
+  Independent audit identifies missing downstream joins and known-value
+  exclusion accounting; these keep R3/R4 open.
+  [Audit and next checks](../reviews/RACK_ASSEMBLY_REVIEW.md).
+
+- [x] **C14 - Rack group integration and final verification.** Feature
+  `a53ca67`, return `adc5475`. Complete scan: 55,230 memberships / 7,580 groups;
+  1,029 rack-backed memberships, zero signal/SFC exclusions. The three remaining
+  exclusions need dynamic addresses. All 28 unrelated summary families and
+  frozen samples are unchanged. Tests: 2,103 application cases (two expected
+  skips), 139 helpers; all 61 historical reports validate and replay. Independent
+  audit closes R3/R4 for report presentation with explicit source/vendor/runtime
+  questions and unreviewed engineering interpretations.
+  [Readiness and evidence](../reviews/PHASE_1_READINESS_REVIEW.md).
 
 ## Work packages from the four-cycle baseline
 
@@ -80,10 +153,17 @@ when an item needs another cycle or can be combined with another item.
   2,296 outputs with 4,969 pairs. All 24 prior non-signal summaries and 92 prior
   signal fields are unchanged; samples are unchanged. Tests passed (1,743
   application cases with two expected skips, 139 helpers). **Consumed: one cycle.**
-- [ ] **R2 - Assemble and explain relationships across rungs.** Current
+- [x] **R2 - Assemble and explain relationships across rungs.** Validated by
+  return `cdad803`, testing clean `158868d`: complete scans, reconciled provider
+  counts and no source truncation. Tests passed (1,786 application cases with
+  two expected skips, 139 helpers); all 55 historical reports validate.
+  Reserved private bytes are 40,807,153 of 67,108,864. Current
   implementation: exact-address engineering assemblies across six evidence
   providers, with captured roles, related-rung/source links and explicit gaps.
-  Await its real-export distribution before deciding whether R2 closes.
+  The real-export distribution validates the supported grouping deliverable.
+  R3 retains 74 SFC and four file exact-address exclusions, four SFC binding
+  gaps, one dynamic file slot, other binding/condition gaps and 27 MSG
+  occurrences whose stored communication parameters still need linking.
   [Implementation and validation](../reviews/ENGINEERING_ASSEMBLIES_REVIEW.md).
   Use the returned
   candidate evidence to group commands, feedback, interlocks and alarm-related
@@ -92,9 +172,9 @@ when an item needs another cycle or can be combined with another item.
   resets and delays where supported; retain competing writers, branches and
   state explicitly. Close when each supported grouping explains its source,
   inputs, outputs, related rungs and remaining uncertainty. Alarm effects and
-  ranking require actual source evidence, not names alone. **Budget: one bundled
-  development/return cycle; principal estimate risk.**
-- [ ] **R3 - Close out the residual analysis gaps.** Inventory remaining binding,
+  ranking require actual source evidence, not names alone. **Consumed: one
+  bundled development/return cycle.**
+- [x] **R3 - Close out the residual analysis gaps.** Inventory remaining binding,
   indirect-address, condition-transfer, call/AOI, SFC/ST and external-body gaps,
   plus possible dead ends and missing source. Implement remaining source-supported rules or
   bounded diagnostics where useful. Reconcile the base unknown blocks/operand
@@ -102,8 +182,10 @@ when an item needs another cycle or can be combined with another item.
   semantics. Close only when each residual has an investigated reason, evidence,
   competing interpretations where applicable, and precisely missing information.
   Missing implementation must not be relabeled an engineer-only question.
-  **Budget: one bundled development/return cycle.**
-- [ ] **R4 - Final report and readiness verification.** Consolidate logical
+  **Closed by C14 after six R3 cycles (C9-C14). The final integration and
+  verification cycle also closes R4. Qualified identities now reach the groups;
+  remaining source/vendor/runtime questions are explicitly registered.**
+- [x] **R4 - Final report and readiness verification.** Consolidate logical
   groups, uncertain-case groups, search, navigation, source links and readable
   explanations. Verify counts, representative scale, saved artifacts and the
   final export run; independently challenge classifications and presentation.
@@ -111,27 +193,53 @@ when an item needs another cycle or can be combined with another item.
   with reports without reading the code. Close against every item in the
   [Phase 1 completion gate](PHASE_1_ENGINEERING_ANALYSIS.md#completion-gate-for-presenting-the-report).
   Then announce that reports are ready for Tyler's readability/aesthetics check
-  and team engineering review. **Budget: one final verification cycle.**
+  and team engineering review. **Closed by C14, sharing its final verification
+  cycle with R3. Tyler and team responses are the next stage, not inferred
+  approvals.**
 
 Editable correction workflows, the standalone editor/database, PCSD generation
 and FHX mapping are later phases and are excluded from this estimate. Questions
 requiring absent plant information or engineering decisions can remain at team
 review if the source investigation and explanation are complete.
 
+## R3 subtask ledger
+
+These local tasks share the existing R3/R4 cycle budget; they do not create a
+new cycle estimate for each row. See the
+[residual investigation ledger](../reviews/RESIDUAL_SOURCE_REVIEW.md) for evidence.
+
+| Task | State | Next evidence needed |
+|---|---|---|
+| Reconcile R2 provider exclusions and preserved evidence | Done | Return `cdad803`; all 55 historical reports validate |
+| Admit qualified SFC/file anchors absent from the base catalogue | Validated by C9 | All 78 recovered; no missing-address exclusions; complete scan |
+| Join MSG/control/parameter records and local candidate fields | Validated by C10 | 27 distinct owners, parameter records and linked occurrences; configured families/methods/roles reconciled |
+| Capture direct produced/consumed metadata | Validated by C9 | Two produced metadata records; no consumed records or capture gaps |
+| Consolidate residual questions with source and provider links | Validated by C14 | Readiness register separates missing source, vendor/exporter evidence, runtime values and engineering decisions |
+| Investigate condition/AOI/message rules | C12 validates the AOI rule; PID2 and six generic services retained | GSV question-mark boundary documented; exact vendor/exporter evidence is required before any further rule |
+| Investigate JSR/SBR/RET, SFR and AOI outgoing conditions | C12 validates all 76 target-content joins and AOI outgoing proof | 62 RLL / 14 SFC associations. All fourteen SFC interfaces absent. Documented operations now explained; numeric JSR fields and outgoing equations retain exact vendor/exporter evidence questions in the current call assessment |
+| Assess rack candidate backing | Validated by C13 | All 15 declarations, 94 addresses, 319 RLL uses and four SFC uses associate; physical/runtime boundaries remain |
+| Integrate qualified rack identities into cross-rung groups | Validated by C14 | 1,029 qualified memberships; zero signal/SFC exclusions; original provider gaps preserved |
+| Correct non-address guard exclusion accounting | Validated by C14 | 1,473 literal and one system-flag guard input; three remaining dynamic-address exclusions |
+| Preserve frozen sample replay as feedback reports grow | Validated by C14 | Six charged / eight reserved of forty unchanged; all 61 historical reports replay |
+| Final gate assessment and review guide | Closed by C14 | Grouping/navigation and synthetic scale checks plus passing export return and independent audit; Tyler/team review is next |
+
 ## Final completion gates
 
-These remain open until the final assessment records supporting evidence.
-Shipping or validating an individual bundle does not automatically close them.
+All gates close for presenting this tested export, supported by the
+[final assessment](../reviews/PHASE_1_READINESS_REVIEW.md). They do not imply
+engineering approval or certainty about behavior absent from the source.
 
-- [ ] Every relevant source region, rung and block is accounted for, including
+- [x] Every relevant captured source region, rung and block is accounted for, including
   explicitly located missing, protected and unsupported content.
-- [ ] Pattern and candidate groups are meaningful, readable and traceable;
+  C13 audit reconciles specialized signatures; one absent RLL body remains an
+  explicit source exception, not evidence of complete code for that routine.
+- [x] Pattern and candidate groups are meaningful, readable and traceable;
   source facts, interpretations and authored hints remain distinguishable.
-- [ ] All available-source questions the script can resolve have been
+- [x] All available-source questions the script can resolve have been
   investigated, including across-rung links and relevant non-RLL code.
-- [ ] Residual unknowns explain the investigation, competing interpretations
+- [x] Residual unknowns explain the investigation, competing interpretations
   where applicable, and missing information; none hide unfinished parser work.
-- [ ] Final reports pass counting, navigation, grouping and representative-scale
+- [x] Final reports pass counting, navigation, grouping and representative-scale
   checks, with a review guide and clear questions for engineering confirmation.
 
 ## Maintenance after every returned run
@@ -154,3 +262,15 @@ Shipping or validating an individual bundle does not automatically close them.
 |---|---|---|
 | 2026-10-18 | 4 central; 3-6 range, pending run included | Initial recorded baseline after reconciling six validated cycles. Candidate validation, multi-rung interpretation, residual gaps and final report verification remain. |
 | 2026-10-18 | 3 central; 2-5 range | R1 closed by `d6c5fc1`: complete candidate scans and unchanged prior evidence. One of the original four cycles consumed; R2-R4 remain. No added scope. |
+| 2026-10-18 | 2 central; 1-4 range | R2 closed by `cdad803`: 54,123 memberships, complete scans, unchanged preceding evidence. Two of the original four cycles consumed; R3-R4 remain. The 78 exact-address omissions and captured MSG metadata are concrete R3 implementation work, not new scope or engineer-only questions. |
+
+| 2026-10-19 | 2 central; 1-4 range (one-cycle extension to original budget) | C9 validates R3 capture, but 326 opaque transfers, unassigned call/AOI parameters and uninterpreted MSG configuration remain. Documented output rules, exact AOI members and configured MSG catalogue are additional R3 implementation work. Current central total is eleven cycles (nine completed plus two remaining), not a reset of the ten-cycle baseline. |
+
+| 2026-10-19 | 1 central; 1-3 range | C10 validates interpretation but exposes the PID context reader regression. Combine its versioned repair, remaining call/AOI/generic-service rules and R4 verification before C11. Ten completed plus one remaining preserves the eleven-cycle projection; no new extension. |
+| 2026-10-19 | 2 central; 1-3 range (second explicit one-cycle extension) | Independent readiness challenge found rack backing still fixed to not_analyzed despite preserved module/configuration evidence. C11 adds joint eligibility diagnostics; C12 is planned for a supported mapping rule or documented source boundary and final verification. Ten completed plus two remaining projects twelve; this corrects an omitted parser investigation, not a reset of the baseline. |
+
+| 2026-10-19 C11 audit | 2 central (1-3), eleven completed; total 13 | Third explicit one-cycle extension: first rack probe finds all 15 declarations outside its family, with 11 Data-missing and 4 representation-ambiguous outcomes. C12 must identify the layout before a supported mapping/closeout rule can be validated; AOI metadata/SFC interface repairs are bundled with it. |
+| 2026-10-19 C12 audit | 1 central (1-2), twelve completed; total 13 | AOI and SFC joins validate; all fifteen rack declarations have a qualified known-family Slot layout. Combine the supported mapping/source-boundary work with final verification. No central estimate extension. |
+
+| 2026-10-19 C13 audit | 1 central (1-2), thirteen completed; total 14 | Explicit extension for qualified rack evidence omitted from cross-rung groups and non-address values miscounted as binding failures. C14 combines integration and final verification. |
+| 2026-10-19 C14 audit | 0 before review; fourteen completed | Return adc5475 validates qualified groups and corrected accounting. Independent audit finds no further parser omission requiring a normal run. R3/R4 close for report presentation; source/vendor/runtime and engineering questions remain explicit. |

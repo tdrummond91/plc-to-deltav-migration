@@ -556,7 +556,7 @@ class GitAndWorkflowTests(unittest.TestCase):
             from plc_workbench.conditions import analyze_conditions
             from plc_workbench.condition_summary import build_condition_summary
             conditions = analyze_conditions(snapshot, inventory, references, access, calculations, rung_analysis, relationships,
-                                            schema_version=3)
+                                            schema_version=6)
             analysis_payload["condition_summary"] = build_condition_summary(
                 snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions,
                 revision={"commit": COMMIT, "worktree": "clean"})
@@ -590,7 +590,7 @@ class GitAndWorkflowTests(unittest.TestCase):
             from plc_workbench.aoi_body_summary import build_aoi_body_summary
             body_inputs = (*companion_inputs, analyze_custom_instruction_context(*companion_inputs))
             analysis_payload["aoi_body_summary"] = build_aoi_body_summary(
-                *body_inputs, analyze_aoi_body_context(*body_inputs),
+                *body_inputs, analyze_aoi_body_context(*body_inputs, schema_version=2),
                 revision={"commit": COMMIT, "worktree": "clean"})
             from plc_workbench.pid_connections import analyze_pid_connections
             from plc_workbench.pid_connection_summary import build_pid_connection_summary
@@ -598,7 +598,7 @@ class GitAndWorkflowTests(unittest.TestCase):
                                  relationships, conditions, tag_data, pid,
                                  analyze_pid_members(snapshot, inventory, references, tag_data, pid))
             analysis_payload["pid_connection_summary"] = build_pid_connection_summary(
-                *connection_inputs, analyze_pid_connections(*connection_inputs),
+                *connection_inputs, analyze_pid_connections(*connection_inputs, schema_version=2),
                 revision={"commit": COMMIT, "worktree": "clean"})
             from plc_workbench.calculation_paths import analyze_calculation_paths
             from plc_workbench.calculation_path_summary import build_calculation_path_summary
@@ -620,8 +620,9 @@ class GitAndWorkflowTests(unittest.TestCase):
             from plc_workbench.sfc_conditions import analyze_sfc_conditions
             from plc_workbench.sfc_condition_summary import build_sfc_condition_summary
             sequence_inputs = (snapshot, inventory, references, sfc_structure)
+            sfc_conditions = analyze_sfc_conditions(*sequence_inputs)
             analysis_payload["sfc_condition_summary"] = build_sfc_condition_summary(
-                *sequence_inputs, analyze_sfc_conditions(*sequence_inputs),
+                *sequence_inputs, sfc_conditions,
                 revision={"commit": COMMIT, "worktree": "clean"})
             from plc_workbench.sfc_context import analyze_sfc_context
             from plc_workbench.sfc_context_summary import build_sfc_context_summary
@@ -636,12 +637,12 @@ class GitAndWorkflowTests(unittest.TestCase):
             execution_inputs = (snapshot, inventory, references, access, calculations,
                                 rung_analysis, relationships, conditions)
             analysis_payload['execution_context_summary'] = build_execution_context_summary(
-                *execution_inputs, analyze_execution_context(*execution_inputs),
+                *execution_inputs, analyze_execution_context(*execution_inputs, schema_version=3),
                 revision={"commit": COMMIT, "worktree": "clean"})
             from plc_workbench.signal_context import analyze_signal_context
             from plc_workbench.signal_context_summary import build_signal_context_summary
             signal_inputs = (*execution_inputs, tag_data, analyze_output_context(*path_inputs),
-                             analyze_stateful_objects(*stateful_inputs), analyze_execution_context(*execution_inputs))
+                             analyze_stateful_objects(*stateful_inputs), analyze_execution_context(*execution_inputs, schema_version=3))
             analysis_payload['signal_context_summary'] = build_signal_context_summary(
                 *signal_inputs, analyze_signal_context(*signal_inputs, schema_version=5),
                 revision={"commit": COMMIT, "worktree": "clean"})
@@ -662,26 +663,55 @@ class GitAndWorkflowTests(unittest.TestCase):
             assembly_inputs = {
                 "relationships": relationships.to_dict(), "access": access.to_dict(),
                 "signal_context": analyze_signal_context(*signal_inputs, schema_version=5).to_dict(),
-                "pid_connections": analyze_pid_connections(*connection_inputs).to_dict(),
+                "pid_connections": analyze_pid_connections(*connection_inputs, schema_version=2).to_dict(),
                 "calculation_paths": analyze_calculation_paths(*path_inputs).to_dict(),
                 "stateful_objects": analyze_stateful_objects(*stateful_inputs).to_dict(),
                 "sfc_context": analyze_sfc_context(*context_inputs).to_dict(),
                 "file_operations": analyze_file_operations(*file_inputs).to_dict(),
             }
-            assembly = build_engineering_assemblies(assembly_inputs)
+            from plc_workbench.communication_context import analyze_communication_context
+            from plc_workbench.communication_context_summary import build_communication_context_summary
+            communication = analyze_communication_context(
+                snapshot, inventory, references, access, tag_data, calculations=calculations, schema_version=3)
+            analysis_payload["communication_context_summary"] = build_communication_context_summary(
+                snapshot, inventory, references, access, tag_data, communication,
+                revision={"commit": COMMIT, "worktree": "clean"}, calculations=calculations)
+            if communication.status == "partial":
+                analysis_payload["status"] = "partial"
+            analysis_payload["rack_backing_summary"] = work_check.build_rack_backing_summary(
+                snapshot, inventory, references, tag_data,
+                tool_revision={"commit": COMMIT, "worktree": "clean"}, schema_version=2)
+            rack_inputs = (snapshot, inventory, references, access, calculations, rung_analysis,
+                           relationships, conditions, binding_context, tag_data, sfc_structure, sfc_conditions)
+            rack_context = work_check.analyze_rack_backing_context(*rack_inputs)
+            assembly_inputs["rack_backing_context"] = rack_context.to_dict()
+            assembly = build_engineering_assemblies(assembly_inputs, schema_version=3)
             analysis_payload["engineering_assemblies_summary"] = build_engineering_assemblies_summary(
                 assembly, tool_revision={"commit": COMMIT, "worktree": "clean"})
             if assembly["status"] == "partial":
                 analysis_payload["status"] = "partial"
+            analysis_payload["rack_backing_context_summary"] = work_check.build_rack_backing_context_summary(
+                *rack_inputs, rack_context, tool_revision={"commit": COMMIT, "worktree": "clean"})
+            if rack_context.status == "partial":
+                analysis_payload["status"] = "partial"
             def timed_analysis(*args, timings, sfc_context_schema_version, include_execution_context,
                                include_signal_context, include_file_operations, signal_context_schema_version,
-                               include_alarm_evidence, include_engineering_assemblies):
+                               include_alarm_evidence, include_engineering_assemblies,
+                               engineering_assemblies_schema_version, include_communication_context,
+                               include_residual_interpretation, include_control_interpretation, include_residual_diagnostics,
+                               include_rack_backing_context):
                 self.assertEqual(sfc_context_schema_version, 2)
                 self.assertTrue(include_execution_context)
                 self.assertTrue(include_signal_context)
                 self.assertTrue(include_file_operations)
                 self.assertTrue(include_alarm_evidence)
                 self.assertTrue(include_engineering_assemblies)
+                self.assertEqual(engineering_assemblies_schema_version, 3)
+                self.assertTrue(include_communication_context)
+                self.assertTrue(include_residual_interpretation)
+                self.assertTrue(include_control_interpretation)
+                self.assertTrue(include_residual_diagnostics)
+                self.assertTrue(include_rack_backing_context)
                 self.assertEqual(signal_context_schema_version, 5)
                 for name in ("analysis_build", "private_save", "summary_build", "sample_replay"):
                     with timings.phase(name):
@@ -716,7 +746,7 @@ class GitAndWorkflowTests(unittest.TestCase):
             outcome, calls, published, analysis = self._workflow(
                 Path(folder).resolve(), [test_result(), test_result()])
         self.assertEqual(outcome, 0)
-        self.assertEqual(published[0]['schema_version'], 47)
+        self.assertEqual(published[0]['schema_version'], 53)
         self.assertEqual(published[0]['timings']['total_ms'], 0)
         self.assertEqual(published[0]['timings']['phases_ms'], dict.fromkeys(PHASES, 0))
         self.assertFalse(any(call[0] in {'fetch', 'pull', 'push'} for call in calls))
@@ -739,6 +769,11 @@ class GitAndWorkflowTests(unittest.TestCase):
         self.assertEqual(outcome, 0)
         analysis.assert_called_once()
         work_check.validate_work_check_report(published[0])
+        self.assertEqual(published[0]['schema_version'], 53)
+        self.assertTrue(analysis.call_args.kwargs['include_residual_interpretation'])
+        for key, version in (('condition_summary', 6), ('aoi_body_summary', 2),
+                             ('communication_context_summary', 3), ('pid_connection_summary', 2), ('execution_context_summary', 3)):
+            self.assertEqual(published[0]['analysis'][key]['schema_version'], version)
         added, = [call for call in calls if call[0] == "add"]
         committed, = [call for call in calls if call[0] == "commit"]
         self.assertEqual(added[1], "--")
@@ -853,6 +888,11 @@ class LocalReportTests(unittest.TestCase):
                 saved = json.loads(new_report.read_text(encoding="utf-8"))
                 seen_reports[new_report] = new_report.read_bytes()
                 work_check.validate_work_check_report(saved)
+                self.assertEqual(saved['schema_version'], 53)
+                if suite_status == 'passed':
+                    for key, version in (('condition_summary', 6), ('aoi_body_summary', 2),
+                                         ('communication_context_summary', 3), ('pid_connection_summary', 2), ('execution_context_summary', 3)):
+                        self.assertEqual(saved['analysis'][key]['schema_version'], version)
                 self.assertEqual(saved["tool_revision"]["commit"], before)
                 self.assertEqual(saved["tests"]["application"]["status"], suite_status)
                 self.assertIn("locally", output)
