@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections import defaultdict
 from functools import cache
 import re
+from typing import Callable
 
 from .models import EntityRecord, InventoryResult
 
@@ -43,15 +44,11 @@ class ModuleIOError(ValueError):
     """A fixed resource-limit error with no source text."""
 
 
-def derive_module_io_names(inventory: InventoryResult) -> dict[str, dict[str, str | None]]:
-    """Return one fixed-shape name/provenance row for every module I/O record.
-
-    Explicit names need no topology guess. Derived names require a unique module
-    and parent port in the same controller. Every ancestor link is checked, with
-    a bounded walk and a special case for the documented self-parent Local root.
-    Duplicate resulting tag names are deliberately retained for the reference
-    resolver to mark ambiguous; no declaration wins because it occurred first.
-    """
+def _module_naming_context(inventory: InventoryResult) -> tuple[
+        dict[str, EntityRecord], dict[tuple[str, str], int],
+        dict[tuple[str, str], int],
+        Callable[[str], tuple[str | None, str | None, str | None]]]:
+    """Share the checked topology without creating or binding any declarations."""
     entities = {entity.id: entity for entity in inventory.entities}
     by_module_name: dict[tuple[str | None, str], list[EntityRecord]] = defaultdict(list)
     ports: dict[str, list[EntityRecord]] = defaultdict(list)
@@ -195,6 +192,19 @@ def derive_module_io_names(inventory: InventoryResult) -> dict[str, dict[str, st
             current = parent
         return None, None, 'topology_depth_limit'
 
+    return entities, connection_names, connection_ids, location
+
+
+def derive_module_io_names(inventory: InventoryResult) -> dict[str, dict[str, str | None]]:
+    """Return one fixed-shape name/provenance row for every module I/O record.
+
+    Explicit names need no topology guess. Derived names require a unique module
+    and parent port in the same controller. Every ancestor link is checked, with
+    a bounded walk and a special case for the documented self-parent Local root.
+    Duplicate resulting tag names are deliberately retained for the reference
+    resolver to mark ambiguous; no declaration wins because it occurred first.
+    """
+    entities, connection_names, connection_ids, location = _module_naming_context(inventory)
     rows: dict[str, dict[str, str | None]] = {}
     expanded_characters = 0
 

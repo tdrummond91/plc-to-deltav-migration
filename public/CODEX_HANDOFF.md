@@ -9,7 +9,17 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 tooling consolidated on main; automatic work-machine synchronization/publication removed**. Next parser task: review the address-shape report already returned in `b58af78`. See [address-shape review](docs/reviews/ADDRESS_SHAPE_REVIEW.md), [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) and [command usage](../python-parser/README.md).
+Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `90923ab` confirms SFC structural capture is complete for this export: all 280 text boxes are recognized, all 213 annotation attachments resolve, and SFC issues are zero. All earlier reference and SFC flow/ST counts remain unchanged. Phase 1 engineering interpretation is still incomplete. Read the [project-state assessment](docs/reviews/PROJECT_STATE_REVIEW.md), [annotation evidence](docs/reviews/SFC_ANNOTATION_REVIEW.md) and [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+Current annotation validation: 512 development cases pass (one existing symlink
+skip), and 17 stored reports validate unchanged. Independent review has no
+remaining blockers after fixing repeated endpoint-payload rendering. Two actual
+synthetic launcher runs each pass 416 application cases (one skip) and 139
+helpers, preserving prior artifacts and making report-only local commits with
+no remote Git calls. Returned `90923ab` now confirms all 280 unknowns were recognized Text children
+and all 213 attachments resolve. No repeat annotation-only run is needed. See
+the annotation review for exact evidence and the project-state assessment for
+remaining milestones.
 
 ## Development-only listener files (2026-10-14)
 
@@ -70,17 +80,17 @@ Tyler clarified that running the script must automatically commit the report;
 only fetching, pulling and pushing stay manual. The earlier removal of staging
 and commits went beyond that requirement. The launcher uses the already checked
 out clean named branch (including `main`) with no matching upstream required.
-It saves and commits only the new validated aggregate under
+It saves and commits only the new validated feedback report under
 `public/inspection/work-check-<run-id>.json`. Source selection remains in Git
 metadata, and private logs/artifacts retain their `confidential/` locations.
 
-Update code manually before a run. Review its aggregate, then run `git push`;
+Update code manually before a run. Review its feedback report, then run `git push`;
 there is no manual copy, staging or commit step. The runner pins the tested
 branch and revision, rejects unrelated changes, uses a report-only commit and
 verifies its parent, changed path and validated report content in the working
 file, index and commit. Failed test/analysis reports are also
 committed locally. Git commit failure preserves the report for recovery.
-Existing approval of the bounded aggregate's contents is unchanged. Old reports
+Tyler additionally authorized one actual mystery operand, implemented below. Old reports
 in Git-ignored `public/inspection/local/` are not picked up automatically.
 
 Local report-commit validation: all 239 application/workflow tests passed (one
@@ -92,15 +102,275 @@ Independent review found no remaining blockers; see the current
 
 Work-machine test execution uses explicit parser/helper module allowlists,
 excluding listener, Windows process-host, Bash bootstrap and Git-fixture tests.
-Full development unittest discovery remains available. The schema-1 envelope
-and tested SHA are retained; consult that revision for historical suite scope
+Full development unittest discovery remains available. Schema-1 reports remain
+readable; schema 2 adds the bounded sample, schema 3 adds an unmatched-colon
+fallback, schema 4 carries reference schema 6 with system-flag recognition,
+schema 5 carries reference 7 with the ABS/LN/SQR signature catalog,
+schema 6 carries reference 8 with MVM/SWPB roles and schema 7 carries
+reference 9 with observation-only routine-instruction shapes. Schema 8
+carries reference 10 with declared JSR first-field candidates; schema 9
+carries reference 11 with unique-candidate metadata observations. Schema
+10 carries reference 12 with static candidate graph counts. Current schema12
+keeps reference12 and carries separate SFC-structure summary2; frozen work11 retains SFC1.
+Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
-The latest report is `public/inspection/work-check-20261014T051259Z-72d3ad4c.json`,
-returned in `b58af78`. Its address-shape evidence awaits parser analysis. Review
-that existing aggregate before requesting any new work-machine evidence. Leave
-the development listener disabled and paused. Manual parser execution remains
-under Tyler's control and is not gated on restoring the listener.
+The confirmed timer report is `public/inspection/work-check-20261014T162634Z-2a7e40fe.json`,
+returned in `1195d40`, testing clean `112ee82`. It validates, reports 177
+application cases (one skip) and 139 helper cases with no failures/errors, and
+records partial analysis with a private run saved. Its commit changes only the
+report and has the tested revision as parent. Malformed-address/other_form counts
+fall 868 to 0; non_data rises 0 to 868; unsupported-address falls 870 to 2.
+The sample is null. All other source/reference counters are unchanged. This
+confirms the predicted classification change without proving source byte identity.
+
+The confirmed timer behavior recognizes trimmed `?` only in preset/accumulator
+slots of valid three-argument TON/TOF/RTO instructions as `non_data` for root
+lookup. Raw text is preserved; timer settings and effects remain unverified.
+No repeat timer-only confirmation is needed.
+
+The rack slice now captures RackConnection/InAliasTag/OutAliasTag separately,
+derives conservative candidate roots and compares terminal missing roots under
+existing scope/alias rules. Private references show candidates and occurrence
+links; public summaries expose closed counts only. Unique matches do not become
+ordinary terminal `root_bound` symbols because backing members are unexamined.
+`candidate_names_unavailable` means matching is inconclusive, not that those
+unnamed declarations correspond to the missing roots. Invented topology confirms
+two candidate roots, one matching alias, two direct and one alias-mediated operand
+matches, while ordinary bindings remain two bound and three unresolved operands.
+Returned report `9597f18` now measures the real relationship: all 15 rack roots
+are named, all 99 aliases and 319 alias-mediated occurrences have unique
+candidates, and one direct occurrence has no candidate. No candidate names are
+unavailable, ambiguous or outside scope. The report tested clean `9d159e0`, its
+parent, passed 220 application cases (one skip) and 139 helpers, saved a private
+run and changed only the feedback JSON. Ordinary source/reference counters are
+unchanged; 26 XML elements across three paths are newly modeled and 11 warnings
+now describe unknown backing instead of omitted declarations. The sample is null.
+
+Current contracts: private inventory/reference schemas 3/6 with
+`source-inventory-3` / `source-references-9`; public source/reference schemas 4/12;
+work-check schema12 with separate private SFC schema2 / sfc-structure-2 and public SFC summary2. Plain
+reference runs retain manifest2; combined work runs use manifest3 with SFC
+JSON/text artifacts. Inventory/reference JSON retain their exact structures:
+private reference JSON includes
+canonical routine_targets occurrences and routine_graph; public output contains closed counts only. Historical public
+reports still validate with exact original status vocabularies. Work schema 3
+still requires reference 5, work schema 4 requires reference 6, and work schema
+5 requires reference 7, work schema 6 requires reference 8 and work schema 7
+requires reference 9; work schema 8 requires reference 10 and work schema 9
+requires reference 11. Work10/11/12 require reference12; work11/12 have SFC
+summary siblings1/2 respectively. Read [SFC review](docs/reviews/SFC_STRUCTURE_REVIEW.md)
+for scope, version mapping, validation and the next report comparison.
+
+Rack validation: 316 development application/workflow tests passed (one existing
+symlink skip), including 43 new rack cases. The ignored listener loader was
+excluded. Independent review found no remaining blockers after strengthening
+mandatory warning and alias-mediated status reconciliation. Historical reports
+remain readable. Final disposable-checkout workflow validation passed 220 selected
+application cases (one skip) and 139 helpers, saved private synthetic artifacts,
+made a report-only local commit and made no remote Git calls. See the rack review
+for reproducible checks and exact scope.
+
+Tyler's one actual mystery operand remains authorized: at most 128 printable
+characters, a standard opcode and zero-based position, without rung/location IDs
+or neighbors. Known timer placeholders are skipped. The rack slice does not
+share individual rack names/relationships. The implemented follow-up retains one
+sample total, choosing the first eligible malformed operand, then the first
+unmatched direct colon operand only when no malformed sample qualifies. It
+requires canonical direct no-candidate evidence and preserves exact raw text.
+Schema 2 rejects the new kind; historical schema 3 requires reference schema 5.
+See [follow-up review](docs/reviews/UNMATCHED_OPERAND_REVIEW.md).
+
+Report `7f5db96`, testing clean `84dc393`, completes that one-address request:
+`S:FS` at XIC argument 0. Its commit changes only the report, its tested revision
+is its parent, 241 application cases (one skip) and 139 helpers passed, and a
+private run was saved. All nested aggregate counts equal the preceding report
+after excluding code revision; this does not establish source byte identity.
+
+Rockwell identifies this as the First Scan flag. The implemented rule recognizes
+only direct exact trimmed ASCII S:FS, ignoring case, in valid one-argument
+XIC/XIO instructions. Raw evidence is preserved; no synthetic tag is created.
+Aliases, other roles, suffixes and other S names retain their previous handling.
+No runtime first-scan effects are modeled. Current reports reject it as a mystery
+sample; historical returned samples remain readable. See the system-flag review
+for official sources, boundary tests and final validation. Report `d247f87`,
+testing clean `d64ee4d`, now confirms the exact predicted change: one system
+flag, unresolved 320 to 319, direct rack comparisons 1 to 0, sample null, all
+other source/reference counters unchanged. It passed 269 application cases
+(one skip) and 139 helpers, saved a private run and changes only its report
+with the tested revision as parent. No repeat flag-only run or mystery-address
+request is needed. Partial analysis remains expected.
+
+System-flag validation: 365 development application/workflow cases passed (one
+existing symlink skip), excluding the ignored listener loader. Independent review
+passed 99 focused cases with no blockers. Two actual disposable-checkout CLI
+runs each passed 269 selected application cases (one skip) and 139 helpers,
+preserved synthetic artifacts/rack counts, emitted one system flag and a null
+sample, and made report-only local commits with no remote Git calls. All nine
+stored work reports validate unchanged. Commands and evidence are in the
+system-flag review.
+
+The selected calculation slice adds only ABS/LN/SQR with two catalogued
+source/destination slots using existing lexical root/literal rules. Source IDs,
+raw operands, aliases and private field layout remain intact. Datatype, domain,
+destination access, expression evaluation and runtime effects remain outside
+this scope. Private text explicitly explains lexical destination literals.
+
+Report `4244cf5`, testing clean `a6a2a71`, now confirms the predicted calculation
+delta: catalogued 17,563 to 17,591, root_bound 20,178 to 20,234 and unsupported
+instruction slots 653 to 597. All 56 new slots bound to roots, with every other
+source/reference counter unchanged. It passed 286 application cases (one skip)
+and 139 helpers, saved a private run and adds only its report with the tested
+revision as parent. No repeat calculation-only check is needed.
+
+Calculation validation: 382 development cases, OK with one existing symlink
+skip; listener loader excluded. Independent review found no remaining blockers,
+and its historical sample-contract coverage recommendation is retained. Two
+actual synthetic CLI runs each passed 286 selected application cases (one skip)
+and 139 helpers, saved the expected math delta and made only local report
+commits with no remote Git calls. The second run confirms a newly saved report
+does not break the historical fixture tests. All ten stored work reports remain
+readable. Commands and final artifact evidence are in the calculation review.
+
+The selected bit-operation slice adds MVM/SWPB three-field signatures. SWPB
+argument 1 is an order-mode selector, accounted as non_data before literal/root
+lookup. A shared predicate excludes that slot from both address sample kinds,
+regardless of its spelling. Arity/empty checks still take priority. Raw values
+and IDs are preserved; mask widths, mode values, types, byte ordering and runtime
+effects remain unvalidated. Other data fields use the existing lexical lookup.
+
+Report `08c2695`, testing clean `bdf09f1`, confirms that exact bit-operation
+prediction: catalogued rises 17,591 to 17,617 and unsupported instruction slots
+fall 597 to 519. The 78 slots split into 52 bound roots, 16 literals and ten
+selectors. All other source/reference counters are unchanged. It passed 296
+application cases (one skip) and 139 helpers, saved a private run and adds only
+its report with the tested revision as parent. No repeat bit-only run is needed.
+
+Bit-operation validation: 392 development cases, OK with one existing symlink
+skip; ignored listener loader excluded. Independent review passed all nine
+new bit cases with no blockers. Two actual disposable CLI runs each passed
+296 selected application cases (one skip) and 139 helpers, saved the exact
+synthetic role/count delta and made only local report commits. Traces show no
+fetch/pull/push, input and prior artifacts are preserved, and all 80 copied
+code/test/config files match final working bytes. Eleven stored work reports
+remain readable. Commands and artifact evidence are in the bit-operation review.
+
+The preceding routine-shape diagnostic profiles successful RLL JSR/SBR/RET fields
+without changing the binding catalog, analyzer or private JSON. It adds fixed
+arity bins, exact trimmed second-zero observations for JSR and case/withheld
+reconciliation. Official RLL/ST tables differ, so zero text is not a validated
+InputCount and no target/parameter/sequence roles are inferred. Private text
+uses captured inventory to include zero-field SBR/RET calls, while the old
+renderer API remains available. No source reread is introduced.
+
+Returned `0a2610f` tests clean `9c56b50`: 308 application cases (one skip)
+and 139 helpers pass. It confirms 65 two-field second-zero JSRs and 11 three-field
+second-other JSRs, one one-field SBR and one zero-field RET. Every earlier
+source/reference counter is unchanged. No parameter boundary is established.
+
+The preceding candidate slice adds one separate row per parsed RLL JSR, resolving
+only static first-field names within the caller program. Explicit self/main/fault
+context is retained; other_routine requires a Normal program. No phase-state
+name guessing, valid-call claim or parameter role is introduced. Source and tag
+bindings stay intact. Returned `7e15843` confirms all 76 candidates unique, 66 distinct targets,
+all 76 contexts not_analyzed, with 325 application cases (one skip) and 139 helpers
+passing. All earlier counters are unchanged. No repeat candidate-only run is needed.
+
+The preceding metadata profile observes exact program-Type buckets and target-language
+declarations for unique JSR candidates, with a program-Type subset for unknown
+contexts. Missing, empty and unknown explicit attributes remain distinct. No
+omitted-Type default or execution/body availability is inferred. Public11/work9
+add the profile; private5/analyzer8 and earlier bindings/candidates remain intact.
+Returned `3431389` confirms all 76 program-Type observations are absent, with
+call-weighted RLL62/SFC14 target languages. Both suites pass (335 application
+cases, one skip; 139 helpers), and every earlier counter is unchanged.
+
+The preceding static graph groups unique JSR calls into program-local edges while
+retaining source instruction links. Nodes include isolated declarations, observed
+rung/body coverage and unmodeled SFC envelopes. Explicit main designations and
+iterative candidate cycles supply source context without execution, recursion,
+parameter or scheduling claims. Private6/analyzer9/public12/work10 carry this
+slice. Returned `2f37ae3` confirms 69 nodes (54 parsed RLL, one partial RLL,
+14 SFC), 76 linked calls/68 pairs, three repeated pairs/eight extras, three
+unique mains, one isolated node and no candidate cycles/self pairs. All earlier
+counters remain unchanged; 354 application cases (one skip) and 139 helpers pass.
+
+Current SFC slice adds a separate immutable-snapshot structural result, keeping
+edit-version namespaces separate and preserving opaque ST. Missing/invalid/
+duplicate IDs, unresolved endpoints, protection and unmodeled content remain
+explicit. Work11 adds count-only SFC feedback and saves two private SFC artifacts
+under combined manifest3; old inventory/reference/source contracts remain exact.
+Next report should preserve earlier counts and cover 14 SFC routines. New
+content/element/ID/link counts remain unknown until returned. Partial remains
+expected; SFC execution and process interpretation remain unimplemented.
+
+SFC validation: 495 development cases pass (one symlink skip), excluding the
+listener loader. Independent review passes 53 focused cases after three resource/
+aggregate fixes and an outside-content coverage fix. Two actual final script
+runs each pass 399 application cases (one skip) and 139 helpers, preserve exact
+baseline `2f37ae3` inventory/reference records, and add SFC-only private artifacts/
+bounded counts. Canonical CLI output, separate edit namespaces, storage hashes,
+source/prior-run preservation, report-only local commits and final copied bytes
+verify with no remote Git calls. All 16 stored work reports validate unchanged.
+See [full SFC evidence](docs/reviews/SFC_STRUCTURE_REVIEW.md).
+
+Static graph validation: 450 development cases pass (one symlink skip), excluding
+the listener loader. Independent review passes 37 focused cases and 150 generated
+mixed-language/multi-program summaries; iterative SCCs match 1,800 independent
+small-graph checks. Two final actual script runs each pass 354 application cases
+(one skip) and 139 helpers. Private CLI/JSON/text, source/prior-run preservation,
+artifact hashes, report-only local commits and final copied bytes verify, with
+no remote Git calls. Baseline `3431389` inventory and all earlier private/public
+fields remain unchanged apart from graph/version/revision additions. All 15
+stored work reports validate. See [full graph evidence](docs/reviews/ROUTINE_GRAPH_REVIEW.md).
+
+Metadata validation: 431 development cases pass (one symlink skip); listener
+loader excluded. Independent review passes 26 focused cases and verifies three
+partition-preserving forgeries reject. Two actual synthetic script runs each
+pass 335 application cases (one skip) and 139 helpers. Work9/reference11/source4
+reports make local report-only commits with no remote Git calls. Private
+inventory/reference JSON matches baseline `7e15843` exactly on the fixture;
+public differences are limited to the new profile and version/revision metadata.
+Text/CLI, input/prior-run preservation, artifact hashes and final copied bytes
+verify. All 14 stored work reports validate. See [full evidence](docs/reviews/ROUTINE_METADATA_REVIEW.md).
+
+Candidate validation: 421 development cases pass (one symlink skip), excluding
+the ignored listener loader. Independent review passed 62 focused cases after
+fixes; 25 negative public-count cases reject contradictions and private labels.
+Two actual synthetic script runs each passed 325 application cases (one skip)
+and 139 helpers, with local report-only commits and no fetch/pull/push. Direct
+CLI text/JSON returned expected partial exit3; canonical JSON, candidate context,
+source/prior-output preservation and artifact hashes verify. All 13 stored work
+reports validate unchanged. See [full evidence](docs/reviews/ROUTINE_TARGET_REVIEW.md).
+
+Routine-shape validation: 404 development cases, OK with one existing symlink
+skip; listener loader excluded. Independent review passed 68 focused cases with
+no blockers. Two actual synthetic CLI script runs each passed 308 application
+cases (one skip) and 139 helpers; a direct text CLI check returned expected
+partial exit 3. Both script reports use work7/reference9/source4; private
+inventory/reference/manifest stay3/4/2 with analyzer7, and saved text includes
+zero-field calls. Binding and
+catalog behavior remains unchanged. Report-only local commits, no remote Git
+commands, source/prior-output preservation and artifact hashes were verified.
+Twelve stored work reports remain readable; see the routine-shape review.
+
+Timer-fix validation: 273 application/workflow tests passed (one symlink skip),
+with listener tests excluded. Two real temporary-checkout CLI runs each passed
+177 selected application and 139 helper cases, validated null/remaining-gap
+samples, preserved private raw slots and made report-only local commits. All six
+stored work reports validate unchanged. Independent review confirmed no remaining
+blockers. Details and reproducible commands are in the timer review above.
+
+Historical sample validation: 259 application/workflow tests passed (one existing symlink
+skip), with listener tests excluded. Two temporary-checkout CLI runs passed
+166 selected application and 139 helper tests each, emitted the same one sample,
+committed only their report, and preserved the source and prior outputs. All
+five historical work-check reports still validate. Independent review found no
+code blockers. That sample later returned in `349ee29`; the timer correction
+was then confirmed by `1195d40` as recorded above.
+
+Leave the development listener disabled and paused. Manual parser execution
+remains under Tyler's control and is not gated on restoring the listener.
 
 The checkpoints below retain prior implementation and validation evidence.
 Earlier activation and automatic-publication instructions are superseded by
@@ -174,7 +444,7 @@ question and stop; never request private addresses, inventories or logs.
 Phase 1 remains active; engineering classifications, corrections, PCSD/FHX,
 services and deployment remain outside this slice.
 
-## Current module/I/O checkpoint (2026-10-13)
+## Historical module/I/O checkpoint (2026-10-13)
 
 Tyler authorized implementing the next slice here after the two successful
 work-machine reports. Do not ask for that authorization again or repeat this

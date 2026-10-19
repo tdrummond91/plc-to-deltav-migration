@@ -66,8 +66,8 @@ class ModuleSourceTests(unittest.TestCase):
                 self.assertNotIn('Name', entity.attributes)
         self.assertFalse(result.diagnostics)
         self.assertEqual(result.status, 'complete')
-        self.assertEqual(result.schema_version, 2)
-        self.assertEqual(result.parser_version, 'source-inventory-2')
+        self.assertEqual(result.schema_version, 3)
+        self.assertEqual(result.parser_version, 'source-inventory-3')
 
     def test_module_counts_are_separate_from_tag_and_alias_counts(self) -> None:
         result = inventory(MODULE + '<Tags><Tag Name="Bit" TagType="Base"/>'
@@ -130,7 +130,7 @@ class ModuleSourceTests(unittest.TestCase):
                       {d.code for d in result.diagnostics})
         self.assertEqual(result.status, 'partial')
 
-    def test_rack_connection_and_alias_tags_are_explicitly_unsupported(self) -> None:
+    def test_rack_declarations_are_captured_without_claiming_ordinary_io_or_backing(self) -> None:
         result = inventory('''<Modules><Module Name="Rack"><Communications><Connections>
           <RackConnection Name="RackConnection"><InAliasTag AliasFor="Rack:I"/>
             <OutAliasTag AliasFor="Rack:O"/><InputTag/><OutputTag/>
@@ -139,13 +139,18 @@ class ModuleSourceTests(unittest.TestCase):
         self.assertEqual(result.counts['module_connections'], 0)
         self.assertEqual(result.counts['module_input_tags'], 0)
         self.assertEqual(result.counts['module_output_tags'], 0)
+        self.assertEqual(result.counts['module_rack_connections'], 1)
+        self.assertEqual(result.counts['module_rack_input_aliases'], 1)
+        self.assertEqual(result.counts['module_rack_output_aliases'], 1)
         findings = [d for d in result.diagnostics
-                    if d.code == 'module_rack_connection_not_analyzed']
+                    if d.code == 'module_rack_backing_not_analyzed']
         self.assertEqual(len(findings), 1)
-        module = next(e for e in result.entities if e.kind == 'module')
-        self.assertEqual(findings[0].source_id, module.id)
+        connection = next(e for e in result.entities if e.kind == 'module_rack_connection')
+        self.assertEqual(findings[0].source_id, connection.id)
         paths = {row['path'] for row in result.coverage['unmodeled_xml_paths']}
         for name in ('RackConnection', 'InAliasTag', 'OutAliasTag'):
+            self.assertFalse(any(path.endswith('/' + name) for path in paths))
+        for name in ('InputTag', 'OutputTag', 'Connection'):
             self.assertTrue(any(path.endswith('/' + name) for path in paths))
         self.assertEqual(result.status, 'partial')
 

@@ -21,6 +21,7 @@ from .reporting import InventoryView, render_json, render_text
 if TYPE_CHECKING:
     from .models import SourceSnapshot
     from .references import ReferenceResult
+    from .sfc_structure import SfcStructureResult
 
 
 class StorageError(ValueError):
@@ -70,6 +71,7 @@ def _write_artifact(workspace: Path, run_dir: Path, name: str, data: bytes) -> d
 def save_run(
     workspace: Path, snapshot: SourceSnapshot, result: InventoryView,
     *, references: ReferenceResult | None = None,
+    sfc_structure: SfcStructureResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -92,6 +94,16 @@ def save_run(
                     or reference_payload["status"] not in ("complete", "partial")
                     or reference_payload["coverage"]["source_status"] != payload["status"]):
                 raise StorageError("References do not match the captured source inventory.")
+        if sfc_structure is not None:
+            from .sfc_structure import SfcStructureError, validate_sfc_structure
+            try:
+                validate_sfc_structure(snapshot, result, sfc_structure)
+            except SfcStructureError as exc:
+                raise StorageError("SFC structure does not match the captured source inventory.") from exc
+            sfc_payload = sfc_structure.to_dict()
+            if (sfc_payload["snapshot"] != expected
+                    or sfc_payload["status"] not in ("complete", "partial")):
+                raise StorageError("SFC structure does not match the captured source inventory.")
         digest = hashlib.sha256(snapshot.data).hexdigest()
         if (
             len(snapshot.data) != snapshot.size_bytes
@@ -123,7 +135,13 @@ def save_run(
             from .reference_reporting import render_reference_json, render_reference_text
             contents.update({
                 "references.json": render_reference_json(references).encode("utf-8"),
-                "references.txt": render_reference_text(references).encode("utf-8"),
+                "references.txt": render_reference_text(references, inventory=result).encode("utf-8"),
+            })
+        if sfc_structure is not None:
+            from .sfc_structure import render_sfc_json, render_sfc_text
+            contents.update({
+                "sfc-structure.json": render_sfc_json(sfc_structure).encode("utf-8"),
+                "sfc-structure.txt": render_sfc_text(sfc_structure, inventory=result).encode("utf-8"),
             })
         artifacts = {
             name: _write_artifact(destination, run_dir, name, data)
@@ -150,6 +168,19 @@ def save_run(
                 "analyzer_version": reference_payload["analyzer_version"],
                 "effect_analysis": reference_payload["effect_analysis"],
                 "member_validation": reference_payload["member_validation"],
+            })
+        if sfc_structure is not None:
+            statuses = [payload["status"], sfc_payload["status"]]
+            if references is not None:
+                statuses.append(reference_payload["status"])
+            manifest.update({
+                "schema_version": 3,
+                "artifact_kind": ("source_reference_sfc_structure_run" if references is not None
+                                  else "source_sfc_structure_run"),
+                "status": "partial" if "partial" in statuses else "complete",
+                "sfc_schema_version": sfc_payload["schema_version"],
+                "sfc_analyzer_version": sfc_payload["analyzer_version"],
+                "sfc_analysis_scope": sfc_payload["analysis_scope"],
             })
         _write_artifact(
             destination, run_dir, ".manifest.pending",

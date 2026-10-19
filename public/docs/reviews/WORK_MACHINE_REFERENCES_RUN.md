@@ -1,8 +1,75 @@
 # Work-machine check: local results and manual publication
 
-Use **main** for the consolidated baseline. This remains Phase 1:
+Use **main** for the consolidated baseline. The current Phase 1 work is on
+**feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
 source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
+
+Confirmed timer evidence: `1195d40` tested `112ee82`, passed 177 application
+cases (one skip) and 139 helpers, and confirms malformed addresses 868 to 0,
+non-data 0 to 868, and unsupported addresses 870 to 2. Other source/reference
+counters are unchanged; the diagnostic sample is null. See
+[TIMER_PLACEHOLDER_REVIEW.md](TIMER_PLACEHOLDER_REVIEW.md) for results and limits.
+Rack evidence: `9597f18` tested `9d159e0`, passed 220 application cases
+(one skip) and 139 helpers. All 15 rack roots are named; all 99 unresolved aliases
+and 319 alias-mediated occurrences have unique candidates. One direct operand
+has no candidate. Ordinary bindings remain unchanged; backing maps are unverified.
+
+The address report: `7f5db96` tested `84dc393`, passed 241 application cases
+(one skip) and 139 helpers, and supplied `S:FS` at XIC argument 0. Other aggregate
+counts equal the preceding rack report. This is the built-in First Scan flag.
+First-scan evidence: `d247f87` tested `d64ee4d`, passed 269 application cases
+(one skip) and 139 helpers. It confirms one `system_flag`, unresolved operands
+320 to 319, direct rack comparisons 1 to 0 and sample null. Other counters stay
+unchanged. No repeat flag-only run is needed; see [the confirmed review](SYSTEM_FLAG_REVIEW.md).
+
+Calculation evidence: `4244cf5` tested `a6a2a71`, passed 286 application cases (one
+skip) and 139 helpers, and confirms all 28 ABS/LN/SQR instructions plus 56 bound
+arguments. Catalogued rises 17,563 to 17,591, root_bound 20,178 to 20,234 and
+unsupported instruction slots fall 653 to 597; other counters are unchanged.
+No repeat math-only check is needed; see [the confirmed review](MATH_SIGNATURE_REVIEW.md).
+
+Bit-operation evidence: `08c2695` tested `bdf09f1`, passed 296 application cases (one
+skip) and 139 helpers, and confirms all 26 MVM/SWPB signatures. Their 78 fields
+split into 52 bound roots, 16 literals and ten selectors; other counters stay
+unchanged. No repeat bit-only check is needed; see [the confirmed review](BIT_OPERATION_REVIEW.md).
+
+Shape evidence: `0a2610f` tested `9c56b50`, passed 308 application cases (one
+skip) and 139 helpers. JSR has 76 occurrences/163fields: 65 two-field second-zero
+and 11 three-field second-other calls. SBR has one field; RET has none. Every
+earlier counter is unchanged. A second field spelled zero does not establish
+its parameter role. See [the confirmed shape review](ROUTINE_CALL_SHAPE_REVIEW.md).
+
+Candidate evidence: `7e15843` tested `3598710`, passed 325 application cases (one
+skip) and 139 helpers. All 76 JSRs have unique declared candidates covering
+66 distinct targets; all contexts remain not_analyzed. Earlier counters remain
+unchanged. See [the confirmed candidate review](ROUTINE_TARGET_REVIEW.md).
+
+Metadata evidence: `3431389` tests clean `5f91400`, passing 335 application cases
+(one skip) and 139 helpers. All 76 program-Type observations are absent; targets
+are RLL62/SFC14 by call occurrence. Every earlier counter remains unchanged.
+See [the confirmed metadata review](ROUTINE_METADATA_REVIEW.md).
+
+Latest evidence: `2f37ae3` tests clean `e17ceeb`, passing 354 application cases
+(one skip) and 139 helpers. The graph has 69 nodes, 68 pairs and 76 linked calls, with three repeated pairs,
+eight extra occurrences, three matched mains, one isolated node and no observed
+cycles. Earlier counters are stable.
+See [the confirmed graph review](ROUTINE_GRAPH_REVIEW.md).
+
+Returned SFC evidence: `42e0188` tests clean `4b00f5a`, passing 399 application
+cases (one skip) and 139 helpers. All 14 contents have absent edit-kind attributes;
+145 steps, 155 transitions, 324 links and all 648 endpoints resolve. There are
+280 text boxes, 213 attachments and 280 unknown elements; ST is 329 lines/5,390
+characters. Every earlier reference count stays unchanged.
+
+Latest annotation evidence: `90923ab` tests clean `f8411bc`, passing 416
+application cases (one skip) and 139 helpers. All 280 boxes have recognized
+Text children, all 213 attachments/426 endpoints resolve, and SFC structural
+status is complete with zero issues. Previous reference/flow/ID/ST counts stay
+unchanged. Overall partial remains expected because engineering interpretation
+is incomplete. No repeat annotation-only run is needed; wait for the next
+implementation checkpoint before rerunning. See [the confirmed annotation
+review](SFC_ANNOTATION_REVIEW.md) and [project state](PROJECT_STATE_REVIEW.md).
 
 ## Manual runs
 
@@ -30,7 +97,7 @@ summary-002 and the returned reference summary: 4,606 rungs, 17,874 instructions
 The script uses the code already checked out and locked Python dependencies. It
 runs explicit parser/helper test allowlists in separate processes, analyzes the
 saved source and automatically stages and commits only its new validated
-aggregate report. It never fetches, pulls or pushes. Passing a different
+feedback report. It never fetches, pulls or pushes. Passing a different
 filename/path replaces the machine-local source
 selection for future runs.
 
@@ -42,32 +109,51 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. The report retains schema 1 and its tested SHA identifies which suite
+check. New reports use schema 11 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
 
 | Location | Contents |
 |---|---|
-| `public/inspection/work-check-<run-id>.json` | Automatically committed local aggregate: tested code revision, both suites' counts/statuses and bounded failed test IDs, analysis status and the reference/structural aggregate |
+| `public/inspection/work-check-<run-id>.json` | Automatically committed feedback: tested revision, suite results, reference/structural counts, and at most one actual mystery operand with instruction/argument position |
 | `confidential/work-checks/<run-id>/` | Local test logs and structured results; analysis exception details if needed |
-| `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt and manifest.json |
+| `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt, sfc-structure.json, sfc-structure.txt and manifest.json |
 | Git metadata `plc-work-check.json` | Local remembered source path; not committed or pushed |
 
 Open `overview.txt` for the source overview and `references.txt` for declarations,
-alias chains and operand occurrences. Their JSON counterparts preserve structured
-records and source links for later analysis. Every run gets new output locations;
+alias chains, operand occurrences and rack candidate lookups. Their JSON counterparts preserve structured
+records and source links for later analysis. Open sfc-structure.txt for SFC edit
+blocks, descriptors, opaque ST and scoped links; its JSON preserves canonical
+records. Combined work runs use manifest3 with seven hashed artifacts. Every run gets new output locations;
 the original source and previous runs are preserved.
 
-The public report contains no source filename, names, values, source hashes,
-per-rung examples, raw logs or individual reference links. The reference aggregate
+The public report includes at most one actual operand in `diagnostic_sample`,
+with its standard opcode and zero-based argument position. The operand can
+contain a real name/value; Tyler authorized this bounded example to investigate
+unknown syntax. It is limited to 128 printable characters, with no full rung,
+source filename/hash, routine, neighboring logic or individual reference links.
+The first eligible malformed operand has priority; otherwise a direct unresolved
+colon operand with no rack candidate can be selected. Aliases and inconclusive
+or matched rack lookups are excluded. Recognized first-scan flags and SWPB
+order-mode selector slots do not qualify.
+Repeated unchanged runs select the same
+eligible example. Null means no eligible
+example was available or analysis did not succeed. The reference aggregate
 is at `analysis.reference_summary`, with the structural summary nested beneath
-`source_summary`. The top-level `tool_revision` identifies the tested code commit;
+`source_summary`. Separate SFC counts are at analysis.sfc_structure_summary.
+The top-level `tool_revision` identifies the tested code commit;
 the automatically created report commit is intentionally different.
+
+`analysis.reference_summary.rack_candidates` is the new comparison section.
+It counts named/unavailable rack declarations and match statuses separately for
+aliases, direct operands and alias-mediated operands. `unique_candidate` is a
+possible logical declaration with unexamined backing; `candidate_names_unavailable`
+is inconclusive. Do not expect `root_bound` to increase in this diagnostic slice.
 
 ## Manual review and publication
 
-Review the saved aggregate, then publish the already committed result:
+Review the saved feedback report, then publish the already committed result:
 
 ```bash
 git push
@@ -115,7 +201,12 @@ Interpret the reference counters as follows:
 - `unsupported_instruction`, `unsupported_expression`, `unsupported_address`:
   private evidence was retained but this slice did not interpret it.
 - `alias_cycle`, `alias_depth_limit`: alias traversal could not complete.
-- `literal` and `non_data`: recognized values/label positions, without tag links.
+- `literal`: recognized literal values, without tag links.
+- `system_flag`: exact direct `S:FS` in a valid XIC/XIO contact, without tag links
+  or a runtime model of first-scan behavior.
+- `non_data`: labels and recognized timer placeholders, without tag links. A
+  timer placeholder supplies no value and does not validate timer configuration.
+  SWPB order-mode slots are also non-data by role; their mode value is unvalidated.
 
 Manual commands remain available in the [Python README](../../../python-parser/README.md).
 See [runner implementation and validation](WORK_CHECK_RUNNER_REVIEW.md) for the
@@ -128,12 +219,14 @@ Actual names, topology and per-reference detail remain in the private reports.
 See [module/I/O review](MODULE_IO_REVIEW.md) for comparison targets and
 [listener operation](FEEDBACK_LISTENER.md) for its local status controls.
 
-The report returned in `b58af78` already contains reference schema 3 with
-`operands.malformed_address_shapes` and awaits parser analysis. No new run is
-needed merely to obtain that diagnostic.
+The report returned in `349ee29` supplied `?` at TON argument 1. Report `1195d40`
+now confirms schema-4 timer-slot recognition: malformed occurrences fall 868 to
+zero while non-data rises by 868. Only two dynamic-index unsupported addresses
+remain. That historical check used outer schema 2. See [timer review](TIMER_PLACEHOLDER_REVIEW.md)
+for the complete comparison and remaining Phase 1 gaps.
 These seven closed counters partition the malformed-address operand total;
 they do not change parsing or binding. Alias-target failures have their own
-bucket, and direct spellings are grouped by fixed precedence. Actual addresses,
-values and individual relationships remain private. Compare the histogram sum
-with the previous 868 occurrences and review any change in existing statuses or
-reasons before interpreting the new counts. See [address-shape review](ADDRESS_SHAPE_REVIEW.md).
+bucket, and direct spellings are grouped by fixed precedence. Those counters
+contain no actual addresses, values or individual relationships; the separate
+authorized operand sample is the explicit exception in schema 2. The current histogram sum is zero; later
+changes should be compared with the confirmed `1195d40` baseline. See [address-shape review](ADDRESS_SHAPE_REVIEW.md).

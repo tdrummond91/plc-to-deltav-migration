@@ -79,6 +79,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     reference_summary.add_argument("file", type=Path, help="Local L5X input; never modified.")
     reference_summary.add_argument("--output", type=Path, help="NEW .json file; never overwritten.")
+    sfc = commands.add_parser(
+        "sfc-structure", help="Inspect private SFC XML structure without execution semantics.",
+        description=("Capture one L5X and retain SFC elements and structural links. "
+                     "All output is private. Actions, transitions and execution behavior are not interpreted."),
+        epilog="Exit codes: 0 covered within SFC structure scope, 1 failure, 2 usage, 3 partial SFC structure.",
+    )
+    sfc.add_argument("file", type=Path, help="Local L5X input; never modified.")
+    sfc.add_argument("--format", choices=("text", "json"), default="text")
+    sfc.add_argument("--workspace", type=Path, help="Explicit private directory for a NEW captured source and SFC run.")
+    sfc_summary = commands.add_parser(
+        "sfc-summary", help="Generate count-only SFC structural feedback for sync.",
+        description="Emit fixed structural counts without source identifiers, raw XML or individual links.",
+        epilog="Exit codes: 0 covered within SFC structure scope, 1 failure, 2 usage, 3 partial SFC structure.",
+    )
+    sfc_summary.add_argument("file", type=Path, help="Local L5X input; never modified.")
+    sfc_summary.add_argument("--output", type=Path, help="NEW .json file; never overwritten.")
     return parser
 
 
@@ -143,8 +159,8 @@ def _references(args: argparse.Namespace) -> int:
                 publish_summary(args.output, rendered, input_path=args.file)
                 print(f"Saved aggregate reference summary; status: {result.status}.", file=sys.stderr)
         else:
-            renderer = render_reference_json if args.format == "json" else render_reference_text
-            rendered = renderer(result)
+            rendered = (render_reference_json(result) if args.format == "json"
+                        else render_reference_text(result, inventory=inventory))
             if args.workspace is not None:
                 saved = save_run(args.workspace, snapshot, inventory, references=result)
                 print(f"Saved private reference run: {saved}", file=sys.stderr)
@@ -154,6 +170,48 @@ def _references(args: argparse.Namespace) -> int:
         print("plc: Cannot read or analyze source; no reference report was produced.", file=sys.stderr)
         return 1
     except (ReferenceError, ReferenceSummaryError, SummaryError, SummaryOutputError, StorageError) as exc:
+        print(f"plc: {exc}", file=sys.stderr)
+        return 1
+    except OSError:
+        print("plc: Could not read or write a local stream.", file=sys.stderr)
+        return 1
+
+
+def _sfc(args: argparse.Namespace) -> int:
+    from .revision import collect_revision
+    from .sfc_structure import (
+        SfcStructureError, analyze_sfc_structure,
+        render_sfc_json, render_sfc_text,
+    )
+    from .sfc_summary import SfcSummaryError, build_sfc_summary, render_sfc_summary
+    from .source import SourceError, analyze_snapshot, capture_snapshot
+    from .storage import StorageError, save_run
+    from .summary_output import SummaryOutputError, publish_summary
+
+    try:
+        snapshot = capture_snapshot(args.file)
+        inventory = analyze_snapshot(snapshot)
+        result = analyze_sfc_structure(snapshot, inventory)
+        if args.command == "sfc-summary":
+            summary = build_sfc_summary(snapshot, inventory, result, revision=collect_revision())
+            rendered = render_sfc_summary(summary)
+            if args.output is None:
+                sys.stdout.write(rendered)
+            else:
+                publish_summary(args.output, rendered, input_path=args.file)
+                print(f"Saved aggregate SFC structure summary; status: {result.status}.", file=sys.stderr)
+        else:
+            rendered = (render_sfc_json(result) if args.format == "json"
+                        else render_sfc_text(result, inventory=inventory))
+            if args.workspace is not None:
+                saved = save_run(args.workspace, snapshot, inventory, sfc_structure=result)
+                print(f"Saved private SFC structure run: {saved}", file=sys.stderr)
+            sys.stdout.write(rendered)
+        return 3 if result.status == "partial" else 0
+    except SourceError:
+        print("plc: Cannot read or analyze source; no SFC structure report was produced.", file=sys.stderr)
+        return 1
+    except (SfcStructureError, SfcSummaryError, StorageError, SummaryOutputError) as exc:
         print(f"plc: {exc}", file=sys.stderr)
         return 1
     except OSError:
@@ -172,6 +230,8 @@ def main(argv: list[str] | None = None) -> int:
         return _summarize(args)
     if args.command in ("references", "reference-summary"):
         return _references(args)
+    if args.command in ("sfc-structure", "sfc-summary"):
+        return _sfc(args)
     # Delay analysis imports until help/usage handling has completed.
     from .reporting import ReportError, render_json, render_text
     from .source import SourceError, analyze_snapshot, capture_snapshot

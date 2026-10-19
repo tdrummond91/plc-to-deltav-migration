@@ -7,7 +7,8 @@ import json
 import unittest
 
 from plc_workbench.reference_summary import (
-    MAX_REPORT_BYTES, ReferenceSummaryError, build_reference_summary,
+    CONSTANTS, V8_CONSTANTS, V9_CONSTANTS, V10_CONSTANTS, V11_CONSTANTS, MAX_REPORT_BYTES,
+    ReferenceSummaryError, build_reference_summary,
     render_reference_summary, validate_reference_summary,
 )
 from plc_workbench.references import analyze_references
@@ -50,7 +51,378 @@ def complete_inventory():
     ))
 
 
+def graph_inventory(*, add_aoi: bool = False):
+    aoi = (
+        b'<AddOnInstructionDefinitions><AddOnInstructionDefinition Name="PRIVATE_AOI">'
+        b'<Routines><Routine Name="PRIVATE_AOI_RLL" Type="RLL"><RLLContent/></Routine>'
+        b'<Routine Name="PRIVATE_AOI_ST" Type="ST"/>'
+        b'<Routine Name="PRIVATE_AOI_ST_2" Type="ST"/>'
+        b'<Routine Name="PRIVATE_AOI_ST_3" Type="ST"/></Routines>'
+        b'</AddOnInstructionDefinition></AddOnInstructionDefinitions>'
+    ) if add_aoi else b''
+    return analyze_snapshot(snapshot_from_bytes(
+        b'<RSLogix5000Content><Controller Name="PRIVATE_CONTROLLER">' + aoi + b'<Programs>'
+        b'<Program Name="PRIVATE_PROGRAM" MainRoutineName="PRIVATE_A"><Routines>'
+        b'<Routine Name="PRIVATE_A" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+        b'<Text>JSR(PRIVATE_B)JSR(PRIVATE_B)JSR(PRIVATE_A)JSR(PRIVATE_C)JSR(PRIVATE_MISSING);'
+        b'</Text></Rung></RLLContent></Routine>'
+        b'<Routine Name="PRIVATE_B" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+        b'<Text>JSR(PRIVATE_A);</Text></Rung></RLLContent></Routine>'
+        b'<Routine Name="PRIVATE_C" Type="ST"/>'
+        b'<Routine Name="PRIVATE_D" Type="RLL"/>'
+        b'<Routine Name="PRIVATE_E" Type="RLL"><RLLContent/></Routine>'
+        b'</Routines></Program><Program Name="PRIVATE_OTHER"/>'
+        b'</Programs></Controller></RSLogix5000Content>'
+    ))
+
+
 class ReferenceSummaryTests(unittest.TestCase):
+    def test_graph_validator_rejects_partition_coherent_but_impossible_graphs(self) -> None:
+        source = graph_inventory()
+        original = build_reference_summary(source, analyze_references(source))
+        two_rll = analyze_snapshot(snapshot_from_bytes(
+            b'<RSLogix5000Content><Controller Name="C"><Programs><Program Name="P"><Routines>'
+            b'<Routine Name="A" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+            b'<Text>JSR(A)JSR(B)JSR(B)JSR(B);</Text></Rung></RLLContent></Routine>'
+            b'<Routine Name="B" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+            b'<Text>JSR(A);</Text></Rung></RLLContent></Routine>'
+            b'</Routines></Program></Programs></Controller></RSLogix5000Content>'
+        ))
+        two_report = build_reference_summary(two_rll, analyze_references(two_rll))
+        three_programs = analyze_snapshot(snapshot_from_bytes(
+            b'<RSLogix5000Content><Controller Name="C"><Programs><Program Name="P"><Routines>'
+            b'<Routine Name="A" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+            b'<Text>JSR(B)JSR(C)JSR(A);</Text></Rung></RLLContent></Routine>'
+            b'<Routine Name="B" Type="RLL"><RLLContent><Rung Number="0" Type="N">'
+            b'<Text>JSR(A);</Text></Rung></RLLContent></Routine>'
+            b'<Routine Name="C" Type="ST"/></Routines></Program>'
+            b'<Program Name="Q"/><Program Name="S"/>'
+            b'</Programs></Controller></RSLogix5000Content>'
+        ))
+        three_report = build_reference_summary(three_programs, analyze_references(three_programs))
+        with_aoi = graph_inventory(add_aoi=True)
+        aoi_report = build_reference_summary(with_aoi, analyze_references(with_aoi))
+        cases = (
+            ('cycle edges exceed possible pairs', original,
+             lambda g: g['cycles'].update(edges=4)),
+            ('partial bodies exceed failed routine count', original,
+             lambda g: g['nodes']['by_body_status'].update(
+                 rll_structure_parsed=2, rll_structure_partial=2)),
+            ('cyclic nodes exceed available RLL callers', three_report,
+             lambda g: g['cycles'].update(nodes=3)),
+            ('main candidates require disjoint program-owned declarations', three_report,
+             lambda g: g['programs']['main_designations'].update(
+                 absent=0, unique_candidate=1, ambiguous_candidate=2)),
+            ('edges exceed grouped-pair capacity with exact self count', two_report,
+             lambda g: g['edges'].update(total=4, extra_call_occurrences=1)),
+            ('AOI language declarations cannot supply a program target', aoi_report,
+             lambda g: (g['nodes']['by_language'].update(RLL=5, ST=0),
+                        g['nodes']['by_body_status'].update(
+                            rll_structure_parsed=4, language_unmodeled=0))),
+            ('distinct targets exceed call-weighted graph-language capacity', aoi_report,
+             lambda g: (g['nodes']['by_language'].update(RLL=1, ST=4),
+                        g['nodes']['by_body_status'].update(
+                            rll_structure_parsed=0, language_unmodeled=4),
+                        g['cycles'].update(nodes=1, edges=1))),
+        )
+        for label, base, mutate in cases:
+            report = deepcopy(base)
+            mutate(report['routine_graph'])
+            graph = report['routine_graph']
+            # All mutations preserve the visible partitions and call accounting.
+            self.assertEqual(sum(graph['nodes']['by_language'].values()), graph['nodes']['total'])
+            self.assertEqual(sum(graph['nodes']['by_body_status'].values()), graph['nodes']['total'])
+            self.assertEqual(sum(graph['programs']['main_designations'].values()), graph['programs']['total'])
+            self.assertEqual(graph['calls']['linked'] - graph['edges']['total'],
+                             graph['edges']['extra_call_occurrences'])
+            with self.subTest(case=label), self.assertRaises(ReferenceSummaryError):
+                validate_reference_summary(report)
+
+    def test_graph_counts_keep_cycle_and_repeat_observations_without_topology(self) -> None:
+        source = graph_inventory()
+        report = build_reference_summary(source, analyze_references(source))
+        graph = report['routine_graph']
+        self.assertEqual(graph['nodes'], {
+            'total': 5,
+            'by_language': {'RLL': 4, 'FBD': 0, 'SFC': 0, 'ST': 1, 'missing': 0, 'other': 0},
+            'by_body_status': {'rll_structure_parsed': 3, 'rll_structure_partial': 1,
+                               'language_unmodeled': 1},
+        })
+        self.assertEqual(graph['programs']['total'], 2)
+        self.assertEqual(graph['programs']['main_designations']['unique_candidate'], 1)
+        self.assertEqual(graph['programs']['main_designations']['absent'], 1)
+        self.assertEqual(graph['calls'], {'total': 6, 'linked': 5, 'unlinked': 1})
+        self.assertEqual(graph['edges'], {'total': 4, 'repeated_pairs': 1,
+                                        'extra_call_occurrences': 1, 'self_pairs': 1})
+        self.assertEqual(graph['cycles'], {'components': 1, 'nodes': 2, 'edges': 3})
+        self.assertEqual((graph['participating_nodes'], graph['isolated_nodes']), (3, 2))
+        self.assertEqual(graph['execution'], 'not_analyzed')
+        rendered = render_reference_summary(report)
+        for forbidden in ('PRIVATE', source.snapshot['sha256'], 'routine_id', 'program_id',
+                          'instruction_ids', 'raw_name', 'cyclic_components'):
+            self.assertNotIn(forbidden, rendered)
+
+    def test_graph_validator_rejects_private_fields_types_and_inconsistent_counts(self) -> None:
+        source = graph_inventory()
+        original = build_reference_summary(source, analyze_references(source))
+        cases = [
+            lambda g: g.update(execution='analyzed'),
+            lambda g: g.update(program_id='PRIVATE'),
+            lambda g: g['nodes']['by_language'].update(PRIVATE=0),
+            lambda g: g['nodes'].update(total=6),
+            lambda g: g['nodes']['by_language'].update(RLL=3, ST=2),
+            lambda g: g['nodes']['by_body_status'].update(rll_structure_parsed=4, rll_structure_partial=0),
+            lambda g: g['nodes']['by_body_status'].update(rll_structure_partial=2, language_unmodeled=0),
+            lambda g: g['programs'].update(total=1),
+            lambda g: g['programs']['main_designations'].update(absent=0),
+            lambda g: g['calls'].update(total=7, unlinked=2),
+            lambda g: g['calls'].update(linked=4, unlinked=2),
+            lambda g: g['edges'].update(total=6),
+            lambda g: g['edges'].update(extra_call_occurrences=2),
+            lambda g: g['edges'].update(repeated_pairs=2),
+            lambda g: g['edges'].update(repeated_pairs=0),
+            lambda g: g['edges'].update(self_pairs=2),
+            lambda g: g.update(participating_nodes=2, isolated_nodes=3),
+            lambda g: g.update(isolated_nodes=3),
+            lambda g: g['cycles'].update(nodes=4, edges=4),
+            lambda g: g['cycles'].update(edges=1),
+            lambda g: g['cycles'].update(components=0),
+            lambda g: g['cycles'].update(components=2),
+            lambda g: g['cycles'].update(components=0, nodes=0, edges=0),
+        ]
+        for bad_count in (True, -1, 1.5, 10**15):
+            cases.extend((
+                lambda g, value=bad_count: g['nodes'].update(total=value),
+                lambda g, value=bad_count: g['nodes']['by_language'].update(RLL=value),
+                lambda g, value=bad_count: g['programs']['main_designations'].update(absent=value),
+                lambda g, value=bad_count: g['calls'].update(linked=value),
+                lambda g, value=bad_count: g['edges'].update(repeated_pairs=value),
+                lambda g, value=bad_count: g['cycles'].update(nodes=value),
+                lambda g, value=bad_count: g.update(participating_nodes=value),
+            ))
+        for mutate in cases:
+            report = deepcopy(original)
+            mutate(report['routine_graph'])
+            with self.subTest(mutate=mutate), self.assertRaises(ReferenceSummaryError) as caught:
+                render_reference_summary(report)
+            self.assertNotIn('PRIVATE', str(caught.exception))
+
+    def test_frozen_v8_keeps_exact_old_fields_and_analyzer_metadata(self) -> None:
+        source = complete_inventory()
+        current = build_reference_summary(source, analyze_references(source))
+        historical = deepcopy(current)
+        historical.update(V8_CONSTANTS)
+        del historical['routine_instruction_shapes']
+        del historical['routine_targets']
+        del historical['routine_target_metadata']
+        del historical['routine_graph']
+        self.assertEqual(V8_CONSTANTS['analyzer_version'], 'source-references-7')
+        self.assertEqual(CONSTANTS['analyzer_version'], 'source-references-9')
+        self.assertEqual(set(historical), set(current) - {
+            'routine_instruction_shapes', 'routine_targets', 'routine_target_metadata', 'routine_graph',
+        })
+        self.assertEqual(json.loads(render_reference_summary(historical)), historical)
+        for base, changes in (
+            (historical, {'schema_version': 9}),
+            (historical, {'exporter_version': 'reference-summary-9'}),
+            (current, {'schema_version': 8}),
+            (current, {'exporter_version': 'reference-summary-8'}),
+            (historical, {'analyzer_version': 'source-references-8'}),
+            (current, {'analyzer_version': 'source-references-7'}),
+        ):
+            report = deepcopy(base)
+            report.update(changes)
+            with self.subTest(changes=changes), self.assertRaises(ReferenceSummaryError):
+                validate_reference_summary(report)
+
+    def test_frozen_v9_keeps_shapes_and_rejects_even_zero_target_counts(self) -> None:
+        source = complete_inventory()
+        current = build_reference_summary(source, analyze_references(source))
+        historical = deepcopy(current)
+        historical.update(V9_CONSTANTS)
+        del historical['routine_targets']
+        del historical['routine_target_metadata']
+        del historical['routine_graph']
+        self.assertEqual(V9_CONSTANTS['analyzer_version'], 'source-references-7')
+        self.assertEqual(set(historical), set(current) - {
+            'routine_targets', 'routine_target_metadata', 'routine_graph',
+        })
+        self.assertEqual(historical['routine_instruction_shapes'], current['routine_instruction_shapes'])
+        self.assertEqual(json.loads(render_reference_summary(historical)), historical)
+        historical['routine_targets'] = deepcopy(current['routine_targets'])
+        with self.assertRaises(ReferenceSummaryError):
+            validate_reference_summary(historical)
+
+    def test_current_requires_target_counts_and_analyzer_metadata(self) -> None:
+        source = complete_inventory()
+        current = build_reference_summary(source, analyze_references(source))
+        for mutate in (
+            lambda report: report.pop('routine_targets'),
+            lambda report: report.update(analyzer_version=V9_CONSTANTS['analyzer_version']),
+            lambda report: report['routine_targets'].update(occurrences=[]),
+        ):
+            report = deepcopy(current)
+            mutate(report)
+            with self.subTest(mutate=mutate), self.assertRaises(ReferenceSummaryError):
+                validate_reference_summary(report)
+
+    def test_frozen_v10_preserves_candidates_and_rejects_new_metadata(self) -> None:
+        source = complete_inventory()
+        current = build_reference_summary(source, analyze_references(source))
+        historical = deepcopy(current)
+        historical.update(V10_CONSTANTS)
+        del historical['routine_target_metadata']
+        del historical['routine_graph']
+        self.assertEqual(V10_CONSTANTS['analyzer_version'], 'source-references-8')
+        self.assertEqual(set(historical), set(current) - {'routine_target_metadata', 'routine_graph'})
+        self.assertEqual(historical['routine_targets'], current['routine_targets'])
+        self.assertEqual(json.loads(render_reference_summary(historical)), historical)
+        for base, changes in (
+            (historical, {'routine_target_metadata': current['routine_target_metadata']}),
+            (historical, {'exporter_version': CONSTANTS['exporter_version']}),
+            (current, {'schema_version': 10}),
+            (current, {'exporter_version': V10_CONSTANTS['exporter_version']}),
+        ):
+            report = deepcopy(base)
+            report.update(changes)
+            with self.subTest(changes=changes), self.assertRaises(ReferenceSummaryError):
+                validate_reference_summary(report)
+
+    def test_frozen_v11_preserves_metadata_and_excludes_graph_counts(self) -> None:
+        source = complete_inventory()
+        current = build_reference_summary(source, analyze_references(source))
+        historical = deepcopy(current)
+        historical.update(V11_CONSTANTS)
+        del historical['routine_graph']
+        self.assertEqual(V11_CONSTANTS['analyzer_version'], 'source-references-8')
+        self.assertEqual(set(historical), set(current) - {'routine_graph'})
+        self.assertEqual(historical['routine_target_metadata'], current['routine_target_metadata'])
+        self.assertEqual(json.loads(render_reference_summary(historical)), historical)
+        for base, mutate in (
+            (historical, lambda r: r.update(routine_graph=current['routine_graph'])),
+            (historical, lambda r: r.update(analyzer_version=CONSTANTS['analyzer_version'])),
+            (current, lambda r: r.pop('routine_graph')),
+            (current, lambda r: r.update(analyzer_version=V11_CONSTANTS['analyzer_version'])),
+        ):
+            report = deepcopy(base)
+            mutate(report)
+            with self.subTest(mutate=mutate), self.assertRaises(ReferenceSummaryError):
+                validate_reference_summary(report)
+
+    def test_target_metadata_counts_calls_and_rejects_private_labels_or_inconsistent_partitions(self) -> None:
+        source = analyze_snapshot(snapshot_from_bytes(
+            b'<RSLogix5000Content><Controller Name="PRIVATE_CONTROLLER"><Programs>'
+            b'<Program Name="PRIVATE_PROGRAM"><Routines><Routine Name="PRIVATE_CALLER" Type="RLL">'
+            b'<RLLContent><Rung Number="0" Type="N"><Text>'
+            b'JSR(PRIVATE_TARGET)JSR(PRIVATE_TARGET)JSR(PRIVATE_MISSING);'
+            b'</Text></Rung></RLLContent></Routine>'
+            b'<Routine Name="PRIVATE_TARGET" Type="ST"/></Routines></Program>'
+            b'</Programs></Controller></RSLogix5000Content>'
+        ))
+        original = build_reference_summary(source, analyze_references(source))
+        metadata = original['routine_target_metadata']
+        self.assertEqual(original['routine_targets']['distinct_targets'], 1)
+        self.assertEqual(metadata['total'], 2)
+        self.assertEqual(metadata['by_program_type']['absent'], 2)
+        self.assertEqual(metadata['unclassified_context_by_program_type']['absent'], 2)
+        self.assertEqual(metadata['by_target_language']['ST'], 2)
+        rendered = render_reference_summary(original)
+        for forbidden in ('PRIVATE', source.snapshot['sha256'], 'program_id', 'target_routine_id'):
+            self.assertNotIn(forbidden, rendered)
+        for mutate in (
+            lambda m: m.update(total=1),
+            lambda m: m['by_program_type'].update(absent=1),
+            lambda m: m['by_target_language'].update(ST=1),
+            lambda m: m['unclassified_context_by_program_type'].update(absent=1),
+            lambda m: m['unclassified_context_by_program_type'].update(absent=0, explicit_normal=2),
+            lambda m: m.update(program_id='PRIVATE_PROGRAM'),
+            lambda m: m['by_program_type'].update(PRIVATE_TYPE=0),
+            lambda m: m['by_target_language'].update(PRIVATE_TYPE=0),
+            lambda m: m.update(program_type_semantics='analyzed'),
+            lambda m: m['by_program_type'].update(absent=True),
+        ):
+            report = deepcopy(original)
+            mutate(report['routine_target_metadata'])
+            with self.subTest(mutate=mutate), self.assertRaises(ReferenceSummaryError) as caught:
+                render_reference_summary(report)
+            self.assertNotIn('PRIVATE', str(caught.exception))
+
+    def test_routine_target_counts_reject_invalid_types_partitions_bounds_and_private_labels(self) -> None:
+        def candidate_report(*, single_routine: bool = False) -> dict:
+            extra_routines = '' if single_routine else (
+                '<Routine Name="PRIVATE_FAULT" Type="RLL"><RLLContent/></Routine>'
+                '<Routine Name="PRIVATE_SPARE1" Type="RLL"><RLLContent/></Routine>'
+                '<Routine Name="PRIVATE_SPARE2" Type="RLL"><RLLContent/></Routine>'
+            )
+            third_target = 'PRIVATE_CURRENT' if single_routine else 'PRIVATE_FAULT'
+            xml = (
+                '<RSLogix5000Content><Controller Name="PRIVATE_CONTROLLER"><Programs>'
+                '<Program Name="PRIVATE_PROGRAM" Type="Normal" FaultRoutineName="PRIVATE_FAULT">'
+                '<Routines><Routine Name="PRIVATE_CURRENT" Type="RLL"><RLLContent>'
+                '<Rung Number="0" Type="N"><Text>'
+                f'JSR(PRIVATE_CURRENT)JSR(PRIVATE_CURRENT)JSR({third_target})'
+                'JSR(PRIVATE_MISSING)JSR();</Text></Rung></RLLContent></Routine>'
+                f'{extra_routines}</Routines></Program></Programs></Controller></RSLogix5000Content>'
+            ).encode('utf-8')
+            source = analyze_snapshot(snapshot_from_bytes(xml))
+            return build_reference_summary(source, analyze_references(source))
+
+        original = candidate_report()
+        single = candidate_report(single_routine=True)
+        self.assertEqual(original['routine_targets']['total'], 5)
+        self.assertEqual(original['routine_targets']['by_status']['unique_candidate'], 3)
+        self.assertEqual(original['routine_targets']['unique_by_target_context']['fault_routine'], 1)
+        self.assertEqual(original['routine_targets']['distinct_targets'], 2)
+        self.assertEqual(single['source_summary']['counts']['routines'], 1)
+        self.assertEqual(single['routine_targets']['distinct_targets'], 1)
+
+        def no_unique_candidates(targets: dict) -> None:
+            targets['by_status'].update(unique_candidate=0, missing_candidate=4)
+            for key in targets['unique_by_target_context']:
+                targets['unique_by_target_context'][key] = 0
+
+        def ambiguous_in_one_routine(targets: dict) -> None:
+            targets['by_status'].update(unique_candidate=2, ambiguous_candidate=1)
+            targets['unique_by_target_context']['current_routine'] = 2
+
+        cases = [
+            ('total differs from JSR while status partition reconciles', original,
+             lambda t: (t.update(total=6), t['by_status'].update(missing_candidate=2))),
+            ('status partition differs from total', original,
+             lambda t: t['by_status'].update(missing_candidate=2)),
+            ('context partition differs from unique', original,
+             lambda t: t['unique_by_target_context'].update(current_routine=3)),
+            ('unique requires a distinct target', original, lambda t: t.update(distinct_targets=0)),
+            ('no unique forbids distinct targets', original, no_unique_candidates),
+            ('distinct exceeds unique but fits source routines', original,
+             lambda t: t.update(distinct_targets=4)),
+            ('distinct exceeds source routines but fits unique', single,
+             lambda t: t.update(distinct_targets=2)),
+            ('ambiguity requires two routine envelopes', single, ambiguous_in_one_routine),
+            ('missing target field differs from zero field JSR', original,
+             lambda t: t['by_status'].update(missing_target_field=0, missing_candidate=2)),
+            ('private nested key', original, lambda t: t.update(raw_target_name='PRIVATE_TARGET')),
+            ('private status label', original, lambda t: t['by_status'].update(PRIVATE_STATUS=0)),
+            ('private context label', original,
+             lambda t: t['unique_by_target_context'].update(PRIVATE_CONTEXT=0)),
+            ('private analysis scope', original, lambda t: t.update(analysis_scope='PRIVATE_SCOPE')),
+        ]
+        for value in (True, -1, 0.5):
+            cases.extend((
+                (f'total count {value!r}', original, lambda t, v=value: t.update(total=v)),
+                (f'distinct count {value!r}', original, lambda t, v=value: t.update(distinct_targets=v)),
+                (f'status count {value!r}', original,
+                 lambda t, v=value: t['by_status'].update(unique_candidate=v)),
+                (f'context count {value!r}', original,
+                 lambda t, v=value: t['unique_by_target_context'].update(current_routine=v)),
+            ))
+        for label, base, mutate in cases:
+            report = deepcopy(base)
+            mutate(report['routine_targets'])
+            with self.subTest(case=label), self.assertRaises(ReferenceSummaryError) as caught:
+                render_reference_summary(report)
+            self.assertNotIn('PRIVATE', str(caught.exception))
+
     def test_private_details_and_source_identity_do_not_cross_boundary(self) -> None:
         source = inventory()
         references = analyze_references(source)
@@ -127,7 +499,7 @@ class ReferenceSummaryTests(unittest.TestCase):
         with self.assertRaises(ReferenceSummaryError):
             build_reference_summary(inventory('DIFFERENT_SECRET'), references)
         for field, value in (
-            ('schema_version', True), ('schema_version', 3),
+            ('schema_version', True), ('schema_version', 2),
             ('analyzer_version', 'PRIVATE_VERSION'), ('analysis_scope', 'PRIVATE_SCOPE'),
             ('semantic_analysis', 'implemented'), ('effect_analysis', 'implemented'),
             ('member_validation', 'implemented'), ('status', 'PRIVATE_STATUS'),

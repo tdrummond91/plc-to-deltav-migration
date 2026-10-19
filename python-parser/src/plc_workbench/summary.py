@@ -23,7 +23,10 @@ LEGACY_COUNT_KEYS = frozenset('''controllers modules tasks programs user_data_ty
     aliases routines rungs instructions'''.split())
 MODULE_COUNT_KEYS = frozenset({'module_ports', 'module_connections', 'module_input_tags',
                                'module_output_tags', 'module_config_tags'})
-COUNT_KEYS = LEGACY_COUNT_KEYS | MODULE_COUNT_KEYS
+V3_COUNT_KEYS = LEGACY_COUNT_KEYS | MODULE_COUNT_KEYS
+RACK_COUNT_KEYS = frozenset({'module_rack_connections', 'module_rack_input_aliases',
+                             'module_rack_output_aliases'})
+COUNT_KEYS = V3_COUNT_KEYS | RACK_COUNT_KEYS
 # Same publication vocabulary as the existing value-profile helper. Exact match
 # only: a familiar literal in a Name/operand field never grants publication.
 ROUTINE_TYPES = frozenset({'RLL', 'FBD', 'SFC', 'ST', 'Sequence'})
@@ -37,7 +40,10 @@ LEGACY_DIAGNOSTIC_CODES = frozenset('''encoded_content entity_name_missing
     expected_argument_list argument_depth_limit mismatched_argument_delimiter
     semicolon_inside_argument unclosed_quote unclosed_argument_list text_limit
     missing_rung_terminator unexpected_branch_separator trailing_content'''.split())
-DIAGNOSTIC_CODES = LEGACY_DIAGNOSTIC_CODES | {'module_rack_connection_not_analyzed'}
+V3_DIAGNOSTIC_CODES = LEGACY_DIAGNOSTIC_CODES | {'module_rack_connection_not_analyzed'}
+DIAGNOSTIC_CODES = V3_DIAGNOSTIC_CODES | {
+    'module_rack_backing_not_analyzed', 'module_rack_content_not_analyzed',
+}
 RUNG_STATES = frozenset({'parsed', 'failed', 'preserved_unsupported', 'excluded'})
 ROUTINE_STATES = RUNG_STATES - {'excluded'}
 SEVERITIES = frozenset({'info', 'warning', 'error'})
@@ -54,10 +60,15 @@ LEGACY_CONSTANTS = {
     'semantic_analysis': 'not_implemented',
     'sharing_status': 'aggregate_sync_allowed',
 }
-CONSTANTS = LEGACY_CONSTANTS | {
+V3_CONSTANTS = LEGACY_CONSTANTS | {
     'schema_version': 3,
     'exporter_version': 'aggregate-summary-3',
     'parser_version': 'source-inventory-2',
+}
+CONSTANTS = V3_CONSTANTS | {
+    'schema_version': 4,
+    'exporter_version': 'aggregate-summary-4',
+    'parser_version': 'source-inventory-3',
 }
 
 
@@ -103,7 +114,7 @@ def build_summary(result: InventoryResult, *, revision: dict[str, Any] | None = 
     Only this reader's current private contract is supported. Adding fields or changing its
     meaning requires explicitly reviewing this publication policy as well.
     """
-    if (type(result.schema_version) is not int or result.schema_version != 2
+    if (type(result.schema_version) is not int or result.schema_version != 3
             or result.parser_version != CONSTANTS['parser_version']
             or result.analysis_scope != CONSTANTS['analysis_scope']
             or result.semantic_analysis != CONSTANTS['semantic_analysis']):
@@ -175,11 +186,13 @@ def build_summary(result: InventoryResult, *, revision: dict[str, Any] | None = 
 
 
 def validate_summary(summary: dict[str, Any]) -> None:
-    """Validate current v3 or historical v2 without admitting mixed contracts."""
+    """Validate current v4 or frozen historical v2/v3 without mixing contracts."""
     _keys(summary, set(CONSTANTS) | {'tool_revision', 'status', 'counts', 'routine_types',
                                     'coverage', 'instructions', 'ladder_metrics', 'diagnostics'})
-    legacy = type(summary['schema_version']) is int and summary['schema_version'] == 2
-    constants = LEGACY_CONSTANTS if legacy else CONSTANTS
+    version = summary['schema_version']
+    if type(version) is not int or version not in {2, 3, 4}:
+        _invalid()
+    constants = {2: LEGACY_CONSTANTS, 3: V3_CONSTANTS, 4: CONSTANTS}[version]
     for key, expected in constants.items():
         if type(summary[key]) is not type(expected) or summary[key] != expected:
             _invalid()
@@ -196,11 +209,16 @@ def validate_summary(summary: dict[str, Any]) -> None:
     else:
         _invalid()
     counts = summary['counts']
-    _counts(counts, LEGACY_COUNT_KEYS if legacy else COUNT_KEYS)
-    if not legacy and not counts['modules'] and any(counts[key] for key in MODULE_COUNT_KEYS):
+    count_keys = {2: LEGACY_COUNT_KEYS, 3: V3_COUNT_KEYS, 4: COUNT_KEYS}[version]
+    _counts(counts, count_keys)
+    module_counts = MODULE_COUNT_KEYS | (RACK_COUNT_KEYS if version == 4 else frozenset())
+    if version >= 3 and not counts['modules'] and any(counts[key] for key in module_counts):
         _invalid()
-    if (not legacy and not counts['module_connections']
+    if (version >= 3 and not counts['module_connections']
             and (counts['module_input_tags'] or counts['module_output_tags'])):
+        _invalid()
+    if (version == 4 and not counts['module_rack_connections']
+            and (counts['module_rack_input_aliases'] or counts['module_rack_output_aliases'])):
         _invalid()
     _counts(summary['routine_types'], ROUTINE_TYPES | {'missing', 'withheld'})
     coverage = summary['coverage']
@@ -252,10 +270,16 @@ def validate_summary(summary: dict[str, Any]) -> None:
     diagnostics = summary['diagnostics']
     _keys(diagnostics, {'total', 'by_code', 'by_severity'})
     _count(diagnostics['total'])
-    _counts(diagnostics['by_code'], (LEGACY_DIAGNOSTIC_CODES if legacy else DIAGNOSTIC_CODES) | {'withheld'}, sparse=True)
+    diagnostic_codes = {2: LEGACY_DIAGNOSTIC_CODES, 3: V3_DIAGNOSTIC_CODES, 4: DIAGNOSTIC_CODES}[version]
+    _counts(diagnostics['by_code'], diagnostic_codes | {'withheld'}, sparse=True)
     _counts(diagnostics['by_severity'], SEVERITIES | {'withheld'})
     if any(sum(diagnostics[key].values()) != diagnostics['total'] for key in ('by_code', 'by_severity')):
         _invalid()
+    if version == 4:
+        rack_connections = counts['module_rack_connections']
+        if (diagnostics['by_code'].get('module_rack_backing_not_analyzed', 0) != rack_connections
+                or diagnostics['by_severity']['warning'] < rack_connections):
+            _invalid()
     incomplete = (counts['encoded_regions'] or coverage['routines']['failed']
                   or coverage['routines']['preserved_unsupported'] or coverage['rungs']['failed']
                   or coverage['rungs']['preserved_unsupported'] or coverage['rungs']['excluded'])

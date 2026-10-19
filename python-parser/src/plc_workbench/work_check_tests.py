@@ -39,10 +39,18 @@ _RESULT_KEYS = frozenset({
 # pure work-check report validation; they never execute that workflow.
 WORK_MACHINE_MODULES = {
     "application": (
-        "test_address_shape_summary", "test_cli", "test_module_io",
+        "test_address_shape_summary", "test_cli", "test_diagnostic_sample", "test_module_io",
         "test_module_references", "test_module_source", "test_module_summary",
+        "test_rack_candidates", "test_rack_source", "test_rack_summary",
         "test_reference_summary", "test_references", "test_source", "test_storage",
-        "test_summary", "test_summary_output",
+        "test_summary", "test_summary_output", "test_timer_placeholders",
+        "test_unmatched_sample_report",
+        "test_system_flags", "test_system_flag_summary", "test_system_flag_report",
+        "test_math_references", "test_math_summary", "test_math_report",
+        "test_bit_operations",
+        "test_routine_shapes", "test_routine_targets", "test_routine_metadata", "test_routine_graph", "test_sfc_structure", "test_sfc_summary",
+        "test_sfc_cli", "test_sfc_storage", "test_sfc_work_report",
+        "test_sfc_annotations", "test_sfc_annotation_summary",
     ),
     "helpers": (
         "test_minimize_l5x", "test_profile_values", "test_review_regressions",

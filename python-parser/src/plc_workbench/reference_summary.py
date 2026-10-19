@@ -12,11 +12,25 @@ from typing import Any, TYPE_CHECKING
 
 from .models import InventoryResult
 from .module_io import MODULE_IO_KINDS, NAME_ORIGINS, NAME_REASONS
+from .rack_candidates import RACK_MATCH_STATUSES, RACK_NAME_ORIGINS, RACK_NAME_REASONS
 from .references import (
     ALIAS_STATUSES, OPERAND_STATUSES, UNRESOLVED_REASONS, UNSUPPORTED_ADDRESS_REASONS,
     ReferenceError, _address, validate_references,
 )
 from .summary import SummaryError, build_summary, validate_summary
+from .routine_shapes import (
+    RoutineShapeError, build_routine_instruction_shapes, validate_routine_instruction_shapes,
+)
+from .routine_targets import (
+    ROUTINE_TARGET_CONSTANTS, ROUTINE_TARGET_STATUSES, ROUTINE_TARGET_CONTEXTS,
+)
+from .routine_metadata import (
+    RoutineMetadataError, build_routine_target_metadata, validate_routine_target_metadata,
+)
+from .routine_graph import (
+    ROUTINE_GRAPH_CONSTANTS, ROUTINE_GRAPH_LANGUAGES,
+    ROUTINE_GRAPH_BODY_STATUSES, ROUTINE_GRAPH_MAIN_STATUSES,
+)
 
 if TYPE_CHECKING:
     from .references import ReferenceResult
@@ -25,9 +39,10 @@ MAX_REPORT_BYTES = 32 * 1024
 MAX_COUNT = 10**12
 LEGACY_SYMBOL_KINDS = frozenset({'tag', 'aoi_local_tag', 'aoi_parameter'})
 SYMBOL_KINDS = LEGACY_SYMBOL_KINDS | frozenset(MODULE_IO_KINDS)
+LEGACY_OPERAND_STATUSES = OPERAND_STATUSES - {'system_flag'}
 REASONS_BY_STATUS = {'unresolved': frozenset(UNRESOLVED_REASONS),
                      'unsupported_address': frozenset(UNSUPPORTED_ADDRESS_REASONS)}
-COMPLETE_OPERAND_STATUSES = frozenset({'root_bound', 'literal', 'non_data'})
+COMPLETE_OPERAND_STATUSES = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
 MALFORMED_ADDRESS_SHAPES = frozenset({
     'alias_target_failure', 'leading_hash_static_address', 'leading_hash_other',
     'contains_brackets', 'contains_colon', 'contains_dot', 'other_form',
@@ -49,14 +64,59 @@ V2_CONSTANTS = LEGACY_CONSTANTS | {
     'exporter_version': 'reference-summary-2',
     'analyzer_version': 'source-references-2',
 }
-CONSTANTS = V2_CONSTANTS | {
+V3_CONSTANTS = V2_CONSTANTS | {
     'schema_version': 3,
     'exporter_version': 'reference-summary-3',
+}
+V4_CONSTANTS = V3_CONSTANTS | {
+    'schema_version': 4,
+    'exporter_version': 'reference-summary-4',
+    'analyzer_version': 'source-references-3',
+}
+V5_CONSTANTS = V4_CONSTANTS | {
+    'schema_version': 5,
+    'exporter_version': 'reference-summary-5',
+    'analyzer_version': 'source-references-4',
+}
+V6_CONSTANTS = V5_CONSTANTS | {
+    'schema_version': 6,
+    'exporter_version': 'reference-summary-6',
+    'analyzer_version': 'source-references-5',
+}
+V7_CONSTANTS = V6_CONSTANTS | {
+    'schema_version': 7,
+    'exporter_version': 'reference-summary-7',
+    'analyzer_version': 'source-references-6',
+}
+V8_CONSTANTS = V7_CONSTANTS | {
+    'schema_version': 8,
+    'exporter_version': 'reference-summary-8',
+    'analyzer_version': 'source-references-7',
+}
+V9_CONSTANTS = V8_CONSTANTS | {
+    'schema_version': 9,
+    'exporter_version': 'reference-summary-9',
+}
+V10_CONSTANTS = V9_CONSTANTS | {
+    'schema_version': 10,
+    'exporter_version': 'reference-summary-10',
+    'analyzer_version': 'source-references-8',
+}
+V11_CONSTANTS = V10_CONSTANTS | {
+    'schema_version': 11,
+    'exporter_version': 'reference-summary-11',
+}
+CONSTANTS = V11_CONSTANTS | {
+    'schema_version': 12,
+    'exporter_version': 'reference-summary-12',
+    'analyzer_version': 'source-references-9',
 }
 _CORE_CONSTANTS = {key: V2_CONSTANTS[key] for key in (
     'schema_version', 'analyzer_version', 'analysis_scope', 'semantic_analysis',
     'effect_analysis', 'member_validation',
 )}
+_CORE_CONSTANTS['schema_version'] = 6
+_CORE_CONSTANTS['analyzer_version'] = CONSTANTS['analyzer_version']
 _COVERAGE_KEYS = frozenset({'rungs_total', 'rungs_analyzed', 'instructions_total',
                             'instructions_catalogued'})
 _CORE_COVERAGE_KEYS = _COVERAGE_KEYS | {
@@ -190,6 +250,245 @@ def _module_io_counts(symbols: list[dict[str, Any]]) -> dict[str, Any]:
             'by_name_origin': origins, 'unavailable_by_reason': reasons}
 
 
+def _rack_counts(evidence: dict[str, Any]) -> dict[str, Any]:
+    """Count canonical private candidates without copying names or links."""
+    candidates = evidence['candidates']
+    origins = dict.fromkeys(sorted(RACK_NAME_ORIGINS), 0)
+    reasons = dict.fromkeys(sorted(RACK_NAME_REASONS), 0)
+    directions = {'input': 0, 'output': 0}
+    for candidate in candidates:
+        origins[candidate['name_origin']] += 1
+        directions[candidate['direction']] += 1
+        if candidate['name_origin'] == 'unavailable':
+            reasons[candidate['reason']] += 1
+    return {
+        'analysis_scope': 'rack_logical_root_candidates',
+        'backing_mapping': 'not_analyzed',
+        'declarations': {
+            'total': len(candidates), 'by_direction': directions,
+            'named': len(candidates) - origins['unavailable'],
+            'by_name_origin': origins, 'unavailable_by_reason': reasons,
+        },
+        'matches': {
+            name: {'total': len(evidence['matches'][name]),
+                   'by_status': _status_counts(evidence['matches'][name], frozenset(RACK_MATCH_STATUSES))}
+            for name in ('aliases', 'direct_operands', 'alias_operands')
+        },
+    }
+
+
+def _validate_rack_counts(summary: dict[str, Any]) -> None:
+    rack = summary['rack_candidates']
+    _keys(rack, {'analysis_scope', 'backing_mapping', 'declarations', 'matches'})
+    _constants(rack, {'analysis_scope': 'rack_logical_root_candidates', 'backing_mapping': 'not_analyzed'})
+    declarations = rack['declarations']
+    _keys(declarations, {'total', 'by_direction', 'named', 'by_name_origin', 'unavailable_by_reason'})
+    _count(declarations['total'])
+    _count(declarations['named'])
+    _counts(declarations['by_direction'], {'input', 'output'})
+    _counts(declarations['by_name_origin'], frozenset(RACK_NAME_ORIGINS))
+    _counts(declarations['unavailable_by_reason'], frozenset(RACK_NAME_REASONS))
+    counts = summary['source_summary']['counts']
+    unavailable = declarations['by_name_origin']['unavailable']
+    if (declarations['by_direction'] != {
+            'input': counts['module_rack_input_aliases'], 'output': counts['module_rack_output_aliases']}
+            or sum(declarations['by_direction'].values()) != declarations['total']
+            or sum(declarations['by_name_origin'].values()) != declarations['total']
+            or declarations['named'] + unavailable != declarations['total']
+            or sum(declarations['unavailable_by_reason'].values()) != unavailable):
+        _invalid()
+    matches = rack['matches']
+    _keys(matches, {'aliases', 'direct_operands', 'alias_operands'})
+    for group in matches.values():
+        _keys(group, {'total', 'by_status'})
+        _count(group['total'])
+        _counts(group['by_status'], frozenset(RACK_MATCH_STATUSES))
+        statuses = group['by_status']
+        if (sum(statuses.values()) != group['total']
+                or ((statuses['unique_candidate'] or statuses['outside_visible_scope'])
+                    and not declarations['named'])
+                or (statuses['ambiguous_candidate'] and declarations['named'] < 2)
+                or (statuses['candidate_names_unavailable'] and not unavailable)):
+            _invalid()
+    if (matches['aliases']['total'] != summary['aliases']['by_reason']['unresolved']['colon_root_not_declared']
+            or matches['direct_operands']['total'] + matches['alias_operands']['total']
+            != summary['operands']['by_reason']['unresolved']['colon_root_not_declared']):
+        _invalid()
+    # Every alias-mediated occurrence repeats the terminal alias's own missing
+    # root and lookup scope, so that status must also exist among alias records.
+    for status in RACK_MATCH_STATUSES:
+        if (matches['alias_operands']['by_status'][status]
+                and not matches['aliases']['by_status'][status]):
+            _invalid()
+
+
+def _routine_target_counts(evidence: dict[str, Any]) -> dict[str, Any]:
+    """Count canonical private first-field candidates without publishing links."""
+    occurrences = evidence['occurrences']
+    contexts = dict.fromkeys(sorted(ROUTINE_TARGET_CONTEXTS), 0)
+    targets: set[str] = set()
+    for occurrence in occurrences:
+        if occurrence['status'] == 'unique_candidate':
+            contexts[occurrence['target_context']] += 1
+            targets.add(occurrence['target_routine_id'])
+    return dict(ROUTINE_TARGET_CONSTANTS) | {
+        'total': len(occurrences),
+        'by_status': _status_counts(occurrences, frozenset(ROUTINE_TARGET_STATUSES)),
+        'unique_by_target_context': contexts,
+        'distinct_targets': len(targets),
+    }
+
+
+def _validate_routine_target_counts(summary: dict[str, Any]) -> None:
+    targets = summary['routine_targets']
+    _keys(targets, set(ROUTINE_TARGET_CONSTANTS) | {
+        'total', 'by_status', 'unique_by_target_context', 'distinct_targets',
+    })
+    _constants(targets, ROUTINE_TARGET_CONSTANTS)
+    total = _count(targets['total'])
+    distinct = _count(targets['distinct_targets'])
+    statuses = targets['by_status']
+    contexts = targets['unique_by_target_context']
+    _counts(statuses, frozenset(ROUTINE_TARGET_STATUSES))
+    _counts(contexts, frozenset(ROUTINE_TARGET_CONTEXTS))
+    jsr = summary['routine_instruction_shapes']['by_opcode']['JSR']
+    routines = summary['source_summary']['counts']['routines']
+    unique = statuses['unique_candidate']
+    with_fields = jsr['total'] - jsr['by_arity']['zero_fields']
+    if (total != jsr['total'] or sum(statuses.values()) != total
+            or sum(contexts.values()) != unique
+            or statuses['missing_target_field'] != jsr['by_arity']['zero_fields']
+            or any(count > with_fields for status, count in statuses.items()
+                   if status != 'missing_target_field')
+            or (unique == 0 and distinct != 0)
+            or (unique > 0 and not 1 <= distinct <= unique)
+            or distinct > routines
+            or (statuses['ambiguous_candidate'] > 0 and routines < 2)):
+        _invalid()
+
+
+def _routine_graph_counts(evidence: dict[str, Any]) -> dict[str, Any]:
+    """Publish counts of canonical candidate links without identities or topology."""
+    nodes, edges = evidence['nodes'], evidence['edges']
+    languages = dict.fromkeys(ROUTINE_GRAPH_LANGUAGES, 0)
+    bodies = dict.fromkeys(ROUTINE_GRAPH_BODY_STATUSES, 0)
+    participating: set[str] = set()
+    for node in nodes:
+        languages[node['language']] += 1
+        bodies[node['body_status']] += 1
+    for edge in edges:
+        participating.update((edge['caller_routine_id'], edge['target_routine_id']))
+    linked = sum(len(edge['instruction_ids']) for edge in edges)
+    cyclic_nodes = {identifier for component in evidence['cyclic_components'] for identifier in component}
+    component_by_node = {
+        identifier: index for index, component in enumerate(evidence['cyclic_components'])
+        for identifier in component
+    }
+    cyclic_edges = sum(
+        edge['caller_routine_id'] in cyclic_nodes
+        and component_by_node[edge['caller_routine_id']]
+        == component_by_node.get(edge['target_routine_id'])
+        for edge in edges
+    )
+    return dict(ROUTINE_GRAPH_CONSTANTS) | {
+        'nodes': {'total': len(nodes), 'by_language': languages, 'by_body_status': bodies},
+        'programs': {
+            'total': len(evidence['main_designations']),
+            'main_designations': _status_counts(
+                evidence['main_designations'], frozenset(ROUTINE_GRAPH_MAIN_STATUSES)),
+        },
+        'calls': {'total': linked + len(evidence['unlinked_instruction_ids']),
+                  'linked': linked, 'unlinked': len(evidence['unlinked_instruction_ids'])},
+        'edges': {
+            'total': len(edges),
+            'repeated_pairs': sum(len(edge['instruction_ids']) > 1 for edge in edges),
+            'extra_call_occurrences': linked - len(edges),
+            'self_pairs': sum(edge['caller_routine_id'] == edge['target_routine_id'] for edge in edges),
+        },
+        'cycles': {'components': len(evidence['cyclic_components']),
+                   'nodes': len(cyclic_nodes), 'edges': cyclic_edges},
+        'participating_nodes': len(participating),
+        'isolated_nodes': len(nodes) - len(participating),
+    }
+
+
+def _validate_routine_graph_counts(summary: dict[str, Any]) -> None:
+    graph = summary['routine_graph']
+    _keys(graph, set(ROUTINE_GRAPH_CONSTANTS) | {
+        'nodes', 'programs', 'calls', 'edges', 'cycles',
+        'participating_nodes', 'isolated_nodes',
+    })
+    _constants(graph, ROUTINE_GRAPH_CONSTANTS)
+    nodes, programs, calls, edges, cycles = (
+        graph[key] for key in ('nodes', 'programs', 'calls', 'edges', 'cycles'))
+    _keys(nodes, {'total', 'by_language', 'by_body_status'})
+    _keys(programs, {'total', 'main_designations'})
+    _counts(nodes['by_language'], frozenset(ROUTINE_GRAPH_LANGUAGES))
+    _counts(nodes['by_body_status'], frozenset(ROUTINE_GRAPH_BODY_STATUSES))
+    _counts(programs['main_designations'], frozenset(ROUTINE_GRAPH_MAIN_STATUSES))
+    node_total, program_total = _count(nodes['total']), _count(programs['total'])
+    _counts(calls, {'total', 'linked', 'unlinked'})
+    _counts(edges, {'total', 'repeated_pairs', 'extra_call_occurrences', 'self_pairs'})
+    _counts(cycles, {'components', 'nodes', 'edges'})
+    participating = _count(graph['participating_nodes'])
+    isolated = _count(graph['isolated_nodes'])
+    source = summary['source_summary']
+    targets = summary['routine_targets']
+    languages, bodies = nodes['by_language'], nodes['by_body_status']
+    edge_total, linked = edges['total'], calls['linked']
+    source_languages = source['routine_types']
+    target_languages = summary['routine_target_metadata']['by_target_language']
+    for language, count in languages.items():
+        capacity = (source_languages['withheld'] + source_languages['Sequence']
+                    if language == 'other' else source_languages[language])
+        if count > capacity or (target_languages[language] > 0 and count == 0):
+            _invalid()
+    if (node_total > source['counts']['routines']
+            or sum(languages.values()) != node_total
+            or sum(bodies.values()) != node_total
+            or bodies['rll_structure_parsed'] + bodies['rll_structure_partial'] != languages['RLL']
+            or bodies['language_unmodeled'] != node_total - languages['RLL']
+            or bodies['rll_structure_parsed'] > source['coverage']['routines']['parsed']
+            or bodies['rll_structure_partial'] > source['coverage']['routines']['failed']
+            or bodies['language_unmodeled'] > source['coverage']['routines']['preserved_unsupported']
+            or program_total != source['counts']['programs']
+            or sum(programs['main_designations'].values()) != program_total
+            or programs['main_designations']['unique_candidate']
+            + 2 * programs['main_designations']['ambiguous_candidate'] > node_total
+            or (programs['main_designations']['ambiguous_candidate'] and node_total < 2)
+            or (program_total == 0 and node_total != 0)
+            or calls['total'] != targets['total']
+            or linked != targets['by_status']['unique_candidate']
+            or linked + calls['unlinked'] != calls['total']
+            or edge_total > linked
+            or bool(edge_total) != bool(linked)
+            or edges['extra_call_occurrences'] != linked - edge_total
+            or edges['repeated_pairs'] > min(edge_total, edges['extra_call_occurrences'])
+            or bool(edges['repeated_pairs']) != bool(edges['extra_call_occurrences'])
+            or edges['self_pairs'] > min(node_total, edge_total,
+                                        targets['unique_by_target_context']['current_routine'])
+            or bool(edges['self_pairs']) != bool(
+                targets['unique_by_target_context']['current_routine'])
+            or participating + isolated != node_total
+            or participating > min(node_total, 2 * edge_total - edges['self_pairs'])
+            or participating < targets['distinct_targets']
+            or targets['distinct_targets'] > sum(
+                min(target_languages[language], count) for language, count in languages.items())
+            or edge_total > participating * (participating - 1) + edges['self_pairs']
+            or (edge_total > 0 and participating == 0)
+            or cycles['nodes'] > participating
+            or cycles['nodes'] > languages['RLL']
+            or cycles['edges'] > edge_total
+            or cycles['edges'] > cycles['nodes'] * (cycles['nodes'] - 1) + edges['self_pairs']
+            or cycles['edges'] < cycles['nodes']
+            or bool(cycles['components']) != bool(cycles['nodes'])
+            or bool(cycles['components']) != bool(cycles['edges'])
+            or cycles['components'] > cycles['nodes']
+            or 2 * cycles['components'] > cycles['nodes'] + edges['self_pairs']
+            or edges['self_pairs'] > cycles['nodes']):
+        _invalid()
+
+
 def build_reference_summary(
     inventory: InventoryResult,
     references: ReferenceResult,
@@ -208,7 +507,8 @@ def build_reference_summary(
         validate_references(inventory, references)
         core = references.to_dict()
         _keys(core, set(_CORE_CONSTANTS) | {
-            'snapshot', 'symbols', 'aliases', 'operands', 'coverage', 'status',
+            'snapshot', 'symbols', 'aliases', 'operands', 'coverage', 'status', 'rack_candidates',
+            'routine_targets', 'routine_graph',
         })
         _constants(core, _CORE_CONSTANTS)
         if type(core['snapshot']) is not dict or core['snapshot'] != inventory.snapshot:
@@ -297,11 +597,17 @@ def build_reference_summary(
                          'by_reason': _reason_counts(operands),
                          'malformed_address_shapes': _malformed_address_shapes(operands)},
             'module_io': _module_io_counts(symbols),
+            'rack_candidates': _rack_counts(core['rack_candidates']),
+            'routine_instruction_shapes': build_routine_instruction_shapes(inventory),
+            'routine_targets': _routine_target_counts(core['routine_targets']),
+            'routine_target_metadata': build_routine_target_metadata(inventory, core['routine_targets']),
+            'routine_graph': _routine_graph_counts(core['routine_graph']),
             'coverage': {key: coverage[key] for key in sorted(_COVERAGE_KEYS)},
         }
         validate_reference_summary(summary)
         return summary
-    except (ReferenceError, SummaryError, KeyError, TypeError, AttributeError, IndexError):
+    except (ReferenceError, RoutineShapeError, RoutineMetadataError, SummaryError,
+            KeyError, TypeError, AttributeError, IndexError):
         _invalid()
 
 
@@ -309,7 +615,7 @@ def validate_reference_summary(summary: dict[str, Any]) -> None:
     """Validate every field and all aggregate relationships at publication time."""
     try:
         _validate(summary)
-    except (SummaryError, KeyError, TypeError, AttributeError, IndexError):
+    except (RoutineShapeError, RoutineMetadataError, SummaryError, KeyError, TypeError, AttributeError, IndexError):
         _invalid()
 
 
@@ -317,17 +623,24 @@ def _validate(summary: dict[str, Any]) -> None:
     if type(summary) is not dict:
         _invalid()
     version = summary.get('schema_version')
-    if type(version) is not int or version not in {1, 2, 3}:
+    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}:
         _invalid()
     legacy = version == 1
     _keys(summary, set(CONSTANTS) | {'status', 'source_summary', 'symbols', 'aliases', 'operands', 'coverage'}
-          | (set() if legacy else {'module_io'}))
-    _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: CONSTANTS}[version])
+          | (set() if legacy else {'module_io'}) | ({'rack_candidates'} if version >= 5 else set())
+          | ({'routine_instruction_shapes'} if version >= 9 else set())
+          | ({'routine_targets'} if version >= 10 else set())
+          | ({'routine_target_metadata'} if version >= 11 else set())
+          | ({'routine_graph'} if version >= 12 else set()))
+    _constants(summary, {1: LEGACY_CONSTANTS, 2: V2_CONSTANTS, 3: V3_CONSTANTS,
+                         4: V4_CONSTANTS, 5: V5_CONSTANTS, 6: V6_CONSTANTS,
+                         7: V7_CONSTANTS, 8: V8_CONSTANTS, 9: V9_CONSTANTS,
+                         10: V10_CONSTANTS, 11: V11_CONSTANTS, 12: CONSTANTS}[version])
     if type(summary['status']) is not str or summary['status'] not in {'complete', 'partial'}:
         _invalid()
     source = summary['source_summary']
     validate_summary(source)
-    if source['schema_version'] != (2 if legacy else 3):
+    if source['schema_version'] != (2 if legacy else 4 if version >= 5 else 3):
         _invalid()
     source_counts = source['counts']
     symbols = summary['symbols']
@@ -346,9 +659,10 @@ def _validate(summary: dict[str, Any]) -> None:
             or symbols['unnamed'] > symbols['total']
             or 2 * symbols['ambiguous_groups'] > symbols['total'] - symbols['unnamed']):
         _invalid()
-    for name, allowed in (('aliases', ALIAS_STATUSES), ('operands', OPERAND_STATUSES)):
+    operand_statuses = OPERAND_STATUSES if version >= 6 else LEGACY_OPERAND_STATUSES
+    for name, allowed in (('aliases', ALIAS_STATUSES), ('operands', operand_statuses)):
         group = summary[name]
-        has_shapes = version == 3 and name == 'operands'
+        has_shapes = version >= 3 and name == 'operands'
         _keys(group, {'total', 'by_status'} | (set() if legacy else {'by_reason'})
               | ({'malformed_address_shapes'} if has_shapes else set()))
         _count(group['total'])
@@ -384,6 +698,8 @@ def _validate(summary: dict[str, Any]) -> None:
             _invalid()
     aliases = summary['aliases']
     operands = summary['operands']
+    if version >= 5:
+        _validate_rack_counts(summary)
     if not (source_counts['aliases'] <= aliases['total']
             <= source_counts['aliases'] + source_counts['aoi_parameters'] + source_counts['aoi_local_tags']):
         _invalid()
@@ -397,6 +713,33 @@ def _validate(summary: dict[str, Any]) -> None:
             or coverage['instructions_catalogued'] > coverage['instructions_total']
             or operands['total'] != source['ladder_metrics']['totals']['argument_slots']):
         _invalid()
+    if version >= 6:
+        system_flags = operands['by_status']['system_flag']
+        # Source v4 preserves opcode spelling and publishes only exact uppercase
+        # vocabulary. Its withheld bucket can include lowercase contacts, so it
+        # broadens this public upper bound. Only the publisher's canonical
+        # private reanalysis proves actual roles; these counts cannot distinguish
+        # a lowercase contact from another withheld instruction.
+        contacts = sum(source['instructions']['counts'].get(opcode, 0)
+                       for opcode in ('XIC', 'XIO', 'withheld'))
+        if system_flags > contacts or system_flags > coverage['instructions_catalogued']:
+            _invalid()
+    if version >= 9:
+        validate_routine_instruction_shapes(
+            summary['routine_instruction_shapes'], source_summary=source,
+            instructions_catalogued=coverage['instructions_catalogued'],
+            operands_total=operands['total'],
+            unsupported_instruction_slots=operands['by_status']['unsupported_instruction'],
+        )
+    if version >= 10:
+        _validate_routine_target_counts(summary)
+    if version >= 11:
+        validate_routine_target_metadata(
+            summary['routine_target_metadata'], routine_targets=summary['routine_targets'],
+            source_summary=source,
+        )
+    if version >= 12:
+        _validate_routine_graph_counts(summary)
     incomplete = (
         source['status'] != 'complete'
         or coverage['instructions_catalogued'] != coverage['instructions_total']

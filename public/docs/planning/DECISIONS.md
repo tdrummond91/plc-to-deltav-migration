@@ -32,8 +32,9 @@ Scope revision 0.3 — 2026-10-12. Implementation proposals remain subject to th
 | D024 | Prefer sequential reviewer handoffs initially | One active editor and revision-bound handoff packages; validate returned changes against their base and flag stale copies; concurrent editing is a later option |
 | D025 | Sequential review does not prescribe participant order | Choose recipients per handoff; separate assignment/routing from the single-editor policy so future workflows can extend it |
 | D026 | Confidential means reconstructing the entire unit with data values, or more than 2% rung knowledge | Aggregate summaries with no individual rung logic or process values are approved for repository sync; remove the per-report sharing gate and allow public/inspection/ output. Raw exports and full inventories stay private. |
-| D027 | Work-machine commands must not automatically pull or push; normal parsing is allowed. Tyler clarified that report commits should be automatic. | Use local code and automatically stage/commit only the newly validated aggregate report, including failed outcomes. Fetch/pull/push remain manual; older ignored local reports and private outputs are not included. |
+| D027 | Work-machine commands must not automatically pull or push; normal parsing is allowed. Tyler clarified that report commits should be automatic. | Use local code and automatically stage/commit only the newly validated feedback report, including failed outcomes. Fetch/pull/push remain manual; older ignored local reports and private outputs are not included. |
 | D028 | Consolidate the current development history into one main commit and retire old branches; preserve documentation | Keep tested revision provenance under an archive tag. Future development uses new -pc branches from main; this checkpoint does not complete Phase 1. |
+| D029 | One actual mystery-operand occurrence is within Tyler's sharing boundary; counts alone are unnecessarily restrictive for this investigation | Work-check schema 2 may include one exact operand up to 128 printable characters plus standard instruction/slot, with no rung or neighboring process context. Standalone source/reference summaries remain count-only. |
 
 D010 supersedes the earlier transition plan to retain a root plc-code ignore rule. The repository has confidential/, public/, and python-parser/ roles; confidential/ is ignored. D012's fresh-repository setup is complete: origin was fetched on 2026-10-12 and main matched origin/main at bafc410. D009 applies to the restricted work-machine environment, not every computer. D014 establishes the later PCSD/FHX scope while retaining D008's deferral of conversion implementation during source understanding.
 
@@ -109,6 +110,120 @@ preserves prior notes, ends in -pc and does not merge into main. Return aggregat
 coverage before choosing broader expression, module, call or instruction-effect
 analysis. These are implementation choices within the authorized slice, not a
 final PCSD schema or an expansion of the source-sharing policy.
+
+### Basic calculation catalog extension (2026-10-14)
+
+After `d247f87` confirmed first-scan classification, choose ABS/LN/SQR as a
+small Phase 1 reference slice. The returned public histogram contains 28 such
+instructions. Official neutral-text grammar specifies two source/destination
+fields, allowing reuse of the existing lexical catalog without private examples
+or a math-expression parser. Preserve raw evidence and existing literal rules;
+do not imply valid destination access, types, domains or execution behavior.
+
+Version the changed analyzer/catalog and freeze prior public contracts. Verify
+synthetic lookup/publication/persistence and a real work-machine aggregate before
+claiming production counts. Additional alias-mediated occurrence counts may
+appear when formerly unknown slots are analyzed. This is an implementation
+choice within authorized source understanding, not a final loop/class mapping.
+See [scope, primary sources and validation](../reviews/MATH_SIGNATURE_REVIEW.md).
+
+### Bit-operation argument roles (2026-10-14)
+
+After `4244cf5` confirmed the calculation catalog, select MVM/SWPB as the next
+small Phase 1 reference slice. Official neutral grammar documents three fields
+for each; SWPB's middle field is a list-item order selector. Classify that field
+as non_data by positional role and share the predicate with diagnostic sampling,
+so tag-like option text never becomes a binding or address example. Preserve
+raw selector values without validating allowed mode spelling or byte ordering.
+
+Reuse existing lexical root/literal rules for data fields; do not infer mask
+widths, types, destination access or effects. Freeze prior contracts and confirm
+the occurrence split using a normal work-machine aggregate. This is an authorized
+source-reference implementation choice, not a final process classification.
+See [primary evidence and validation](../reviews/BIT_OPERATION_REVIEW.md).
+
+### Observe routine-call fields before assigning roles (2026-10-14)
+
+After `08c2695` confirms bit-operation roles, choose a closed JSR/SBR/RET
+argument-shape diagnostic. Rockwell's RLL-neutral and structured-text tables
+show different layouts; generalized instruction help does not resolve that
+difference. Do not assume the second ladder field is InputCount or copy SBR
+parameter roles from structured text. Profile fixed arity bins and exact second
+zero text without publishing names, argument strings or occurrence links.
+
+Keep the binding catalog, analyzer and private JSON unchanged. Derive counts
+from captured instruction records and make them available in aggregate JSON
+and private text, including zero-field instructions. Confirm the real shape
+distribution before a scoped routine-link slice; target resolution stays separate
+from tag lookup and from execution/sequence interpretation. See
+[the evidence and validation](../reviews/ROUTINE_CALL_SHAPE_REVIEW.md).
+
+### Derive declared JSR candidates separately from parameter roles (2026-10-14)
+
+Returned `0a2610f` confirms 65 two-field second-zero and 11 three-field
+second-other JSRs, one one-field SBR and one zero-field RET. It does not establish
+InputCount or parameter boundaries. RLL/ST reference tables agree on JSR's first
+routine-name field, allowing a scoped declaration-candidate slice without
+expanding the tag-binding catalog or interpreting later arguments.
+
+Match static ASCII first fields only within the caller program's separate routine
+namespace. Keep ambiguity and unsupported ownership explicit, and allow declared
+non-RLL target envelopes. Identify known self/main/fault contexts from IDs and
+program attributes; classify other only for Normal programs. Never infer phase
+states from names or equate unique candidates with valid calls or reachability.
+Private rows retain snapshot provenance; public feedback uses closed counts.
+Read [the candidate contract and evidence](../reviews/ROUTINE_TARGET_REVIEW.md).
+
+### Observe missing program context before assigning a default (2026-10-14)
+
+Returned `7e15843` confirms 76 unique JSR declaration candidates and 66 distinct
+targets, but all 76 contexts remain not_analyzed. Existing counters are stable.
+The parser retains program attributes, and Rockwell's normal-program example
+omits Type; no explicit omitted-Type default was verified. Keep candidate/context
+results unchanged and derive closed unique-call program-Type/target-language
+counts, separating absent, empty, known enums and other explicit values. The
+unknown-context subset explains the gap without exposing labels or inventing
+Normal/phase roles. The official program sequence enum is Sequence, distinct
+from Routine.Type and an unknown EquipmentSequence spelling. See
+[evidence and contract](../reviews/ROUTINE_METADATA_REVIEW.md).
+
+### Map declared routine relationships before runtime interpretation (2026-10-14)
+
+Returned `3431389` confirms all 76 candidate program-Type observations are absent
+and target-language occurrences are RLL62/SFC14, with earlier evidence stable.
+Retain that gap without inventing an omitted-Type default. Build a bounded
+program-local graph of declared JSR candidates, grouping repeated calls while
+retaining their instruction links. Include isolated nodes, explicit main metadata
+and observed body coverage; use iterative SCCs for candidate cycles. Do not infer
+SFC outgoing calls, runtime leaves, recursion, scheduling or parameter roles.
+The graph supports private reading and future source-linked engineering records;
+public feedback remains closed counts only. See
+[the graph contract](../reviews/ROUTINE_GRAPH_REVIEW.md).
+
+### Capture SFC structure separately from existing ladder coverage (2026-10-14)
+
+Returned `2f37ae3` confirms a complete candidate lookup with no observed call
+cycles, while 14 SFC bodies remain unmodeled. Build a separate bounded structural
+result over the same immutable snapshot instead of relabeling existing inventory
+or reference coverage. Preserve all SFCContent edit versions and resolve numeric
+IDs only within each block; duplicate IDs never pick a target. Capture raw
+descriptors and opaque ST for private reading and later engineering records;
+share closed counts only. Unknown routine siblings remain explicit gaps with
+their payload preserved in the snapshot. Keep runtime transition/action semantics
+and target sequence design for later evidence-driven work. See
+[the SFC contract](../reviews/SFC_STRUCTURE_REVIEW.md).
+
+### Keep authored SFC notes separate from flow and engineering descriptions (2026-10-14)
+
+Returned `42e0188` confirms resolved SFC flow endpoints and 280 unknown elements.
+The approved fixture suggests immediate Text children as a bounded compatibility
+extension. Capture direct/child note fragments separately and resolve Attachment
+FromID TextBox to ToID flow block/Action within each content namespace. Preserve
+uncertainty, collisions and edit boundaries; do not reverse wrong endpoints or
+select a description automatically. PrivateSFC2/publicSFC2/work12 carry this slice;
+existing reference results and historical contracts stay exact. Keep output size
+proportional to retained evidence by printing endpoint payloads once. See the
+[annotation evidence and tests](../reviews/SFC_ANNOTATION_REVIEW.md).
 
 ## Open questions for the relevant milestone
 

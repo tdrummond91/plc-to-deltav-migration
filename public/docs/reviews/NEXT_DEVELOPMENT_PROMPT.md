@@ -1,4 +1,18 @@
 Read public/CODEX_HANDOFF.md,
+public/docs/reviews/PROJECT_STATE_REVIEW.md,
+public/docs/reviews/SFC_ANNOTATION_REVIEW.md,
+public/docs/reviews/SFC_STRUCTURE_REVIEW.md,
+public/docs/reviews/ROUTINE_GRAPH_REVIEW.md,
+public/docs/reviews/ROUTINE_METADATA_REVIEW.md,
+public/docs/reviews/ROUTINE_TARGET_REVIEW.md,
+public/docs/reviews/ROUTINE_CALL_SHAPE_REVIEW.md,
+public/docs/reviews/BIT_OPERATION_REVIEW.md,
+public/docs/reviews/MATH_SIGNATURE_REVIEW.md,
+public/docs/reviews/SYSTEM_FLAG_REVIEW.md,
+public/docs/reviews/UNMATCHED_OPERAND_REVIEW.md,
+public/docs/reviews/RACK_CANDIDATE_REVIEW.md,
+public/docs/reviews/RACK_IO_INVESTIGATION.md,
+public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md,
 public/docs/reviews/ADDRESS_SHAPE_REVIEW.md,
 public/docs/reviews/MODULE_IO_REVIEW.md,
 public/docs/reviews/WORK_CHECK_RUNNER_REVIEW.md,
@@ -29,7 +43,7 @@ do not revive or merge the retired topic branches.
 The updated work-machine runner operates on the already checked out clean named
 branch, including main. Tyler clarified that local report commits should be
 automatic; only fetching, pulling and pushing remain manual. No matching upstream
-is required. The runner saves a validated aggregate to
+is required. The runner saves a validated feedback report to
 public/inspection/work-check-<run-id>.json and automatically stages and commits
 only that file, including failed test/analysis outcomes. It checks the tested
 branch/revision, clean tree and report commit scope. Review the report, then run
@@ -39,8 +53,10 @@ confidential/ and must not be shared.
 
 Work-machine suites now use explicit parser/helper allowlists, excluding
 listener, Windows process-host, Bash bootstrap and Git-fixture tests. Full
-development unittest discovery remains available. The work-check envelope stays
-schema 1, and the tested SHA identifies the suite implementation and scope.
+development unittest discovery remains available, excluding the ignored listener
+loader on this development checkout. Work schemas 1/2/3/4/5/6/7/8/9/10/11 remain readable. Current
+schema12 requires reference12 and a separate SFC summary2 and retains at most one authorized operand example.
+The tested SHA identifies the suite implementation and scope.
 Older instructions below that describe automatic Git publication or broader
 work-machine tests are historical and superseded by this paragraph.
 
@@ -60,10 +76,11 @@ For implementation/review involving helper behavior, run the existing tests:
 uv run --project python-parser python -B -m unittest discover \
   -s tools/l5x_inspect/tests -v
 
-Current baseline: 139 passing helper tests. Also run:
-uv run --project python-parser python -B -m unittest discover -s python-parser/tests -v
+Current baseline: 139 passing helper tests. Also run the full development
+application command in SFC_STRUCTURE_REVIEW.md, which explicitly excludes the
+ignored listener loader. Do not run that local loader through broad discovery.
 
-Use the final application test count and tested revision in MODULE_IO_REVIEW.md;
+Use the final application test count and tested revision in SFC_ANNOTATION_REVIEW.md;
 one Windows symlink-capability skip is expected on this PC. The helper suite
 passed all 139 tests again on 2026-10-13.
 For documentation-only changes, review the diff and links; do not describe an old
@@ -78,14 +95,146 @@ outside the current grammar, without changing resolution. Reference aggregate
 schema 3 adds seven fixed counters; private contracts, source aggregate and outer
 work-check schema are unchanged. Read ADDRESS_SHAPE_REVIEW.md for precedence,
 alias-target handling, compatibility, validation and limits. The diagnostic report
-already returned in b58af78 as
-public/inspection/work-check-20261014T051259Z-72d3ad4c.json and awaits parser
-analysis. Review that aggregate before requesting another run. Compare
-against the prior 868 malformed-address cases; do not predict their shape from
-the old counts. If the returned buckets cannot support a bounded next step, stop
-for a specific work-machine investigation without requesting private evidence.
-Continue work already authorized in the active session; stop for a decision
-when the evidence or a phase boundary needs Tyler's input.
+returned in b58af78 and was confirmed unchanged by the report in 46467af,
+public/inspection/work-check-20261014T072717Z-4d71aaff.json. Both validate; all
+868 malformed operand occurrences fall in other_form. Tyler explicitly clarified
+that one actual mystery operand is within the sharing boundary. Schema 2 now
+adds diagnostic_sample, separate from count-only reference summaries: at most one
+exact operand of 128 printable characters with standard opcode/argument index.
+Read BOUNDED_OPERAND_SAMPLE_REVIEW.md and TIMER_PLACEHOLDER_REVIEW.md. Report
+349ee29 supplied `?` at TON argument 1. The timer correction is now confirmed
+by report 1195d40, testing clean 112ee82: 177 application cases (one skip) and
+139 helpers passed. Malformed/other_form 868 to 0, non_data 0 to 868,
+unsupported-address 870 to 2; all other source/reference counters unchanged
+and sample null. No repeat work-machine run is needed to confirm this fix.
+Do not infer byte identity or timer configuration/effects from these aggregates.
+
+The rack slice introduced private inventory/reference schemas 3/3,
+source-inventory-3/source-references-4, public source/reference schemas 4/5,
+and manifest2 (the original rack slice used work-check2). The current system-flag
+slice below supersedes these reference/work-check versions. Read
+RACK_CANDIDATE_REVIEW.md for rack validation.
+Dedicated rack declarations and separate candidate diagnostics preserve ordinary
+bindings. Public counts partition unresolved aliases, direct operands and
+alias-mediated operands. Matching uses the terminal failed target and scope.
+Candidates with unknown backing are never ordinary terminal root_bound symbols;
+unsupported topology/content/attributes and ambiguity remain explicit.
+
+Report `9597f18` now confirms all 15 rack roots are named; all 99 unresolved aliases
+and 319 alias-mediated occurrences have unique candidates; one direct occurrence
+has no candidate. It tested clean `9d159e0`, passed 220 application cases (one skip)
+and 139 helpers, with source/reference counters unchanged except intended rack
+capture/diagnostics. This measures logical candidate matches, not backing maps.
+
+The completed one-address follow-up used work-check schema 3 with one bounded
+sample, prioritizing eligible malformed operands before a direct unresolved colon
+operand with canonical no_candidate_match evidence. The four fields and 128-character
+bound stay unchanged; old schema 2 rejects the new kind. Private contracts and
+count-only reference/source schemas stayed 3/3 and 5/4 respectively.
+
+Report 7f5db96 tested clean 84dc393, passed 241 application cases (one skip) and
+139 helpers, and returned S:FS at XIC argument 0. Other aggregates are unchanged.
+The first-scan rule is now implemented and documented in SYSTEM_FLAG_REVIEW.md:
+direct exact trimmed ASCII S:FS, ignoring case, in valid one-argument XIC/XIO
+receives system_flag status. Raw evidence is preserved, with no declared-tag
+binding or runtime simulation. Private references now use schema4/analyzer5,
+public references schema6, work-check schema4; source and manifest are unchanged.
+Historical status vocabularies and samples remain readable under their original
+contracts. Current samples reject recognized S:FS even if other gaps remain.
+
+Report d247f87 tested clean d64ee4d, passed 269 application cases (one skip) and
+139 helpers, and confirms that delta: system_flag=1, unresolved operands 320 to
+319, direct rack comparisons 1 to 0, sample null, with all other source/reference
+counters unchanged. No repeat flag-only check is needed.
+
+The preceding calculation slice added only ABS/LN/SQR two-field source/destination signatures
+to existing lexical reference analysis. Private references stay schema4 with
+analyzer6; public references use schema7; work schema5 requires reference7.
+Source contracts and private manifest layout are unchanged. Public reference6
+and work4/reference6 remain readable under their frozen earlier contracts.
+Read MATH_SIGNATURE_REVIEW.md for exact primary evidence, validation and limits.
+
+Report 4244cf5 tested clean a6a2a71, passed 286 application cases (one skip) and
+139 helpers, and confirms all 28 signatures and 56 bound slots. Catalogued rises
+17563 to 17591, root_bound 20178 to 20234 and unsupported instruction slots
+fall 653 to 597. All other source/reference counters stay unchanged. No repeat
+calculation-only check is needed.
+
+The preceding bit slice catalogs MVM/SWPB with three fields. SWPB argument 1 is an
+order-mode selector accounted as non_data by role before root/literal lookup;
+the shared predicate rejects it as either diagnostic sample kind regardless
+raw spelling. Arity/empty checks take priority. Mode values, masks, types,
+destination access, byte ordering and execution effects remain unvalidated.
+Private references are schema4/analyzer7; public references schema8; work6
+requires reference8. All prior metadata/field contracts remain readable.
+Read BIT_OPERATION_REVIEW.md for role evidence and exact validation.
+
+Report 08c2695 tested clean bdf09f1, passed 296 application cases (one skip) and
+139 helpers, and confirms all 26 signatures: catalogue 17,591 to 17,617;
+unsupported slots 597 to 519; 52 newly bound roots, 16 literals and ten selectors.
+Every other source/reference counter is unchanged. No repeat bit-only check
+is needed. Do not infer runtime behavior from these lexical classifications.
+
+The preceding slice observes JSR/SBR/RET argument shapes without changing binding
+or catalog rules. Official RLL-neutral and ST tables differ, so no parameter
+roles or routine links are assigned. Public reference9 adds closed shape counts;
+private reference4/analyzer7, source3/aggregate4 and manifest2 stay unchanged.
+Work7 requires reference9; work6/reference8 and all earlier contracts remain
+readable. Private text receives captured inventory, including zero-field calls;
+private JSON keeps the canonical result. Read ROUTINE_CALL_SHAPE_REVIEW.md.
+
+Returned `0a2610f` tests clean `9c56b50`, passing 308 application cases (one skip)
+and 139 helpers. JSR=76/163fields: 65 two-field second-zero and 11 three-field
+second-other calls; SBR=1/onefield; RET=1/zerofields. Earlier counters are unchanged.
+This establishes shapes without InputCount or parameter roles.
+
+Preceding slice: private5/analyzer8, public10 and work8 add program-local declared
+JSR first-field candidates. Existing tag/alias/operand/catalog/source/shape
+evidence stays unchanged. Static ASCII names use a separate routine namespace;
+self identity and explicit main/fault attributes provide limited context, other
+requires Normal, phase names are not guessed. Non-RLL target envelopes remain
+candidates. No call-validity, reachability or parameter claim is made. Read
+ROUTINE_TARGET_REVIEW.md. Returned `7e15843` tests clean `3598710`: 325
+application cases (one skip) and 139 helpers pass. There are 76 unique candidates,
+66 distinct targets and 76 not_analyzed contexts; earlier counters are unchanged.
+
+The preceding slice adds routine_target_metadata unique-call observations: exact
+program-Type provenance and target-language declarations, with a program-Type
+subset for unknown context. Public11/exporter11 keeps analyzer8/private5; work9
+requires reference11. Earlier contracts remain frozen/readable. Do not default
+missing Program.Type to Normal: the official example suggests it but no explicit
+default rule was verified. Program Sequence is a documented enum;
+EquipmentSequence remains unknown. Read ROUTINE_METADATA_REVIEW.md.
+Returned `3431389` tests clean `5f91400`, passing 335 application cases (one
+skip) and 139 helpers. All 76 program-Type observations are absent; call-weighted
+languages are RLL62/SFC14. All earlier counters remain unchanged.
+
+The preceding slice adds a static program-local declared-candidate JSR graph, grouping
+repeated calls with private instruction links, isolated routine nodes, observed
+structural body coverage, explicit main designations and iterative candidate
+cycles. Private6/analyzer9, public12 and work10 record the new derivation. SFC
+bodies remain unmodeled; no outgoing observed edges does not mean runtime leaf.
+Missing Type is still not defaulted, and no parameters, scheduling, valid-call
+or runtime reachability are inferred. Read ROUTINE_GRAPH_REVIEW.md. Returned
+`2f37ae3` tests clean `e17ceeb`, passes 354 application cases (one skip) and 139
+helpers: 69 nodes/68 pairs/76 linked calls, three repeats/eight extras, three
+unique mains, one isolated node, no cycles/self edges. Earlier counts are stable.
+
+Returned `90923ab` tests clean `f8411bc`: 416 application cases (one skip) and
+139 helpers pass. The bounded SFC structural/annotation slice is complete for
+this export: 280 Text-child boxes, 213 attachments with all 426 endpoints
+resolved, zero SFC issues. All earlier reference and SFC flow/ID/ST counts are
+unchanged. The report-only commit has its tested revision as parent. Overall
+analysis remains partial; semantic/effect/member analysis remains unimplemented.
+No repeat annotation-only work-PC run is needed. Read SFC_ANNOTATION_REVIEW.md
+for confirmation and PROJECT_STATE_REVIEW.md for the independent state audit,
+next user-facing milestone and provisional iteration estimates. The recommendation
+is to bundle coherent improvements into a private engineering review package,
+using local synthetic validation before requesting another work-machine run.
+Preserve existing identity/provenance contracts and keep edits/correction survival
+as explicit future design work, not a capability implied by immutable snapshots.
+Continue authorized work until a specific evidence gap or phase boundary needs
+Tyler's input. Do not activate the listener or access confidential inputs.
 
 Keep parsing and analysis reusable by both CLI and a future GUI.
 Preserve source mappings and account for unsupported content.
@@ -259,8 +408,8 @@ Tyler clarified confidentiality on 2026-10-13: unit reconstruction with data
 values, or more than 2% rung knowledge. Aggregate summaries contain no individual
 rung logic or process values and are approved for sync in public/inspection/.
 The current requirement for manual report review/publication controls the runner;
-it does not change which aggregate fields are approved for sharing. New source/reference
-aggregates use schemas 3/2 with policy 2. The validator retains the preceding
+it does not change which aggregate fields are approved for sharing. Current source/reference
+aggregates use schemas 3/4 with policy 2 (the earlier module slice used 3/2). The validator retains the preceding
 source schema 2 and reference schema 1 with its schema-2 source; hybrid versions
 are rejected. Already-generated v1 source summaries remain historical feedback.
 The full `inspect` output still stays private. Read D026 and the current handoff.

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+from copy import deepcopy
+import json
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -105,6 +107,22 @@ class SummaryOutputTests(unittest.TestCase):
                 with self.assertRaises(SummaryOutputError):
                     publish_summary(root / "summary.json", SUMMARY, input_path=root / "source.L5X")
             self.assertEqual(list(root.iterdir()), [])
+
+    def test_sfc_count_only_dispatch_revalidates_and_publishes_canonical_json(self) -> None:
+        from test_sfc_summary import fixture_summary
+        from plc_workbench.sfc_summary import render_sfc_summary
+
+        summary = fixture_summary()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / 'sfc-summary.json'
+            publish_summary(output, json.dumps(summary), input_path=root / 'source.L5X')
+            self.assertEqual(output.read_text(encoding='utf-8'), render_sfc_summary(summary))
+            forged = deepcopy(summary)
+            forged['PRIVATE_VALUES'] = ['PRIVATE_TAG']
+            with self.assertRaises(SummaryOutputError):
+                publish_summary(root / 'rejected.json', json.dumps(forged), input_path=root / 'source.L5X')
+            self.assertFalse((root / 'rejected.json').exists())
 
 
 if __name__ == "__main__":

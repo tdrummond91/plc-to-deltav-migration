@@ -14,6 +14,9 @@ from typing import Any
 
 from .models import EntityRecord, InventoryResult
 from .module_io import MODULE_IO_KINDS, ModuleIOError, derive_module_io_names
+from .rack_candidates import RackCandidateError, build_rack_candidates
+from .routine_targets import RoutineTargetError, build_routine_targets
+from .routine_graph import RoutineGraphError, build_routine_graph
 
 MAX_OPERANDS = 250_000
 MAX_ALIAS_DEPTH = 64
@@ -23,7 +26,7 @@ MAX_EXPANDED_EVIDENCE_CHARS = 8_000_000
 OPERAND_STATUSES = frozenset({
     'root_bound', 'unresolved', 'ambiguous', 'alias_cycle', 'alias_depth_limit',
     'unsupported_address', 'unsupported_expression', 'literal', 'non_data',
-    'unsupported_instruction', 'argument_count_mismatch', 'empty',
+    'unsupported_instruction', 'argument_count_mismatch', 'empty', 'system_flag',
 })
 ALIAS_STATUSES = frozenset({
     'root_bound', 'unresolved', 'ambiguous', 'alias_cycle', 'alias_depth_limit',
@@ -44,7 +47,8 @@ UNSUPPORTED_ADDRESS_REASONS = frozenset({
 # into plausible-looking tag references. "address" also admits literal values.
 _ARITIES = {
     'XIC': 1, 'XIO': 1, 'OTE': 1, 'OTL': 1, 'OTU': 1, 'ONS': 1,
-    'MOV': 2, 'ADD': 3, 'SUB': 3, 'MUL': 3, 'DIV': 3,
+    'MOV': 2, 'MVM': 3, 'SWPB': 3, 'ADD': 3, 'SUB': 3, 'MUL': 3, 'DIV': 3,
+    'ABS': 2, 'LN': 2, 'SQR': 2,
     'EQU': 2, 'NEQ': 2, 'LES': 2, 'LEQ': 2, 'GRT': 2, 'GEQ': 2,
     'LIM': 3, 'CLR': 1, 'CPT': 2, 'JMP': 1, 'LBL': 1,
     'TON': 3, 'TOF': 3, 'RTO': 3, 'OSF': 2, 'OSR': 2, 'RES': 1,
@@ -87,8 +91,11 @@ class ReferenceResult:
     operands: list[dict[str, Any]]
     coverage: dict[str, str | int]
     status: str
-    schema_version: int = 2
-    analyzer_version: str = 'source-references-2'
+    rack_candidates: dict[str, Any]
+    routine_targets: dict[str, Any]
+    routine_graph: dict[str, Any]
+    schema_version: int = 6
+    analyzer_version: str = 'source-references-9'
     analysis_scope: str = 'scoped_root_bindings'
     semantic_analysis: str = 'not_implemented'
     effect_analysis: str = 'not_implemented'
@@ -277,6 +284,33 @@ class _Resolver:
         return _binding('root_bound', first_id, symbol.id, suffix, chain)
 
 
+def _timer_placeholder(opcode: str, argument_index: int, raw_text: str) -> bool:
+    """Identify a non-address timer slot; callers must check the signature first."""
+    return opcode.upper() in {'TON', 'TOF', 'RTO'} and argument_index in {1, 2} and raw_text.strip() == '?'
+
+
+def _swpb_order_mode(opcode: str, argument_index: int) -> bool:
+    """Identify SWPB's selector position without validating the selector value.
+
+    Callers check arity and empty slots separately. This is a positional role,
+    regardless of the operand's spelling; ASCII checking excludes lookalikes.
+    """
+    return (type(opcode) is str and opcode.isascii() and opcode.upper() == 'SWPB'
+            and type(argument_index) is int and argument_index == 1)
+
+
+def _system_flag(opcode: str, argument_index: int, raw_text: str) -> bool:
+    """Recognize the direct S:FS operand; callers must check arity first.
+
+    This lexical rule supplies no runtime first-scan value or execution model.
+    ASCII checking prevents Unicode case folding from inventing PLC keywords.
+    """
+    value = raw_text.strip()
+    return (opcode.isascii() and opcode.upper() in {'XIC', 'XIO'}
+            and type(argument_index) is int and argument_index == 0
+            and value.isascii() and value.upper() == 'S:FS')
+
+
 def analyze_references(inventory: InventoryResult) -> ReferenceResult:
     """Bind explicit catalogued operand roots to snapshot declaration IDs.
 
@@ -284,7 +318,7 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
     assembled in target-to-caller order, not validated addresses. Root binding
     deliberately does not prove that an instruction accepts the given value.
     """
-    if inventory.parser_version != 'source-inventory-2' or inventory.schema_version != 2:
+    if inventory.parser_version != 'source-inventory-3' or inventory.schema_version != 3:
         raise ReferenceError('Unsupported source inventory version.')
     operand_total = sum(len(instruction.arguments) for rung in inventory.rungs
                         if rung.parse_status == 'parsed' for instruction in rung.instructions)
@@ -339,10 +373,23 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
                     binding = _binding('argument_count_mismatch')
                 elif not value:
                     binding = _binding('empty')
+                elif _swpb_order_mode(instruction.opcode, index):
+                    # The order mode is a selector, not data. Retain its raw
+                    # spelling without checking a byte-order enumeration.
+                    binding = _binding('non_data')
                 elif instruction.opcode.upper() in {'JMP', 'LBL'}:
                     binding = _binding('non_data')
                 elif instruction.opcode.upper() == 'CPT' and index == 1:
                     binding = _binding('unsupported_expression')
+                elif _timer_placeholder(instruction.opcode, index, value):
+                    # This is an exported lexical placeholder in a timer's
+                    # preset/accumulated slot, not a tag or an inferred value.
+                    # Arity and the timer-root slot remain separately checked.
+                    binding = _binding('non_data')
+                elif _system_flag(instruction.opcode, index, value):
+                    # S:FS is a system flag in these direct contact roles, not
+                    # a root declaration. Alias targets still use the resolver.
+                    binding = _binding('system_flag')
                 elif _literal(value):
                     binding = _binding('literal')
                 else:
@@ -364,9 +411,22 @@ def analyze_references(inventory: InventoryResult) -> ReferenceResult:
     partial = (inventory.status != 'complete' or resolver.ambiguous or resolver.unnamed
                or instructions_catalogued != instructions_total
                or any(row['status'] != 'root_bound' for row in aliases)
-               or any(row['status'] not in {'root_bound', 'literal', 'non_data'} for row in operands))
+               or any(row['status'] not in {'root_bound', 'literal', 'non_data', 'system_flag'} for row in operands))
+    try:
+        rack_candidates = build_rack_candidates(inventory, aliases, operands)
+    except RackCandidateError:
+        raise ReferenceError('Rack candidate analysis could not complete within its evidence contract.') from None
+    try:
+        routine_targets = build_routine_targets(inventory)
+    except RoutineTargetError:
+        raise ReferenceError('Routine target analysis could not complete within its evidence contract.') from None
+    try:
+        routine_graph = build_routine_graph(inventory, routine_targets)
+    except RoutineGraphError:
+        raise ReferenceError('Routine graph analysis could not complete within its evidence contract.') from None
     return ReferenceResult(dict(inventory.snapshot), symbols, aliases, operands,
-                           coverage, 'partial' if partial else 'complete')
+                           coverage, 'partial' if partial else 'complete', rack_candidates,
+                           routine_targets, routine_graph)
 
 
 def _strict_record_match(expected: dict[str, Any], actual: dict[str, Any]) -> bool:

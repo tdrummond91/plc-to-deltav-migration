@@ -128,6 +128,138 @@ class ReportTests(unittest.TestCase):
             self.assertFalse(destination.parent.exists())
 
 
+class DiagnosticReportTests(unittest.TestCase):
+    def test_returned_schema3_timer_sample_remains_readable_unchanged(self) -> None:
+        path = Path(__file__).resolve().parents[2] / "public/inspection/work-check-20261014T075024Z-a11d87b8.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(payload["analysis"]["reference_summary"]["schema_version"], 3)
+        self.assertEqual(payload["diagnostic_sample"], {
+            "kind": "direct_malformed_operand", "opcode": "TON", "argument_index": 1, "raw_text": "?",
+        })
+        self.assertEqual(json.loads(work_check.render_work_check_report(payload)), payload)
+
+    def test_current_analysis_excludes_timer_placeholders_from_sample(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            source = root / "toy.L5X"
+            source.write_bytes(SOURCE.replace(b"NOP();", b"TON(ToyTimer,?,?);"))
+            result = work_check._analyze(root, source, root, {"commit": COMMIT, "worktree": "clean"})
+            self.assertIsNone(result["diagnostic_sample"])
+            nested = result["reference_summary"]
+            self.assertEqual(nested["schema_version"], 12)
+            self.assertEqual(nested["analyzer_version"], "source-references-9")
+            self.assertEqual(nested["operands"]["by_status"]["non_data"], 2)
+            self.assertEqual(nested["operands"]["by_reason"]["unsupported_address"]["malformed_address"], 0)
+
+    def sample_report(self, reference_version: int = 12) -> dict:
+        from plc_workbench.diagnostic_sample import build_diagnostic_sample
+        inventory = analyze_snapshot(snapshot_from_bytes(SOURCE.replace(b"NOP();", b"TON(ToyTimer,Preset?,?);")))
+        references = analyze_references(inventory)
+        nested = build_reference_summary(inventory, references, revision={"commit": COMMIT, "worktree": "clean"})
+        if reference_version < 12:
+            del nested['routine_graph']
+        if reference_version < 11:
+            del nested['routine_target_metadata']
+        if reference_version < 10:
+            del nested['routine_targets']
+        if reference_version < 9:
+            del nested['routine_instruction_shapes']
+        if reference_version in (3, 4, 5):
+            self.assertEqual(nested['operands']['by_status'].pop('system_flag'), 0)
+        if reference_version in (3, 4, 5, 6, 7, 8, 9, 10, 11):
+            nested.update(schema_version=reference_version,
+                          exporter_version=f"reference-summary-{reference_version}",
+                          analyzer_version=f"source-references-{7 if reference_version == 9 else 8 if reference_version in (10, 11) else reference_version - 1}")
+        if reference_version in (3, 4):
+            del nested["rack_candidates"]
+            source = nested["source_summary"]
+            source.update(schema_version=3, exporter_version="aggregate-summary-3",
+                          parser_version="source-inventory-2")
+            for key in ("module_rack_connections", "module_rack_input_aliases", "module_rack_output_aliases"):
+                del source["counts"][key]
+        elif reference_version not in (5, 6, 7, 8, 9, 10, 11, 12):
+            raise ValueError("Unsupported diagnostic fixture version.")
+        payload = report()
+        payload.update(schema_version=2, workflow_version="work-check-2", status="partial",
+                       diagnostic_sample=build_diagnostic_sample(inventory, references))
+        payload["analysis"].update(status="partial", reference_summary=nested)
+        return payload
+
+    def test_v2_sample_round_trips_through_publication(self) -> None:
+        from plc_workbench.summary_output import publish_summary
+        payload = self.sample_report()
+        self.assertEqual(payload["diagnostic_sample"]["raw_text"], "Preset?")
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "report.json"
+            publish_summary(output, work_check.render_work_check_report(payload), input_path=Path(folder) / "toy.L5X")
+            self.assertEqual(json.loads(output.read_text()), payload)
+
+    def test_current_and_schema4_reject_recognized_timer_samples_but_schema3_preserves_them(self) -> None:
+        for version in (3, 4, 5, 6, 7, 8, 9, 10, 11, 12):
+            for raw in ("?", " ? "):
+                for index in (1, 2):
+                    payload = self.sample_report(version)
+                    payload["diagnostic_sample"].update(raw_text=raw, argument_index=index)
+                    with self.subTest(version=version, raw=raw, index=index):
+                        if version == 3:
+                            # This vocabulary was legitimately malformed under analyzer 2.
+                            work_check.validate_work_check_report(payload)
+                        else:
+                            with self.assertRaises(ValueError):
+                                work_check.validate_work_check_report(payload)
+
+    def test_v1_and_v2_null_sample_are_supported_without_rewriting_history(self) -> None:
+        legacy = report()
+        self.assertEqual(json.loads(work_check.render_work_check_report(legacy)), legacy)
+        current = dict(legacy, schema_version=2, workflow_version="work-check-2", diagnostic_sample=None)
+        self.assertEqual(json.loads(work_check.render_work_check_report(current)), current)
+
+    def test_version_hybrids_and_extra_sample_fields_are_rejected(self) -> None:
+        for mutate in (lambda p: p.pop("diagnostic_sample"),
+                       lambda p: p.update(schema_version=1),
+                       lambda p: p.update(workflow_version="work-check-1"),
+                       lambda p: p["diagnostic_sample"].update(rung="PRIVATE_RUNG")):
+            payload = self.sample_report()
+            mutate(payload)
+            with self.assertRaises(ValueError):
+                work_check.render_work_check_report(payload)
+
+    def test_failure_reports_require_null_sample(self) -> None:
+        payload = self.sample_report()
+        payload["tests"]["application"] = test_result("failed")
+        payload["analysis"] = {"status": "not_run", "failure_code": None,
+                               "private_run_saved": False, "reference_summary": None}
+        payload["status"] = "failed"
+        with self.assertRaises(ValueError):
+            work_check.render_work_check_report(payload)
+        payload["diagnostic_sample"] = None
+        work_check.validate_work_check_report(payload)
+
+    def test_sample_requires_matching_observed_instruction_and_malformed_population(self) -> None:
+        payload = self.sample_report()
+        payload["diagnostic_sample"]["opcode"] = "RTO"
+        with self.assertRaises(ValueError):
+            work_check.render_work_check_report(payload)
+        payload = self.sample_report()
+        payload["analysis"] = report()["analysis"]
+        payload["status"] = report()["status"]
+        with self.assertRaises(ValueError):
+            work_check.render_work_check_report(payload)
+
+    def test_analysis_uses_captured_records_for_single_actual_operand(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            source = root / "toy.L5X"
+            source.write_bytes(SOURCE.replace(b"NOP();", b"TON(ToyTimer,Preset?,?);"))
+            with patch.object(work_check, "capture_snapshot", wraps=work_check.capture_snapshot) as capture:
+                result = work_check._analyze(root, source, root, {"commit": COMMIT, "worktree": "clean"})
+            capture.assert_called_once_with(source)
+            self.assertEqual(result["diagnostic_sample"], {
+                "kind": "direct_malformed_operand", "opcode": "TON", "argument_index": 1, "raw_text": "Preset?",
+            })
+            self.assertNotIn("ToyTimer", json.dumps(result))
+
+
 class SourceAndAnalysisTests(unittest.TestCase):
     def test_config_cannot_escape_git_directory(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
@@ -324,7 +456,15 @@ class GitAndWorkflowTests(unittest.TestCase):
                 pin.side_effect = [None, work_check.WorkCheckError("changed during tests")]
             stack.enter_context(patch.object(work_check, "_remember_source"))
             stack.enter_context(patch.object(work_check, "_run_suite", side_effect=suite_results))
-            analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=report()["analysis"]))
+            from plc_workbench.sfc_structure import analyze_sfc_structure
+            from plc_workbench.sfc_summary import build_sfc_summary
+            snapshot = snapshot_from_bytes(SOURCE)
+            inventory = analyze_snapshot(snapshot)
+            analysis_payload = report()["analysis"]
+            analysis_payload["sfc_structure_summary"] = build_sfc_summary(
+                snapshot, inventory, analyze_sfc_structure(snapshot, inventory),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))
             stack.enter_context(redirect_stdout(io.StringIO()))
             try:

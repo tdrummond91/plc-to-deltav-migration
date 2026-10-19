@@ -1,6 +1,296 @@
 # Data contracts, traceability, and checkpoints
 
-Status: updated 2026-10-13. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
+Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
+
+## Current separate SFC structure contract (2026-10-14)
+
+SfcStructureResult schema2 / sfc-structure-2 captures routine/content identities,
+edit metadata, every SFCContent descendant, opaque text, scoped numeric block IDs,
+conservative links and fixed issues. It uses the original captured bytes, checks
+declaration/snapshot identity and supports strict canonical replay. Unknown
+routine siblings produce markers and coverage gaps. Existing inventory3,
+reference6/source-references-9 and public source4/reference12 remain exact.
+
+SFC aggregate2 / sfc-structure-summary-2 shares only fixed counts, standard code
+revision and source SFC routine total under policy2. No source IDs, names, XML
+attributes, ST text or links are published. Partitions, ID/link capacities,
+eligible text-issue populations and exact issue counts are checked. The publisher
+recognizes this separate report kind and retains its size/path/no-overwrite rules.
+
+Work12 / work-check-12 keeps reference12 and requires the additional
+analysis.sfc_structure_summary on successful analysis; failed/not-run require
+null. Revision and SFC population reconcile with the outer/reference records.
+Historical work11 requires frozen SFC1; work12 requires SFC2. Work10 and earlier retain their exact envelopes. Optional SFC storage adds two
+private artifacts and manifest3; ordinary source/reference-only runs keep1/2.
+New work runs combine source/reference/SFC status and store seven artifacts.
+Private SFC2 adds separate typed annotations and immediate TextBox Text children. Public2 adds annotation/endpoint partitions and raw text-shape/character counts, without text or pairs. Fully resolved pairs alone supply distinct note/target counts. Direct and child fragments remain separate; there is no automatic description assignment. No ST/execution semantics or edit selection is introduced. See
+[annotation scope and validation](../reviews/SFC_ANNOTATION_REVIEW.md) and the [original structure contract](../reviews/SFC_STRUCTURE_REVIEW.md).
+
+## Static JSR candidate graph contract checkpoint (2026-10-14)
+
+Private references6 / source-references-9 adds routine_graph: consistently owned
+program routine nodes, grouped unique-candidate edges with instruction links,
+nonunique-call evidence, explicit main-designation matches and cyclic components.
+Nodes preserve language and observed rung/structural body coverage; SFC bodies
+remain unmodeled. Main metadata does not imply scheduling; candidate cycles do
+not imply runtime recursion. Canonical reanalysis verifies every derived record.
+
+Public reference12 / reference-summary-12 publishes fixed graph counts only.
+Nodes, calls, grouped/repeated/self edges, participating/isolated nodes, main
+designation statuses and candidate-cycle counts reconcile to existing candidate
+and source evidence. No topology, IDs, names or component membership is shared.
+Reference11 stays frozen as analyzer8 and rejects the graph field. Work10 /
+work-check-10 requires reference12; work9/reference11 and earlier contracts stay
+readable. Source3/aggregate4/manifest2, paths and manual pull/push are unchanged.
+See [exact scope and validation](../reviews/ROUTINE_GRAPH_REVIEW.md).
+
+## JSR candidate metadata contract checkpoint (2026-10-14)
+
+Public reference11 / reference-summary-11 adds routine_target_metadata for unique
+candidate occurrences: fixed scope/semantics/execution metadata, total, exact
+program-Type and target-language partitions, plus program-Type counts restricted
+to unclassified contexts. Missing attributes, empty values and explicit known
+enums remain distinct. Unknown values are counted without labels. Counts are
+call-weighted and reconcile with unique candidates, existing unknown context,
+source languages and subset bounds. No body or default-Type interpretation is
+introduced. Reference10 is frozen and rejects this new field.
+
+Work9 / work-check-9 requires reference11; work8/reference10 and earlier pairings
+stay readable. Private5/analyzer8, source3/aggregate4 and manifest2 remain
+unchanged. Captured inventory and canonical private candidates derive the
+profile; private text adds the same counts while private JSON is unchanged.
+See [exact scope and validation](../reviews/ROUTINE_METADATA_REVIEW.md).
+
+## JSR candidate contract checkpoint (2026-10-14)
+
+Private reference schema5 / source-references-8 adds canonical routine_targets
+occurrences: instruction/rung/caller/program IDs, raw first field, status,
+candidate count, unique target ID and target context. Static ASCII names match
+only routine declarations in the owning program, separately from tag lookup.
+Each parsed RLL JSR has a row, including zero fields. Context priority is self
+identity, explicit main, explicit fault, other only for Normal programs, then
+not_analyzed. Parameter roles, call validity and phase-state names remain opaque.
+Occurrence/evidence/field limits and canonical reanalysis bound the private data.
+
+Public reference10 / reference-summary-10 adds fixed metadata, total,
+closed by_status and unique_by_target_context counters, plus distinct_targets.
+Counts reconcile with JSR shapes and source routine totals; no occurrence IDs or
+source values are shared. Work8 / work-check-8 requires reference10. Reference9
+is frozen as analyzer7 and rejects the new field; work7/reference9 and earlier
+contracts remain readable. The unchanged shape profile describes observations
+only, so its target_resolution=not_analyzed remains scoped to that profile.
+Source3, aggregate4, manifest2, sharing rules and manual pull/push are unchanged.
+See [exact scope and validation](../reviews/ROUTINE_TARGET_REVIEW.md).
+
+## Routine-instruction shape contract checkpoint (2026-10-14)
+
+Public reference schema 9 / reference-summary-9 adds required closed
+routine_instruction_shapes. Analyzer source-references-7 and private reference
+schema 4 are unchanged because binding/catalog behavior did not change. Private
+source 3, source aggregate 4 and manifest 2 retain their layouts. Private text
+receives captured inventory and includes these observations; private JSON keeps
+the existing canonical result. Old renderer calls without inventory remain valid.
+
+The field has fixed scope/role/target metadata and JSR/SBR/RET opcode groups,
+each containing total, argument_slots, noncanonical_spelling and by_arity. JSR
+separates two/larger field counts by exact trimmed ASCII second text 0 versus
+other; SBR/RET group zero/one/two/larger fields. All are lexical observations,
+without parameter roles, target links or execution semantics. Counts reconcile
+to uppercase source labels plus observed noncanonical spellings, with one shared
+withheld-opcode budget. Arity/slot partitions and uncatalogued/unsupported-operand
+bounds prevent contradictory aggregates. No private labels/values/IDs are added.
+
+Versions 1 through 8 remain frozen and reject even an all-zero new field.
+At this checkpoint, Work7/reference9 was current; work3/5 through work6/8 remain paired as before.
+Work1/2 supported nested-reference handling, timer/flag/selector sample rules,
+bounded sharing, paths and manual pull/push are unchanged. See
+[exact fields, evidence and validation](../reviews/ROUTINE_CALL_SHAPE_REVIEW.md).
+
+## Bit-operation role contract checkpoint (2026-10-14)
+
+Private references remain schema 4 with analyzer source-references-7. MVM and
+SWPB each have three catalogued fields; SWPB argument 1 is non_data by positional
+order-mode role. Its nonempty raw value is preserved without enum/value
+validation. Arity/empty checks precede the role; data slots keep existing lexical
+root/literal rules. The shared predicate also excludes that slot from both
+diagnostic sample kinds before address parsing. No new private/public field key
+or operand status is added.
+
+Public reference schema 8 / reference-summary-8 requires source aggregate 4.
+Reference 7 is frozen as analyzer 6, with identical keys/status vocabulary.
+Prior versions, flag count bounds and rack mappings remain readable. Work6/
+reference8 is current; work3/5, work4/6 and work5/7 pairings remain frozen, and
+work1/2 supported nested-reference handling is unchanged. Private source schema
+3, source aggregate 4 and manifest 2 keep their layouts. Output paths, bounded
+sharing, local commits and manual pull/push stay unchanged. See
+[role evidence and validation](../reviews/BIT_OPERATION_REVIEW.md).
+
+## Basic calculation signature contract checkpoint (2026-10-14)
+
+Private inventory remains schema 3 / source-inventory-3; private references
+remain schema 4 with analyzer source-references-6. ABS/LN/SQR now have two
+catalogued source/destination fields using the existing lexical lookup rules.
+No private field layout changes. Public reference schema 7 / reference-summary-7
+has the same fields/status vocabulary and source-schema-4 pairing as version 6,
+with the updated analyzer constant. Version 6 is frozen as analyzer 5, including
+its system-flag count bounds. All prior reference contracts remain readable.
+
+Work schema 5 / work-check-5 requires reference 7 after successful analysis.
+Work3/reference5 and work4/reference6 retain exact earlier pairings; work1/2
+retain supported nested-reference handling. Known flags/timer placeholders stay
+excluded from current mystery samples. Source aggregate 4, manifest 2, sharing
+fields, sample bound, output paths and manual pull/push remain unchanged.
+Lexical destination literals do not prove valid destination access, datatype,
+math domain or execution effects. See [scope and validation](../reviews/MATH_SIGNATURE_REVIEW.md).
+
+## First-scan system-flag contract checkpoint (2026-10-14)
+
+Private inventory remains schema 3 / `source-inventory-3`. Private references
+are schema 4 / `source-references-5`; public reference schema 6 /
+`reference-summary-6` requires unchanged source schema 4. Reference-run manifests
+remain schema 2 with current analyzer metadata. These versions supersede the
+historical checkpoints below; rack and timer behavior is retained.
+
+Only direct exact trimmed ASCII `S:FS`, ignoring letter case, in valid
+one-argument XIC/XIO instructions receives operand status `system_flag`.
+Raw evidence and source IDs remain unchanged. Its symbol/target IDs and reason
+are null, with empty alias chain/suffix. Aliases, other roles and suffixes keep
+their prior handling. This identifies the First Scan flag without simulating it.
+
+Public `operands.by_status.system_flag` is a strict nonnegative count included
+in total reconciliation and the completed operand-analysis statuses. It cannot
+exceed catalogued instructions or named XIC + XIO + withheld occurrences.
+Source schema 4 preserves opcode spelling, so lowercase contacts are withheld;
+this public upper bound is conservative. Canonical private reanalysis proves
+actual roles. Alias status keys do not change. Reference schemas 1 through 5
+retain exact old status keys, rejecting even a zero `system_flag` field.
+Reference 1 requires source 2; references 2/3/4 require source 3; 5/6 require 4.
+
+At this checkpoint, work schema 4 / `work-check-4` requires reference 6 after successful
+analysis. Historical work schema 3 still requires reference 5, including its
+original S:FS mystery sample. Work schemas 1/2 retain their previous acceptance
+of supported nested reference summaries; schema 2 remains malformed-kind only.
+Current samples reject recognized XIC/XIO S:FS as unmatched even when another
+direct operand remains unmatched. Selection, the single 128-character sample
+bound, private output paths and local report commits are unchanged. Pull/push
+remain manual. See [evidence and validation](../reviews/SYSTEM_FLAG_REVIEW.md).
+
+## Rack candidate contract checkpoint (2026-10-14)
+
+This slice introduced private inventory schema 3 / `source-inventory-3` and
+private references schema 3 / `source-references-4`. Dedicated `module_rack_connection`,
+`module_rack_input_alias` and `module_rack_output_alias` records preserve raw
+attributes, XML locators, parent IDs and controller scope. They do not enter
+ordinary symbols or tag/alias totals. Rack connection backing is always marked
+not analyzed. Unexpected text/children produce a bounded diagnostic attached to
+the exact record; raw content remains in the private snapshot.
+
+Private reference field `rack_candidates` contains `candidates` and `matches`.
+Candidate rows have source_id, connection_id, module_id, scope_id, direction,
+name, name_origin, reason and backing_status (`not_analyzed`). Names use checked
+topology only for attribute-free, supported-content declarations with an ICP
+first edge. No adapter backing member or runtime behavior is inferred.
+Match groups are aliases, direct_operands and alias_operands; each row retains
+source_id, terminal_root, lookup_scope_id, status, candidate_id and candidate_count.
+The terminal failed alias target determines lookup scope. A unique candidate
+does not change an unresolved binding into root_bound.
+
+Match statuses are unique_candidate, ambiguous_candidate,
+candidate_names_unavailable, outside_visible_scope and no_candidate_match.
+Visible exact matches take priority, then visible unavailable names, then exact
+names elsewhere. Unavailable names indicate inconclusive matching, not a proven
+relationship. Only a unique match retains candidate_id. New private evidence is
+bounded to 8M retained string characters, including repeated source links.
+
+Public source schema 4 / `aggregate-summary-4` adds module_rack_connections,
+module_rack_input_aliases and module_rack_output_aliases. The mandatory backing
+warning count equals rack connections, with at least that many warning-severity
+diagnostics. Public reference schema 5 / `reference-summary-5` requires source
+schema 4 and adds the closed `rack_candidates` object:
+analysis_scope=`rack_logical_root_candidates`, backing_mapping=`not_analyzed`,
+declarations and matches. Declarations contain total, named, by_direction,
+by_name_origin and unavailable_by_reason. Each match group contains total and
+by_status. Declaration counts reconcile to source counts; alias matches equal
+unresolved colon aliases; direct plus alias-mediated matches equal unresolved
+colon operands. Every positive alias-mediated status requires that status among
+aliases. No names, IDs, addresses or individual source relationships are shared.
+
+Exact historical source schemas 2/3 and reference schemas 1/2/3/4 remain readable.
+Reference 1 requires source 2; reference 2/3/4 require source 3; reference 5 requires
+source 4. Current canonical private validation requires the current versions.
+Work-check subsequently used schema 3 as described below; reference-run manifest stays schema 2 with updated
+parser/analyzer metadata. The timer behavior described below is retained.
+See [implementation, precedence and tests](../reviews/RACK_CANDIDATE_REVIEW.md).
+
+## Historical work-machine feedback schema 3 (2026-10-14)
+
+`l5x_work_machine_check` / `work-check-3` keeps the same top-level fields as schema
+2 and requires reference aggregate 5 / source aggregate 4 after successful
+analysis. `diagnostic_sample` remains null or one four-field object with at most
+128 printable characters of exact raw_text, standard opcode and zero-based
+argument_index. It accepts the original direct_malformed_operand kind and the
+new direct_unmatched_colon_operand kind. The latter must be a recognized static
+colon-root address with positive canonical direct no_candidate_match evidence.
+
+Selection first scans for an eligible direct malformed occurrence, then considers
+unmatched direct colon operands in source order. Overlong/nonprintable malformed
+records do not block fallback. Aliases and candidate/ambiguous/inconclusive/
+outside-scope matches never qualify. Repeated unchanged runs do not rotate
+examples; no source IDs, neighboring logic or other source context are added.
+The builder validates canonical private references and matches by occurrence ID.
+Public validation checks partial analysis, positive direct-unmatched count and
+observed opcode; it cannot independently prove a particular raw operand's source
+identity from aggregate counts.
+
+Historical schemas 1/2 remain readable under their original rules; schema 2
+explicitly rejects the new kind. Private inventory/reference contracts and
+count-only source/reference aggregates are unchanged by this update. See
+[returned evidence, tests and limits](../reviews/UNMATCHED_OPERAND_REVIEW.md).
+
+## Historical work-machine feedback schema 2 (2026-10-14)
+
+The current contract above supersedes historical version numbers below.
+
+`l5x_work_machine_check` / `work-check-2` adds required nullable
+`diagnostic_sample` alongside the existing analysis/test envelope. A non-null
+sample has exactly `kind=direct_malformed_operand`, standard `opcode`, zero-based
+integer `argument_index`, and one exact printable `raw_text` operand of at most
+128 characters. It is generated from validated direct-malformed references in
+the captured snapshot; alias failures and non-address roles are excluded.
+Failed/unrun analysis requires null. A sample must reconcile with a positive
+direct-malformed count and an observed instruction opcode in reference schema 3/4/5.
+Schemas 4/5 reject known timer placeholders as mystery samples; schema 3 retains
+its original interpretation for historical feedback.
+
+Tyler authorized this one actual operand to investigate otherwise unidentified
+syntax. No rung/source identifiers, surrounding logic or other values are added.
+Source/reference summaries remain count-only at current schemas 4/5. Work-check schema 1
+still validates under its exact original keys and cannot contain a sample. The
+publication limit remains 32 KiB. See the [review and limits](../reviews/BOUNDED_OPERAND_SAMPLE_REVIEW.md).
+
+## Timer recognition update (2026-10-14)
+
+This checkpoint records the timer slice before the rack contract above. Its
+recognition rules remain current; its version numbers are historical.
+
+Private reference schema remains 2; the current analyzer is `source-references-3`.
+For valid three-argument TON/TOF/RTO signatures, exact trimmed `?` in slots 1/2
+is `non_data` for address lookup. Raw text and occurrence links remain intact.
+This supplies no timer value and validates no configuration, datatype or effect.
+Other roles and alias targets retain their prior handling. The ordinary address
+grammar is unchanged. Current canonical validation requires the new analyzer;
+this is not an editable import/migration path for saved private runs.
+
+Public reference schema 4 / `reference-summary-4` records `source-references-3`
+with the same fields as schema 3. Private manifest schema 2, source aggregate
+schema 3 and work-check schema 2 remain unchanged. Public readers accept exact
+reference schemas 1/2/3/4, including their original analyzer constants, and
+work-check schemas 1/2. Non-null work samples require reference schema 3 or 4.
+No sample field is added to count-only reference summaries. See
+[the timer evidence and validation](../reviews/TIMER_PLACEHOLDER_REVIEW.md).
+
+The following v2/v3 sections preserve their original behavior and provenance;
+this update supersedes their statements about the current analyzer/exporter.
 
 ## Implemented root-reference analysis v2 (2026-10-13)
 
@@ -88,8 +378,9 @@ Private reference schema/analyzer remain 2/source-references-2.
 Public validation also accepts the previous reference schema 1 with its nested
 source schema 2 and reference schema 2 with source schema 3 (without shape fields).
 New reference schema 3 also requires source schema 3; mixed version fields or
-nested versions are rejected. The outer work-check schema stays 1 and accepts
-all three supported nested reference versions. This is aggregate read compatibility,
+nested versions are rejected. Historical work-check schema 1 and current schema 2
+accept all three supported nested reference versions; a non-null schema-2 sample
+additionally requires reference schema 3 as described above. This is aggregate read compatibility,
 not an editable-data import or private-run migration.
 
 See [module/I/O review](../reviews/MODULE_IO_REVIEW.md) and the
