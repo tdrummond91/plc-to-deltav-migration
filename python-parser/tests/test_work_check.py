@@ -458,11 +458,43 @@ class GitAndWorkflowTests(unittest.TestCase):
             stack.enter_context(patch.object(work_check, "_run_suite", side_effect=suite_results))
             from plc_workbench.sfc_structure import analyze_sfc_structure
             from plc_workbench.sfc_summary import build_sfc_summary
+            from plc_workbench.access import analyze_access
+            from plc_workbench.access_summary import build_access_summary
+            from plc_workbench.calculations import analyze_calculations
             snapshot = snapshot_from_bytes(SOURCE)
             inventory = analyze_snapshot(snapshot)
             analysis_payload = report()["analysis"]
             analysis_payload["sfc_structure_summary"] = build_sfc_summary(
                 snapshot, inventory, analyze_sfc_structure(snapshot, inventory),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            references = analyze_references(inventory)
+            calculations = analyze_calculations(snapshot, inventory, references)
+            analysis_payload["access_summary"] = build_access_summary(
+                inventory, references, analyze_access(inventory, references, schema_version=4,
+                    snapshot=snapshot, calculations=calculations),
+                revision={"commit": COMMIT, "worktree": "clean"},
+                snapshot=snapshot, calculations=calculations)
+            from plc_workbench.tag_data import analyze_tag_data
+            from plc_workbench.tag_data_summary import build_tag_data_summary
+            from plc_workbench.pid import analyze_pid
+            from plc_workbench.pid_summary import build_pid_summary
+            from plc_workbench.pid_members import analyze_pid_members
+            from plc_workbench.pid_member_summary import build_pid_member_summary
+            from plc_workbench.calculation_summary import build_calculation_summary
+            tag_data = analyze_tag_data(snapshot, inventory)
+            analysis_payload["tag_data_summary"] = build_tag_data_summary(
+                snapshot, inventory, tag_data,
+                revision={"commit": COMMIT, "worktree": "clean"})
+            pid = analyze_pid(snapshot, inventory, references, tag_data)
+            analysis_payload["pid_summary"] = build_pid_summary(
+                snapshot, inventory, references, tag_data, pid,
+                revision={"commit": COMMIT, "worktree": "clean"})
+            analysis_payload["pid_member_summary"] = build_pid_member_summary(
+                snapshot, inventory, references, tag_data, pid,
+                analyze_pid_members(snapshot, inventory, references, tag_data, pid),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            analysis_payload["calculation_summary"] = build_calculation_summary(
+                snapshot, inventory, references, analyze_calculations(snapshot, inventory, references),
                 revision={"commit": COMMIT, "worktree": "clean"})
             analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))

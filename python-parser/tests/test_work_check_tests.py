@@ -215,6 +215,11 @@ class WorkCheckTestsTests(unittest.TestCase):
         self.assertFalse(selected & excluded)
         self.assertIn("test_source", selected)
         self.assertIn("test_references", selected)
+        self.assertTrue({'test_access', 'test_access_summary', 'test_access_workflow'} <= selected)
+        self.assertTrue({'test_tag_data', 'test_tag_data_summary', 'test_tag_evidence_workflow'} <= selected)
+        self.assertTrue({'test_pid', 'test_pid_summary', 'test_pid_workflow'} <= selected)
+        self.assertTrue({'test_pid_members', 'test_pid_member_summary', 'test_pid_member_workflow'} <= selected)
+        self.assertTrue({'test_calculations', 'test_calculation_summary', 'test_calculation_workflow'} <= selected)
         self.assertIn("test_rung_syntax", driver.WORK_MACHINE_MODULES["helpers"])
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

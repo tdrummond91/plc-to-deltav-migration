@@ -1,6 +1,151 @@
-# L5X source inventory, references and SFC structure
+# L5X engineering review, calculations and source structure
 
-`plc inspect` is the first read-only application slice. It captures one local L5X as
+## Offline engineering review
+
+`plc review` builds an organized, read-only engineering report from the
+source inventory, references, explicit operand access, stored Tag Data, PID occurrence/member, CPT calculation and SFC evidence. Open its printed
+`review.html` path to search objects, follow source context, inspect findings,
+compare repeated rung syntax and navigate routine/SFC evidence. The report is
+self-contained and opens without a server. Phase 1 now classifies potential
+explicit operand uses for 41 supported mnemonic spellings, including bounded
+timer/reset/copy, counter, message-control, system-value, SFC-reset and CPT roles. CPT expression reads have separate
+counts and exact node/span links; repeated references stay separate.
+Access-owned bindings retain separate provenance from the original reference
+analysis; new declaration links use the access binding and alias chain. These roles are not
+execution effects or dependencies, and root groups do not establish overlap
+between member/index suffixes. Engineering classifications remain later work.
+
+Tyler has not inspected the source/report and explicitly deferred engineering
+and UI review. Such inspection is optional later; it is not a gate to continued
+parser work. The next work-machine run should return only generated aggregate
+feedback for CPT access integration. Returned `cbb2965` confirms 175 newly
+classified access instructions and 175 newly bound operands, with no new binding
+gaps. The next run measures the projected 45 CPT classifications and 132
+expression reads. See [the access contract and limits](../public/docs/reviews/CPT_ACCESS_REVIEW.md).
+
+```bash
+uv run --project python-parser --locked plc review \
+  "confidential/plc-code/A19CHL02-unencrypted.L5X" \
+  --workspace "confidential/workspaces/review"
+```
+
+`--workspace` is required. Each invocation saves a new private run and prints
+the HTML path. Exit 3 means usable partial output was saved. Review runs use
+review6/manifest9 with thirteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json and review.html. Existing plain
+reference and standalone SFC workspaces retain manifest2 and manifest3.
+All HTML and source-bearing artifacts are private and belong under
+`confidential/`. Read [the function follow-up](../public/docs/reviews/CALCULATION_FUNCTION_REVIEW.md),
+[the calculation review](../public/docs/reviews/CALCULATION_REVIEW.md),
+[the PID member review](../public/docs/reviews/PID_MEMBER_REVIEW.md),
+[the PID occurrence review](../public/docs/reviews/PID_EVIDENCE_REVIEW.md),
+[the Tag Data review](../public/docs/reviews/TAG_DATA_REVIEW.md),
+[the timer/copy checkpoint](../public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md)
+and [the initial access-role checkpoint](../public/docs/reviews/ACCESS_ROLE_REVIEW.md).
+
+The normal work-machine launcher also creates this report. Manually `git pull`,
+run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
+the generated feedback JSON, then manually `git push`. The runner
+automatically commits only its validated feedback report; synchronization stays
+manual. Current work21 adds access summary4 beside calculation2, PID member1,
+PID1, Tag Data1, reference12/source4 and SFC2. Earlier work17 added count-only
+PID member summary1 while preserving
+PID1, Tag Data1/reference12/source4/SFC2/access2 summaries. Documented member
+groups, type/shape checks and missing/duplicate catalog fields complement the
+existing operand and storage links. Scalar values, array contents, flags and
+effective configuration remain uninterpreted. Review4/manifest7 remains available
+when the optional member companion is omitted.
+
+Returned `28b5d1f` confirms all 46 PID occurrences linked to 46 distinct backing
+declarations, with 2,346 direct member occurrences and no PID association gaps.
+Its clean `1e9aaae` run passed 586 application cases (one skip) and 139 helpers;
+prior summaries matched after revision normalization. This establishes capture
+coverage, not 46 engineered loops or valid settings. Read the
+[PID member review](../public/docs/reviews/PID_MEMBER_REVIEW.md) for current
+scope and validation. That historical handoff measured PID member coverage;
+the current handoff measures extended access roles.
+
+Historical Tag Data/work15 validation: 642 development cases passed with one
+existing Windows symlink skip. Two isolated runs each passed 546 application
+cases (one skip) and 139 helpers; ten artifact hashes and fresh CLI equivalence
+verified. Eight legacy artifacts matched `122f230`; all 21 then-stored work1-14
+reports validated. The returned work15 report at `a096cae` tested clean `7d0cbb1`
+and is the unchanged baseline for the PID extension.
+
+Historical access2/work14 validation was 592 development cases with one
+existing symlink skip. Two actual isolated runs, explicit then remembered source,
+each pass 496 application cases (one skip) and 139 helpers and create report-only
+local commits without Git network calls. Nine artifact hashes and canonical
+access2/review2 verify; fresh CLI artifacts match byte for byte. Seven legacy
+artifacts match `7cd9201`, source/reference/SFC summaries match after revision
+normalization, and all 20 historical work1-13 reports validate.
+
+Initial access1 validation is historical: 574 development cases passed with one
+existing symlink skip. Two final synthetic launcher runs each passed 478 application cases (one
+skip) and 139 helpers, with nine artifact hashes and canonical access/review
+evidence verified and CLI HTML identical. Seven legacy artifacts are byte-identical
+to baseline `1332543` on the same invented input; source/reference/SFC summaries
+match after revision normalization. All 19 then-stored work1-12 reports validated.
+Returned `7cd9201` confirms initial access1 on clean `6642c5c`, passing 478
+application cases (one skip) and 139 helpers. It classified 16,952 of 17,874
+instructions, retained 922 unsupported instructions and counted 321 access
+binding gaps; reference/source and SFC summaries match the preceding `1332543`
+report after revision normalization. Historical work14 requires access summary2
+and private access2; frozen work13 retains access summary1. Reference12/source4/SFC2 and
+private inventory3/reference6/SFC2 retain their contracts. See
+[the work-machine procedure](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+## Explicit operand access
+
+The independent access analyzer consumes validated inventory/reference evidence
+and preserves existing instruction and operand identities. Its supported
+catalogue labels `read`, `write`, `read_write` and `non_data`; unsupported
+instructions and wrong/empty signatures retain `unknown` roles. TON/TOF/RTO
+require three nonempty fields and accept only `?` or recognized integer literal forms
+in their two preset/accumulator pseudo-operands. Accepted timer storage is
+read-write and both pseudo-operands are non-data; an unsupported pseudo form
+leaves the whole instruction unknown. RES storage is a possible write.
+COP/CPS provide source-read/destination-write/length-read roles without expanding
+copy extents or validating types, bounds, overlap or execution.
+
+Access3 adds CTU/CTD counter read/write with the same pseudo-field grammar,
+MSG control read/write, GSV destination write, SSV source read and SFR explicit
+step possible write. Exact trimmed SFR target `0` is an initial-step selector.
+The three GSV/SSV selectors and SFR routine names are non-data. Their data slots
+use separately attributed root bindings without changing original reference
+records. GSV/SSV may have an empty instance field; other required slots must be
+present and nonempty. Message payloads, system transfer ranges, SFC execution
+and step membership remain unmodeled. CPT, PID, AOI, JSR and ST effects are not
+inferred by this access layer.
+
+Only canonical `root_bound` occurrences enter the disjoint resolved-root groups.
+Read-write storage remains one occurrence, OTL/OTU are explicit writes, and MVM
+conservatively includes a destination read because unmasked bits are retained.
+No mask evaluation, member validation or source-to-destination dependency edges
+are added. A literal destination can retain a declared write role while remaining
+unbound; it is an access gap and never supplies bound write evidence.
+
+`access.json` is private schema3 (`instruction-access-3`). Its coverage accounts
+for all parsed instructions, operands by role/binding, linked/unlinked occurrences,
+indexed roots, unparsed rungs and known-role binding gaps. Separate timer and
+counter pseudo-field counts retain their populations. Fixed extended-family
+counts and fresh-bound counts reconcile access additions with unchanged original
+references. Each private operand includes its binding origin and original
+reference status; the report shows these scopes separately.
+
+`analysis.access_summary` schema3 in work20 publishes only fixed metadata,
+status, revision and counts. It contains no names, IDs, values or source-defined
+keys. Frozen work13 retains summary1; work14-19 retain summary2. Explicit private
+access2 replay reproduces earlier evidence. A shared withheld-opcode allowance
+covers case variants without treating pooled spellings as known family members.
+The source/reference contracts and standalone `references` output are unchanged.
+See [EXTENDED_ACCESS_REVIEW.md](../public/docs/reviews/EXTENDED_ACCESS_REVIEW.md)
+for the current contract and [TIMER_COPY_ACCESS_REVIEW.md](../public/docs/reviews/TIMER_COPY_ACCESS_REVIEW.md)
+for the preserved earlier checkpoint.
+
+## Source inventory
+
+`plc inspect` provides the underlying read-only source inventory. It captures one local L5X as
 immutable in-memory bytes, inventories source envelopes and scoped tags, and
 reports each rung's preserved text, outer syntax, instruction arguments, offsets
 and structural coverage. JSON and readable text use the same inventory records.
@@ -260,14 +405,14 @@ selection saved in this checkout's Git metadata.
 
 The application and helper checks use explicit module allowlists in fresh
 processes. Work-machine checks exclude listener, Windows process-host, Bash
-bootstrap and Git-fixture tests. Full unittest discovery remains available for
-development validation; its test totals must not be compared as if it had the
+bootstrap and Git-fixture tests. The development command below excludes the
+ignored listener loader; its test totals must not be compared as if it had the
 same scope as the work-machine checks.
 
-Successful tests enable a single captured-source inventory/reference analysis
-and a new private workspace. The feedback includes test counts, bounded
-code-only failing test IDs, the tested commit and the count-only reference summary.
-Work-check schema 11 includes `diagnostic_sample`: one actual direct malformed
+Successful tests enable source, reference, SFC, access and Tag Data analysis
+from one captured snapshot and a new private workspace. The feedback includes test counts, bounded
+code-only failing test IDs, the tested commit and count-only reference/SFC/access/Tag Data summaries.
+Work-check schema 15 retains `diagnostic_sample`: one actual direct malformed
 operand, or a direct unresolved colon operand with no rack candidate when no
 eligible malformed sample exists. It retains at most 128 printable characters,
 a standard instruction and zero-based argument position; otherwise it is null.
@@ -283,9 +428,14 @@ Failed tests also produce a committed report and skip source analysis. Useful
 partial analysis exits 0; test or analysis failure exits 1 after committing the
 report. Preflight, save or commit failures stop without claiming completion.
 
-The outer report is schema12 and carries unchanged reference12/source4 plus
-analysis.sfc_structure_summary (SFC schema2) when analysis succeeds. Historical work11 requires frozen SFC1.
-Historical schema-1/2/3/4/5/6/7/8/9/10 reports remain readable;
+The outer report is schema16 and carries unchanged reference12/source4 plus
+`analysis.sfc_structure_summary` (SFC schema2), `analysis.access_summary`
+(access schema2), `analysis.tag_data_summary` (Tag Data schema1) and
+`analysis.pid_summary` (PID schema1) when analysis succeeds. Failed or skipped
+analysis leaves these summaries null. Frozen work15 retains Tag Data1 without PID; work14
+retains access summary2 without Tag Data; frozen work13 requires access summary1. Historical
+work12 retains SFC2 without access, and work11 requires frozen SFC1.
+Historical schema-1/2/3/4/5/6/7/8/9/10/11/12/13/14/15 reports remain readable;
 schemas 3/4/5/6/7/8/9 require references 5/6/7/8/9/10/11 respectively. The tested
 SHA identifies the implementation and therefore its suite scope; historical
 reports may include the broader development suites. The result returned in
@@ -339,8 +489,9 @@ Returned `90923ab` confirms SFC2 structural capture is complete for this export:
 280 recognized child-text boxes and 213 attachments with all 426 endpoints
 resolved. SFC issues fall from 280 to zero; all earlier reference, flow-link,
 ID and ST counts remain unchanged. The report passes 416 application cases
-(one skip) and 139 helpers. Private sfc-structure.json/txt remain under combined
-manifest3 (seven artifacts). Overall partial remains expected: runtime SFC logic,
+(one skip) and 139 helpers. That checkpoint saved private sfc-structure.json/txt
+under combined manifest3 (seven artifacts); current review4 runs use manifest7
+with eleven artifacts, adding access JSON, Tag Data JSON, PID JSON and HTML. Overall partial remains expected: runtime SFC logic,
 ST semantics and engineering classifications remain unimplemented. No repeat
 annotation-only work run is needed. See the [project-state assessment](../public/docs/reviews/PROJECT_STATE_REVIEW.md).
 
@@ -438,9 +589,20 @@ therefore intentionally returns exit 3.
 Run from the repository root:
 
 ```bash
-uv run --project python-parser python -m unittest discover -s python-parser/tests -v
-uv run --project python-parser python -m unittest discover -s tools/l5x_inspect/tests -v
+uv run --project python-parser --locked python -B - <<'PY'
+from pathlib import Path
+import sys, unittest
+folder = Path.cwd() / 'python-parser/tests'
+sys.path.insert(0, str(folder))
+suite = unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromName(p.stem)
+    for p in sorted(folder.glob('test_*.py')) if p.stem != 'test_feedback_listener')
+result = unittest.TextTestRunner().run(suite)
+raise SystemExit(not result.wasSuccessful())
+PY
+uv run --project python-parser --locked python -B -m unittest discover -s tools/l5x_inspect/tests -v
 ```
 
 Tests use invented data or the reviewed public fixtures. The private workspace
 tests use temporary directories; no proprietary source is required.
+Do not use broad application discovery on a development checkout that retains
+the ignored listener test loader. The explicit command above leaves it excluded.

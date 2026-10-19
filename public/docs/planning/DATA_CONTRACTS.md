@@ -1,6 +1,214 @@
 # Data contracts, traceability, and checkpoints
 
-Status: updated 2026-10-14. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
+Status: updated 2026-10-15. Private source inventory, derived root references and bounded aggregates have versioned contracts below; engineering/editable-review contracts remain proposals.
+
+## Current CPT access contract (2026-10-15)
+
+Access4 / instruction-access-4 requires the snapshot and canonical calculation2
+companion. Exact two-slot nonempty CPTs classify a destination write and an
+expression_read container. Wholly parsed expressions provide separate leaf
+uses and root groups with node IDs, spans and bindings. Repeated uses remain
+separate; invalid syntax supplies no partial uses. The source-operand population
+is unchanged. Access2/3 API replay and serialization retain their exact contracts.
+
+Access summary4 adds closed expression status, binding, root and gap counts.
+Work21 reconciles them with calculation summary2; work1-20 retain their checks.
+Review6/manifest9 still saves thirteen artifacts. Limits remain 32 MiB access,
+250,000 expression-use records, an incremental shared 8M-character suffix/alias
+budget and 32 KiB feedback. See [CPT_ACCESS_REVIEW.md](../reviews/CPT_ACCESS_REVIEW.md).
+
+## Historical extended access contract (2026-10-15)
+
+Access3 / instruction-access-3 adds a versioned binding overlay for CTU/CTD, MSG,
+GSV/SSV and SFR. Operand IDs remain shared with reference evidence. Each access
+operand records its effective binding, binding_origin, source_reference_status,
+binding_reason and alias_chain. New non-data selectors never bind to tag roots.
+New address slots use the existing scoped resolver; original reference6/analyzer9
+records and summaries remain unchanged. Access3 charges suffix/alias expansion
+before retention against an 8M-character budget; 32 MiB private access and 32 KiB
+public report caps remain. Access2 explicit replay preserves its
+previous bytes; public summary1 and summary2 remain frozen.
+
+Access summary3 adds closed classified-family counts, counter pseudo-field
+counts, counter invalid-form counts and newly bound operand counts. Work20
+requires access summary3 and reconciles its additions with the older reference
+population; work1-19 retain their original checks. Review6/manifest9 still has
+thirteen artifacts and selects canonical replay by nested access version.
+See [EXTENDED_ACCESS_REVIEW.md](../reviews/EXTENDED_ACCESS_REVIEW.md).
+
+## Historical calculation function contract (2026-10-15)
+
+Calculation2 / calculation-evidence-2 preserves the occurrence/node layout and
+adds fixed `functions_by_spelling` and `unsupported_functions` coverage maps.
+The former counts retained function nodes from wholly parsed expressions using
+22 fixed uppercase catalog keys; the latter counts only the first rejected
+function in each unsupported-function expression, under atan2 or other.
+No caller/source-defined keys or arbitrary function names are published.
+
+Explicit schema_version=1 replay retains the original 15-function grammar,
+coverage and calculation-summary1 contract. Calculation-summary2 is required by
+work19; frozen work18 requires summary1. Review6/manifest9 stays unchanged and
+records the actual nested calculation schema/analyzer. All size limits remain
+unchanged. See [CALCULATION_FUNCTION_REVIEW.md](../reviews/CALCULATION_FUNCTION_REVIEW.md).
+
+## Initial calculation contract (2026-10-15)
+
+Private calculation schema1 / calculation-evidence-1 records canonical CPT
+occurrences, operand links and a flat syntax tree with source spans. Each
+repeated reference is a separate leaf using the existing scoped root resolver.
+Unsupported expressions retain a fixed error and no partial nodes. No numeric,
+member, type, execution or effect analysis is claimed. Unknown dynamic subscripts
+remain opaque address gaps; no index dependencies are extracted.
+
+Review6 includes calculations after the PID member companion. Manifest9 adds
+calculations.json as the thirteenth hashed artifact. Work18 requires closed
+count-only calculation_summary1 with source/count/revision consistency gates.
+Omitting the companion retains review5/manifest8. Work1-17 and older optional
+paths retain their contracts. Expression limits are 4,096 characters, 512 tokens
+and depth 64; the companion allows 250,000 nodes and 16 MiB private evidence/JSON.
+Its public summary has a 3 KiB cap; outer feedback retains 32 KiB and review6
+retains 128 MiB JSON / 160 MiB HTML. See
+[CALCULATION_REVIEW.md](../reviews/CALCULATION_REVIEW.md) for scope and evidence.
+
+## PID member contract (2026-10-15)
+
+Private PID member schema1 describes unique linked structures and their direct
+stored members using a fixed 51-name catalog. IDs point to unchanged PID1 and
+Tag Data1 evidence. Documented names, declared types and stored shapes are
+checked; missing and duplicate catalog fields remain explicit. Scalar values
+and DATA array contents are not interpreted. No effective setting is chosen.
+
+Review5 includes pid_members, and manifest8 adds pid-members.json as the twelfth
+hashed artifact. Work17 adds count-only pid_member_summary1; all earlier
+summaries remain unchanged. Omitting the new optional companion retains
+review4/manifest7. Historical work1-16 and prior optional API paths remain
+strict. The companion allows at most 100,000 structures and 250,000 members.
+Private evidence and JSON each have a 16 MiB cap; public member summary
+has a 4 KiB cap and the complete work report retains 32 KiB. Review5 retains
+128 MiB JSON / 160 MiB HTML. Cross-summary validation bounds unique member and
+structure populations by both PID1 and Tag Data. See
+[PID_MEMBER_REVIEW.md](../reviews/PID_MEMBER_REVIEW.md) for evidence and limits.
+
+## PID occurrence contract (2026-10-15)
+
+Private PidResult1 / pid-evidence-1 joins canonical ladder PID occurrences,
+reference operand IDs and stored-data IDs. Exact seven-slot nonempty signatures
+get operand-function labels. Source namespaces, direct scalar declaration
+evidence and expanded suffixes gate backing association; alternatives,
+duplicates, opaque-only data and association gaps remain explicit. It neither
+assigns read/write roles nor selects effective values or approved loops.
+
+Closed pid-summary1 adds fixed count-only coverage under work16. Source4,
+reference12, SFC2, access2 and tag-data-summary1 stay unchanged. Review4 adds
+the private PID companion; manifest7 contains eleven hashed artifacts including
+pid.json. This path requires tag data, access and a full review. Older optional
+paths retain their contracts, including work1-15/review1-3/manifest1-6. Review4
+uses the same 128 MiB payload / 160 MiB HTML limits as review3; old review1/2
+keep 64/80 MiB. Canonical validation and rendering precede run allocation.
+See [PID_EVIDENCE_REVIEW.md](../reviews/PID_EVIDENCE_REVIEW.md) for limits and
+validation evidence.
+
+## Stored tag data contract (2026-10-15)
+
+Private TagDataResult1 / tag-data-1 captures direct Data/DefaultData envelopes
+on canonical tag, AOI parameter/local-tag and module config/input/output
+declarations. Flat descendant records preserve parsed attributes/text and
+parent links. Missing data, alternate formats, opaque content and duplicates
+remain explicit; no effective value, numeric conversion or validated member
+path is produced. Snapshot bytes remain the original evidence.
+
+Closed tag-data-summary1 publishes only fixed metadata and bounded counts,
+after canonical replay. Work15 requires it alongside unchanged reference12,
+access2 and SFC2 summaries, reconciling revision and owner/XML populations.
+Historical work1-14 contracts remain strict. Private source3/reference6/access2/
+SFC2 payloads retain their exact contracts.
+
+Review3 / engineering-review-3 includes tag_data; manifest6 adds tag-data.json
+as the tenth artifact. Tag-data evidence requires a complete review with access.
+Optional legacy API calls retain review1/2 and manifest1-5 layouts, including
+their 64 MiB payload / 80 MiB HTML limits. Review3 allows 128 MiB / 160 MiB
+to include the bounded tag-data companion; validation still finishes before
+run allocation and manifest-last publication. Full capture
+boundaries and validation are in [TAG_DATA_REVIEW.md](../reviews/TAG_DATA_REVIEW.md).
+
+## Timer/reset/copy access contract (2026-10-15)
+
+AccessResult2 / instruction-access-2 extends the catalogue to 34 spellings with
+TON/TOF/RTO, RES and COP/CPS. Timer roots are read_write; recognized pseudo fields
+are non_data initialization fields. Closed integer/question-mark syntax is
+required, otherwise every operand remains unknown under unsupported_operand_form.
+Reset writes selected structure members; copy roles identify the starting
+source/destination and length read. Initialization/range analysis remain
+explicitly not_implemented alongside existing execution/member limits.
+
+Private and aggregate coverage adds timer_instructions plus the closed
+timer_pseudo_operands_by_kind placeholder/integer_literal partition, totaling
+two slots per classified timer. Access-summary2 validates those counts, subtracts
+the timer signature contribution before exact residual catalogue checks, and
+retains source-free errors and bounds. Work14 requires access2 and reconciles
+timer/pseudo populations with unchanged source4/reference12; work13 remains
+strictly paired with frozen access1. Earlier work versions are unchanged.
+
+Review2 and manifest5 retain their outer shape; their embedded evidence/metadata
+records access2. Nine artifacts are saved. Old saved files are never rewritten;
+historical public access1 remains readable, while current canonical private
+validation requires the current analyzer result. Source/reference/SFC evidence
+contracts remain exact. See [scope and validation](../reviews/TIMER_COPY_ACCESS_REVIEW.md).
+
+## Initial explicit operand-access contract (2026-10-14)
+
+Private AccessResult schema1 / instruction-access-1 derives possible explicit RLL
+operand roles from canonical inventory3 and reference6/analyzer9. It assigns
+read, write, read_write, non_data or unknown to each captured operand, retains
+every parsed instruction including zero-argument unknowns, and groups existing
+root-bound occurrences by target and role. IDs and resolved suffixes remain
+source-linked. No pairwise dependency edges are generated. Shared roots do not
+prove member/element overlap, execution or control effects. The fixed scope is
+explicit_rll_operand_roles; execution/member validation are not_implemented and
+implicit effects are not_analyzed. Exact roles and records are replay-validated.
+
+The closed access-summary-1 exports only fixed metadata, code revision and
+coverage counts, with role/status partitions, binding capacities and exact
+catalogue-feasibility checks. Work13 / work-check-13 requires this summary on
+successful analysis, null otherwise. It reconciles revision, instruction/rung/
+operand populations and catalogue/non-data subset bounds with reference12.
+Work1 through12 retain their frozen contracts. Public source4/reference12/SFC2
+and their private source/reference/SFC payloads remain unchanged.
+
+Supplying access to include_review=True produces review2 / engineering-review-2
+and manifest5, artifact_kind source_reference_sfc_access_review_run, with nine
+hashed artifacts including access.json and review.html. The work runner and
+plc review request this variant. Omitting access preserves the review1/manifest4
+API path below, and ordinary source/reference/SFC commands retain manifests1/2/3.
+Rendering and validation finish before run allocation; the manifest publishes
+last. Access is limited to 250,000 instructions/operands and 32MiB serialized
+JSON; combined review64MiB and HTML80MiB limits still apply. See
+[catalogue, scope, validation and next run](../reviews/ACCESS_ROLE_REVIEW.md).
+
+## Private offline source-review contract (2026-10-14)
+
+Review schema1 / engineering-review-1 combines the canonical inventory3,
+reference6 and SFC2 records from one captured snapshot with source-linked syntax
+groups and findings. IDs remain snapshot-scoped. Patterns preserve ordered
+branches, exact opcode spelling and arity; they omit operands and do not imply
+equivalent behavior. Findings retain source links and available XML locators.
+Semantic/effect analysis remains explicitly not_implemented. This is a read-only
+report, not an editable engineering-object or accepted-correction contract.
+
+Optional include_review=True requires both reference and SFC evidence and adds
+review.html to the seven-artifact combined run. Manifest4 has artifact_kind
+source_reference_sfc_review_run, review_schema_version=1 and
+review_version=engineering-review-1, plus the HTML size/hash. Model/render
+validation happens before allocating the run; the final manifest is published
+last. Ordinary commands retain manifests1/2/3 and their existing artifact sets.
+This was the initial work-runner variant; current access-enabled runs use
+manifest5 above. Public work12 remains readable; reference12, source4 and SFC2
+contracts remain unchanged.
+
+The self-contained HTML contains private source evidence and opens offline.
+Bounded embedded JSON and fixed local assets use text-only source rendering and
+a restrictive hash-based CSP. No source-derived HTML, source URL or external
+request is needed. See [limits, commands and validation](../reviews/ENGINEERING_REVIEW_REPORT.md).
 
 ## Current separate SFC structure contract (2026-10-14)
 
@@ -22,7 +230,8 @@ analysis.sfc_structure_summary on successful analysis; failed/not-run require
 null. Revision and SFC population reconcile with the outer/reference records.
 Historical work11 requires frozen SFC1; work12 requires SFC2. Work10 and earlier retain their exact envelopes. Optional SFC storage adds two
 private artifacts and manifest3; ordinary source/reference-only runs keep1/2.
-New work runs combine source/reference/SFC status and store seven artifacts.
+The original combined runs store seven artifacts; review1 added the private
+HTML using manifest4, and current access-enabled runs use manifest5 above.
 Private SFC2 adds separate typed annotations and immediate TextBox Text children. Public2 adds annotation/endpoint partitions and raw text-shape/character counts, without text or pairs. Fully resolved pairs alone supply distinct note/target counts. Direct and child fragments remain separate; there is no automatic description assignment. No ST/execution semantics or edit selection is introduced. See
 [annotation scope and validation](../reviews/SFC_ANNOTATION_REVIEW.md) and the [original structure contract](../reviews/SFC_STRUCTURE_REVIEW.md).
 

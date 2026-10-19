@@ -35,6 +35,7 @@ Scope revision 0.3 — 2026-10-12. Implementation proposals remain subject to th
 | D027 | Work-machine commands must not automatically pull or push; normal parsing is allowed. Tyler clarified that report commits should be automatic. | Use local code and automatically stage/commit only the newly validated feedback report, including failed outcomes. Fetch/pull/push remain manual; older ignored local reports and private outputs are not included. |
 | D028 | Consolidate the current development history into one main commit and retire old branches; preserve documentation | Keep tested revision provenance under an archive tag. Future development uses new -pc branches from main; this checkpoint does not complete Phase 1. |
 | D029 | One actual mystery-operand occurrence is within Tyler's sharing boundary; counts alone are unnecessarily restrictive for this investigation | Work-check schema 2 may include one exact operand up to 128 printable characters plus standard instruction/slot, with no rung or neighboring process context. Standalone source/reference summaries remain count-only. |
+| D030 | Tyler has not inspected the source and can defer engineering/UI review while parser work continues | Do not make familiarity with PLC code or optional report inspection a prerequisite. Continue bounded analysis and synthetic validation until a work-PC run or specific engineering answer is needed. |
 
 D010 supersedes the earlier transition plan to retain a root plc-code ignore rule. The repository has confidential/, public/, and python-parser/ roles; confidential/ is ignored. D012's fresh-repository setup is complete: origin was fetched on 2026-10-12 and main matched origin/main at bafc410. D009 applies to the restricted work-machine environment, not every computer. D014 establishes the later PCSD/FHX scope while retaining D008's deferral of conversion implementation during source understanding.
 
@@ -224,6 +225,20 @@ select a description automatically. PrivateSFC2/publicSFC2/work12 carry this sli
 existing reference results and historical contracts stay exact. Keep output size
 proportional to retained evidence by printing endpoint payloads once. See the
 [annotation evidence and tests](../reviews/SFC_ANNOTATION_REVIEW.md).
+
+### Deliver source evidence as an offline review package (2026-10-14)
+
+After the returned SFC annotation run and independent state assessment, bundle
+existing evidence into a private read-only HTML explorer before adding more
+small aggregate-only checkpoints. Include searchable objects, exact rung
+occurrences, content-scoped SFC notes, syntax groups and linked findings. Use
+the same captured snapshot as the saved JSON, embed all assets, and keep real
+reports private. A separate independently invented demo supports appearance
+review on the development PC. Do not require an editor/database choice for
+this reading milestone or imply that root bindings establish instruction effects.
+Public feedback remains unchanged; work-machine pull/push stay manual. The next
+run should test actual-unit generation and navigation and collect content/bug/
+appearance feedback. See [the report contract](../reviews/ENGINEERING_REVIEW_REPORT.md).
 
 ## Open questions for the relevant milestone
 

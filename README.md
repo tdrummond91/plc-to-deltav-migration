@@ -1,6 +1,17 @@
 # PLC analysis workbench
 
-Status: updated 2026-10-14. Phase 1 remains in progress: source inventory, module/I/O declarations, scoped tag/alias bindings and syntax diagnostics. Work-machine report `1195d40` confirms the timer fix: malformed operands fall from 868 to zero, with 868 timer placeholders accounted as non-data and unchanged root bindings. Both suites passed. See [timer evidence and remaining gaps](public/docs/reviews/TIMER_PLACEHOLDER_REVIEW.md). The [rack-I/O investigation](public/docs/reviews/RACK_IO_INVESTIGATION.md) reproduces an omitted-declaration gap with invented data; its share of the real unresolved references is still unmeasured. Next is dedicated rack evidence and candidate-match diagnostics. The editor, engineering interpretation, PCSD and FHX stages remain planned.
+Status: updated 2026-10-15. Phase 1 includes source inventory, I/O declarations,
+reference bindings, routine-call candidates, SFC structure/notes, PID stored
+member evidence and a private offline source explorer. Returned `cbb2965`
+confirms all 175 new counter/message/system/SFC access instructions classified,
+with all 175 data operands bound and no new binding gaps. All 695 application
+cases passed (one expected skip), as did 139 helpers.
+The [CPT access integration](public/docs/reviews/CPT_ACCESS_REVIEW.md) adds
+possible destination writes and separately traced expression reads to Tag access.
+The next work-machine run checks its projected 45 CPT classifications and 132
+reads. Calculations remain unevaluated. Execution, dependencies and broader
+engineering interpretation remain incomplete. Editable corrections, PCSD and
+FHX are later phases. Manual engineering/UI review remains optional.
 
 The development listener remains disabled and paused. Manual work-machine checks
 automatically commit the validated feedback report locally; fetching, pulling

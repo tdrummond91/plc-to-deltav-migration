@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Independently invented report demonstration. Not controller-ready logic. -->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="35.00" TargetName="DEMO_CONTROLLER" TargetType="Controller" ContainsContext="true">
+  <Controller Name="DEMO_CONTROLLER">
+    <Description><![CDATA[Invented training data for reviewing report navigation and appearance.]]></Description>
+    <Tags>
+      <Tag Name="DEMO_START" TagType="Base" DataType="BOOL"><Description><![CDATA[Operator start request — demonstration only]]></Description></Tag>
+      <Tag Name="DEMO_STOP" TagType="Base" DataType="BOOL"/>
+      <Tag Name="DEMO_PUMP_CMD" TagType="Base" DataType="BOOL"><Description><![CDATA[Illustrative command; engineering role is not inferred by the report.]]></Description></Tag>
+      <Tag Name="DEMO_PUMP_FB" TagType="Base" DataType="BOOL"/>
+      <Tag Name="DEMO_PERMISSIVE" TagType="Base" DataType="BOOL"/>
+      <Tag Name="DEMO_TRIP" TagType="Base" DataType="BOOL"/>
+      <Tag Name="DEMO_LEVEL_ALARM" TagType="Base" DataType="BOOL"/>
+      <Tag Name="DEMO_LEVEL" TagType="Base" DataType="REAL"/>
+      <Tag Name="DEMO_FLOW_PV" TagType="Base" DataType="REAL"/>
+      <Tag Name="DEMO_FLOW_SP" TagType="Base" DataType="REAL"/>
+      <Tag Name="DEMO_FLOW_OUT" TagType="Base" DataType="REAL"/>
+      <Tag Name="DEMO_FLOW_PID" TagType="Base" DataType="PID"/>
+      <Tag Name="DEMO_TIMER" TagType="Base" DataType="TIMER"/>
+      <Tag Name="DEMO_CALC" TagType="Base" DataType="REAL"/>
+      <Tag Name="DEMO_PUMP_ALIAS" TagType="Alias" DataType="BOOL" AliasFor="DEMO_PUMP_CMD"/>
+      <Tag Name="DEMO_UNRESOLVED_ALIAS" TagType="Alias" DataType="BOOL" AliasFor="DEMO_MISSING_SOURCE"/>
+    </Tags>
+    <Modules><Module Name="DEMO_IO" CatalogNumber="INVENTED"/></Modules>
+    <Tasks><Task Name="DEMO_TASK" Type="Periodic" Rate="100" Priority="10"><ScheduledPrograms><ScheduledProgram Name="DEMO_PROGRAM"/></ScheduledPrograms></Task></Tasks>
+    <Programs><Program Name="DEMO_PROGRAM" Type="Normal" MainRoutineName="DEMO_MAIN">
+      <Description><![CDATA[Source review sample — Québec / English descriptions retained as authored.]]></Description>
+      <Routines>
+        <Routine Name="DEMO_MAIN" Type="RLL"><RLLContent>
+          <Rung Number="0" Type="N"><Comment><![CDATA[A simple source occurrence to find from the object page.]]></Comment><Text><![CDATA[XIC(DEMO_START)OTE(DEMO_PUMP_CMD);]]></Text></Rung>
+          <Rung Number="1" Type="N"><Comment><![CDATA[Same opcode/arity shape, different operands. Shape equality does not establish equivalent behavior.]]></Comment><Text><![CDATA[XIC(DEMO_TRIP)OTE(DEMO_LEVEL_ALARM);]]></Text></Rung>
+          <Rung Number="2" Type="N"><Text><![CDATA[[XIC(DEMO_START),XIC(DEMO_PUMP_FB)]XIO(DEMO_STOP)OTE(DEMO_PUMP_ALIAS);]]></Text></Rung>
+          <Rung Number="3" Type="N"><Comment><![CDATA[PID signature shown for source inspection; loop configuration is not yet interpreted.]]></Comment><Text><![CDATA[PID(DEMO_FLOW_PID,DEMO_FLOW_PV,DEMO_FLOW_SP,DEMO_FLOW_OUT,0,0,0);]]></Text></Rung>
+          <Rung Number="4" Type="N"><Text><![CDATA[CPT(DEMO_CALC,DEMO_LEVEL * 2 + DEMO_FLOW_PV);]]></Text></Rung>
+          <Rung Number="5" Type="N"><Text><![CDATA[XIC(DEMO_PERMISSIVE)TON(DEMO_TIMER,?,?);]]></Text></Rung>
+          <Rung Number="6" Type="N"><Comment><![CDATA[Deliberate unknown instruction for the findings queue.]]></Comment><Text><![CDATA[DEMO_CUSTOM(DEMO_START,DEMO_PUMP_CMD);]]></Text></Rung>
+          <Rung Number="7" Type="N"><Text><![CDATA[XIC(DEMO_MISSING_SOURCE)OTE(DEMO_LEVEL_ALARM);]]></Text></Rung>
+          <Rung Number="8" Type="N"><Text><![CDATA[JSR(DEMO_CHART,0);]]></Text></Rung>
+          <Rung Number="9" Type="N"><Text><![CDATA[GEQ(DEMO_LEVEL,80)OTE(DEMO_LEVEL_ALARM);]]></Text></Rung>
+        </RLLContent></Routine>
+        <Routine Name="DEMO_AUX" Type="RLL"><RLLContent>
+          <Rung Number="0" Type="N"><Text><![CDATA[XIC(DEMO_PUMP_FB)OTE(DEMO_PERMISSIVE);]]></Text></Rung>
+          <Rung Number="1" Type="N"><Text><![CDATA[MOV(DEMO_LEVEL,DEMO_CALC);]]></Text></Rung>
+        </RLLContent></Routine>
+        <Routine Name="DEMO_CHART" Type="SFC">
+          <SFCContent OnlineEditType="Original">
+            <Step ID="100" Operand="DEMO_WAIT"><ActionList><Action ID="110" Operand="DEMO_ACTION"><Body><STContent><Line Number="0"><![CDATA[DEMO_CALC := 0;]]></Line></STContent></Body></Action></ActionList></Step>
+            <Transition ID="200" Operand="DEMO_READY"><Condition><STContent><Line Number="0"><![CDATA[DEMO_START AND DEMO_PERMISSIVE]]></Line></STContent></Condition></Transition>
+            <Step ID="101" Operand="DEMO_RUN"/>
+            <Transition ID="201" Operand="DEMO_STOPPING"><Condition><STContent><Line Number="0"><![CDATA[DEMO_STOP]]></Line></STContent></Condition></Transition>
+            <Stop ID="102"/>
+            <DirectedLink FromID="100" ToID="200"/><DirectedLink FromID="200" ToID="101"/>
+            <DirectedLink FromID="101" ToID="201"/><DirectedLink FromID="201" ToID="102"/>
+            <TextBox ID="300"><Text><![CDATA[Attente / Wait. This authored note remains separate from an engineering description.]]></Text></TextBox>
+            <TextBox ID="301"><![CDATA[Direct-text note attached to the illustrative run step.]]></TextBox>
+            <TextBox ID="302"><Text><![CDATA[Unattached note: inspect source context before deciding what it describes.]]></Text></TextBox>
+            <Attachment FromID="300" ToID="100"/><Attachment FromID="301" ToID="101"/>
+            <Attachment FromID="302" ToID="999"/>
+          </SFCContent>
+          <SFCContent OnlineEditType="PendingEdits"><Step ID="100" Operand="DEMO_WAIT_EDIT"/><TextBox ID="300"><Text><![CDATA[Separate edit namespace; no active revision selected.]]></Text></TextBox><Attachment FromID="300" ToID="100"/></SFCContent>
+        </Routine>
+      </Routines>
+    </Program></Programs>
+  </Controller>
+</RSLogix5000Content>

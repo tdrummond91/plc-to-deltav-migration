@@ -60,6 +60,10 @@ class _Node:
     parts: list[str] = field(default_factory=list)
     text_size: int = 0
     child_counts: Counter[str] = field(default_factory=Counter)
+    # Companion evidence readers can distinguish extension namespaces without
+    # changing the established local-name inventory or any serialized records.
+    expanded_name: str = ''
+    expanded_attributes: dict[str, str] = field(default_factory=dict)
 
 
 def _read_nodes(data: bytes) -> list[_Node]:
@@ -96,7 +100,8 @@ def _read_nodes(data: bytes) -> list[_Node]:
         else:
             ordinal = 1
         locator = f"{parent.locator if parent else ''}/{name}[{ordinal}]"
-        nodes.append(_Node(name, clean, parent_index, locator, path, ordinal))
+        nodes.append(_Node(name, clean, parent_index, locator, path, ordinal,
+                           expanded_name=expanded, expanded_attributes=dict(attributes)))
         stack.append(len(nodes) - 1)
 
     def text(value: str) -> None:

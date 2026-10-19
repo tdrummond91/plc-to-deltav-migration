@@ -95,6 +95,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sfc_summary.add_argument("file", type=Path, help="Local L5X input; never modified.")
     sfc_summary.add_argument("--output", type=Path, help="NEW .json file; never overwritten.")
+    review = commands.add_parser(
+        "review", help="Save a private offline engineering review report.",
+        description=("Capture one L5X and save a searchable HTML report with source objects, "
+                     "rungs, SFC structure, pattern groups and unresolved findings. "
+                     "All report contents are private. Open the saved HTML in a browser."),
+        epilog="Exit codes: 0 covered within scope, 1 failure, 2 usage, 3 usable partial report.",
+    )
+    review.add_argument("file", type=Path, help="Local L5X input; never modified.")
+    review.add_argument("--workspace", type=Path, required=True,
+                        help="Private directory for a NEW review run; existing runs are preserved.")
     return parser
 
 
@@ -219,6 +229,60 @@ def _sfc(args: argparse.Namespace) -> int:
         return 1
 
 
+def _review(args: argparse.Namespace) -> int:
+    from .access import AccessError, analyze_access
+    from .pid import PidError, analyze_pid
+    from .pid_members import PidMemberError, analyze_pid_members
+    from .calculations import CalculationError, analyze_calculations
+    from .references import ReferenceError, analyze_references
+    from .sfc_structure import SfcStructureError, analyze_sfc_structure
+    from .source import SourceError, analyze_snapshot, capture_snapshot
+    from .storage import StorageError, save_run
+    from .tag_data import TagDataError, analyze_tag_data
+
+    try:
+        snapshot = capture_snapshot(args.file)
+        inventory = analyze_snapshot(snapshot)
+        references = analyze_references(inventory)
+        sfc = analyze_sfc_structure(snapshot, inventory)
+        calculations = analyze_calculations(snapshot, inventory, references)
+        access = analyze_access(inventory, references, schema_version=4,
+                                snapshot=snapshot, calculations=calculations)
+        tag_data = analyze_tag_data(snapshot, inventory)
+        pid = analyze_pid(snapshot, inventory, references, tag_data)
+        pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
+        saved = save_run(args.workspace, snapshot, inventory, references=references,
+                         sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data, pid=pid,
+                         pid_members=pid_members, calculations=calculations)
+        print(f"Private review report: {saved / 'review.html'}")
+        return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status,
+                                tag_data.status, pid.status, pid_members.status, calculations.status) else 0
+    except SourceError:
+        print("plc: Cannot read or analyze source; no review report was produced.", file=sys.stderr)
+        return 1
+    except AccessError:
+        print("plc: Cannot analyze operand access; no review report was produced.", file=sys.stderr)
+        return 1
+    except TagDataError:
+        print("plc: Cannot analyze Tag Data; no review report was produced.", file=sys.stderr)
+        return 1
+    except PidError:
+        print("plc: Cannot analyze PID evidence; no review report was produced.", file=sys.stderr)
+        return 1
+    except CalculationError:
+        print("plc: Cannot analyze calculation evidence; no review report was produced.", file=sys.stderr)
+        return 1
+    except PidMemberError:
+        print("plc: Cannot analyze PID member headers; no review report was produced.", file=sys.stderr)
+        return 1
+    except (ReferenceError, SfcStructureError, StorageError) as exc:
+        print(f"plc: {exc}", file=sys.stderr)
+        return 1
+    except OSError:
+        print("plc: Could not read or write a local stream.", file=sys.stderr)
+        return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     # JSON and private reports retain multilingual source text on Windows,
@@ -232,6 +296,8 @@ def main(argv: list[str] | None = None) -> int:
         return _references(args)
     if args.command in ("sfc-structure", "sfc-summary"):
         return _sfc(args)
+    if args.command == "review":
+        return _review(args)
     # Delay analysis imports until help/usage handling has completed.
     from .reporting import ReportError, render_json, render_text
     from .source import SourceError, analyze_snapshot, capture_snapshot

@@ -20,14 +20,24 @@ import traceback
 from typing import Any
 from uuid import uuid4
 
+from .access import analyze_access
+from .calculations import analyze_calculations
+from .calculation_summary import build_calculation_summary, validate_calculation_summary
+from .access_summary import build_access_summary, validate_access_summary
 from .diagnostic_sample import (
     MALFORMED_SAMPLE_KIND, UNMATCHED_COLON_SAMPLE_KIND,
     build_diagnostic_sample, validate_diagnostic_sample,
 )
+from .pid import analyze_pid
+from .pid_summary import build_pid_summary, validate_pid_summary
+from .pid_members import analyze_pid_members
+from .pid_member_summary import build_pid_member_summary, validate_pid_member_summary
 from .reference_summary import build_reference_summary, validate_reference_summary
 from .references import _system_flag, _timer_placeholder, analyze_references
 from .source import analyze_snapshot, capture_snapshot
 from .storage import save_run
+from .tag_data import analyze_tag_data
+from .tag_data_summary import build_tag_data_summary, validate_tag_data_summary
 from .work_check_tests import unavailable_result, validate_test_result
 
 MAX_REPORT_BYTES = 32 * 1024
@@ -46,7 +56,16 @@ _V8_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 8, "workflow_version": "w
 _V9_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 9, "workflow_version": "work-check-9"}
 _V10_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 10, "workflow_version": "work-check-10"}
 _V11_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 11, "workflow_version": "work-check-11"}
-_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 12, "workflow_version": "work-check-12"}
+_V12_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 12, "workflow_version": "work-check-12"}
+_V13_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 13, "workflow_version": "work-check-13"}
+_V14_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 14, "workflow_version": "work-check-14"}
+_V15_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 15, "workflow_version": "work-check-15"}
+_V16_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 16, "workflow_version": "work-check-16"}
+_V17_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 17, "workflow_version": "work-check-17"}
+_V18_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 18, "workflow_version": "work-check-18"}
+_V19_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 19, "workflow_version": "work-check-19"}
+_V20_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 20, "workflow_version": "work-check-20"}
+_CONSTANTS = _LEGACY_CONSTANTS | {"schema_version": 21, "workflow_version": "work-check-21"}
 _FAILURE_CODES = {"read_error", "reference_error", "save_error", "summary_error", "unexpected_error"}
 _GIT_REPOSITORY_OVERRIDES = frozenset({
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
@@ -69,13 +88,60 @@ def _keys(value: Any, expected: set[str]) -> None:
         _invalid()
 
 
+def _extended_access_populations(coverage: dict[str, Any], nested: dict[str, Any],
+                                *, calculation_occurrences: int = 0,
+                                pid_occurrences: int = 0) -> tuple[int, int, int]:
+    """Bound new access overlays against unchanged source/reference populations.
+
+    Every extended instruction remains unsupported in reference6. Its operand
+    rows must therefore come from that population, not from previously bound
+    rows. Case variants share one pooled source allowance across these families
+    and timers, so a withheld occurrence cannot satisfy two capacity deficits.
+    Work21 also shares that allowance with CPT and PID, whose legacy reference
+    slots were already catalogued and do not consume the extended-row population.
+    Their full occurrence counts include unresolved signatures: those source
+    instructions still consume one opcode occurrence each.
+    """
+    extended = coverage["extended_instructions"]
+    counter = extended["counter"]
+    message = extended["message"]
+    system_get, system_set = extended["system_get"], extended["system_set"]
+    reset_step, reset_initial = extended["sfc_reset_step"], extended["sfc_reset_initial"]
+    total = sum(extended.values())
+    non_data = 2 * counter + 3 * (system_get + system_set) + reset_step + 2 * reset_initial
+    data = counter + message + system_get + system_set + reset_step
+    invalid_counter = coverage["counter_invalid_forms"]
+    invalid_timer = coverage["instructions_by_status"]["unsupported_operand_form"] - invalid_counter
+    reference_coverage = nested["coverage"]
+    source_opcodes = nested["source_summary"]["instructions"]["counts"]
+    required = (
+        (coverage["timer_instructions"] + invalid_timer, ("TON", "TOF", "RTO")),
+        (counter + invalid_counter, ("CTU", "CTD")),
+        (message, ("MSG",)),
+        (system_get, ("GSV",)),
+        (system_set, ("SSV",)),
+        (reset_step + reset_initial, ("SFR",)),
+        (calculation_occurrences, ("CPT",)),
+        (pid_occurrences, ("PID",)),
+    )
+    pooled_needed = sum(max(0, count - sum(source_opcodes.get(opcode, 0) for opcode in opcodes))
+                        for count, opcodes in required)
+    if (invalid_timer < 0
+            or total + invalid_counter > reference_coverage["instructions_total"] - reference_coverage["instructions_catalogued"]
+            or non_data + data + 3 * invalid_counter > nested["operands"]["by_status"]["unsupported_instruction"]
+            or coverage["extended_bound_operands"] > data
+            or pooled_needed > source_opcodes.get("withheld", 0)):
+        _invalid()
+    return total, non_data, invalid_counter
+
+
 def validate_work_check_report(report: Any) -> None:
     """Reject unknown fields and reconcile test, analysis and overall status."""
     if type(report) is not dict or type(report.get("schema_version")) is not int:
         _invalid()
     version = report["schema_version"]
     constants = {1: _LEGACY_CONSTANTS, 2: _V2_CONSTANTS, 3: _V3_CONSTANTS,
-                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _CONSTANTS}.get(version)
+                 4: _V4_CONSTANTS, 5: _V5_CONSTANTS, 6: _V6_CONSTANTS, 7: _V7_CONSTANTS, 8: _V8_CONSTANTS, 9: _V9_CONSTANTS, 10: _V10_CONSTANTS, 11: _V11_CONSTANTS, 12: _V12_CONSTANTS, 13: _V13_CONSTANTS, 14: _V14_CONSTANTS, 15: _V15_CONSTANTS, 16: _V16_CONSTANTS, 17: _V17_CONSTANTS, 18: _V18_CONSTANTS, 19: _V19_CONSTANTS, 20: _V20_CONSTANTS, 21: _CONSTANTS}.get(version)
     if constants is None:
         _invalid()
     extra = {"diagnostic_sample"} if version >= 2 else set()
@@ -96,7 +162,12 @@ def validate_work_check_report(report: Any) -> None:
     tests_passed = all(result["status"] == "passed" for result in report["tests"].values())
     analysis = report["analysis"]
     _keys(analysis, {"status", "failure_code", "private_run_saved", "reference_summary"}
-          | ({"sfc_structure_summary"} if version >= 11 else set()))
+          | ({"sfc_structure_summary"} if version >= 11 else set())
+          | ({"access_summary"} if version >= 13 else set())
+          | ({"tag_data_summary"} if version >= 15 else set())
+          | ({"pid_summary"} if version >= 16 else set())
+          | ({"pid_member_summary"} if version >= 17 else set())
+          | ({"calculation_summary"} if version >= 18 else set()))
     if type(analysis["private_run_saved"]) is not bool or type(analysis["status"]) is not str:
         _invalid()
     if analysis["status"] in ("complete", "partial"):
@@ -104,23 +175,245 @@ def validate_work_check_report(report: Any) -> None:
             _invalid()
         nested = analysis["reference_summary"]
         validate_reference_summary(nested)
-        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12}[version]:
+        if version >= 3 and nested["schema_version"] != {3: 5, 4: 6, 5: 7, 6: 8, 7: 9, 8: 10, 9: 11, 10: 12, 11: 12, 12: 12, 13: 12, 14: 12, 15: 12, 16: 12, 17: 12, 18: 12, 19: 12, 20: 12, 21: 12}[version]:
             _invalid()
         expected_analysis = nested["status"]
         if version >= 11:
             from .sfc_summary import validate_sfc_summary
             sfc = analysis["sfc_structure_summary"]
             validate_sfc_summary(sfc)
-            if (sfc["schema_version"] != {11: 1, 12: 2}[version]
+            if (sfc["schema_version"] != {11: 1, 12: 2, 13: 2, 14: 2, 15: 2, 16: 2, 17: 2, 18: 2, 19: 2, 20: 2, 21: 2}[version]
                     or sfc["tool_revision"] != revision
                     or sfc["source_sfc_routines"] != nested["source_summary"]["routine_types"]["SFC"]):
                 _invalid()
             expected_analysis = "partial" if "partial" in (nested["status"], sfc["status"]) else "complete"
+        if version >= 13:
+            access = analysis["access_summary"]
+            validate_access_summary(access)
+            coverage = access["coverage"]
+            reference_coverage = nested["coverage"]
+            if access["schema_version"] != (4 if version >= 21 else 3 if version >= 20 else 2 if version >= 14 else 1):
+                _invalid()
+            integer_pseudo_operands = 0
+            unsupported_timer_forms = 0
+            extended_instructions = extended_non_data = extended_bound = 0
+            counter_invalid_forms = 0
+            if version >= 20:
+                # Validate companion summaries before using their full occurrence
+                # counts to constrain the shared withheld-opcode population.
+                calculation_occurrences = pid_occurrences = 0
+                if version >= 21:
+                    validate_calculation_summary(analysis["calculation_summary"])
+                    calculation_occurrences = analysis["calculation_summary"]["coverage"]["occurrences_total"]
+                    validate_pid_summary(analysis["pid_summary"])
+                    pid_occurrences = analysis["pid_summary"]["coverage"]["occurrences_total"]
+                extended_instructions, extended_non_data, counter_invalid_forms = _extended_access_populations(
+                    coverage, nested, calculation_occurrences=calculation_occurrences,
+                    pid_occurrences=pid_occurrences)
+                extended_bound = coverage["extended_bound_operands"]
+            if version >= 14:
+                pseudo_operands = coverage["timer_pseudo_operands_by_kind"]
+                integer_pseudo_operands = pseudo_operands["integer_literal"]
+                unsupported_timer_forms = coverage["instructions_by_status"]["unsupported_operand_form"] - counter_invalid_forms
+                source_opcodes = nested["source_summary"]["instructions"]["counts"]
+                # Source4 preserves case and pools non-public spellings, while
+                # access accepts ASCII case variants. This is a capacity bound,
+                # not evidence that every withheld instruction is a timer.
+                timer_capacity = sum(source_opcodes.get(opcode, 0) for opcode in ("TON", "TOF", "RTO", "withheld"))
+                if (coverage["timer_instructions"] + unsupported_timer_forms > timer_capacity
+                        or pseudo_operands["placeholder"] > nested["operands"]["by_status"]["non_data"]
+                        or integer_pseudo_operands > nested["operands"]["by_status"]["literal"]):
+                    _invalid()
+            if (access["tool_revision"] != revision
+                    or coverage["instructions_total"] != reference_coverage["instructions_total"]
+                    or coverage["instructions_total"] != nested["source_summary"]["counts"]["instructions"]
+                    or coverage["instructions_by_status"]["classified"] - extended_instructions + unsupported_timer_forms > reference_coverage["instructions_catalogued"]
+                    or coverage["operands_total"] != nested["operands"]["total"]
+                    or coverage["operands_by_role"]["non_data"] - integer_pseudo_operands - extended_non_data > nested["operands"]["by_status"]["non_data"]
+                    or coverage["source_rungs"] != reference_coverage["rungs_total"]
+                    or coverage["source_rungs"] != nested["source_summary"]["counts"]["rungs"]
+                    or coverage["unparsed_rungs"] != reference_coverage["rungs_total"] - reference_coverage["rungs_analyzed"]
+                    or coverage["linked_operands"] != nested["operands"]["by_status"]["root_bound"] + extended_bound
+                    or coverage["indexed_roots"] > nested["symbols"]["total"]):
+                _invalid()
+            expected_analysis = "partial" if "partial" in (expected_analysis, access["status"]) else "complete"
+        if version >= 15:
+            tag_data = analysis["tag_data_summary"]
+            validate_tag_data_summary(tag_data)
+            if tag_data["schema_version"] != 1 or tag_data["tool_revision"] != revision:
+                _invalid()
+            tag_coverage = tag_data["coverage"]
+            source_counts = nested["source_summary"]["counts"]
+            owner_counts = {
+                "tag": source_counts["total_tag_definitions"],
+                "aoi_parameter": source_counts["aoi_parameters"],
+                "aoi_local_tag": source_counts["aoi_local_tags"],
+                "module_input_tag": source_counts["module_input_tags"],
+                "module_output_tag": source_counts["module_output_tags"],
+                "module_config_tag": source_counts["module_config_tags"],
+            }
+            if (tag_coverage["owners_by_kind"] != owner_counts
+                    or tag_coverage["owners_by_kind"] != nested["symbols"]["by_kind"]
+                    or tag_coverage["owners_total"] != sum(owner_counts.values())
+                    or tag_coverage["owners_total"] != nested["symbols"]["total"]
+                    or tag_coverage["source_xml_elements"] != nested["source_summary"]["coverage"]["xml_elements"]
+                    or tag_coverage["owners_total"] + tag_coverage["contents_total"] + tag_coverage["elements_total"] > tag_coverage["source_xml_elements"]):
+                _invalid()
+            expected_analysis = "partial" if "partial" in (expected_analysis, tag_data["status"]) else "complete"
+        if version >= 16:
+            pid = analysis["pid_summary"]
+            validate_pid_summary(pid)
+            pid_coverage = pid["coverage"]
+            source = nested["source_summary"]
+            reference_coverage = nested["coverage"]
+            access_coverage = analysis["access_summary"]["coverage"]
+            tag_coverage = analysis["tag_data_summary"]["coverage"]
+            source_opcodes = source["instructions"]["counts"]
+            # Public source counts preserve exact opcode case. Lowercase PID
+            # spellings are pooled with other withheld opcodes, so the pooled
+            # count is a capacity bound rather than extra PID evidence.
+            exact_pid = source_opcodes.get("PID", 0)
+            pid_capacity = exact_pid + source_opcodes.get("withheld", 0)
+            if (pid["schema_version"] != 1 or pid["tool_revision"] != revision
+                    or pid_coverage["source_rungs"] != reference_coverage["rungs_total"]
+                    or pid_coverage["source_rungs"] != source["counts"]["rungs"]
+                    or pid_coverage["source_rungs"] != access_coverage["source_rungs"]
+                    or pid_coverage["unparsed_rungs"] != reference_coverage["rungs_total"] - reference_coverage["rungs_analyzed"]
+                    or pid_coverage["unparsed_rungs"] != access_coverage["unparsed_rungs"]
+                    or pid_coverage["source_instructions"] != reference_coverage["instructions_total"]
+                    or pid_coverage["source_instructions"] != source["counts"]["instructions"]
+                    or pid_coverage["source_instructions"] != access_coverage["instructions_total"]
+                    or pid_coverage["source_operands"] != nested["operands"]["total"]
+                    or pid_coverage["source_operands"] != access_coverage["operands_total"]
+                    or not exact_pid <= pid_coverage["occurrences_total"] <= pid_capacity
+                    or pid_coverage["distinct_backing_owners"] > tag_coverage["owners_total"]
+                    or pid_coverage["backing_owners_with_data"] > tag_coverage["owners_with_data"]
+                    or pid_coverage["backing_owners_without_data"] > tag_coverage["owners_without_data"]
+                    or any(count > nested["operands"]["by_status"][status]
+                           for status, count in pid_coverage["operands_by_binding"].items())):
+                _invalid()
+            # PID links repeat for each occurrence. A declaration used by many
+            # instructions can legitimately expose the same stored records
+            # repeatedly; each occurrence is still bounded by captured totals.
+            linked = pid_coverage["storage_by_status"]["linked"]
+            member_capacity = sum(tag_coverage["elements_by_kind"][kind]
+                                  for kind in ("data_value_member", "structure_member", "array_member"))
+            if (pid_coverage["representation_occurrences"]
+                    > pid_coverage["occurrences_with_data"] * tag_coverage["contents_total"]
+                    or pid_coverage["decorated_representation_occurrences"]
+                    > (pid_coverage["occurrences_with_data"] - pid_coverage["occurrences_with_opaque_only"])
+                    * tag_coverage["contents_by_format"]["decorated"]
+                    or pid_coverage["structure_occurrences"]
+                    > linked * tag_coverage["elements_by_kind"]["structure"]
+                    or pid_coverage["direct_member_occurrences"] > linked * member_capacity):
+                _invalid()
+            expected_analysis = "partial" if "partial" in (expected_analysis, pid["status"]) else "complete"
+        if version >= 17:
+            pid_members = analysis["pid_member_summary"]
+            validate_pid_member_summary(pid_members)
+            member_coverage = pid_members["coverage"]
+            # This companion indexes distinct captured structures and members,
+            # while PID 1 repeats their links for each instruction occurrence.
+            # Neither repeated links nor the field catalog create source records.
+            # Every represented owner consumes at least one linked occurrence;
+            # the remaining occurrences bound any one owner's repeated links.
+            max_repeats = max(0, linked - member_coverage["distinct_backing_owners"] + 1)
+            if (pid_members["schema_version"] != 1 or pid_members["tool_revision"] != revision
+                    or member_coverage["source_pid_partial"] != int(pid["status"] == "partial")
+                    or member_coverage["distinct_backing_owners"] > pid_coverage["distinct_backing_owners"]
+                    or member_coverage["distinct_backing_owners"] > linked
+                    or member_coverage["distinct_backing_owners"] < max(
+                        0, pid_coverage["distinct_backing_owners"] - (pid_coverage["occurrences_total"] - linked))
+                    or member_coverage["structures_total"] > pid_coverage["structure_occurrences"]
+                    or pid_coverage["structure_occurrences"] > member_coverage["structures_total"] * max_repeats
+                    or member_coverage["structures_total"] > tag_coverage["elements_by_kind"]["structure"]
+                    or member_coverage["members_total"] > pid_coverage["direct_member_occurrences"]
+                    or pid_coverage["direct_member_occurrences"] > member_coverage["members_total"] * max_repeats
+                    or member_coverage["members_total"] > member_capacity):
+                _invalid()
+            expected_analysis = "partial" if "partial" in (expected_analysis, pid_members["status"]) else "complete"
+        if version >= 18:
+            calculations = analysis["calculation_summary"]
+            validate_calculation_summary(calculations)
+            calculation_coverage = calculations["coverage"]
+            source = nested["source_summary"]
+            reference_coverage = nested["coverage"]
+            access_coverage = analysis["access_summary"]["coverage"]
+            source_opcodes = source["instructions"]["counts"]
+            # CPT spelling variants are counted privately and pooled in the
+            # public source histogram. The withheld bucket is only capacity.
+            exact_cpt = source_opcodes.get("CPT", 0)
+            cpt_capacity = exact_cpt + source_opcodes.get("withheld", 0)
+            if (calculations["schema_version"] != (2 if version >= 19 else 1)
+                    or calculations["tool_revision"] != revision
+                    or calculation_coverage["source_rungs"] != reference_coverage["rungs_total"]
+                    or calculation_coverage["source_rungs"] != source["counts"]["rungs"]
+                    or calculation_coverage["source_rungs"] != access_coverage["source_rungs"]
+                    or calculation_coverage["unparsed_rungs"] != reference_coverage["rungs_total"] - reference_coverage["rungs_analyzed"]
+                    or calculation_coverage["unparsed_rungs"] != access_coverage["unparsed_rungs"]
+                    or calculation_coverage["source_instructions"] != reference_coverage["instructions_total"]
+                    or calculation_coverage["source_instructions"] != source["counts"]["instructions"]
+                    or calculation_coverage["source_instructions"] != access_coverage["instructions_total"]
+                    or calculation_coverage["source_operands"] != nested["operands"]["total"]
+                    or calculation_coverage["source_operands"] != access_coverage["operands_total"]
+                    or not exact_cpt <= calculation_coverage["occurrences_total"] <= cpt_capacity
+                    or calculation_coverage["destination_root_bound"] > nested["operands"]["by_status"]["root_bound"]):
+                _invalid()
+            # Expression leaves are additional lexical evidence. They are not
+            # counted as new legacy operands and may repeat a declaration.
+            if version >= 21:
+                if (access_coverage["calculation_instructions"] != calculation_coverage["occurrences_by_signature"]["recognized"]
+                        or access_coverage["expression_containers_by_status"] != {
+                            key: calculation_coverage["expressions_by_status"][key]
+                            for key in ("parsed", "unsupported")}
+                        or access_coverage["expression_uses_total"] != calculation_coverage["reference_occurrences"]
+                        or access_coverage["expression_uses_by_binding"] != calculation_coverage["reference_by_binding"]
+                        or access_coverage["expressions_with_binding_gaps"] != calculation_coverage["expressions_with_binding_gaps"]
+                        or access_coverage["expression_indexed_roots"] > nested["symbols"]["total"]
+                        or access_coverage["bound_by_role"]["write"] < calculation_coverage["destination_root_bound"]):
+                    _invalid()
+                # CPT destinations and newly bound extended slots are disjoint
+                # operand rows. Reserve the known CPT writes before allocating
+                # extended bindings across their possible role populations.
+                # This checks feasibility without inventing a per-family split
+                # that the aggregate report does not retain.
+                extended = access_coverage["extended_instructions"]
+                extended_capacities = {
+                    "read": extended["system_set"],
+                    "write": extended["system_get"] + extended["sfc_reset_step"],
+                    "read_write": extended["counter"] + extended["message"],
+                }
+                available_bound = dict(access_coverage["bound_by_role"])
+                available_bound["write"] -= calculation_coverage["destination_root_bound"]
+                available_roles = dict(access_coverage["operands_by_role"])
+                available_roles["write"] -= access_coverage["calculation_instructions"]
+                if any(not capacity <= available_roles[role]
+                       or not 0 <= available_bound[role] <= available_roles[role]
+                       for role, capacity in extended_capacities.items()):
+                    _invalid()
+                # Bindings beyond the remaining legacy slots must belong to
+                # extended slots; conversely, extended bindings cannot exceed
+                # either those slots or the remaining bound-role population.
+                minimum_extended_bound = sum(
+                    max(0, available_bound[role] - (available_roles[role] - capacity))
+                    for role, capacity in extended_capacities.items())
+                maximum_extended_bound = sum(
+                    min(capacity, available_bound[role])
+                    for role, capacity in extended_capacities.items())
+                if not minimum_extended_bound <= access_coverage["extended_bound_operands"] <= maximum_extended_bound:
+                    _invalid()
+            expected_analysis = "partial" if "partial" in (expected_analysis, calculations["status"]) else "complete"
         if expected_analysis != analysis["status"] or nested["source_summary"]["tool_revision"] != revision:
             _invalid()
     elif analysis["status"] == "failed":
         if (not tests_passed or type(analysis["failure_code"]) is not str
-                or analysis["failure_code"] not in (_FAILURE_CODES | ({"sfc_structure_error"} if version >= 11 else set())) or analysis["reference_summary"] is not None):
+                or analysis["failure_code"] not in (_FAILURE_CODES
+                    | ({"sfc_structure_error"} if version >= 11 else set())
+                    | ({"access_error"} if version >= 13 else set())
+                    | ({"tag_data_error"} if version >= 15 else set())
+                    | ({"pid_error"} if version >= 16 else set())
+                    | ({"pid_member_error"} if version >= 17 else set())
+                    | ({"calculation_error"} if version >= 18 else set())) or analysis["reference_summary"] is not None):
             _invalid()
         if analysis["private_run_saved"] and analysis["failure_code"] not in ("summary_error", "unexpected_error"):
             _invalid()
@@ -130,6 +423,16 @@ def validate_work_check_report(report: Any) -> None:
     else:
         _invalid()
     if version >= 11 and analysis["status"] in ("failed", "not_run") and analysis["sfc_structure_summary"] is not None:
+        _invalid()
+    if version >= 13 and analysis["status"] in ("failed", "not_run") and analysis["access_summary"] is not None:
+        _invalid()
+    if version >= 15 and analysis["status"] in ("failed", "not_run") and analysis["tag_data_summary"] is not None:
+        _invalid()
+    if version >= 16 and analysis["status"] in ("failed", "not_run") and analysis["pid_summary"] is not None:
+        _invalid()
+    if version >= 17 and analysis["status"] in ("failed", "not_run") and analysis["pid_member_summary"] is not None:
+        _invalid()
+    if version >= 18 and analysis["status"] in ("failed", "not_run") and analysis["calculation_summary"] is not None:
         _invalid()
     expected = "failed" if not tests_passed or analysis["status"] == "failed" else (
         "partial" if analysis["status"] == "partial" else "passed"
@@ -148,7 +451,7 @@ def validate_work_check_report(report: Any) -> None:
             if sample["kind"] == UNMATCHED_COLON_SAMPLE_KIND:
                 # This fallback needs dedicated rack evidence. Historical v2
                 # reports retain their original malformed-only sample contract.
-                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12)}
+                if ((version, nested["schema_version"]) not in {(3, 5), (4, 6), (5, 7), (6, 8), (7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 12), (15, 12), (16, 12), (17, 12), (18, 12), (19, 12), (20, 12), (21, 12)}
                         or nested["rack_candidates"]["matches"]["direct_operands"]
                         ["by_status"]["no_candidate_match"] == 0):
                     _invalid()
@@ -346,7 +649,10 @@ def _run_suite(root: Path, logs: Path, suite: str) -> dict[str, Any]:
 
 def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> dict[str, Any]:
     result: dict[str, Any] = {"status": "failed", "failure_code": "read_error", "private_run_saved": False,
-                              "reference_summary": None, "sfc_structure_summary": None, "diagnostic_sample": None}
+                              "reference_summary": None, "sfc_structure_summary": None,
+                              "access_summary": None, "tag_data_summary": None, "pid_summary": None,
+                              "pid_member_summary": None, "calculation_summary": None,
+                              "diagnostic_sample": None}
     try:
         snapshot = capture_snapshot(source)
         inventory = analyze_snapshot(snapshot)
@@ -356,19 +662,46 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str]) -> 
         from .sfc_summary import build_sfc_summary
         result["failure_code"] = "sfc_structure_error"
         sfc_structure = analyze_sfc_structure(snapshot, inventory)
+        result["failure_code"] = "calculation_error"
+        calculations = analyze_calculations(snapshot, inventory, references)
+        result["failure_code"] = "access_error"
+        access = analyze_access(inventory, references, schema_version=4,
+                                snapshot=snapshot, calculations=calculations)
+        result["failure_code"] = "tag_data_error"
+        tag_data = analyze_tag_data(snapshot, inventory)
+        result["failure_code"] = "pid_error"
+        pid = analyze_pid(snapshot, inventory, references, tag_data)
+        result["failure_code"] = "pid_member_error"
+        pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
         result["failure_code"] = "save_error"
         workspace = root / "confidential" / "workspaces" / "work-check"
         if workspace.resolve() != workspace:
             raise WorkCheckError("Private workspace must remain inside this checkout.")
-        save_run(workspace, snapshot, inventory, references=references, sfc_structure=sfc_structure)
+        saved_run = save_run(workspace, snapshot, inventory, references=references,
+                             sfc_structure=sfc_structure, include_review=True, access=access, tag_data=tag_data, pid=pid,
+                             pid_members=pid_members, calculations=calculations)
+        print(f"Private review report: {saved_run / 'review.html'}", flush=True)
         result["private_run_saved"] = True
         result["failure_code"] = "summary_error"
         summary = build_reference_summary(inventory, references, revision=revision)
         sfc_summary = build_sfc_summary(snapshot, inventory, sfc_structure, revision=revision)
+        access_summary = build_access_summary(inventory, references, access, revision=revision,
+                                              snapshot=snapshot, calculations=calculations)
+        tag_data_summary = build_tag_data_summary(snapshot, inventory, tag_data, revision=revision)
+        pid_summary = build_pid_summary(snapshot, inventory, references, tag_data, pid, revision=revision)
+        pid_member_summary = build_pid_member_summary(
+            snapshot, inventory, references, tag_data, pid, pid_members, revision=revision)
+        calculation_summary = build_calculation_summary(snapshot, inventory, references, calculations, revision=revision)
         sample = build_diagnostic_sample(inventory, references)
-        status = "partial" if "partial" in (summary["status"], sfc_summary["status"]) else "complete"
+        status = "partial" if "partial" in (summary["status"], sfc_summary["status"], access.status,
+                                           tag_data.status, pid.status, pid_members.status, calculations.status) else "complete"
         result.update(status=status, failure_code=None, reference_summary=summary,
                       sfc_structure_summary=sfc_summary,
+                      access_summary=access_summary,
+                      tag_data_summary=tag_data_summary,
+                      pid_summary=pid_summary,
+                      pid_member_summary=pid_member_summary,
+                      calculation_summary=calculation_summary,
                       diagnostic_sample=sample)
     except Exception:
         # All raw exception text stays private, including OS paths and values
@@ -402,7 +735,8 @@ def run_check(root: Path, supplied_source: str | None) -> int:
         analysis = _analyze(root, source, logs, revision)
     else:
         analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False,
-                    "reference_summary": None, "sfc_structure_summary": None}
+                    "reference_summary": None, "sfc_structure_summary": None, "access_summary": None,
+                    "tag_data_summary": None, "pid_summary": None, "pid_member_summary": None, "calculation_summary": None}
     status = "failed" if analysis["status"] in ("not_run", "failed") else (
         "partial" if analysis["status"] == "partial" else "passed"
     )

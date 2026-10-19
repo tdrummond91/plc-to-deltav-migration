@@ -1,8 +1,166 @@
 # Work-machine check: local results and manual publication
 
+Current checkpoint (2026-10-15): **CPT calculation access** connects the existing
+expression trees to possible destination writes and individual tag reads.
+Returned `cbb2965` tests clean `456786a`: all 175 newly supported instructions
+and 336 operand slots were classified, and all 175 new data operands bound.
+There are 17,701 classified instructions, 173 unsupported instructions, 595
+unknown source operand roles and 321 unchanged binding gaps. All 695 application
+cases passed (one expected Windows skip), as did 139 helpers. Six other summaries
+match after removing only tool_revision; all 27 historical reports validate.
+
+Current commands explicitly build access4 from authenticated calculation2
+records. Expression reads remain separate from source operand counts, and repeat
+occurrences retain their node/span links. Work21 requires access summary4 and
+calculation summary2; work1-20 and explicit access2/3 replay remain frozen.
+Review6/manifest9 still saves thirteen artifacts. The next work-machine run
+checks the projected 45 CPT classifications and 132 expression reads. Only
+bounded generated feedback is required; engineering/UI review remains optional.
+Git synchronization stays manual and the listener stays disabled. See
+[CPT access](CPT_ACCESS_REVIEW.md).
+
+## Historical extended access implementation checkpoint
+
+Historical checkpoint (2026-10-15): **extended explicit operand access** adds
+counter controls, message controls, system-value operands and SFC-reset targets.
+Returned `760448e` tests clean `36c0ff4`: all 45 CPT expressions now parse into
+592 nodes, with 132 captured reference uses and all 45 destinations root-bound.
+Four retained function calls use `SQR`; all expression-error counters are zero.
+All 668 application cases passed (one expected Windows skip), as did 139 helpers.
+Six earlier summaries match after removing only tool_revision. This establishes
+syntax/root coverage for this export, not engineering validity or source-byte
+identity. All 26 historical feedback reports validate.
+
+Access3 owns the new bindings separately from unchanged reference6 evidence;
+explicit access2 replay remains available. Work20 requires access summary3,
+while work1-19 retain their exact contracts. Review6/manifest9 still saves
+thirteen artifacts with actual nested versions. The next work-machine run
+measures the new instruction families and binding gaps. Only generated feedback
+is required; engineering/UI review remains optional. Git synchronization stays
+manual and the listener stays disabled. See [Extended operand access](EXTENDED_ACCESS_REVIEW.md).
+
+## Historical PID member implementation checkpoint
+
+Historical checkpoint (2026-10-15): **documented PID member evidence** organizes
+linked stored fields into readable groups, checks captured names/types/shapes,
+and exposes absent and duplicate catalog entries without selecting effective
+values. Returned `28b5d1f` confirms all 46 PID instruction occurrences linked to
+46 distinct declarations, with 2,346 direct member occurrences and no PID
+association gaps. It passed 586 application cases (one skip) and 139 helpers;
+previous summaries stayed equal after revision normalization.
+
+Current review5/manifest8 adds `pid-members.json` as the twelfth hashed artifact.
+Work17 adds count-only `analysis.pid_member_summary` schema1 beside unchanged
+PID1, Tag Data1, access2, SFC2 and reference12/source4 summaries. Older optional
+paths and work1-16 remain strict. The next work-machine run measures member
+coverage and gaps; only generated feedback is needed. Manual engineering/UI
+review remains optional. Git synchronization stays manual and the listener
+remains disabled. See [PID member review](PID_MEMBER_REVIEW.md) for scope and validation.
+
+## Historical PID occurrence checkpoint
+
+Historical checkpoint (2026-10-15): **PID occurrence evidence** links parsed PID
+instructions and their seven named operand functions to retained references and
+conservatively eligible stored PID structures. Repeated occurrences, aliases,
+representations and duplicate members remain separate evidence. No active
+cascade, runtime mode, effective value or distinct control-loop count is inferred.
+The previously observed 46 PID instructions are source occurrences.
+
+Current review4/manifest7 saves eleven hashed private artifacts, adding `pid.json`
+beside unchanged Tag Data1/access2/reference6/SFC2/inventory3 evidence. Work16 adds
+closed count-only `analysis.pid_summary` schema1 and keeps Tag Data1/access2/SFC2/
+reference12/source4 summaries. Review1-3, manifest1-6 and work1-15 keep their exact
+contracts; review4 retains review3's 128 MiB JSON and 160 MiB HTML limits.
+See [PID evidence review](PID_EVIDENCE_REVIEW.md) for scope, validation and
+remaining limits. The next ordinary work-machine run measures PID evidence;
+only generated aggregate feedback is needed. Engineering/UI review remains
+optional later. Manual pull/run/push and private artifact storage still apply.
+
+## Historical Tag Data checkpoint
+
+Historical checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
+capture layer beside the unchanged source/reference/SFC/access contracts.
+Review3/manifest6 adds `tag-data.json` as the tenth hashed private artifact;
+work15 adds a count-only tag-data summary1. Missing Data remains absent evidence.
+Stored text and attributes do not establish effective values, initialization,
+runtime state, member validity or approved settings. Read the
+[Tag Data review](TAG_DATA_REVIEW.md) for scope and complete validation results.
+All 642 development cases pass with one existing Windows symlink skip.
+Two actual isolated runs, explicit then remembered source, each pass 546
+application cases (one existing symlink skip) and 139 helpers, with report-only
+local commits and no Git network calls. All ten hashes and canonical review3/
+Tag Data schema1 verify; fresh CLI artifacts are identical. Eight legacy artifacts
+match `122f230` byte for byte, source/reference/SFC/access summaries match after
+revision normalization, and all 21 historical work1-14 reports validate.
+
+Returned `122f230` confirms timer/reset/copy access2 on clean `bdcc101`: 496
+application cases (one skip), 139 helpers, 17,526 classified instructions of
+17,874, 348 unsupported instructions, 931 unknown operand roles and 321 binding
+gaps. All 434 timers have 868 placeholder initialization fields. Source/reference
+and SFC summaries equal `7cd9201` after revision normalization; aggregate equality
+does not prove source byte identity. The next normal work-machine run measures
+Tag Data capture. Only generated aggregate feedback is needed; engineering/UI
+review remains deferred and does not gate parser work. Manual pull/run/push
+and private artifact storage continue as described below.
+
+## Historical timer/reset/copy checkpoint
+
+The next run measures **Phase 1 timer/reset/copy operand access, extending the
+catalogue to 34 supported mnemonic spellings**. It saves private access evidence and adds count-only access
+coverage to the generated feedback. Roles describe potential explicit uses,
+not execution effects or dependencies. Root groups do not prove overlap between
+member/index suffixes. Timer pseudo-operands retain only placeholder/integer
+classification; timing, initialization and copy ranges remain unmodeled.
+Read [TIMER_COPY_ACCESS_REVIEW.md](TIMER_COPY_ACCESS_REVIEW.md) and the initial
+[ACCESS_ROLE_REVIEW.md](ACCESS_ROLE_REVIEW.md) for
+capabilities and limits; the evidence checkpoints below remain historical.
+
+Returned `7cd9201` confirms initial access1: 478 application cases (one skip),
+139 helpers, clean tested `6642c5c` and a saved private run. It classified 16,952
+of 17,874 instructions, retained 922 unsupported instructions and counted 321
+access binding gaps. Reference/source and SFC summaries match the preceding
+`1332543` report after revision normalization. Tyler has not
+inspected the source/report and explicitly deferred engineering and UI review.
+Only the next generated aggregate feedback is needed for this access slice;
+familiar-tag, SFC and appearance checks are optional later and do not gate parser work.
+
+In Git Bash at the repository root on `feat/bounded-operand-example-pc`:
+
+```bash
+git pull
+bash ./run-work-check.sh
+# If this checkout has no remembered source, use instead:
+# bash ./run-work-check.sh A19CHL02-unencrypted.L5X
+```
+
+The runner prints the private `review.html` path for optional later inspection.
+After checking the new generated feedback JSON, run `git push` manually. The
+script commits that report locally; no manual staging or commit is needed.
+Keep the HTML and engineering artifacts private.
+
+Historical extension validation: 592 development cases pass (one existing symlink
+skip). Two actual isolated runs, explicit then remembered source, each pass 496
+application cases (one skip) and 139 helpers. Both make report-only local commits
+without Git network calls, preserve earlier runs, verify nine artifact hashes
+and canonical access2/review2, and match fresh CLI artifacts byte for byte.
+Seven legacy artifacts match `7cd9201`; source/reference/SFC summaries match
+after revision normalization. All 20 historical work1-13 reports validate.
+
+Initial access1 validation is historical: 574 development cases passed (one existing symlink skip).
+Two final synthetic launcher runs each pass 478 application cases (one skip)
+and 139 helpers. Manifest hashes, canonical review/access evidence and identical
+CLI HTML verify; seven legacy artifacts remain byte-identical to baseline
+`1332543` on the same invented input, and source/reference/SFC summaries match
+after revision normalization. All 19 historical work1-12 reports validate.
+At that checkpoint, overall `partial` remained expected. Work14 carried access summary2 beside unchanged reference12/
+source4/SFC2. Review2 runs used manifest5 with nine hashed artifacts, including
+private access2 in `access.json` and `review.html`; frozen work13 retains access
+summary1. Legacy reference/SFC runs
+retain manifest2/3, and historical review1/manifest4 runs remain readable.
+
 Use **main** for the consolidated baseline. The current Phase 1 work is on
 **feat/bounded-operand-example-pc**. Pull that branch manually, then run the script. This remains Phase 1:
-source inventory, module I/O declarations, declared tag roots and alias chains. Engineering classifications,
+source inventory, module I/O declarations, declared roots/aliases and supported explicit operand uses. Engineering classifications,
 editable corrections, PCSD and FHX generation are still later work.
 
 Confirmed timer evidence: `1195d40` tested `112ee82`, passed 177 application
@@ -67,8 +225,8 @@ application cases (one skip) and 139 helpers. All 280 boxes have recognized
 Text children, all 213 attachments/426 endpoints resolve, and SFC structural
 status is complete with zero issues. Previous reference/flow/ID/ST counts stay
 unchanged. Overall partial remains expected because engineering interpretation
-is incomplete. No repeat annotation-only run is needed; wait for the next
-implementation checkpoint before rerunning. See [the confirmed annotation
+is incomplete. No repeat annotation-only run is needed; the access-role
+checkpoint above is now ready for the next run. See [the confirmed annotation
 review](SFC_ANNOTATION_REVIEW.md) and [project state](PROJECT_STATE_REVIEW.md).
 
 ## Manual runs
@@ -109,23 +267,43 @@ Dependency setup may still use uv's configured package sources.
 
 The work-machine test lists exclude listener, Windows process-host, Bash
 bootstrap and Git-fixture tests. Full unittest discovery remains the development
-check. New reports use schema 11 and their tested SHA identifies which suite
+check. New reports use schema 15 and their tested SHA identifies which suite
 implementation ran; older reports can therefore have a broader test scope.
 
 ## What it produces
 
 | Location | Contents |
 |---|---|
-| `public/inspection/work-check-<run-id>.json` | Automatically committed feedback: tested revision, suite results, reference/structural counts, and at most one actual mystery operand with instruction/argument position |
+| `public/inspection/work-check-<run-id>.json` | Automatically committed feedback: tested revision, suite results, reference/structural/access/Tag Data counts, and at most one actual mystery operand with instruction/argument position |
 | `confidential/work-checks/<run-id>/` | Local test logs and structured results; analysis exception details if needed |
-| `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt, sfc-structure.json, sfc-structure.txt and manifest.json |
+| `confidential/workspaces/work-check/<new-run>/` | Local snapshot.L5X, inventory.json, overview.txt, references.json, references.txt, sfc-structure.json, sfc-structure.txt, access.json, tag-data.json, review.html and manifest.json |
 | Git metadata `plc-work-check.json` | Local remembered source path; not committed or pushed |
+
+For optional later inspection, `review.html` is the organized offline report. It includes private
+source evidence and bundled assets, and opens without a server. For a separate
+new run, use `uv run --project python-parser --locked plc review FILE
+--workspace confidential/workspaces/review`; `--workspace` is required. The
+command prints the HTML path, and exit 3 means usable partial output.
 
 Open `overview.txt` for the source overview and `references.txt` for declarations,
 alias chains, operand occurrences and rack candidate lookups. Their JSON counterparts preserve structured
 records and source links for later analysis. Open sfc-structure.txt for SFC edit
 blocks, descriptors, opaque ST and scoped links; its JSON preserves canonical
-records. Combined work runs use manifest3 with seven hashed artifacts. Every run gets new output locations;
+records. `access.json` schema2 records possible explicit operand roles and resolved-root
+groups; it does not assert runtime effects, dependencies or member overlap.
+Combined review work runs use review4/manifest7 with eleven hashed artifacts.
+`tag-data.json` schema1 preserves stored Data/DefaultData evidence without choosing
+effective values or validating settings. `pid.json` schema1 links PID occurrences
+to existing operand and stored-structure evidence with explicit gaps. Work16
+retains `analysis.tag_data_summary` schema1 and adds `analysis.pid_summary` schema1
+with fixed counts and no stored names, values, IDs, relationships or Format spellings.
+Access summary2 retains accepted timer counts and fixed placeholder/integer pseudo-operand
+counts; these contain no raw timer values or operand text. The timer capacity
+bound includes published TON/TOF/RTO counts plus pooled `withheld` spellings so
+lowercase source instructions remain supported. That bound does not prove that
+every pooled instruction is a timer.
+Plain reference runs retain manifest2 and standalone SFC runs retain manifest3.
+Every run gets new output locations;
 the original source and previous runs are preserved.
 
 The public report includes at most one actual operand in `diagnostic_sample`,
@@ -141,7 +319,10 @@ Repeated unchanged runs select the same
 eligible example. Null means no eligible
 example was available or analysis did not succeed. The reference aggregate
 is at `analysis.reference_summary`, with the structural summary nested beneath
-`source_summary`. Separate SFC counts are at analysis.sfc_structure_summary.
+`source_summary`. Separate SFC counts are at `analysis.sfc_structure_summary`;
+count-only access coverage is at `analysis.access_summary`, and stored-data
+capture counts are at `analysis.tag_data_summary`. These sections contain no
+names, source IDs, values or individual relationships.
 The top-level `tool_revision` identifies the tested code commit;
 the automatically created report commit is intentionally different.
 

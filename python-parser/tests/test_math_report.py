@@ -32,7 +32,7 @@ class MathReportTests(unittest.TestCase):
 
     def test_current_math_report_uses_new_pair_without_changing_source_contract(self) -> None:
         payload = report(MATH_SOURCE)
-        self.assertEqual((payload['schema_version'], payload['workflow_version']), (12, 'work-check-12'))
+        self.assertEqual((payload['schema_version'], payload['workflow_version']), (20, 'work-check-20'))
         nested = payload['analysis']['reference_summary']
         self.assertEqual((nested['schema_version'], nested['analyzer_version']), (12, 'source-references-9'))
         self.assertEqual(nested['source_summary']['schema_version'], 4)
@@ -79,6 +79,11 @@ class MathReportTests(unittest.TestCase):
             payload = report(source)
             payload.update(schema_version=4, workflow_version='work-check-4')
             del payload['analysis']['sfc_structure_summary']
+            del payload['analysis']['access_summary']
+            del payload['analysis']['tag_data_summary']
+            del payload['analysis']['pid_summary']
+            del payload['analysis']['pid_member_summary']
+            del payload['analysis']['calculation_summary']
             del payload['analysis']['reference_summary']['routine_instruction_shapes']
             del payload['analysis']['reference_summary']['routine_targets']
             del payload['analysis']['reference_summary']['routine_target_metadata']

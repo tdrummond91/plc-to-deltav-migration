@@ -1,5 +1,36 @@
 # Independently synthetic L5X fixture
 
+## CPT access demonstration
+
+[cpt_access_review_demo.L5X](cpt_access_review_demo.L5X) extends the independently
+invented extended-access fixture with an expression-only root, repeated reads
+through its alias, a destination read within its own expression, and a constant
+expression. The [current HTML demo](../../examples/engineering-review-demo.html)
+uses this fixture. No plant source or connections were read to construct it.
+Earlier fixtures remain unchanged; these are parser cases, not controller-ready
+logic. See [the CPT access contract](../../docs/reviews/CPT_ACCESS_REVIEW.md).
+
+## Legacy calculation function demonstration
+
+[calculation_function_review_demo.L5X](calculation_function_review_demo.L5X)
+extends the invented calculation demo with all seven older function spellings,
+mixed-case and nested calls, unsupported functions, wrong arity and first-error
+cases. All names, values and connections are independently invented. It is not
+an executable controller project. The earlier function HTML demo used this fixture;
+all earlier fixture bytes and their historical validation remain intact.
+
+## Calculation report demonstration
+
+[calculation_review_demo.L5X](calculation_review_demo.L5X) extends the independently
+invented PID member demonstration without changing that earlier fixture. It adds
+CPT grouping, precedence, functions, repeated references, aliases, static and
+dynamic subscripts, unresolved roots, unsupported syntax and invalid signatures.
+Its deliberately invalid cases exercise evidence gaps; this is not a controller
+project. No real export was read to invent these expressions. The generated
+[HTML demonstration](../../examples/engineering-review-demo.html) includes this
+fixture's calculation view. The original fixture hash below still applies only
+to controller_demo.L5X.
+
 This fixture was invented from generic L5X structure. It was not produced by renaming tags or preserving connections from a plant export. No confidential L5X or DeltaV export was read to construct it.
 
 ## Included cases
@@ -70,3 +101,38 @@ uv run --project python-parser plc references public/fixtures/synthetic/module_i
 The [aggregate example](../../examples/module-reference-summary.synthetic.json)
 contains only counts. Its revision is deliberately unavailable, so it is not
 presented as an actual work-machine run. Neither example contains plant data.
+
+## Engineering review demonstrations
+
+[engineering_review_demo.L5X](engineering_review_demo.L5X) contains invented
+ladder/SFC evidence for report navigation. The separate
+[tag_data_review_demo.L5X](tag_data_review_demo.L5X) extends that demonstration
+with illustrative PID/timer members, an array, string text, duplicate Data
+representations and an unsupported vendor format. Its values and connections
+are independently invented, and neither file is controller-ready logic.
+
+The new [pid_review_demo.L5X](pid_review_demo.L5X) adds seven PID occurrences,
+including one deliberately invalid signature. It distinguishes the Tieback
+operand from the saved SP member. Cases include alias reuse, an explicit master
+operand, duplicate representations/members, missing and opaque-only data, and
+a nested-member association gap. All values and relationships are invented.
+
+The [PID member demonstration](pid_member_review_demo.L5X) adds a complete
+51-entry catalog example and a separate incomplete structure with a mixed-case
+duplicate, wrong/missing types, empty value, unknown member and unexpected DATA
+dimensions. Its nine PID occurrences include the earlier association gaps.
+All values remain invented, including deliberately nonnumeric saved text.
+The earlier PID member HTML demonstration used pid_member_review_demo.L5X;
+its cases are retained in the current CPT access fixture. The original fixtures and their existing origin/hash
+contracts remain unchanged. See the [PID checkpoint](../../docs/reviews/PID_EVIDENCE_REVIEW.md)
+and [stored-data checkpoint](../../docs/reviews/TAG_DATA_REVIEW.md) for scope and validation.
+
+## Extended operand access demonstration
+
+`extended_access_review_demo.L5X` independently extends the invented calculation
+example with CTU/CTD, MSG, GSV/SSV and SFR examples. It includes alias-backed
+controls, a blank system instance, selector/tag name collisions, the initial-step
+zero sentinel, unresolved/dynamic addresses and deliberately malformed forms.
+It is not controller-ready logic. The generated
+[offline demonstration](../../examples/engineering-review-demo.html) shows
+original reference findings separately from access-owned bindings.

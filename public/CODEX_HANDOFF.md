@@ -1,5 +1,164 @@
 # Codex handoff: PLC analysis workbench
 
+Current checkpoint (2026-10-15): **CPT calculation access** connects the existing
+expression trees to possible destination writes and individual tag reads.
+Returned `cbb2965` tests clean `456786a`: all 175 newly supported instructions
+and 336 operand slots were classified, and all 175 new data operands bound.
+There are 17,701 classified instructions, 173 unsupported instructions, 595
+unknown source operand roles and 321 unchanged binding gaps. All 695 application
+cases passed (one expected Windows skip), as did 139 helpers. Six other summaries
+match after removing only tool_revision; all 27 historical reports validate.
+
+Current commands explicitly build access4 from authenticated calculation2
+records. Expression reads remain separate from source operand counts, and repeat
+occurrences retain their node/span links. Work21 requires access summary4 and
+calculation summary2; work1-20 and explicit access2/3 replay remain frozen.
+Review6/manifest9 still saves thirteen artifacts. The next work-machine run
+checks the projected 45 CPT classifications and 132 expression reads. Only
+bounded generated feedback is required; engineering/UI review remains optional.
+Git synchronization stays manual and the listener stays disabled. See
+[CPT access](docs/reviews/CPT_ACCESS_REVIEW.md).
+
+## Historical extended access implementation checkpoint
+
+Historical checkpoint (2026-10-15): **extended explicit operand access** adds
+counter controls, message controls, system-value operands and SFC-reset targets.
+Returned `760448e` tests clean `36c0ff4`: all 45 CPT expressions now parse into
+592 nodes, with 132 captured reference uses and all 45 destinations root-bound.
+Four retained function calls use `SQR`; all expression-error counters are zero.
+All 668 application cases passed (one expected Windows skip), as did 139 helpers.
+Six earlier summaries match after removing only tool_revision. This establishes
+syntax/root coverage for this export, not engineering validity or source-byte
+identity. All 26 historical feedback reports validate.
+
+Access3 owns the new bindings separately from unchanged reference6 evidence;
+explicit access2 replay remains available. Work20 requires access summary3,
+while work1-19 retain their exact contracts. Review6/manifest9 still saves
+thirteen artifacts with actual nested versions. The next work-machine run
+measures the new instruction families and binding gaps. Only generated feedback
+is required; engineering/UI review remains optional. Git synchronization stays
+manual and the listener stays disabled. See [Extended operand access](docs/reviews/EXTENDED_ACCESS_REVIEW.md).
+
+## Historical PID member implementation checkpoint
+
+Historical checkpoint (2026-10-15): **documented PID member evidence** organizes
+linked stored fields into readable groups, checks captured names/types/shapes,
+and exposes absent and duplicate catalog entries without selecting effective
+values. Returned `28b5d1f` confirms all 46 PID instruction occurrences linked to
+46 distinct declarations, with 2,346 direct member occurrences and no PID
+association gaps. It passed 586 application cases (one skip) and 139 helpers;
+previous summaries stayed equal after revision normalization.
+
+Current review5/manifest8 adds `pid-members.json` as the twelfth hashed artifact.
+Work17 adds count-only `analysis.pid_member_summary` schema1 beside unchanged
+PID1, Tag Data1, access2, SFC2 and reference12/source4 summaries. Older optional
+paths and work1-16 remain strict. The next work-machine run measures member
+coverage and gaps; only generated feedback is needed. Manual engineering/UI
+review remains optional. Git synchronization stays manual and the listener
+remains disabled. See [PID member review](docs/reviews/PID_MEMBER_REVIEW.md) for scope and validation.
+
+## Historical PID occurrence checkpoint
+
+Historical checkpoint (2026-10-15): **PID occurrence evidence** links parsed PID
+instructions and their seven named operand functions to retained references and
+conservatively eligible stored PID structures. Repeated occurrences, aliases,
+representations and duplicate members remain separate evidence. No active
+cascade, runtime mode, effective value or distinct control-loop count is inferred.
+The previously observed 46 PID instructions are source occurrences.
+
+Current review4/manifest7 saves eleven hashed private artifacts, adding `pid.json`
+beside unchanged Tag Data1/access2/reference6/SFC2/inventory3 evidence. Work16 adds
+closed count-only `analysis.pid_summary` schema1 and keeps Tag Data1/access2/SFC2/
+reference12/source4 summaries. Review1-3, manifest1-6 and work1-15 keep their exact
+contracts; review4 retains review3's 128 MiB JSON and 160 MiB HTML limits.
+See [PID evidence review](docs/reviews/PID_EVIDENCE_REVIEW.md) for scope, validation and
+remaining limits. The next ordinary work-machine run measures PID evidence;
+only generated aggregate feedback is needed. Engineering/UI review remains
+optional later. Manual pull/run/push and private artifact storage still apply.
+
+## Historical Tag Data checkpoint
+
+Historical checkpoint (2026-10-15): **stored Tag Data evidence** is a separate
+capture layer beside the unchanged source/reference/SFC/access contracts.
+Review3/manifest6 adds `tag-data.json` as the tenth hashed private artifact;
+work15 adds a count-only tag-data summary1. Missing Data remains absent evidence.
+Stored text and attributes do not establish effective values, initialization,
+runtime state, member validity or approved settings. Read the
+[Tag Data review](docs/reviews/TAG_DATA_REVIEW.md) for scope and complete validation results.
+All 642 development cases pass with one existing Windows symlink skip.
+Two actual isolated runs, explicit then remembered source, each pass 546
+application cases (one existing symlink skip) and 139 helpers, with report-only
+local commits and no Git network calls. All ten hashes and canonical review3/
+Tag Data schema1 verify; fresh CLI artifacts are identical. Eight legacy artifacts
+match `122f230` byte for byte, source/reference/SFC/access summaries match after
+revision normalization, and all 21 historical work1-14 reports validate.
+
+Returned `122f230` confirms timer/reset/copy access2 on clean `bdcc101`: 496
+application cases (one skip), 139 helpers, 17,526 classified instructions of
+17,874, 348 unsupported instructions, 931 unknown operand roles and 321 binding
+gaps. All 434 timers have 868 placeholder initialization fields. Source/reference
+and SFC summaries equal `7cd9201` after revision normalization; aggregate equality
+does not prove source byte identity. The next normal work-machine run measures
+Tag Data capture. Only generated aggregate feedback is needed; engineering/UI
+review remains deferred and does not gate parser work. Manual pull/run/push
+and private artifact storage continue as described below.
+
+## Historical timer/reset/copy checkpoint
+
+Historical checkpoint (2026-10-15): **Phase 1 explicit operand access covers 34
+supported mnemonic spellings**, adding TON/TOF/RTO, RES and COP/CPS to the
+initial 28-spelling catalogue. Timer preset/accumulator slots accept only `?`
+or recognized integer literal forms as non-data pseudo-operands; a different form leaves
+the whole instruction unknown. Timer storage is read-write, RES storage is a
+possible write, and COP/CPS retain source-read/destination-write/length-read
+roles without expanding ranges. Initialization, timing, types, copy extents,
+execution effects and dependencies remain unmodeled. Read
+[TIMER_COPY_ACCESS_REVIEW.md](docs/reviews/TIMER_COPY_ACCESS_REVIEW.md), the
+[initial access review](docs/reviews/ACCESS_ROLE_REVIEW.md), then the
+[work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+
+Returned `7cd9201` confirms initial access1 on clean `6642c5c`: 478 application
+cases (one skip), 139 helpers and a saved private run. It classified 16,952 of
+17,874 instructions, retained 922 unsupported instructions and counted 321
+access binding gaps. Reference/source and SFC summaries equal the preceding
+`1332543` report after revision normalization; this does not prove source byte identity.
+Tyler has not inspected the source/report and has explicitly deferred engineering
+and UI review. That review is optional later and is not a gate to continued
+parser work. The next work-machine run measures the timer/reset/copy extension;
+only its generated aggregate feedback is needed.
+
+On the current `feat/bounded-operand-example-pc` branch, manually `git pull`,
+run `bash ./run-work-check.sh` (supply `A19CHL02-unencrypted.L5X` if the checkout
+has no remembered source), then manually
+`git push` to return the automatically committed bounded feedback report.
+Keep the HTML, source and engineering artifacts under `confidential/`.
+Standalone generation is `uv run --project python-parser --locked plc review
+FILE --workspace PRIVATE_DIRECTORY`; `--workspace` is required and exit 3 means
+a usable partial report was saved.
+
+Historical timer/reset/copy validation: 592 development cases pass with one existing
+symlink skip. Two actual isolated runs, first explicit then remembered source,
+each pass 496 application cases (one skip) and 139 helpers and make only local
+report commits with no Git network calls. All nine manifest hashes, canonical
+access2/review2 and byte-identical CLI output artifacts verify. Seven legacy
+artifacts match `7cd9201` byte for byte; source/reference/SFC summaries match
+after revision normalization. All 20 historical work1-13 reports validate.
+
+Initial access1 validation (historical): 574 cases passed with one existing symlink skip.
+Two final synthetic launcher runs each pass 478 application cases (one skip)
+and 139 helpers. Both verify all nine manifest hashes, canonical review/access
+evidence and identical CLI HTML. On the same invented input, seven legacy
+artifacts match baseline `1332543` byte for byte; source/reference/SFC summaries
+match after revision normalization. All 19 historical work1-12 reports validate.
+At that checkpoint, work14 required access summary2; frozen work13 retains access summary1.
+Private access2 (`instruction-access-2`) and review2 are saved under
+manifest5 with nine hashed artifacts, including `access.json` and `review.html`.
+Public reference12/source4/SFC2 and private inventory3/reference6/SFC2 stay
+unchanged. Plain reference runs retain manifest2 and standalone SFC runs retain
+manifest3; historical review1/manifest4 runs remain readable. The
+[preceding review checkpoint](docs/reviews/ENGINEERING_REVIEW_REPORT.md) retains
+its original validation evidence.
+
 Current listener hold (2026-10-14): Tyler reported repeated endpoint-security
 alerts involving bash.exe after the work-machine check of `1419af7`. The local
 listener task is disabled and state is paused with no pending worker. Do not
@@ -9,9 +168,9 @@ the specific detection is unverified and these changes do not prove its cause
 resolved. Tyler is proceeding with a fresh clone and normal manual parser checks
 using the local-only workflow below. Earlier restoration evidence is history.
 
-Updated 2026-10-14. Current baseline: **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `90923ab` confirms SFC structural capture is complete for this export: all 280 text boxes are recognized, all 213 annotation attachments resolve, and SFC issues are zero. All earlier reference and SFC flow/ST counts remain unchanged. Phase 1 engineering interpretation is still incomplete. Read the [project-state assessment](docs/reviews/PROJECT_STATE_REVIEW.md), [annotation evidence](docs/reviews/SFC_ANNOTATION_REVIEW.md) and [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
+Historical SFC annotation baseline (2026-10-14): **Phase 1 source/reference tooling; local report commits automatic, pull/push manual**. Returned `90923ab` confirms SFC structural capture is complete for this export: all 280 text boxes are recognized, all 213 annotation attachments resolve, and SFC issues are zero. All earlier reference and SFC flow/ST counts remain unchanged. Phase 1 engineering interpretation is still incomplete. Read the [project-state assessment](docs/reviews/PROJECT_STATE_REVIEW.md), [annotation evidence](docs/reviews/SFC_ANNOTATION_REVIEW.md) and [work-machine procedure](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
-Current annotation validation: 512 development cases pass (one existing symlink
+Annotation checkpoint validation: 512 development cases pass (one existing symlink
 skip), and 17 stored reports validate unchanged. Independent review has no
 remaining blockers after fixing repeated endpoint-payload rendering. Two actual
 synthetic launcher runs each pass 416 application cases (one skip) and 139
@@ -110,8 +269,12 @@ schema 6 carries reference 8 with MVM/SWPB roles and schema 7 carries
 reference 9 with observation-only routine-instruction shapes. Schema 8
 carries reference 10 with declared JSR first-field candidates; schema 9
 carries reference 11 with unique-candidate metadata observations. Schema
-10 carries reference 12 with static candidate graph counts. Current schema12
-keeps reference12 and carries separate SFC-structure summary2; frozen work11 retains SFC1.
+10 carries reference 12 with static candidate graph counts. Current schema16
+keeps reference12, SFC-structure summary2, access summary2 and Tag Data summary1,
+and adds `analysis.pid_summary` schema1. Frozen work15 retains the prior fields;
+frozen work14 omits Tag Data and PID;
+frozen work13 retains access summary1,
+frozen work12 retains the prior fields, and frozen work11 retains SFC1.
 Consult the tested revision for historical suite scope
 instead of treating reduced suite totals as a regression.
 
@@ -149,17 +312,25 @@ now describe unknown backing instead of omitted declarations. The sample is null
 
 Current contracts: private inventory/reference schemas 3/6 with
 `source-inventory-3` / `source-references-9`; public source/reference schemas 4/12;
-work-check schema12 with separate private SFC schema2 / sfc-structure-2 and public SFC summary2. Plain
-reference runs retain manifest2; combined work runs use manifest3 with SFC
-JSON/text artifacts. Inventory/reference JSON retain their exact structures:
+work-check schema16 with separate access summary2, Tag Data summary1 and PID summary1; private PID1 /
+pid-evidence-1, private access2 /
+instruction-access-2, private Tag Data schema1 / tag-data-1, and private SFC
+schema2 / sfc-structure-2 with public SFC summary2. Plain
+reference runs retain manifest2; standalone SFC runs retain manifest3. Combined
+review work runs use review4/manifest7 with SFC JSON/text, `access.json`,
+`tag-data.json`, `pid.json` and `review.html`, eleven hashed artifacts in total. Inventory/reference JSON retain their exact structures:
 private reference JSON includes
 canonical routine_targets occurrences and routine_graph; public output contains closed counts only. Historical public
 reports still validate with exact original status vocabularies. Work schema 3
 still requires reference 5, work schema 4 requires reference 6, and work schema
 5 requires reference 7, work schema 6 requires reference 8 and work schema 7
 requires reference 9; work schema 8 requires reference 10 and work schema 9
-requires reference 11. Work10/11/12 require reference12; work11/12 have SFC
-summary siblings1/2 respectively. Read [SFC review](docs/reviews/SFC_STRUCTURE_REVIEW.md)
+requires reference 11. Work10/11/12/13/14/15/16 require reference12; work11/12 have SFC
+summary siblings1/2 respectively, work13 requires access summary1 beside SFC2,
+work14 requires access summary2 beside SFC2, work15 adds Tag Data summary1,
+and work16 adds PID summary1.
+Historical contracts remain frozen.
+Read [SFC review](docs/reviews/SFC_STRUCTURE_REVIEW.md)
 for scope, version mapping, validation and the next report comparison.
 
 Rack validation: 316 development application/workflow tests passed (one existing
@@ -295,13 +466,13 @@ slice. Returned `2f37ae3` confirms 69 nodes (54 parsed RLL, one partial RLL,
 unique mains, one isolated node and no candidate cycles/self pairs. All earlier
 counters remain unchanged; 354 application cases (one skip) and 139 helpers pass.
 
-Current SFC slice adds a separate immutable-snapshot structural result, keeping
+The earlier SFC structural slice adds a separate immutable-snapshot result, keeping
 edit-version namespaces separate and preserving opaque ST. Missing/invalid/
 duplicate IDs, unresolved endpoints, protection and unmodeled content remain
 explicit. Work11 adds count-only SFC feedback and saves two private SFC artifacts
 under combined manifest3; old inventory/reference/source contracts remain exact.
-Next report should preserve earlier counts and cover 14 SFC routines. New
-content/element/ID/link counts remain unknown until returned. Partial remains
+Its returned counts and the later annotation confirmation are recorded above.
+The new review report preserves that evidence and adds navigation. Partial remains
 expected; SFC execution and process interpretation remain unimplemented.
 
 SFC validation: 495 development cases pass (one symlink skip), excluding the

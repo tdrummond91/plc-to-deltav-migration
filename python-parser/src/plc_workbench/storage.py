@@ -19,9 +19,14 @@ from uuid import uuid4
 from .reporting import InventoryView, render_json, render_text
 
 if TYPE_CHECKING:
+    from .access import AccessResult
     from .models import SourceSnapshot
+    from .pid import PidResult
+    from .pid_members import PidMemberResult
+    from .calculations import CalculationResult
     from .references import ReferenceResult
     from .sfc_structure import SfcStructureResult
+    from .tag_data import TagDataResult
 
 
 class StorageError(ValueError):
@@ -72,6 +77,12 @@ def save_run(
     workspace: Path, snapshot: SourceSnapshot, result: InventoryView,
     *, references: ReferenceResult | None = None,
     sfc_structure: SfcStructureResult | None = None,
+    include_review: bool = False,
+    access: AccessResult | None = None,
+    tag_data: TagDataResult | None = None,
+    pid: PidResult | None = None,
+    pid_members: PidMemberResult | None = None,
+    calculations: CalculationResult | None = None,
 ) -> Path:
     """Save the complete inventory, irrespective of any CLI rung selection.
 
@@ -79,6 +90,18 @@ def save_run(
     private run for inspection; it never marks that run complete.
     """
     try:
+        if type(include_review) is not bool or (include_review and (references is None or sfc_structure is None)):
+            raise StorageError("A review run requires inventory, references and SFC structure.")
+        if access is not None and not include_review:
+            raise StorageError("Access records require a complete engineering review run.")
+        if tag_data is not None and (access is None or not include_review):
+            raise StorageError("Tag Data records require an engineering review with operand access.")
+        if pid is not None and (tag_data is None or access is None or not include_review):
+            raise StorageError("PID records require an engineering review with operand access and Tag Data.")
+        if pid_members is not None and (pid is None or tag_data is None or access is None or not include_review):
+            raise StorageError("PID member records require an engineering review with PID evidence.")
+        if calculations is not None and (pid_members is None or pid is None or tag_data is None or access is None or not include_review):
+            raise StorageError("Calculation records require an engineering review with PID member evidence.")
         payload = result.to_dict()
         expected = {"id": snapshot.id, "sha256": snapshot.sha256, "size_bytes": snapshot.size_bytes}
         if payload["snapshot"] != expected or payload["status"] not in ("complete", "partial"):
@@ -111,21 +134,17 @@ def save_run(
             or snapshot.id != f"sha256:{digest}"
         ):
             raise StorageError("Captured source bytes do not match their identity.")
-        destination = _workspace_path(workspace)
-        destination.mkdir(parents=True, exist_ok=True)
-        if destination.resolve() != destination:
-            raise StorageError("Workspace changed during creation.")
-        created = datetime.now(timezone.utc)
-        for _ in range(10):
-            run_id = f"run-{created.strftime('%Y%m%dT%H%M%S%fZ')}-{uuid4().hex}"
-            run_dir = destination / run_id
+        if include_review:
+            from .review import ReviewError, build_review_data
+            from .review_html import ReviewHtmlError, render_review_html
             try:
-                run_dir.mkdir(mode=0o700, exist_ok=False)
-                break
-            except FileExistsError:
-                continue
-        else:
-            raise StorageError("Could not allocate a new run directory without a collision.")
+                review_data = build_review_data(snapshot, result, references, sfc_structure,
+                                                access=access, tag_data=tag_data, pid=pid,
+                                                pid_members=pid_members, calculations=calculations)
+                review_html = render_review_html(review_data).encode("utf-8")
+            except (ReviewError, ReviewHtmlError) as exc:
+                raise StorageError("Could not build the private engineering review report.") from exc
+        # Finish every validation and rendering step before allocating a run.
         contents = {
             "snapshot.L5X": snapshot.data,
             "inventory.json": render_json(result).encode("utf-8"),
@@ -143,6 +162,58 @@ def save_run(
                 "sfc-structure.json": render_sfc_json(sfc_structure).encode("utf-8"),
                 "sfc-structure.txt": render_sfc_text(sfc_structure, inventory=result).encode("utf-8"),
             })
+        if include_review:
+            contents["review.html"] = review_html
+        if access is not None:
+            from .access import AccessError, render_access_json
+            try:
+                access_payload = access.to_dict()
+                contents["access.json"] = render_access_json(access).encode("utf-8")
+            except AccessError as exc:
+                raise StorageError("Could not render captured operand access records.") from exc
+        if tag_data is not None:
+            from .tag_data import TagDataError, render_tag_data_json
+            try:
+                tag_data_payload = tag_data.to_dict()
+                contents["tag-data.json"] = render_tag_data_json(tag_data).encode("utf-8")
+            except TagDataError as exc:
+                raise StorageError("Could not render captured Tag Data records.") from exc
+        if pid is not None:
+            from .pid import PidError, render_pid_json
+            try:
+                pid_payload = pid.to_dict()
+                contents["pid.json"] = render_pid_json(pid).encode("utf-8")
+            except PidError as exc:
+                raise StorageError("Could not render captured PID records.") from exc
+        if pid_members is not None:
+            from .pid_members import PidMemberError, render_pid_members_json
+            try:
+                pid_member_payload = pid_members.to_dict()
+                contents["pid-members.json"] = render_pid_members_json(pid_members).encode("utf-8")
+            except PidMemberError as exc:
+                raise StorageError("Could not render captured PID member records.") from exc
+        if calculations is not None:
+            from .calculations import CalculationError, render_calculation_json
+            try:
+                calculation_payload = calculations.to_dict()
+                contents["calculations.json"] = render_calculation_json(calculations).encode("utf-8")
+            except CalculationError as exc:
+                raise StorageError("Could not render captured calculation records.") from exc
+        destination = _workspace_path(workspace)
+        destination.mkdir(parents=True, exist_ok=True)
+        if destination.resolve() != destination:
+            raise StorageError("Workspace changed during creation.")
+        created = datetime.now(timezone.utc)
+        for _ in range(10):
+            run_id = f"run-{created.strftime('%Y%m%dT%H%M%S%fZ')}-{uuid4().hex}"
+            run_dir = destination / run_id
+            try:
+                run_dir.mkdir(mode=0o700, exist_ok=False)
+                break
+            except FileExistsError:
+                continue
+        else:
+            raise StorageError("Could not allocate a new run directory without a collision.")
         artifacts = {
             name: _write_artifact(destination, run_dir, name, data)
             for name, data in contents.items()
@@ -181,6 +252,54 @@ def save_run(
                 "sfc_schema_version": sfc_payload["schema_version"],
                 "sfc_analyzer_version": sfc_payload["analyzer_version"],
                 "sfc_analysis_scope": sfc_payload["analysis_scope"],
+            })
+        if include_review:
+            manifest.update({
+                "schema_version": 4,
+                "artifact_kind": "source_reference_sfc_review_run",
+                "review_schema_version": review_data["schema_version"],
+                "review_version": review_data["report_version"],
+            })
+        if access is not None:
+            manifest.update({
+                "schema_version": 5,
+                "artifact_kind": "source_reference_sfc_access_review_run",
+                "status": "partial" if "partial" in (manifest["status"], access_payload["status"]) else "complete",
+                "access_schema_version": access_payload["schema_version"],
+                "access_analyzer_version": access_payload["analyzer_version"],
+            })
+        if tag_data is not None:
+            manifest.update({
+                "schema_version": 6,
+                "artifact_kind": "source_reference_sfc_access_tag_data_review_run",
+                "status": "partial" if "partial" in (manifest["status"], tag_data_payload["status"]) else "complete",
+                "tag_data_schema_version": tag_data_payload["schema_version"],
+                "tag_data_analyzer_version": tag_data_payload["analyzer_version"],
+            })
+        if pid is not None:
+            manifest.update({
+                "schema_version": 7,
+                "artifact_kind": "source_reference_sfc_access_tag_data_pid_review_run",
+                "status": "partial" if "partial" in (manifest["status"], pid_payload["status"]) else "complete",
+                "pid_schema_version": pid_payload["schema_version"],
+                "pid_analyzer_version": pid_payload["analyzer_version"],
+            })
+        if pid_members is not None:
+            manifest.update({
+                "schema_version": 8,
+                "artifact_kind": "source_reference_sfc_access_tag_data_pid_member_review_run",
+                "status": "partial" if "partial" in (manifest["status"], pid_member_payload["status"]) else "complete",
+                "pid_member_schema_version": pid_member_payload["schema_version"],
+                "pid_member_analyzer_version": pid_member_payload["analyzer_version"],
+                "pid_member_catalog_version": pid_member_payload["catalog_version"],
+            })
+        if calculations is not None:
+            manifest.update({
+                "schema_version": 9,
+                "artifact_kind": "source_reference_sfc_access_tag_data_pid_member_calculation_review_run",
+                "status": "partial" if "partial" in (manifest["status"], calculation_payload["status"]) else "complete",
+                "calculation_schema_version": calculation_payload["schema_version"],
+                "calculation_analyzer_version": calculation_payload["analyzer_version"],
             })
         _write_artifact(
             destination, run_dir, ".manifest.pending",
