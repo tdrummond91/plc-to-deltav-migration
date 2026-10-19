@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Independently invented for output-context report checks. Not controller-ready logic. -->
+<RSLogix5000Content xmlns:x="urn:invented-foreign" SchemaRevision="1.0" SoftwareRevision="35.00" TargetName="OutputContextDemo" TargetType="Controller">
+<Controller Name="OutputContextDemo"><Tags><Tag Name="Trigger" TagType="Base" DataType="BOOL"/><Tag Name="Reset" TagType="Base" DataType="BOOL"/><Tag Name="AlarmFlag" TagType="Base" DataType="BOOL"/><Tag Name="Enable" TagType="Base" DataType="BOOL"/><Tag Name="OutputA" TagType="Base" DataType="BOOL"/><Tag Name="OutputB" TagType="Base" DataType="BOOL"/><Tag Name="PulseStore" TagType="Base" DataType="BOOL"/><Tag Name="NoReaderFlag" TagType="Base" DataType="BOOL"/><Tag Name="ValueTarget" TagType="Base" DataType="REAL"/><Tag Name="Index" TagType="Base" DataType="DINT"/><Tag Name="Record" TagType="Base" DataType="InventedRecord"/><Tag Name="Delay" TagType="Base" DataType="TIMER"/><Tag Name="Flags" TagType="Base" DataType="BOOL" Dimensions="8"/><Tag Name="AlarmAlias" TagType="Alias" AliasFor="AlarmFlag"/></Tags>
+<Modules><Module Name="DemoIO" CatalogNumber="INVENTED"><Communications><ConfigTag Name="Demo:1:C"/><Connections><Connection Name="InventedConnection"><InputTag Name="Demo:1:I"/><OutputTag Name="Demo:1:O"/></Connection></Connections></Communications></Module>
+<Module Name="NamespaceModule" x:ParentModule="DemoIO"><Communications><Connections><Connection Name="Unqualified"><OutputTag Name="NamespaceModule:O"/></Connection></Connections></Communications></Module></Modules>
+<Programs><Program Name="Demonstration" MainRoutineName="Examples"><Tags><Tag Name="NamespaceAlias" TagType="Alias" x:AliasFor="AlarmFlag"/></Tags><Routines><Routine Name="Examples" Type="RLL"><RLLContent>
+<Rung Number="0" Type="N"><Comment>Invented alarm latch wording; engineering purpose is unconfirmed.</Comment><Text>XIC(Trigger)OTL(AlarmFlag);</Text></Rung>
+<Rung Number="1" Type="N"><Comment>Independent clear command; no execution order selected.</Comment><Text>XIC(Reset)OTU(AlarmFlag);</Text></Rung>
+<Rung Number="2" Type="N"><Comment>Valve wording and an output declaration are separate evidence.</Comment><Text>XIC(AlarmAlias)OTE(Demo:1:O.Data.0);</Text></Rung>
+<Rung Number="3" Type="N"><Comment>An inverted contact does not establish shutdown behavior.</Comment><Text>XIO(AlarmFlag)OTE(OutputA);</Text></Rung>
+<Rung Number="4" Type="N"><Comment>Repeated reads retain distinct source occurrences.</Comment><Text>XIC(AlarmFlag)XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="5" Type="N"><Comment>Sibling guard does not inherit another leg's contact.</Comment><Text>[XIC(AlarmFlag)OTE(OutputA),XIC(Enable)OTE(OutputB)];</Text></Rung>
+<Rung Number="6" Type="N"><Comment>Coils share upstream context, not destination identity.</Comment><Text>XIC(Trigger)[OTL(AlarmFlag),OTE(OutputB)];</Text></Rung>
+<Rung Number="7" Type="N"><Comment>Self-feedback source evidence, not a simulated state.</Comment><Text>XIC(AlarmFlag)OTE(AlarmFlag);</Text></Rung>
+<Rung Number="8" Type="N"><Comment>Noncoil writer must remain visible.</Comment><Text>MOV(1,AlarmFlag);</Text></Rung>
+<Rung Number="9" Type="N"><Comment>Stored-state read/write is distinct from a simple predicate.</Comment><Text>ONS(AlarmFlag)OTE(PulseStore);</Text></Rung>
+<Rung Number="10" Type="N"><Comment>Expression reads are data uses, not Boolean predicates.</Comment><Text>CPT(ValueTarget,AlarmFlag+AlarmFlag);</Text></Rung>
+<Rung Number="11" Type="N"><Comment>Unknown role cannot be promoted to a reader.</Comment><Text>INVENTED_BLOCK(AlarmFlag);</Text></Rung>
+<Rung Number="12" Type="N"><Comment>Input-root destination is retained without type or channel claims.</Comment><Text>OTE(Demo:1:I.Data.0);</Text></Rung>
+<Rung Number="13" Type="N"><Comment>Configuration-root destination is distinct from output direction.</Comment><Text>OTE(Demo:1:C.Enable);</Text></Rung>
+<Rung Number="14" Type="N"><Comment>Unbound output remains discoverable.</Comment><Text>OTE(MissingFlag);</Text></Rung>
+<Rung Number="15" Type="N"><Comment>Dynamic destination has no accepted exact address.</Comment><Text>OTE(Flags[Index]);</Text></Rung>
+<Rung Number="16" Type="N"><Comment>A guard with an unresolved input remains qualified.</Comment><Text>XIC(MissingInput)OTE(OutputA);</Text></Rung>
+<Rung Number="17" Type="N"><Comment>Opaque upstream transfer preserves context without effective influence claims.</Comment><Text>INVENTED_BLOCK(Enable)XIC(AlarmFlag)OTE(OutputA);</Text></Rung>
+<Rung Number="18" Type="N"><Comment>Foreign alias attribute must not produce an accepted destination.</Comment><Text>OTE(NamespaceAlias);</Text></Rung>
+<Rung Number="19" Type="N"><Comment>Foreign binding also quarantines incoming context.</Comment><Text>XIC(NamespaceAlias)OTE(OutputA);</Text></Rung>
+<Rung Number="20" Type="N"><Comment>Malformed coil retains its source without an invented target.</Comment><Text>OTE();</Text></Rung>
+<Rung Number="21" Type="N"><Comment>Mixed-case instruction spellings.</Comment><Text>xIc(Trigger)oTe(OutputA);</Text></Rung>
+<Rung Number="22" Type="N"><Comment>Two actions at one incoming condition.</Comment><Text>XIC(Enable)OTE(OutputA)OTL(AlarmFlag);</Text></Rung>
+<Rung Number="23" Type="N"><Comment>Module declaration direction is not physical wiring.</Comment><Text>XIC(Demo:1:I.Data.1)OTE(Demo:1:O.Data.1);</Text></Rung>
+<Rung Number="24" Type="N"><Comment>Whole-root and different member uses are not merged.</Comment><Text>OTE(Record.Flags.0)MOV(0,Record)XIC(Record.Flags.1)OTE(OutputB);</Text></Rung>
+<Rung Number="25" Type="N"><Comment>An empty bypass remains part of the condition graph.</Comment><Text>XIC(Enable)[,XIC(AlarmFlag)]OTE(OutputA);</Text></Rung>
+<Rung Number="26" Type="N"><Comment>Nested shared input with different branch predicates.</Comment><Text>XIC(AlarmFlag)[XIC(Enable),XIO(Reset)]OTE(OutputA);</Text></Rung>
+<Rung Number="27" Type="N"><Comment>Timer data use does not become a new Boolean predicate.</Comment><Text>XIC(AlarmFlag)TON(Delay,10,0)OTE(OutputA);</Text></Rung>
+<Rung Number="28" Type="N"><Comment>No captured reader is an investigation group, not dead-code proof.</Comment><Text>OTE(NoReaderFlag);</Text></Rung>
+<Rung Number="29" Type="N"><Comment>&lt;script&gt;window.outputFixtureLeak=true&lt;/script&gt; alarm sensor pump wording remains plain text.</Comment><Text>OTE(OutputA);</Text></Rung>
+<Rung Number="30" Type="N"><Comment>Alias writes join the exact accepted target.</Comment><Text>XIC(Trigger)OTE(AlarmAlias);</Text></Rung>
+<Rung Number="31" Type="N"><Comment>Foreign module ancestor must be quarantined.</Comment><Text>XIC(Enable)OTE(NamespaceModule:O.Data.0);</Text></Rung>
+<Rung Number="32" Type="N"><Comment>Invented paging case 1.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="33" Type="N"><Comment>Invented paging case 2.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="34" Type="N"><Comment>Invented paging case 3.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="35" Type="N"><Comment>Invented paging case 4.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="36" Type="N"><Comment>Invented paging case 5.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="37" Type="N"><Comment>Invented paging case 6.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="38" Type="N"><Comment>Invented paging case 7.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="39" Type="N"><Comment>Invented paging case 8.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="40" Type="N"><Comment>Invented paging case 9.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="41" Type="N"><Comment>Invented paging case 10.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="42" Type="N"><Comment>Invented paging case 11.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="43" Type="N"><Comment>Invented paging case 12.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="44" Type="N"><Comment>Invented paging case 13.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="45" Type="N"><Comment>Invented paging case 14.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="46" Type="N"><Comment>Invented paging case 15.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="47" Type="N"><Comment>Invented paging case 16.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="48" Type="N"><Comment>Invented paging case 17.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="49" Type="N"><Comment>Invented paging case 18.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="50" Type="N"><Comment>Invented paging case 19.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="51" Type="N"><Comment>Invented paging case 20.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="52" Type="N"><Comment>Invented paging case 21.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="53" Type="N"><Comment>Invented paging case 22.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="54" Type="N"><Comment>Invented paging case 23.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="55" Type="N"><Comment>Invented paging case 24.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="56" Type="N"><Comment>Invented paging case 25.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="57" Type="N"><Comment>Invented paging case 26.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="58" Type="N"><Comment>Invented paging case 27.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="59" Type="N"><Comment>Invented paging case 28.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="60" Type="N"><Comment>Invented paging case 29.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="61" Type="N"><Comment>Invented paging case 30.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="62" Type="N"><Comment>Invented paging case 31.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="63" Type="N"><Comment>Invented paging case 32.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="64" Type="N"><Comment>Invented paging case 33.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="65" Type="N"><Comment>Invented paging case 34.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="66" Type="N"><Comment>Invented paging case 35.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="67" Type="N"><Comment>Invented paging case 36.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="68" Type="N"><Comment>Invented paging case 37.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="69" Type="N"><Comment>Invented paging case 38.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="70" Type="N"><Comment>Invented paging case 39.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="71" Type="N"><Comment>Invented paging case 40.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="72" Type="N"><Comment>Invented paging case 41.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="73" Type="N"><Comment>Invented paging case 42.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="74" Type="N"><Comment>Invented paging case 43.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="75" Type="N"><Comment>Invented paging case 44.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="76" Type="N"><Comment>Invented paging case 45.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="77" Type="N"><Comment>Invented paging case 46.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="78" Type="N"><Comment>Invented paging case 47.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="79" Type="N"><Comment>Invented paging case 48.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="80" Type="N"><Comment>Invented paging case 49.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="81" Type="N"><Comment>Invented paging case 50.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="82" Type="N"><Comment>Invented paging case 51.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="83" Type="N"><Comment>Invented paging case 52.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="84" Type="N"><Comment>Invented paging case 53.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="85" Type="N"><Comment>Invented paging case 54.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="86" Type="N"><Comment>Invented paging case 55.</Comment><Text>XIC(AlarmFlag)OTE(OutputB);</Text></Rung>
+<Rung Number="87" Type="N"><Comment>Invented malformed control use: bound unknown-role references remain unknown, with no execution or type claim.</Comment><Text>PID(AlarmFlag,Trigger,Reset,Enable,0,0,0);</Text></Rung>
+</RLLContent></Routine></Routines></Program></Programs></Controller></RSLogix5000Content>

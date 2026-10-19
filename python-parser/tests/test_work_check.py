@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from plc_workbench import work_check
+from plc_workbench import source as source_module, work_check
 from plc_workbench.source import analyze_snapshot, snapshot_from_bytes
 from plc_workbench.references import analyze_references
 from plc_workbench.reference_summary import build_reference_summary
@@ -311,6 +311,50 @@ class SourceAndAnalysisTests(unittest.TestCase):
             self.assertNotIn("SECRET_SOURCE_VALUE", json.dumps(outcome))
             self.assertIn("SECRET_SOURCE_VALUE", (root / "analysis.log").read_text(encoding="utf-8"))
 
+    def test_reused_inventory_does_not_authenticate_a_mutated_caller_copy(self) -> None:
+        def altered_inventory(snapshot):
+            inventory = analyze_snapshot(snapshot)
+            inventory.counts["rungs"] += 1
+            return inventory
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder).resolve()
+            source = root / "invented.L5X"
+            source.write_bytes(SOURCE)
+            with patch.object(work_check, "analyze_snapshot", side_effect=altered_inventory), \
+                    patch.object(work_check, "save_run") as save, redirect_stdout(io.StringIO()):
+                outcome = work_check._analyze(root, source, root, {"commit": COMMIT, "worktree": "clean"})
+            self.assertEqual(outcome["status"], "failed")
+            self.assertFalse(outcome["private_run_saved"])
+            self.assertIsNone(outcome["reference_summary"])
+            self.assertEqual(outcome["failure_code"], "calculation_error")
+            save.assert_not_called()
+
+    def test_analysis_reuse_is_limited_to_one_invocation_including_exceptions(self) -> None:
+        snapshot = snapshot_from_bytes(SOURCE)
+
+        def probe(*args, **kwargs):
+            first = analyze_snapshot(snapshot)
+            self.assertEqual(first, analyze_snapshot(snapshot))
+            if fail:
+                raise RuntimeError("Invented analysis failure")
+            return {"status": "complete"}
+
+        for fail in (False, True):
+            with self.subTest(fail=fail), \
+                    patch.object(source_module, "_build_inventory", wraps=source_module._build_inventory) as build, \
+                    patch.object(work_check, "_analyze_source", side_effect=probe):
+                if fail:
+                    with self.assertRaisesRegex(RuntimeError, "Invented analysis failure"):
+                        work_check._analyze(Path("."), Path("invented.L5X"), Path("."), {})
+                else:
+                    self.assertEqual(work_check._analyze(Path("."), Path("invented.L5X"), Path("."), {}),
+                                     {"status": "complete"})
+                self.assertEqual(build.call_count, 1)
+                analyze_snapshot(snapshot)
+                analyze_snapshot(snapshot)
+                self.assertEqual(build.call_count, 3)
+
     def test_log_write_failure_does_not_discard_analysis_failure(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve()
@@ -548,7 +592,60 @@ class GitAndWorkflowTests(unittest.TestCase):
             analysis_payload["aoi_body_summary"] = build_aoi_body_summary(
                 *body_inputs, analyze_aoi_body_context(*body_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"})
-            analysis = stack.enter_context(patch.object(work_check, "_analyze", return_value=analysis_payload))
+            from plc_workbench.pid_connections import analyze_pid_connections
+            from plc_workbench.pid_connection_summary import build_pid_connection_summary
+            connection_inputs = (snapshot, inventory, references, access, calculations, rung_analysis,
+                                 relationships, conditions, tag_data, pid,
+                                 analyze_pid_members(snapshot, inventory, references, tag_data, pid))
+            analysis_payload["pid_connection_summary"] = build_pid_connection_summary(
+                *connection_inputs, analyze_pid_connections(*connection_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.calculation_paths import analyze_calculation_paths
+            from plc_workbench.calculation_path_summary import build_calculation_path_summary
+            path_inputs = (snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
+            analysis_payload["calculation_path_summary"] = build_calculation_path_summary(
+                *path_inputs, analyze_calculation_paths(*path_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.output_context import analyze_output_context
+            from plc_workbench.output_context_summary import build_output_context_summary
+            analysis_payload["output_context_summary"] = build_output_context_summary(
+                *path_inputs, analyze_output_context(*path_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.stateful_objects import analyze_stateful_objects
+            from plc_workbench.stateful_object_summary import build_stateful_object_summary
+            stateful_inputs = (*path_inputs, tag_data)
+            analysis_payload["stateful_object_summary"] = build_stateful_object_summary(
+                *stateful_inputs, analyze_stateful_objects(*stateful_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.sfc_conditions import analyze_sfc_conditions
+            from plc_workbench.sfc_condition_summary import build_sfc_condition_summary
+            sequence_inputs = (snapshot, inventory, references, sfc_structure)
+            analysis_payload["sfc_condition_summary"] = build_sfc_condition_summary(
+                *sequence_inputs, analyze_sfc_conditions(*sequence_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.sfc_context import analyze_sfc_context
+            from plc_workbench.sfc_context_summary import build_sfc_context_summary
+            context_inputs = (snapshot, inventory, references, access, calculations, rung_analysis,
+                              relationships, sfc_structure, analyze_sfr_context(*sfr_inputs, schema_version=2),
+                              analyze_sfc_conditions(*sequence_inputs))
+            analysis_payload["sfc_context_summary"] = build_sfc_context_summary(
+                *context_inputs, analyze_sfc_context(*context_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"}, schema_version=2)
+            from plc_workbench.execution_context import analyze_execution_context
+            from plc_workbench.execution_context_summary import build_execution_context_summary
+            execution_inputs = (snapshot, inventory, references, access, calculations,
+                                rung_analysis, relationships, conditions)
+            analysis_payload['execution_context_summary'] = build_execution_context_summary(
+                *execution_inputs, analyze_execution_context(*execution_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            def timed_analysis(*args, timings, sfc_context_schema_version, include_execution_context):
+                self.assertEqual(sfc_context_schema_version, 2)
+                self.assertTrue(include_execution_context)
+                for name in ("analysis_build", "private_save", "summary_build", "sample_replay"):
+                    with timings.phase(name):
+                        pass
+                return analysis_payload
+            analysis = stack.enter_context(patch.object(work_check, "_analyze", side_effect=timed_analysis))
             stack.enter_context(patch("plc_workbench.summary_output.publish_summary", side_effect=publish))
             stack.enter_context(redirect_stdout(io.StringIO()))
             try:
@@ -556,6 +653,32 @@ class GitAndWorkflowTests(unittest.TestCase):
             except work_check.WorkCheckError as exc:
                 outcome = exc
         return outcome, calls, published, analysis
+
+    def test_run_check_freezes_total_before_rendering_publication_and_local_commit(self) -> None:
+        from plc_workbench.work_check_timing import PHASES, WorkCheckTiming
+        class Clock:
+            value = 0
+
+            def __call__(self) -> int:
+                return self.value
+
+        clock = Clock()
+        render = work_check.render_work_check_report
+        def render_then_advance(payload):
+            text = render(payload)
+            clock.value += 600_000_000_000
+            return text
+        with tempfile.TemporaryDirectory() as folder, \
+                patch.object(work_check, 'WorkCheckTiming', side_effect=lambda **kwargs: WorkCheckTiming(clock=clock, **kwargs)), \
+                patch.object(work_check, 'render_work_check_report', side_effect=render_then_advance):
+            outcome, calls, published, analysis = self._workflow(
+                Path(folder).resolve(), [test_result(), test_result()])
+        self.assertEqual(outcome, 0)
+        self.assertEqual(published[0]['schema_version'], 39)
+        self.assertEqual(published[0]['timings']['total_ms'], 0)
+        self.assertEqual(published[0]['timings']['phases_ms'], dict.fromkeys(PHASES, 0))
+        self.assertFalse(any(call[0] in {'fetch', 'pull', 'push'} for call in calls))
+        self.assertEqual(analysis.call_args.kwargs['sfc_context_schema_version'], 2)
 
     def test_failed_suite_commits_only_local_report_without_analysis_or_remote_access(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

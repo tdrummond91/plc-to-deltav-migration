@@ -1,5 +1,43 @@
 # L5X engineering review, calculations and source structure
 
+Latest bundle: **Source-declared execution context** connects task/program
+metadata and schedule candidates to main/fault designations, call-site guards,
+and SBR/RET/JMP/LBL source boundaries. Review21 embeds private evidence; work39
+returns closed counts. Runtime scheduling and parameter roles remain unmodeled.
+See [scope and validation](../public/docs/reviews/EXECUTION_CONTEXT_REVIEW.md)
+and the [invented report](../public/examples/execution-context-demo.html).
+
+Previous bundle: **Bounded source reuse** gives every caller fresh XML/inventory
+containers while retaining protected templates inside one work-check analysis.
+The 128 MiB retention limit falls back to ordinary parsing when needed.
+Canonical comparisons, private artifacts and work38 remain unchanged. See
+[scope and validation](../public/docs/reviews/SOURCE_REUSE_REVIEW.md).
+
+Previous bundle: **Work-check timing and sequence alias diagnostics** adds six
+stage durations to the console and work38 feedback report. SFC context summary2
+counts existing alias failure reasons and lexical rack hints without exporting
+additional source examples or changing private analysis. See
+[scope and validation](../public/docs/reviews/WORK_CHECK_TIMING_REVIEW.md).
+
+Previous bundle: **Sequence reference relationships** connects parsed transition
+references to qualified exact ladder readers/writers and chart-step candidates.
+It preserves edit versions, lexical hints and unresolved declarations without
+assigning runtime sequence behavior. See [scope and validation](../public/docs/reviews/SFC_CONTEXT_REVIEW.md)
+and the [invented report](../public/examples/sfc-context-demo.html).
+
+**Sequence transition expressions** adds comments, source spans,
+operator trees and qualified reference roots to the private report. Unsupported
+forms and binding gaps remain explicit. It does not execute or type-check
+controller logic. See [scope and validation](../public/docs/reviews/SFC_CONDITIONS_REVIEW.md)
+and the [invented report](../public/examples/sfc-conditions-demo.html).
+
+**Timers, counters & resets** connects exact control uses,
+producer/reset occurrences, incoming source conditions, member reads/writes and
+exported stored settings. Multiple representations, uncertain bindings and
+mixed-family uses remain explicit. It does not select runtime state or an
+effective duration. See [scope and validation](../public/docs/reviews/STATEFUL_OBJECTS_REVIEW.md)
+and the [invented report](../public/examples/stateful-objects-demo.html).
+
 ## Offline engineering review
 
 `plc review` builds a self-contained, read-only report from source, reference,
@@ -36,7 +74,7 @@ hints are separate. Internal Boolean outputs do not imply physical DOs; no
 known local result does not prove dead code. CPT expression reads retain their
 own population, node/span links and repeated occurrences.
 
-The latest automated return (`871b700`) saved successfully and accounts for
+The latest automated return (`48dcd22`) saved successfully and accounts for
 4,163 coil outputs: 3,966 modeled guards, 196 with condition binding gaps and
 one with an opaque transfer. There are 2,718 pass-through and 133 stored-state
 transfers; 326 remain opaque. Earlier summaries remain unchanged, including
@@ -46,9 +84,16 @@ rack-candidate context: 319 uses across 94 candidate addresses and 11 roots.
 Both additional dynamic writes now have bound outer roots and index reads. The
 unknown block has a unique AOI declaration candidate, while one indexed operand
 with an unknown role stays deferred. All six targeted rung examples replay unchanged.
-SFR matched 139 of 140 calls to captured steps. The next run measures AOI
-body/instance relationships and diagnostic context for the unmatched target.
-See [the current scope](../public/docs/reviews/AOI_BODY_REVIEW.md),
+SFR matched 139 of 140 calls to captured steps; its unmatched address occurs
+in another chart in the same program. AOI body context has no recorded gaps.
+PID connections account for all 46 controls and 322 slots, including 333 direct
+member addresses. Every master slot is literal. Calculation paths now account
+for 2,138 selected blocks, including 1,294 in branched rungs; two destinations
+remain unresolved and one local reuse link is present. The next run measures
+shared Boolean target uses, condition readers, declaration direction and authored
+rung hints in the existing Conditional outputs view. No shutdown or physical
+channel identity is inferred.
+See [the current scope](../public/docs/reviews/OUTPUT_CONTEXT_REVIEW.md),
 [the context contract](../public/docs/reviews/INSTRUCTION_CONTEXT_REVIEW.md)
 and [sampling boundaries](../public/docs/reviews/TARGETED_RUNG_SAMPLES_REVIEW.md).
 Continue the [Phase 1 analysis sequence](../public/docs/planning/PHASE_1_ENGINEERING_ANALYSIS.md)
@@ -63,7 +108,7 @@ uv run --project python-parser --locked plc review \
 
 `--workspace` is required. Each invocation saves a new private run and prints
 the HTML path. Exit 3 means usable partial output was saved. Review runs use
-review14/manifest17 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
+review16/manifest19 with sixteen hashed artifacts: snapshot.L5X, inventory.json, overview.txt,
 references.json/txt, sfc-structure.json/txt, access.json, tag-data.json, pid.json, pid-members.json, calculations.json, rung-analysis.json, relationships.json, boolean-conditions.json and review.html. Existing plain
 reference and standalone SFC workspaces retain manifest2 and manifest3.
 All HTML and source-bearing artifacts are private and belong under
@@ -79,16 +124,19 @@ The normal work-machine launcher also creates this report. Manually `git pull`,
 run `bash ./run-work-check.sh` (supply the local L5X filename if needed), check
 the generated feedback JSON, then manually `git push`. The runner
 automatically commits only its validated feedback report; synchronization stays
-manual. Current work31 adds AOI body counts and SFR gap summary2. It retains
+manual. Current work33 adds calculation-path counts. It retains PID connections1, AOI body1 and SFR2,
 condition3, custom-instruction/indexed-access summaries, the fixed
 targeted-sample record and unchanged
 binding-context summary1, relationship1, rung-analysis1,
 access4, calculation2, PID member1, PID1, Tag Data1, reference12/source4 and SFC2.
-Work28-31 permit 64 KiB including at most 16 KiB of targeted evidence. Work22-27
+Work32-33 permit 80 KiB for its additional fixed counters. Work28-31 permit
+64 KiB; the targeted-evidence cap remains 16 KiB for all these versions. Work22-27
 retain 48 KiB; work1-21 retain 32 KiB. New legacy single-operand samples are
 disabled so they cannot rotate outside the targeted request's budget.
-Work31 uses compact JSON whitespace; historical feedback formats are unchanged.
-Work25 adds fixed save-failure categories. Review14 allows 200 MiB JSON / 232 MiB
+Work31-33 use compact JSON whitespace; earlier feedback formats are unchanged.
+Work25 adds fixed save-failure categories. Review16 allows 216 MiB JSON / 248 MiB
+HTML for calculation paths. Review15 retains 208 MiB JSON / 240 MiB
+HTML, reserving 8 MiB for PID connections. Review14 retains 200 MiB JSON / 232 MiB
 HTML, reserving 8 MiB for AOI body context. Review13 retains 192 MiB JSON / 224 MiB
 HTML, reserving 8 MiB for SFR context. Review12 retains 184 MiB JSON / 216 MiB
 HTML for custom-instruction and index context. Review11 retains 168 MiB JSON /
@@ -97,7 +145,7 @@ HTML for custom-instruction and index context. Review11 retains 168 MiB JSON /
 [save failure checkpoint](../public/docs/reviews/SAVE_FAILURE_REVIEW.md).
 See [stored-state conditions and SFC targets](../public/docs/reviews/STATEFUL_SEQUENCE_REVIEW.md)
 for that checkpoint's semantics and validation, and
-[AOI body context](../public/docs/reviews/AOI_BODY_REVIEW.md) for current work.
+[calculation paths](../public/docs/reviews/CALCULATION_PATHS_REVIEW.md) for current work.
 Earlier work17 added count-only
 PID member summary1 while preserving
 PID1, Tag Data1/reference12/source4/SFC2/access2 summaries. Documented member

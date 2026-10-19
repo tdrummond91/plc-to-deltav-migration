@@ -1,5 +1,33 @@
 # Independently synthetic L5X fixture
 
+## Timer/counter/reset relationships fixture
+
+[stateful_objects_demo.L5X](stateful_objects_demo.L5X) contains 152 independently
+invented rungs. It covers timer/counter controls, resets, incoming branch
+conditions, aliases, repeated writers, member reads/writes, whole-object uses,
+static arrays, nested members, duplicate stored representations and namespace
+gaps. Deliberately inconsistent types and signatures remain explicit. CONTROL
+and TIMER_T cases prevent blanket timer-only reset or unit assumptions.
+Fifty-five extra timer groups and member reads exercise pagination.
+
+The [offline report](../../examples/stateful-objects-demo.html) demonstrates the
+new navigation. See [scope and checks](../../docs/reviews/STATEFUL_OBJECTS_REVIEW.md).
+Use isolated checkouts for work-check QA; this input must not establish the
+production sample reservation. It is not controller-ready logic.
+
+## Boolean output context fixture
+
+[output_context_demo.L5X](output_context_demo.L5X) contains 88 independently
+invented rungs. It covers competing coil and noncoil writes, alias targets,
+module directions, repeated predicate reads, ONS storage, self-feedback, separate
+branch contexts, unknown/unbound/dynamic uses and namespace gaps. Fifty-five
+extra cases exercise consumer and output pagination. Source markup stays literal.
+
+The [offline report](../../examples/output-context-demo.html) extends Conditional
+outputs with target-use evidence. See [scope and checks](../../docs/reviews/OUTPUT_CONTEXT_REVIEW.md).
+Use isolated checkouts for work-check QA; this input must not establish the
+production sample reservation. It is not controller-ready logic.
+
 ## AOI body and SFR gap fixture
 
 [aoi_body_demo.L5X](aoi_body_demo.L5X) is an independently invented 75-rung input.
@@ -247,3 +275,48 @@ zero sentinel, unresolved/dynamic addresses and deliberately malformed forms.
 It is not controller-ready logic. The generated
 [offline demonstration](../../examples/engineering-review-demo.html) shows
 original reference findings separately from access-owned bindings.
+# PID connection demonstration
+
+`pid_connections_demo.L5X` is independently invented and contains 80 parsed
+rungs, 84 instructions and eleven PID occurrences, including a deliberately
+malformed signature. It exercises same-address PV/CV uses, aliases, repeated
+backing storage, program shadowing, explicit master candidates and gaps,
+setpoint/mode/alarm-member uses, whole-root copies and deferred suffixes.
+Fifty-five extra setpoint writes exercise pagination. Source markup in a comment
+must render as text. This fixture is not controller-ready logic.
+See the [checkpoint](../../docs/reviews/PID_CONNECTIONS_REVIEW.md) and
+[generated report](../../examples/pid-connections-demo.html).
+
+## Calculation segment demonstration
+
+`calculation_paths_demo.L5X` is independently invented. Its 72 rungs exercise
+straight math/move chains, independent and nested branch legs, fork/join stops,
+predicate changes, root/member overlap, aliases, repeated CPT leaves, read-before-
+write ordering, CLR, dynamic selectors, malformed inputs and unknown/stateful
+barriers. Fifty-five repeated cases exercise paging, and a comment includes
+markup that must display as text. It is not controller-ready logic.
+See [scope](../../docs/reviews/CALCULATION_PATHS_REVIEW.md) and the
+[generated report](../../examples/calculation-paths-demo.html).
+
+## Sequence condition demonstration
+
+`sfc_conditions_demo.L5X` is independently invented. It exercises multiline
+conditions and comments, operator grouping, aliases and local shadowing,
+unknown identifiers, unsupported calls and statements, malformed expressions,
+missing/duplicate wrappers, line-number metadata and separate chart edits.
+Fifty-five additional conditions exercise pagination. Script-like source text
+must display literally. Deliberate inconsistencies make this diagnostic source,
+not controller-ready logic. See [scope](../../docs/reviews/SFC_CONDITIONS_REVIEW.md)
+and the [generated report](../../examples/sfc-conditions-demo.html).
+
+## Sequence reference relationship demonstration
+
+`sfc_context_demo.L5X` is independently invented diagnostic source. It includes
+70 transitions with repeated references for pagination; exact and differently
+spelled array members; alias targets, scope shadowing and outside-scope names;
+bound and diagram-only steps; multiple content edits and peer charts; explicit
+RLL readers, writers, unknown roles and a foreign-namespace Text writer; direct
+chart links, an attached note and literal script-looking comment text.
+The deliberate invalid cases are not controller-ready code. See
+[scope and verification](../../docs/reviews/SFC_CONTEXT_REVIEW.md) and the
+[generated report](../../examples/sfc-context-demo.html).

@@ -70,14 +70,66 @@
   };
   const data = JSON.parse(document.getElementById('review-data').textContent);
   const inv = data.inventory, refs = data.references, sfc = data.sfc;
+  const sfcConditions=data.sfc_conditions||null,sequenceConditions=sfcConditions?.transitions||[];
+  const bySequenceCondition=new Map(sequenceConditions.map(x=>[x.id,x]));
+  const bySequenceTransition=new Map(sequenceConditions.map(x=>[x.transition_id,x]));
+  const bySequenceNode=new Map((sfcConditions?.nodes||[]).map(x=>[x.id,x]));
+  const bySequenceReference=new Map((sfcConditions?.references||[]).map(x=>[x.id,x]));
+  const bySequenceComment=new Map((sfcConditions?.comments||[]).map(x=>[x.id,x]));
+  const sequenceContext=data.sfc_context||null;
+  const bySequenceContext=new Map((sequenceContext?.references||[]).map(x=>[x.id,x]));
+  const bySequenceContextReference=new Map((sequenceContext?.references||[]).map(x=>[x.condition_reference_id,x]));
+  const bySequenceAddress=new Map((sequenceContext?.addresses||[]).map(x=>[x.id,x]));
+  const bySequenceStepLink=new Map((sequenceContext?.step_links||[]).map(x=>[x.id,x]));
+  const bySequenceGap=new Map((sequenceContext?.gaps||[]).map(x=>[x.id,x]));
+  const executionContext=data.execution_context||null;
+  const executionGroups={tasks:'Tasks',programs:'Programs',schedules:'Program schedules',designations:'Main and fault entries',calls:'Routine calls',control_occurrences:'Control boundaries',routine_contexts:'Routine bodies and callers'};
+  const byExecution=new Map(),byExecutionSource=new Map(),byExecutionInstruction=new Map();
+  Object.keys(executionGroups).forEach(group=>(executionContext?.[group]||[]).forEach(row=>{
+    byExecution.set(row.id,{group,row});
+    if(row.instruction_id)byExecutionInstruction.set(row.instruction_id,row.id);
+    const sourceId=group==='tasks'?row.task_id:group==='programs'?row.program_id:row.routine_id;
+    if(['tasks','programs','routine_contexts'].includes(group)&&sourceId)byExecutionSource.set(sourceId,row.id);
+  }));
   const access = data.access || null;
   const tagData = data.tag_data || null;
   const pid = data.pid || null, pidOccurrences = pid?.occurrences || [];
   const pidMembers = data.pid_members || null;
+  const pidConnections = data.pid_connections || null;
+  const byPidConnection = new Map((pidConnections?.occurrences || []).map(x=>[x.id,x]));
+  const byPidConnectionSlot = new Map((pidConnections?.slots || []).map(x=>[x.id,x]));
+  const byPidConnectionAddress = new Map((pidConnections?.addresses || []).map(x=>[x.id,x]));
   const calculations = data.calculations || null, calculationOccurrences = calculations?.occurrences || [];
+  const calculationPaths=data.calculation_paths||null, calculationPathOccurrences=calculationPaths?.occurrences||[];
+  const byCalculationPath=new Map(calculationPathOccurrences.map(x=>[x.id,x]));
+  const byCalculationRegion=new Map((calculationPaths?.regions||[]).map(x=>[x.id,x]));
+  const calculationPathLinks=calculationPaths?.links||[];
   const rungAnalysis = data.rung_analysis || null, analyzedRungs = rungAnalysis?.rungs || [];
   const relationships = data.relationships || null, addresses = relationships?.addresses || [];
   const conditions = data.conditions || null, conditionalOutputs = conditions?.outputs || [];
+  const outputContext=data.output_context||null, contextOutputs=outputContext?.outputs||[], contextAddresses=outputContext?.addresses||[];
+  const byOutputContext=new Map(contextOutputs.map(o=>[o.id,o])),byConditionOutputContext=new Map(contextOutputs.map(o=>[o.condition_output_id,o]));
+  const byOutputAddress=new Map(contextAddresses.map(a=>[a.id,a]));
+  const byOutputRungContext=new Map((outputContext?.rung_contexts||[]).map(r=>[r.id,r]));
+  const outputConditionReads=outputContext?.condition_reads||[];
+  let outputConditionParents=null;
+  const statefulObjects=data.stateful_objects||null,statefulOccurrences=statefulObjects?.occurrences||[],statefulGroups=statefulObjects?.objects||[];
+  const byStatefulOccurrence=new Map(statefulOccurrences.map(o=>[o.id,o])),byStatefulGroup=new Map(statefulGroups.map(o=>[o.id,o]));
+  const statefulUsesByObject=new Map(),statefulStoredByObject=new Map(),statefulOccurrencesByRung=new Map();
+  statefulOccurrences.forEach(o=>add(statefulOccurrencesByRung,o.rung_id,o));
+  (statefulObjects?.address_uses||[]).forEach(u=>add(statefulUsesByObject,u.object_id,u));
+  (statefulObjects?.stored_data||[]).forEach(u=>add(statefulStoredByObject,u.object_id,u));
+  const statefulIssueContentIds=new Set((tagData?.issues||[]).map(i=>i.content_id));
+  const statefulGroupGaps=new Map(statefulGroups.map(o=>[o.id,new Set([
+    ...(o.type_conflict?['Declaration conflicts with observed instructions']:[]),
+    ...(['unresolved','static_out_of_bounds'].includes(o.bounds_status)?['Array or control type unresolved']:[]),
+    ...(o.family==='reset_only'?['No matching timer or counter occurrence']:[]),
+    ...(o.family==='mixed'?['Timer and counter instructions share control']:[]),
+    ...(o.content_ids.some(id=>statefulIssueContentIds.has(id))?['Stored data capture issues']:[])
+  ])]));
+  (statefulObjects?.address_uses||[]).forEach(u=>{const gaps=statefulGroupGaps.get(u.object_id);if(u.rejected_operand_ids.length||u.rejected_expression_use_ids.length)gaps.add('Unqualified namespace uses');if(u.member_status==='unknown')gaps.add('Uncatalogued member or suffix');if(u.unknown_operand_ids.length)gaps.add('Unknown operand roles');});
+  (statefulObjects?.stored_data||[]).forEach(u=>{const gaps=statefulGroupGaps.get(u.object_id);if(u.status==='namespace_gap')gaps.add('Unqualified stored namespace');if(u.status==='shape_gap')gaps.add('Unqualified stored data shape');if(u.type_status==='mismatch')gaps.add('Stored structure type mismatch');});
+  statefulOccurrences.forEach(o=>{if(o.control_address_id&&o.context_status!=='modeled')statefulGroupGaps.get(o.control_address_id).add('Incoming condition needs review');});
   const conditionNodes = conditions?.nodes || [], byConditionNode = new Map(conditionNodes.map(n=>[n.id,n]));
   const conditionNodeOrder = new Map(conditionNodes.map((n,i)=>[n.id,i]));
   const byConditionalOutput = new Map(conditionalOutputs.map(o=>[o.id,o]));
@@ -86,6 +138,7 @@
   // per-instruction ancestor lists. Older reports retain their original views.
   const instructionConditions = conditions?.schema_version>=2;
   const conditionTransfers = instructionConditions?conditionNodes.filter(n=>['pass_through','stateful_transfer','opaque_transfer'].includes(n.kind)):[];
+  const transferByInstruction = new Map(conditionTransfers.map(n=>[n.instruction_id,n]));
   const transfersByRung = new Map();
   const bindingContext = data.binding_context || null, bindingContextGaps = bindingContext?.gaps || [];
   const byBindingContext = new Map(bindingContextGaps.map(g=>[g.source_id,g]));
@@ -230,18 +283,26 @@
   headings.tagdata=['Stored tag data','Search values and member names retained in this export, then follow their declaration and ladder occurrences.'];
   headings.pid=['PID instruction evidence','Inspect captured PID operand functions, source declarations and stored data. Each row is an instruction occurrence.'];
   headings.calculations=['Calculations','Read captured CPT expressions, their syntax grouping and source references. Expressions are not evaluated.'];
+  headings.calculationpaths=['Calculation inputs and destinations','Inspect captured block inputs, destinations, branch segments and possible local reuse, with unresolved evidence kept visible.'];
   headings.engineering=['Engineering analysis','Explore recognized instruction functions and possible purpose, with every rung accounted for and gaps kept in context.'];
   headings.relationships=['Address relationships','Follow exact expanded address spelling, its captured uses, and possible source-order calculation reuse.'];
   headings.conditions=['Conditional outputs','Trace captured conditions leading to OTE, OTL and OTU instructions, with branch paths and unknown transfers kept visible.'];
+  if(outputContext)headings.conditions=['Boolean output context','Inspect coil actions, exact target uses, captured condition readers and authored rung hints with unresolved evidence kept visible.'];
   headings.transfers=['Instruction conditions','Inspect incoming rung conditions and normal-scan condition transfer at other instruction occurrences, including rungs without a coil output.'];
   headings.bindingcontext=['Binding gaps & context','Follow unresolved source occurrences through their alias chains and available rack-name candidates. Candidate addresses remain separate from confirmed root bindings.'];
   headings.instructioncontext=['Instruction & index context','Inspect custom-instruction declaration candidates and symbolic array selectors while unresolved roles and exact-element gaps remain visible.'];
   headings.sfrcontext=['Sequence reset context','Follow captured SFR routine and step candidates across every exported SFC content version. Reset effects and outgoing rung conditions remain unresolved.'];
+  headings.statefulobjects=['Timers, counters & resets','Connect captured timer and counter occurrences, reset instructions, exact member uses and separately retained stored values.'];
+  headings.sequenceconditions=['Sequence conditions','Inspect captured transition expressions, their source grouping, reference leaves and unresolved evidence.'];
+  headings.executioncontext=['Execution context','Inspect source-declared tasks, program entries, routine call candidates and control boundaries with unresolved evidence kept visible.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
+  if(executionContext){labels.executioncontext='Execution context';navCounts.executioncontext=executionContext.calls.length;}
   if(rungAnalysis)navCounts.engineering=analyzedRungs.length;
   if(relationships){labels.relationships='Address relationships';navCounts.relationships=addresses.length;}
-  if(conditions){labels.conditions='Conditional outputs';navCounts.conditions=conditionalOutputs.length;}
+  if(statefulObjects){labels.statefulobjects='Timers, counters & resets';navCounts.statefulobjects=statefulOccurrences.length;}
+  if(sfcConditions){labels.sequenceconditions='Sequence conditions';navCounts.sequenceconditions=sequenceConditions.length;}
+  if(conditions){labels.conditions=outputContext?'Boolean output context':'Conditional outputs';navCounts.conditions=conditionalOutputs.length;}
   if(instructionConditions){labels.transfers='Instruction conditions';navCounts.transfers=conditionTransfers.length;}
   if(bindingContext){labels.bindingcontext='Binding gaps & context';navCounts.bindingcontext=bindingContextGaps.length;}
   if(customContext&&indexedAccess){labels.instructioncontext='Instruction & index context';navCounts.instructioncontext=customCalls.length+indexedUses.length;}
@@ -250,6 +311,7 @@
   if(tagData){labels.tagdata='Stored tag data';navCounts.tagdata=tagContents.length;}
   if(pid){labels.pid='PID evidence';navCounts.pid=pidOccurrences.length;}
   if(calculations){labels.calculations='Calculations';navCounts.calculations=calculationOccurrences.length;}
+  if(calculationPaths){labels.calculationpaths='Calculation inputs and destinations';navCounts.calculationpaths=calculationPathOccurrences.length;}
   let state = {view:'overview',query:'',filter:'all',detail:null,contentId:null,listPages:{}};
   const backStack = [];
   const heading = document.getElementById('page-heading');
@@ -389,6 +451,11 @@
   // One bounded label per output; never copy ancestor conditions or complete
   // rung source into every coil's search record.
   conditionalOutputs.forEach(o=>searchable(o,[o.opcode,conditionTargetName(o),sourceName(o.rung_id),conditionGuardLabel(o.guard_status),conditionActionLabel(o.action),human(o.target_status)]));
+  contextOutputs.forEach(o=>searchable(o,[o.opcode,outputContextName(o),sourceName(o.rung_id),human(o.target_status),human(o.context_status),...outputRungHintCategories(o.rung_id)]));
+  contextAddresses.forEach(a=>searchable(a,[addressName(byAddress.get(a.id)),human(a.endpoint_kind),human(a.profile)]));
+  statefulOccurrences.forEach(o=>searchable(o,[o.opcode,statefulOccurrenceName(o),sourceName(o.rung_id),human(o.target_status),human(o.context_status)]));
+  sequenceConditions.forEach(t=>searchable(t,[sequenceConditionName(t),entityPath(t.routine_id),t.raw_text,human(t.status),human(t.reason),...(t.metadata_gaps||[]).map(human),...t.reference_ids.map(id=>human(bySequenceGap.get(bySequenceContextReference.get(id)?.gap_id)?.kind||''))]));
+  statefulGroups.forEach(o=>searchable(o,[addressName(byAddress.get(o.id)),human(o.family),human(o.declaration_kind),human(o.bounds_status),...o.producer_ids.map(id=>byStatefulOccurrence.get(id)?.opcode)]));
   conditionTransfers.forEach(n=>searchable(n,[transferOpcode(n),short(sourceName(n.rung_id),240),transferLabel(n),conditionGuardLabel(conditionQuality(n)),...n.operand_ids.slice(0,4).map(id=>short(byOperand.get(id)?.raw_text || '',80))]));
   // Index bounded previews once per occurrence/group. Alias chains, expanded
   // source text and ancestor graphs are inspected only in the selected dossier.
@@ -410,8 +477,16 @@
   tagElements.forEach(e=>searchable(e,[short(entityName(e.owner_id)),e.xml_name,e.kind,e.direct_text,...Object.values(e.attributes||{})]));
   pidOccurrences.forEach(p=>searchable(p,[p.signature_status,p.storage_status,sourceName(p.rung_id),entityPath(byRung.get(p.rung_id)?.parent_id),...p.operand_ids.map(id=>byOperand.get(id)?.raw_text)]));
   calculationOccurrences.forEach(c=>searchable(c,[c.signature_status,c.syntax_status,c.error_code,sourceName(c.rung_id),entityPath(byRung.get(c.rung_id)?.parent_id),byOperand.get(c.destination_operand_id)?.raw_text,byOperand.get(c.expression_operand_id)?.raw_text]));
+  calculationPathOccurrences.forEach(c=>searchable(c,[c.opcode,c.status,c.gap_reason,c.condition_quality,sourceName(c.rung_id),entityPath(byRung.get(c.rung_id)?.parent_id),byOperand.get(c.destination_operand_id)?.raw_text,...c.input_operand_ids.map(id=>byOperand.get(id)?.raw_text)]));
   // Index a member once even when several PID occurrences share its structure.
   (pidMembers?.members || []).forEach(m=>searchable(m,[m.field,pidMemberLabel(m.field),m.group,m.status,byTagElement.get(m.element_id)?.attributes?.Name]));
+  // Bounded previews per record; no copied caller paths or condition subgraphs.
+  Object.keys(executionGroups).forEach(group=>(executionContext?.[group]||[]).forEach(row=>searchable(row,[
+    executionGroups[group],executionName(group,row),human(row.status),human(row.lexical_status),human(row.body_status),human(row.guard_quality),human(row.argument_shape),executionQualification(row),
+    short(entityPath(row.caller_routine_id||row.routine_id||row.program_id||row.task_id),200),
+    ...Object.values(row.raw_attributes||{}).slice(0,10).map(value=>short(value,120)),
+    ...(row.raw_arguments||[]).slice(0,4).map(value=>short(value,80))
+  ])));
   const sfcSearch = new Map();elements.forEach(e=>add(sfcSearch,e.routine_id,[e.kind,e.direct_text,...Object.values(e.attributes||{})].join(' ')));
   (sfc.routines || []).forEach(r=>searchable(r,[entityPath(r.routine_id),...(sfcSearch.get(r.routine_id)||[])]));
   function matches(row) { return !state.query || (searchIndex.get(row)||'').includes(state.query.toLocaleLowerCase()); }
@@ -437,7 +512,14 @@
     if(tagData){const row=node('div','status-row');row.append(node('span','','Stored tag data capture'),badge(tagData.status));capture.append(row);}
     if(pid){const row=node('div','status-row');row.append(node('span','','PID operand and storage association'),badge(pid.status));capture.append(row);}
     if(pidMembers){const row=node('div','status-row');row.append(node('span','','PID documented member headers'),badge(pidMembers.status));capture.append(row);}
+    if(pidConnections){const row=node('div','status-row');row.append(node('span','','PID source connections'),badge(pidConnections.status));capture.append(row);}
     if(calculations){const row=node('div','status-row');row.append(node('span','','CPT expression syntax and references'),badge(calculations.status));capture.append(row);}
+    if(calculationPaths){const row=node('div','status-row');row.append(node('span','','Calculation inputs and destinations'),badge(calculationPaths.status));capture.append(row);}
+    if(statefulObjects){const row=node('div','status-row');row.append(node('span','','Timer, counter and reset context'),badge(statefulObjects.status));capture.append(row);}
+    if(sfcConditions){const row=node('div','status-row');row.append(node('span','','SFC transition expression syntax'),badge(sfcConditions.status));capture.append(row);}
+    if(executionContext){const row=node('div','status-row');row.append(node('span','','Execution context'),badge(executionContext.status));capture.append(row);}
+    if(sequenceContext){const row=node('div','status-row');row.append(node('span','','SFC reference relationships'),badge(sequenceContext.status));capture.append(row);}
+    if(outputContext){const row=node('div','status-row');row.append(node('span','','Boolean output context'),badge(outputContext.status));capture.append(row);}
     if(customContext){const row=node('div','status-row');row.append(node('span','','Custom-instruction declaration context'),badge(customContext.status));capture.append(row);}
     if(indexedAccess){const row=node('div','status-row');row.append(node('span','','Symbolic array selector context'),badge(indexedAccess.status));capture.append(row);}
     if(aoiBody){const row=node('div','status-row');row.append(node('span','','AOI body and instance context'),badge(aoiBody.status));capture.append(row);}
@@ -451,6 +533,9 @@
     if(tagData)content.append(button('Explore stored tag data',()=>go('tagdata')));
     if(pid)content.append(button('Explore PID instruction evidence',()=>go('pid')));
     if(calculations)content.append(button('Explore calculations',()=>go('calculations')));
+    if(statefulObjects)content.append(button('Explore timers, counters and resets',()=>go('statefulobjects')));
+    if(sfcConditions)content.append(button('Explore sequence conditions',()=>go('sequenceconditions')));
+    if(calculationPaths)content.append(button('Explore calculation inputs and destinations',()=>go('calculationpaths')));
     const meta=panel('Snapshot details','This report is read-only. IDs belong to this byte snapshot and are not persistent equipment or correction identities.');
     meta.append(values({'Source size':fmt(data.snapshot.size_bytes)+' bytes','SHA-256':data.snapshot.sha256,'Report format':data.report_version,'Inventory parser':inv.parser_version,'Reference analyzer':refs.analyzer_version,'SFC analyzer':sfc.analyzer_version}));content.append(meta);
   }
@@ -554,6 +639,115 @@
   }
   function bindingUse(g){return g?.kind==='expression'?byExpressionUse.get(g.source_id):byOperandAccess.get(g?.source_id);}
   function contextNotice(){return notice('Context with explicit limits','A custom-instruction name match identifies a declaration candidate. Its parameter order, operand roles, internal behavior and effects remain unvalidated. Symbolic array selectors identify a root and possible index reads; no index value, selected element, bounds, overlap or execution is inferred. Existing unresolved classifications remain visible.');}
+  function executionQualification(row){return row.qualified?'Source qualified':'Namespace gap';}
+  function executionName(group,row){
+    if(group==='tasks')return short(entityName(row.task_id),160);
+    if(group==='programs')return short(entityName(row.program_id),160);
+    if(group==='routine_contexts')return short(entityName(row.routine_id),160);
+    if(group==='schedules')return row.raw_name===null?'No program name':short(row.raw_name||'(empty program name)',160);
+    if(group==='designations')return human(row.kind)+' entry: '+(row.raw_name===null?'not declared':short(row.raw_name||'(empty name)',120));
+    if(group==='calls')return 'JSR '+short(row.raw_target_name||'(missing target)',140);
+    return row.opcode+(row.raw_label_name!==null?' '+short(row.raw_label_name||'(empty label)',140):' boundary');
+  }
+  function executionLink(group,row){return button(executionName(group,row),()=>openDetail('executioncontext',row.id),'text-link');}
+  function executionRecordLink(id){const found=byExecution.get(id);return found?executionLink(found.group,found.row):node('span','muted','No captured context');}
+  function executionEntityLink(id){const contextId=byExecutionSource.get(id);return contextId?executionRecordLink(contextId):sourceCell(id);}
+  function executionNotice(){return notice('Declared context and lexical candidates','Task ownership, schedule rows and routine names describe captured source. They do not prove execution, scan order, active edits or effective task settings. Incoming condition links reuse the captured condition graph without expanding caller paths. Parameter roles, types, value flow and call validity remain unvalidated.');}
+  function executionTable(group,rows,caption){
+    if(group==='tasks')return table(['Task','Type / rate text','Priority / watchdog text','Schedule rows','Qualification'],rows,r=>[
+      executionLink(group,r),primary(r.raw_attributes.Type??'Not present','Rate: '+(r.raw_attributes.Rate??'Not present')),primary(r.raw_attributes.Priority??'Not present','Watchdog: '+(r.raw_attributes.Watchdog??'Not present')),fmt(r.schedule_ids.length),executionQualification(r)
+    ],caption);
+    if(group==='programs')return table(['Program','Declared type','Unique schedule associations','Entry designations','Qualification'],rows,r=>[
+      executionLink(group,r),r.raw_attributes.Type??'Not present',fmt(r.schedule_ids.length),fmt(r.designation_ids.length),executionQualification(r)
+    ],caption);
+    if(group==='schedules')return table(['Scheduled name','Owning task','Source position','Candidate result','Candidates'],rows,r=>[
+      executionLink(group,r),executionEntityLink(r.task_id),r.ordinal,primary(badge(r.status),executionQualification(r)),fmt(r.candidate_program_ids.length)
+    ],caption);
+    if(group==='designations')return table(['Declared entry','Program','Candidate result','Routine candidates'],rows,r=>[
+      executionLink(group,r),executionEntityLink(r.program_id),primary(badge(r.status),executionQualification(r)),fmt(r.candidate_routine_ids.length)
+    ],caption);
+    if(group==='calls')return table(['Call target','Caller routine','Candidate result','Incoming condition','Argument shape','Source rung'],rows,r=>[
+      executionLink(group,r),executionEntityLink(r.caller_routine_id),primary(badge(r.status),fmt(r.candidate_routine_ids.length)+' declaration candidates'),human(r.guard_quality),primary(human(r.argument_shape),fmt(r.argument_count)+' captured fields'),sourceCell(r.rung_id)
+    ],caption);
+    if(group==='control_occurrences')return table(['Boundary / label','Caller routine','Label candidate result','Incoming condition','Argument shape','Source rung'],rows,r=>[
+      executionLink(group,r),executionEntityLink(r.caller_routine_id),badge(r.status),human(r.guard_quality),human(r.argument_shape),sourceCell(r.rung_id)
+    ],caption);
+    return table(['Routine','Body evidence','Incoming / outgoing calls','Entry designations','Boundaries','Qualification'],rows,r=>[
+      executionLink(group,r),human(r.body_status),fmt(r.incoming_call_ids.length)+' / '+fmt(r.outgoing_call_ids.length),fmt(r.designation_ids.length),fmt(r.control_occurrence_ids.length),executionQualification(r)
+    ],caption);
+  }
+  const executionCaptions={tasks:'Execution tasks',programs:'Execution programs',schedules:'Execution program schedules',designations:'Execution main and fault entries',calls:'Execution routine calls',control_occurrences:'Execution control boundaries',routine_contexts:'Execution routine bodies'};
+  const executionIntros={
+    tasks:'Rate, priority and watchdog retain their exported text. No units, numeric conversion or effective values are inferred.',
+    programs:'Schedule association counts include unique source-qualified candidates. Missing associations do not establish that a program is unused.',
+    schedules:'Repeated, unnamed, missing and ambiguous schedule rows remain separate. Position is source order within its captured container.',
+    designations:'MainRoutineName and FaultRoutineName provide entry candidates only; absent and empty attributes remain distinct.',
+    calls:'Each JSR occurrence retains its own candidate result and incoming condition. Open a call for parameters, source evidence and the shared condition graph.',
+    control_occurrences:'SBR and RET mark captured boundaries. JMP and LBL compare exact routine-and-content label candidates; they do not establish control flow.',
+    routine_contexts:'Caller and entry links are retained once per routine. Unsupported languages, missing body evidence and lexical cycles stay visible.'
+  };
+  function executionContextList(){
+    content.append(executionNotice());
+    const summary=panel('Captured execution context','Choose one group or search across groups. Search uses bounded source previews; open a record for its complete metadata and source links.');
+    const totals={};Object.entries(executionGroups).forEach(([group,label])=>{totals[label]=executionContext[group].length;});summary.append(values(totals));content.append(summary);
+    Object.entries(executionGroups).forEach(([group,label])=>{
+      if(state.filter!=='all'&&state.filter!==group)return;
+      const rows=executionContext[group].filter(matches),sectionNode=section(label,executionIntros[group]);
+      sectionNode.append(executionTable(group,rows,executionCaptions[group]));content.append(sectionNode);
+    });
+  }
+  function executionLinkedSection(title,intro,group,ids,caption){
+    const sectionNode=section(title,intro);sectionNode.append(executionTable(group,ids.map(id=>byExecution.get(id)?.row).filter(Boolean),caption));content.append(sectionNode);
+  }
+  function executionCandidateSection(ids,title,caption){
+    const sectionNode=section(title,'Candidates are retained independently. A name match does not validate invocation or execution.');
+    sectionNode.append(table(['Candidate source','Available context'],ids,id=>[sourceCell(id),executionEntityLink(id)],caption));content.append(sectionNode);
+  }
+  function executionContextDetail(found){
+    if(!found){content.append(empty('No captured execution context'));return;}
+    const {group,row:r}=found;
+    setDetailHeading('EXECUTION CONTEXT',executionName(group,r),executionGroups[group]);content.append(executionNotice());
+    const summary=panel('Captured source context',executionIntros[group]);
+    summary.append(values({'Qualification':executionQualification(r),...(r.status?{'Candidate result':human(r.status),'Lexical result before qualification':human(r.lexical_status)}:{}),...(r.body_status?{'Body evidence':human(r.body_status),'In a lexical call cycle':r.in_lexical_call_cycle?'Yes; execution is unproven':'No captured cycle'}:{})}));
+    const directId=group==='tasks'?r.task_id:group==='programs'?r.program_id:group==='routine_contexts'?r.routine_id:r.instruction_id||r.schedule_id||r.program_id;
+    summary.append(sourceCell(directId));if(r.rung_id)summary.append(sourceCell(r.rung_id));content.append(summary);
+    if(r.raw_attributes){const raw=section('Raw exported attributes','Every value retains its source spelling; missing attributes supply no default.');raw.append(values(r.raw_attributes));content.append(raw);}
+    if(group==='tasks'){
+      executionLinkedSection('Program schedule rows','Source order and repeated declarations remain visible.','schedules',r.schedule_ids,'Task program schedules');
+      const events=section('Event metadata','Event attributes are source text only; event delivery and task behavior are not modeled.');events.append(table(['Source position','Qualification','Raw attributes','Source location'],r.event_info,event=>[event.ordinal,executionQualification(event),values(event.raw_attributes),node('span','mono',event.source_locator)],'Task event metadata'));content.append(events);
+    }else if(group==='programs'){
+      executionLinkedSection('Schedule associations','Only unique qualified candidate associations appear here; unresolved rows remain in Program schedules.','schedules',r.schedule_ids,'Program schedule associations');
+      executionLinkedSection('Main and fault entry candidates','The raw declaration and its candidate result remain separate.','designations',r.designation_ids,'Program entry designations');
+    }else if(group==='schedules'){
+      content.append(executionEntityLink(r.task_id));
+      const raw=section('Scheduled name');raw.append(values({'Raw name':r.raw_name,'Source position within container':r.ordinal}));content.append(raw);
+      executionCandidateSection(r.candidate_program_ids,'Program declaration candidates','Schedule program candidates');
+    }else if(group==='designations'){
+      content.append(executionEntityLink(r.program_id));
+      const raw=section('Entry declaration');raw.append(values({'Attribute':r.attribute,'Raw name':r.raw_name,'Entry kind':human(r.kind)}));content.append(raw);
+      executionCandidateSection(r.candidate_routine_ids,'Routine declaration candidates','Entry routine candidates');
+    }else if(group==='routine_contexts'){
+      if(r.rung_counts){const body=section('Captured body coverage');body.append(values(r.rung_counts));content.append(body);}
+      executionLinkedSection('Incoming routine calls','These calls have a unique qualified lexical candidate. They do not establish when this routine executes.','calls',r.incoming_call_ids,'Routine incoming calls');
+      executionLinkedSection('Outgoing routine calls','Every captured call remains visible, including unresolved targets.','calls',r.outgoing_call_ids,'Routine outgoing calls');
+      executionLinkedSection('Entry associations','Main and fault designations with a unique qualified candidate.','designations',r.designation_ids,'Routine entry associations');
+      executionLinkedSection('Control boundaries','Source instructions retain their incoming condition and label candidates.','control_occurrences',r.control_occurrence_ids,'Routine control boundaries');
+    }else{
+      content.append(executionEntityLink(r.caller_routine_id));
+      if(group==='calls')executionCandidateSection(r.candidate_routine_ids,'Routine declaration candidates','Call routine candidates');
+      else{
+        executionCandidateSection(r.candidate_label_instruction_ids,'Same-content label candidates','Control label candidates');
+        executionCandidateSection(r.other_edit_candidate_ids,'Other captured content labels','Other-content label candidates');
+      }
+      const args=section('Captured arguments and parameter unknowns','These are source argument positions only. All captured fields remain in source order, including the JSR target field. SBR and RET values are not matched to call parameters; roles and types remain unresolved.');
+      args.append(values({'Argument shape':human(r.argument_shape),'Captured fields':r.argument_count,'Empty field count':r.empty_argument_indices.length}));
+      args.append(table(['Source position','Raw field','Evidence'],r.raw_arguments,(raw,index)=>[index+1,node('span','mono',raw||'(empty)'),r.empty_argument_indices.includes(index)?'Empty field':'Unvalidated source text'],'Execution captured arguments'));content.append(args);
+      const guard=section('Incoming condition evidence','This shared condition describes source-local context before the instruction. It does not prove the call or boundary executes.');
+      guard.append(values({'Quality':human(r.guard_quality),'Contains branch join':r.has_branch?'Yes':'No','Contains stored-state condition':r.has_stateful?'Yes':'No','Contains namespace gap':r.has_namespace_gap?'Yes':'No'}));content.append(guard);
+      if(r.guard_id)conditionGraph(r.guard_id,'Execution incoming condition nodes','Incoming condition');
+    }
+    content.append(technical({'Context ID':r.id,'Source location':r.source_locator,'Content location':r.content_locator,'Source start':r.source_start,'Source end':r.source_end}));
+  }
   function sfrNotice(){return notice('Reset candidates preserve each content version','SFR routine names are declaration candidates. A named selector is compared with captured Step Operand root and suffix evidence; an initial selector uses explicit InitialStep markers. Step Name and numeric ID are not substituted for Operand. Each exported edit content remains separate. Candidate identity does not prove an active step, selected edit, reset action, execution or outgoing rung condition.');}
   function sfrCallLink(c){return button('Inspect SFR target context',()=>openDetail('sfrcall',c.instruction_id),'text-link');}
   function sfrCallTable(rows,caption){return table(['SFR occurrence','Routine candidate','Chart context','Selector','Content versions','Source rung'],rows,c=>[
@@ -777,6 +971,7 @@
   function addressDetail(a){
     setDetailHeading('EXACT ADDRESS EVIDENCE',addressName(a),entityPath(byEntity.get(a.target_id)?.parent_id));
     content.append(addressNotice());
+    if(byStatefulGroup.has(a.id))content.append(button('Inspect timer, counter and reset context',()=>openDetail('statefulobject',a.id),'text-link'));
     const summary=panel('Captured uses',addressProfile(a));
     summary.append(values({'Resolved declaration':addressRootPreview(a.target_id),'Expanded suffix':a.suffix || '(root address)','Operand read occurrences':a.read_operand_ids.length,'Write occurrences':a.write_operand_ids.length,'Read/write occurrences':a.read_write_operand_ids.length,'Unknown-role occurrences':a.unknown_operand_ids.length,'Expression read occurrences':a.expression_use_ids.length,'Distinct rungs':a.rung_ids.length,'Distinct instructions':a.instruction_ids.length}));
     const links=node('div','inline-links');links.append(sourceCell(a.target_id));
@@ -790,9 +985,146 @@
     rungs.append(table(['Rung'],a.rung_ids,id=>[sourceCell(id)],'Exact address rungs'));content.append(rungs);
     const local=linksByAddress.get(a.id)||[];
     if(local.length){const p=section('Possible local calculation reuse');p.append(localLinkNotice(),relationshipLinkTable(local,'Exact address local links'));content.append(p);}
-    const outputs=outputsByAddress.get(a.id)||[];
+    if(calculationPaths){const paths=calculationPathOccurrences.filter(c=>c.destination_address_id===a.id||c.input_operand_ids.some(id=>byUseAddress.get(id)?.id===a.id)||c.expression_use_ids.some(id=>byUseAddress.get(id)?.id===a.id));if(paths.length){const p=section('Calculation inputs and destinations using this address');p.append(calculationPathTable(paths,'Exact address calculation blocks'));content.append(p);}}
+    const outputs=outputContext?(byOutputAddress.get(a.id)?.output_ids||[]).map(id=>byConditionalOutput.get(byOutputContext.get(id)?.condition_output_id)).filter(Boolean):outputsByAddress.get(a.id)||[];
     if(outputs.length){const p=section('Conditional coil outputs targeting this address','These are captured OTE, OTL or OTU occurrences, not proof of a physical output or process effect.');p.append(conditionalOutputTable(outputs,'Exact address conditional outputs'));content.append(p);}
+    if(byOutputAddress.has(a.id))content.append(button('Inspect qualified Boolean output address context',()=>openDetail('outputaddress',a.id),'text-link'));
     content.append(technical({'Address group ID':a.id,'Resolved declaration ID':a.target_id,'Identity rule':'Exact expanded spelling'}));
+  }
+  function timerCounterNotice(){return notice('Captured timer and counter relationships','These records connect source occurrences through qualified exact control addresses. Incoming conditions describe source structure, not timing, count transitions, execution order or final state. Stored PRE, ACC and status values remain export evidence across every representation; no effective preset, live value, elapsed time or alarm purpose is inferred.');}
+  function statefulOccurrenceName(o){return o.control_address_id?addressName(byAddress.get(o.control_address_id)):short(byOperand.get(o.control_operand_id)?.raw_text||'(control unresolved)',160);}
+  function statefulOccurrenceLink(o){return button(o.opcode+' · '+statefulOccurrenceName(o),()=>openDetail('statefuloccurrence',o.id),'text-link');}
+  function statefulObjectLink(id){const o=byStatefulGroup.get(id);return o?button(addressName(byAddress.get(id)),()=>openDetail('statefulobject',id),'text-link'):node('span','muted','No qualified control address');}
+  function statefulObjectGap(o){return Boolean(statefulGroupGaps.get(o.id)?.size);}
+  function statefulOccurrenceTable(rows,caption,emptyOptions=null){return table(['Instruction occurrence','Control address','Incoming source condition','Rung'],rows,o=>[
+    statefulOccurrenceLink(o),primary(statefulObjectLink(o.control_address_id),human(o.target_status)),outputContextStatus(o.context_status),sourceCell(o.rung_id)
+  ],caption,emptyOptions||{emptyTitle:'No timer, counter or reset occurrences in this selection',emptyDetail:'Change the opcode or evidence filter. Unresolved controls remain available in this view.'});}
+  function statefulObjectTable(rows,caption){return table(['Qualified control address','Observed family / declared root type','Producer / reset occurrences','Array evidence','Review gaps'],rows,o=>[
+    statefulObjectLink(o.id),primary(human(o.family),'Root '+(byEntity.get(o.target_id)?.attributes?.DataType||'type unavailable')+' · '+human(o.declaration_kind)),o.producer_ids.length+' / '+o.reset_ids.length,human(o.bounds_status),[...statefulGroupGaps.get(o.id),...(o.has_tof_reset?['TOF and RES both observed']:[])].join(' · ')||'No gap from these rules'
+  ],caption);}
+  function statefulObjectsToolbar(){
+    const groups=state.statefulMode!=='occurrences';
+    toolbarFor(groups?'Search control addresses, timer or counter families, types and bounds':'Search timer, counter and reset opcodes, control addresses or rung context',groups?[['all','All control groups'],['timer','Timer groups'],['counter','Counter groups'],['mixed','Mixed instruction families'],['reset_only','Reset without matching producer']]:[['all','All opcodes'],...['TON','TOF','RTO','CTU','CTD','RES'].map(v=>[v,v])]);
+    const select=(labelText,items,current,change)=>{const label=node('label','filter-wrap',labelText),box=node('select');box.setAttribute('aria-label',labelText);items.forEach(([value,text])=>{const option=node('option','',text);option.value=value;box.append(option);});box.value=current;box.addEventListener('change',()=>change(box.value));label.append(box);toolbar.querySelector('.toolbar').append(label);};
+    select('Timer and counter view',[['objects','Control groups'],['occurrences','Instruction occurrences']],state.statefulMode||'objects',value=>{state.statefulMode=value;state.filter='all';state.listPages={};render();});
+    select('Timer and counter evidence',[['all','All evidence'],['gaps','With unresolved evidence'],['qualified','Qualified evidence']],state.statefulEvidence||'all',value=>{state.statefulEvidence=value;state.listPages={};renderList();});
+  }
+  function statefulObjectsList(){
+    content.append(timerCounterNotice());
+    const total=panel('Timer, counter and reset coverage','Control groups require exact qualified addresses. Unresolved controls remain instruction occurrences.');
+    total.append(values({'Instruction occurrences':statefulOccurrences.length,'Qualified control groups':statefulGroups.length,'Unresolved controls':statefulOccurrences.filter(o=>o.target_status!=='exact_address').length,'Groups with matched resets':statefulGroups.filter(o=>o.producer_ids.length&&o.reset_ids.length).length,'Reset-only groups':statefulGroups.filter(o=>o.family==='reset_only').length,'Mixed instruction families':statefulGroups.filter(o=>o.family==='mixed').length}));content.append(total);
+    const accepts=gap=>!state.statefulEvidence||state.statefulEvidence==='all'||(state.statefulEvidence==='gaps')===gap;
+    if(state.statefulMode==='occurrences')content.append(statefulOccurrenceTable(statefulOccurrences.filter(o=>matches(o)&&(state.filter==='all'||o.opcode===state.filter)&&accepts(o.target_status!=='exact_address'||o.context_status!=='modeled'||(byStatefulGroup.has(o.control_address_id)&&statefulObjectGap(byStatefulGroup.get(o.control_address_id))))),'Timer and counter instruction occurrences'));
+    else content.append(statefulObjectTable(statefulGroups.filter(o=>matches(o)&&(state.filter==='all'||o.family===state.filter)&&accepts(statefulObjectGap(o))),'Timer and counter control groups'));
+  }
+  function statefulObjectSections(o){
+    const summary=panel('Qualified control identity','An exact spelling association retains the declared type and any literal array bounds separately. A matched reset is a source association, not proof that it executes.');
+    summary.append(values({'Control address':addressName(byAddress.get(o.id)),'Observed instruction family':human(o.family),'Declared root data type':byEntity.get(o.target_id)?.attributes?.DataType||'Unavailable','Qualified control kind':human(o.declaration_kind),'Type conflict':o.type_conflict?'Yes':'No','Array evidence':human(o.bounds_status),'TOF and RES co-occurrence':o.has_tof_reset?'Both observed; effects require engineering review':'Not observed together'}));
+    const links=node('div','inline-links');links.append(sourceCell(o.target_id),button('Open original exact address evidence',()=>openDetail('address',o.id),'text-link'));summary.append(links);content.append(summary);
+    content.append(statefulOccurrenceTable(o.producer_ids.map(id=>byStatefulOccurrence.get(id)),'Timer and counter producer occurrences',{emptyTitle:'No timer or counter producer occurrences observed',emptyDetail:'Only qualified exact address associations are shown.'}),statefulOccurrenceTable(o.reset_ids.map(id=>byStatefulOccurrence.get(id)),'Reset occurrences for this control',{emptyTitle:'No reset occurrences observed for this exact control',emptyDetail:'Only qualified exact address associations are shown.'}));
+    if(!o.producer_ids.length)content.append(notice('No matched timer or counter occurrence','This export contains a reset at this address without a qualified TON, TOF, RTO, CTU or CTD occurrence. A CONTROL reset may be valid outside this timer and counter interpretation. Absence here does not prove unused logic.'));
+    const uses=section('Observed control and member uses','Direct members, other suffixes and whole-control operands remain separate. Explicit writes and unknown roles do not establish the final control state.');
+    uses.append(table(['Exact observed address','Member context','Reads / writes / read-write / unknown','Expression reads','Namespace gaps'],statefulUsesByObject.get(o.id)||[],u=>[
+      button(addressName(byAddress.get(u.address_id)),()=>openDetail('statefuluse',u.address_id,{statefulObjectId:o.id}),'text-link'),primary(u.member||'Whole control',human(u.kind)+' · '+human(u.member_status)),['read','write','read_write','unknown'].map(role=>u[role+'_operand_ids'].length).join(' / '),u.expression_use_ids.length,u.rejected_operand_ids.length+u.rejected_expression_use_ids.length
+    ],'Timer and counter member uses'));content.append(uses);
+    const stored=section('Stored control and member evidence','Each exact captured path remains linked to its own representation, including duplicate or conflicting values. No representation wins, and no time units or effective PRE / ACC values are selected. Namespace and shape gaps are visible but unqualified.');
+    stored.append(table(['Stored member / control','Representation','Saved value / source text','Association'],statefulStoredByObject.get(o.id)||[],row=>{
+      const e=byTagElement.get(row.element_id),c=byTagContent.get(e?.content_id);
+      return[primary(sourceCell(row.element_id),row.member||'Control structure'),c?sourceCell(c.id):'Representation unavailable',node('div','snippet',Object.hasOwn(e?.attributes||{},'Value')?(e.attributes.Value===''?'Empty value':short(e.attributes.Value,180)):e?.direct_text?.trim()?short(e.direct_text,180):'No scalar value on this element'),human(row.status)+' · stored type '+human(row.type_status)];
+    },'Timer and counter stored evidence'));content.append(stored);
+    const reps=section('All stored representations for the declaration','Opaque data and representations without qualified member links remain available for source inspection.');reps.append(tagContentTable(o.content_ids.map(id=>byTagContent.get(id)).filter(Boolean),'Timer and counter data representations'));content.append(reps);
+  }
+  function statefulObjectDetail(o){setDetailHeading('TIMER AND COUNTER CONTROL',addressName(byAddress.get(o.id)),human(o.family));content.append(timerCounterNotice());statefulObjectSections(o);}
+  function statefulOccurrenceDetail(o){
+    setDetailHeading('TIMER COUNTER OR RESET OCCURRENCE',o.opcode+' · '+statefulOccurrenceName(o),sourceName(o.rung_id));content.append(timerCounterNotice());
+    const summary=panel('Captured instruction and control','Incoming source conditions are kept separate from an instruction-specific timing or counting trigger. TOF timing and counter transitions require state beyond a static condition.');
+    summary.append(values({'Opcode':o.opcode,'Control qualification':human(o.target_status),'Incoming condition context':outputContextStatus(o.context_status)}));
+    const links=node('div','inline-links');links.append(sourceCell(o.id),sourceCell(o.rung_id));if(o.control_operand_id)links.append(sourceCell(o.control_operand_id));if(o.control_address_id)links.append(statefulObjectLink(o.control_address_id));summary.append(links);content.append(summary);
+    const operands=(rungOperands.get(o.rung_id)||[]).filter(p=>p.instruction_id===o.id);if(operands.length){const captured=section('Captured instruction arguments','Pseudo PRE / ACC arguments and literal spellings remain source evidence. They are not interpreted as per-scan input values or approved settings.');captured.append(table(['Source argument','Role evidence'],operands,p=>[sourceCell(p.id),accessCell(byOperandAccess.get(p.id))],'Timer and counter captured arguments'));content.append(captured);}
+    if(o.guard_id&&o.context_status!=='namespace_gap'){const incoming=section('Incoming source condition','This condition immediately precedes the source occurrence. It is not a timing interval, edge detector, runtime enable state or proof of execution.');incoming.append(values({'Evidence quality':outputContextStatus(o.context_status)}));content.append(incoming);conditionGraph(o.guard_id,'Timer and counter incoming condition','Incoming source condition');}
+    else content.append(notice('Incoming condition unavailable','The source occurrence remains visible, but its condition link is unavailable or withheld because of unsupported namespace context.'));
+    const object=byStatefulGroup.get(o.control_address_id);if(object)statefulObjectSections(object);else content.append(notice('Control association unresolved','Review the captured arguments and declaration evidence. This occurrence has not been assigned to a qualified timer or counter object.'));
+  }
+  function statefulUseDetail(u){
+    const object=byStatefulGroup.get(u.object_id);setDetailHeading('TIMER AND COUNTER MEMBER USE',addressName(byAddress.get(u.address_id)),human(u.kind));content.append(timerCounterNotice(),statefulObjectLink(object.id));
+    content.append(values({'Member':u.member||'Whole control','Member qualification':human(u.member_status)}));
+    for(const role of ['read','write','read_write','unknown']){const ids=u[role+'_operand_ids'];if(!ids.length)continue;const sectionNode=section('Observed '+human(role)+' operands');sectionNode.append(table(['Source operand','Rung','Instruction','Role evidence'],ids,id=>{const use=byOperandAccess.get(id);return[sourceCell(id),sourceCell(use?.rung_id),sourceCell(use?.instruction_id),accessCell(use)];},'Timer and counter '+role+' operands'));content.append(sectionNode);}
+    if(u.expression_use_ids.length){const sectionNode=section('Observed expression readers');sectionNode.append(expressionUseTable(u.expression_use_ids.map(id=>byExpressionUse.get(id)),'Timer and counter expression readers'));content.append(sectionNode);}
+    if(u.rejected_operand_ids.length){const sectionNode=section('Unqualified namespace operand uses','These retained source occurrences do not participate in the qualified role associations.');sectionNode.append(table(['Source operand','Rung'],u.rejected_operand_ids,id=>[sourceCell(id),sourceCell(byOperandAccess.get(id)?.rung_id)],'Timer and counter namespace operand gaps'));content.append(sectionNode);}
+    if(u.rejected_expression_use_ids.length){const sectionNode=section('Unqualified namespace expression uses');sectionNode.append(expressionUseTable(u.rejected_expression_use_ids.map(id=>byExpressionUse.get(id)),'Timer and counter namespace expression gaps'));content.append(sectionNode);}
+  }
+  function outputContextName(o){const a=byAddress.get(o.target_address_id);return a?addressName(a):short(byOperand.get(o.target_operand_id)?.raw_text||'(target unresolved)',160);}
+  function outputContextLink(o){return button(o.opcode+' · '+outputContextName(o),()=>openDetail('condition',o.condition_output_id),'text-link');}
+  function outputContextStatus(status){return ({modeled:'Modeled condition structure',binding_gaps:'Condition binding gaps',opaque:'Contains unknown transfer',stateful:'Contains stored-state condition',namespace_gap:'Namespace context unavailable'})[status]||human(status);}
+  function outputEndpoint(kind){return ({module_output:'Module output root',module_input:'Module input root',module_config:'Module configuration root',tag:'Tag declaration',other:'Other declaration'})[kind]||'No accepted target';}
+  function outputRungHintCategories(rungId){const r=byOutputRungContext.get(rungId);return r?Object.entries(r.candidate_ids_by_category).filter(([,ids])=>ids.length).map(([category])=>category):[];}
+  function outputContextTarget(o){const a=byOutputAddress.get(o.target_address_id);return a?button('Address: '+addressName(byAddress.get(a.id)),()=>openDetail('outputaddress',a.id),'text-link'):primary(sourceCell(o.target_operand_id),'No accepted target address · '+human(o.target_status));}
+  function outputContextNotice(){return notice('Captured uses and condition context','Coil actions describe OTE, OTL and OTU normal execution. Exact-address readers and other writers remain separate source occurrences; their order, final state and execution are not inferred. Condition consumers follow existing condition-graph edges, including stored-state and unknown-transfer context. An association does not establish polarity, shutdown behavior or a physical channel. Missing readers do not establish unused or dead logic.');}
+  function outputContextTable(rows,caption){return table(['Coil occurrence','Qualified target','Normal-execution action','Condition context','Rung-wide authored hints','Rung'],rows,o=>[
+    outputContextLink(o),outputContextTarget(o),conditionActionLabel(o.action),primary(outputContextStatus(o.context_status),o.has_stateful?'Includes stored-state context':''),outputRungHintCategories(o.rung_id).map(human).join(' · ')||'None captured',sourceCell(o.rung_id)
+  ],caption,{emptyTitle:'No coil occurrences in this selection',emptyDetail:'Change the target, condition or opcode filter. Unresolved OTE, OTL and OTU targets remain in the occurrence view.'});}
+  function outputAddressTable(rows,caption){return table(['Exact target address','Declared endpoint root','Coil occurrences','Read / read-write / expression uses','Other writers / unknown-role uses'],rows,a=>[
+    button(addressName(byAddress.get(a.id)),()=>openDetail('outputaddress',a.id),'text-link'),outputEndpoint(a.endpoint_kind),a.output_ids.length,a.read_operand_ids.length+' / '+a.read_write_operand_ids.length+' / '+a.expression_use_ids.length,a.noncoil_writer_operand_ids.length+' / '+a.unknown_operand_ids.length
+  ],caption,{emptyTitle:'No qualified output targets in this selection',emptyDetail:'Unbound, malformed and namespace-confounded targets remain visible in the coil occurrence view.'});}
+  function outputContextToolbar(){
+    const targets=state.outputContextMode==='targets';
+    toolbarFor(targets?'Search exact targets, declaration kinds or use profiles':'Search coil targets, opcodes, rung context or authored hints',targets?[['all','All target profiles'],['read_and_write','Targets with captured readers'],['write_only','Targets without captured readers']]:[['all','All coil opcodes'],['OTE','OTE'],['OTL','OTL'],['OTU','OTU']]);
+    const addSelect=(labelText,items,current,change)=>{const label=node('label','filter-wrap',labelText),select=node('select');select.setAttribute('aria-label',labelText);items.forEach(([value,text])=>{const option=node('option','',text);option.value=value;select.append(option);});select.value=current;select.addEventListener('change',()=>change(select.value));label.append(select);toolbar.querySelector('.toolbar').append(label);};
+    addSelect('Output view',[['occurrences','Coil occurrences'],['targets','Exact target addresses']],state.outputContextMode||'occurrences',value=>{state.outputContextMode=value;state.filter='all';state.listPages={};render();});
+    if(!targets){
+      addSelect('Target evidence',[['all','All targets'],['exact_address','Qualified exact addresses'],['gaps','Unresolved target addresses']],state.outputTargetFilter||'all',value=>{state.outputTargetFilter=value;state.listPages={};renderList();});
+      addSelect('Condition context',[['all','All condition contexts'],['modeled','Modeled'],['binding_gaps','Binding gaps'],['opaque','Unknown transfer'],['stateful','Stored-state context'],['namespace_gap','Namespace unavailable']],state.outputContextFilter||'all',value=>{state.outputContextFilter=value;state.listPages={};renderList();});
+      addSelect('Authored rung hints',[['all','All authored hint contexts'],['present','With accepted rung hints'],['absent','Without accepted rung hints']],state.outputHintFilter||'all',value=>{state.outputHintFilter=value;state.listPages={};renderList();});
+    }
+  }
+  function outputContextList(){
+    content.append(outputContextNotice());
+    const c=outputContext.coverage,summary=panel('Boolean output context coverage','Counts describe source occurrences and shared exact addresses. Authored hints remain rung-wide leads for review.');
+    summary.append(values({'Coil occurrences':c.outputs_total,'Qualified target addresses':c.addresses_total,'Unresolved target occurrences':c.outputs_total-c.targets_by_status.exact_address,'Targets with multiple coils':c.addresses_with_multiple_coils,'Targets with other writers':c.addresses_with_noncoil_writers,'Targets with unknown-role uses':c.addresses_with_unknown_roles,'Rungs with authored hints':c.rungs_with_hints}));content.append(summary);
+    if(state.outputContextMode==='targets')content.append(outputAddressTable(contextAddresses.filter(a=>matches(a)&&(state.filter==='all'||a.profile===state.filter)),'Boolean output target addresses'));
+    else content.append(outputContextTable(contextOutputs.filter(o=>matches(o)&&(state.filter==='all'||o.opcode===state.filter)&&(!state.outputTargetFilter||state.outputTargetFilter==='all'||(state.outputTargetFilter==='gaps'?o.target_status!=='exact_address':o.target_status==='exact_address'))&&(!state.outputContextFilter||state.outputContextFilter==='all'||o.context_status===state.outputContextFilter)&&(!state.outputHintFilter||state.outputHintFilter==='all'||(state.outputHintFilter==='present')===Boolean(outputRungHintCategories(o.rung_id).length))),'Boolean output occurrences'));
+  }
+  function outputAddressConsumers(a){
+    // Build one reverse DAG index lazily. Each selection visits each relevant
+    // node once; no writer-by-reader pairs or flattened guard trees are cached.
+    if(outputConditionParents===null){outputConditionParents=new Map();conditionNodes.forEach(n=>n.child_ids.forEach(id=>add(outputConditionParents,id,n.id)));}
+    const reads=outputConditionReads.filter(r=>r.status==='accepted'&&r.source_address_id===a.id),seen=new Set(),pending=reads.map(r=>r.condition_node_id);
+    while(pending.length){const id=pending.pop();if(seen.has(id))continue;seen.add(id);for(const parent of outputConditionParents.get(id)||[])if(!seen.has(parent))pending.push(parent);}
+    return {reads,outputs:contextOutputs.filter(o=>o.context_status!=='namespace_gap'&&seen.has(o.guard_id))};
+  }
+  function outputAuthoredHints(rungId){
+    const r=byOutputRungContext.get(rungId);if(!r)return;
+    for(const [field,title,description] of [['candidate_ids_by_category','Authored wording on this rung','These existing name, description and comment hints belong to the entire rung. They do not classify a particular coil as an alarm, equipment command or shutdown.'],['unqualified_candidate_ids_by_category','Authored wording with unsupported namespace context','These original hints remain separate because their source namespace context is unqualified. They do not establish an output purpose.']]){
+      const ids=Object.values(r[field]).flat();if(!ids.length)continue;
+      const sectionNode=section(title,description);sectionNode.append(table(['Rung-wide category','Original supporting evidence'],ids.map(id=>byRungCandidate.get(id)).filter(Boolean),candidate=>{const proof=node('details','technical');proof.append(node('summary','',fmt(candidate.evidence_ids.length)+' source references'),engineeringIdTable(candidate.evidence_ids,'Authored output context '+candidate.id));return[human(candidate.category),proof];},title));content.append(sectionNode);
+    }
+  }
+  function outputContextAddressSections(a){
+    const original=byAddress.get(a.id),summary=panel('Qualified target address uses','Every accepted use shares this exact expanded spelling. Other writes may occur; the final state and writer order remain unmodeled.');
+    summary.append(values({'Address':addressName(original),'Declared endpoint root':outputEndpoint(a.endpoint_kind),'Coil occurrences':a.output_ids.length,'Operand readers':a.read_operand_ids.length,'Operand writers':a.write_operand_ids.length,'Read/write uses':a.read_write_operand_ids.length,'Expression readers':a.expression_use_ids.length,'Other writer operands':a.noncoil_writer_operand_ids.length,'Unknown-role uses':a.unknown_operand_ids.length}));
+    const links=node('div','inline-links');links.append(sourceCell(a.target_id),button('Open original relationship evidence',()=>openDetail('address',a.id),'text-link'));summary.append(links);content.append(summary);
+    const coils=section('Coils targeting this exact address','OTE assigns its incoming condition; OTL and OTU set or clear only when true. These source actions do not determine the final target state.');coils.append(outputContextTable(a.output_ids.map(id=>byOutputContext.get(id)).filter(Boolean),'Coils sharing a qualified target'));content.append(coils);
+    for(const [field,title,description] of [['read_operand_ids','Accepted operand readers','Explicit operand reads retain their source instruction and binding.'],['read_write_operand_ids','Accepted read/write uses','Stored-state operands remain separate from read-only predicates.'],['noncoil_writer_operand_ids','Other captured writer operands','These accepted writer or read/write operands are separate from the selected coil instructions. No writer order or final state is assigned.'],['unknown_operand_ids','Uses with unknown operand roles','A referenced address with an unresolved role is not promoted to a reader or writer.'],['rejected_operand_ids','Uses with unsupported namespace context','Original source evidence remains available, but these uses do not participate in qualified reader or writer associations.']]){
+      if(!a[field].length)continue;const useSection=section(title,description);useSection.append(accessBindingTable(a[field].map(id=>byOperandAccess.get(id)).filter(Boolean),title));content.append(useSection);
+    }
+    for(const [field,title,description] of [['expression_use_ids','Accepted expression readers','Each CPT reference leaf remains a separate occurrence; a data read is not automatically a Boolean condition dependency.'],['rejected_expression_use_ids','Expression reads with unsupported namespace context','These original references remain outside qualified associations.']]){if(!a[field].length)continue;const useSection=section(title,description);useSection.append(expressionUseTable(a[field].map(id=>byExpressionUse.get(id)).filter(Boolean),title));content.append(useSection);}
+    const consumers=outputAddressConsumers(a),readerSection=section('Direct condition-read occurrences','Predicate operands and ONS stored-state reads are retained separately. Repeated reads remain visible; no output-to-output pairs are constructed.');
+    readerSection.append(table(['Source read','Condition-read kind','Instruction','Rung'],consumers.reads,r=>[sourceCell(r.id),r.kind==='ons_storage'?'ONS stored-state read':'Predicate operand read',sourceCell(byOperand.get(r.id)?.instruction_id),sourceCell(byConditionNode.get(r.condition_node_id)?.rung_id)],'Qualified condition reads of output target'));content.append(readerSection);
+    const outputSection=section('Outputs whose captured condition context reads this address','These outputs are reached through actual condition-graph edges from the accepted predicate or ONS reads above. Sibling-rung proximity is not used. Stored-state and unknown-transfer flags remain visible. An association does not establish polarity, an active interlock or shutdown behavior.');
+    outputSection.append(outputContextTable(consumers.outputs,'Outputs with matching condition ancestry'));content.append(outputSection);
+    const rejected=outputConditionReads.filter(r=>r.source_address_id===a.id&&r.status!=='accepted');if(rejected.length){const gaps=section('Condition-read associations withheld','The original references have unsupported namespace context and do not contribute to the qualifying output list.');gaps.append(table(['Original read','Rung','Context gap'],rejected,r=>[sourceCell(r.id),sourceCell(byConditionNode.get(r.condition_node_id)?.rung_id),human(r.status)],'Unqualified condition-read occurrences'));content.append(gaps);}
+  }
+  function outputContextAddressDetail(a){setDetailHeading('BOOLEAN OUTPUT ADDRESS CONTEXT',addressName(byAddress.get(a.id)),outputEndpoint(a.endpoint_kind));content.append(outputContextNotice());outputContextAddressSections(a);}
+  function outputContextDetail(o){
+    setDetailHeading('BOOLEAN OUTPUT CONTEXT',o.opcode+' · '+outputContextName(o),sourceName(o.rung_id));content.append(outputContextNotice());
+    const summary=panel('Captured coil action and condition','The recognized action and incoming source condition remain separate from the target uses and authored wording below.');summary.append(values({'Opcode':o.opcode,'Normal-execution action':conditionActionLabel(o.action),'Qualified target status':human(o.target_status),'Incoming condition context':outputContextStatus(o.context_status),'Contains a completed branch join':o.has_branch?'Yes':'No','Contains stored-state context':o.has_stateful?'Yes':'No'}));const links=node('div','inline-links');links.append(outputContextTarget(o));if(o.target_address_id)links.append(sourceCell(o.target_operand_id));links.append(sourceCell(o.instruction_id),sourceCell(o.rung_id));summary.append(links);content.append(summary);
+    outputAuthoredHints(o.rung_id);
+    if(o.context_status==='namespace_gap')content.append(notice('Original condition structure has unsupported namespace context','The graph below preserves earlier source evidence. This occurrence is excluded from qualified condition-consumer associations.'));
+    if(o.guard_id)conditionGraph(o.guard_id,o.context_status==='namespace_gap'?'Original unqualified output condition nodes':'Qualified output condition nodes',o.context_status==='namespace_gap'?'Original source condition':'Incoming condition evidence');
+    if(o.has_stateful)content.append(statefulNotice());
+    const a=byOutputAddress.get(o.target_address_id);if(a)outputContextAddressSections(a);
+    else content.append(notice('Target uses remain unresolved','No qualified target address is available for this occurrence. Inspect the source operand and existing binding context; no other output group is substituted.'));
+    content.append(technical({'Output context ID':o.id,'Original output ID':o.condition_output_id,'Condition node ID':o.guard_id}));
   }
   function conditionTargetName(o){
     const address=byAddress.get(o.target_address_id);
@@ -806,16 +1138,18 @@
     const evidence=primary(sourceCell(o.target_operand_id),human(o.target_status));if(byBindingContext.has(o.target_operand_id))evidence.append(bindingContextLink(o.target_operand_id));return evidence;
   }
   function conditionNotice(){return notice('Source condition structure for normal execution','Incoming rung context is retained as a symbolic input, not assumed to be true. Contacts and comparisons remain separate source occurrences; intervening writes can change later reads. This is not PLC simulation, scan-order proof, or an assessment of alarms, shutdowns or physical outputs. Prescan and postscan behavior are not modeled.');}
-  function conditionalOutputTable(rows,caption){return table(['Output occurrence','Target evidence','Normal-execution action','Condition evidence','Rung'],rows,o=>[
+  function conditionalOutputTable(rows,caption){if(outputContext)return outputContextTable(rows.map(o=>byConditionOutputContext.get(o.id)).filter(Boolean),caption);return table(['Output occurrence','Target evidence','Normal-execution action','Condition evidence','Rung'],rows,o=>[
     button(o.opcode+' · '+conditionTargetName(o),()=>openDetail('condition',o.id),'text-link'),conditionTarget(o),conditionActionLabel(o.action),primary(conditionGuardLabel(o.guard_status),o.has_stateful?'Contains stored-state condition':''),sourceCell(o.rung_id)
   ],caption,{emptyTitle:'No conditional outputs in this selection',emptyDetail:'This layer covers captured OTE, OTL and OTU occurrences. Other instruction effects remain in their source and access views.'});}
   function conditionsToolbar(){
+    if(outputContext){outputContextToolbar();return;}
     toolbarFor('Search output targets, opcodes, rung context or condition quality',[['all','All output opcodes'],['OTE','OTE'],['OTL','OTL'],['OTU','OTU']]);
     const label=node('label','filter-wrap','Condition quality'),select=node('select');select.setAttribute('aria-label','Condition quality');
     [['all','All condition qualities'],['modeled','Modeled condition structure'],['binding_gaps','Condition binding gaps'],['opaque','Contains unknown transfer']].forEach(([v,t])=>{const option=node('option','',t);option.value=v;select.append(option);});
     select.value=state.conditionQuality || 'all';select.addEventListener('change',()=>{state.conditionQuality=select.value;state.listPages={};renderList();});label.append(select);toolbar.querySelector('.toolbar').append(label);
   }
   function conditionsList(){
+    if(outputContext){outputContextList();return;}
     content.append(conditionNotice());
     const summary=panel('Captured coil occurrences','Each row is one output instruction. A modeled guard describes syntax, not an approved engineering function.');
     summary.append(values({'OTE / OTL / OTU occurrences':conditionalOutputs.length,'Modeled condition structure':conditionalOutputs.filter(o=>o.guard_status==='modeled').length,'Condition binding gaps':conditionalOutputs.filter(o=>o.guard_status==='binding_gaps').length,'Contains unknown transfer':conditionalOutputs.filter(o=>o.guard_status==='opaque').length,'Guards containing a branch join':conditions.coverage.outputs_with_branches,...(conditions.schema_version>=3?{'Guards containing stored-state conditions':conditions.coverage.outputs_with_stateful_conditions}:{})}));content.append(summary);
@@ -872,6 +1206,7 @@
     return n.kind==='predicate'?'Test '+opcode:'Unknown transfer through '+short(opcode,80);
   }
   function conditionDetail(o){
+    if(byConditionOutputContext.has(o.id)){outputContextDetail(byConditionOutputContext.get(o.id));return;}
     setDetailHeading('CONDITIONAL OUTPUT EVIDENCE',o.opcode+' · '+conditionTargetName(o),sourceName(o.rung_id));
     content.append(conditionNotice());
     const summary=panel('Output action',({assign_condition:'During normal execution, OTE writes 1 when its incoming condition is true and writes 0 when false.',set_if_true:'During normal execution, OTL sets its target when its incoming condition is true; a false condition leaves the target unchanged.',clear_if_true:'During normal execution, OTU clears its target when its incoming condition is true; a false condition leaves the target unchanged.',unresolved:'The captured output signature is unresolved. No target action is assigned.'})[o.action]);
@@ -1071,6 +1406,7 @@
   function rungList(rows=rungs.filter(r=>matches(r)&&(state.filter==='all'||r.parse_status===state.filter))){return table(['Rung','Routine / scope','Source preview','Parse status'],rows,r=>[link(rungNumber(r),r.id),entityPath(r.parent_id),node('div','snippet',short(r.text,180)),badge(r.parse_status)],'Ladder rungs');}
   function objectDetail(e){
     setDetailHeading('SOURCE OBJECT',e.name || '(unnamed '+human(e.kind)+')',entityPath(e.parent_id));
+    if(byExecutionSource.has(e.id))content.append(button('Inspect execution context',()=>openDetail('executioncontext',byExecutionSource.get(e.id))));
     const meta=node('div','detail-meta');meta.append(badge(e.kind));if(e.attributes?.DataType)meta.append(badge(e.attributes.DataType));content.append(meta);
     const description=panel('Source description');description.append(sourceText(e.description,true));content.append(description);
     const attributes=panel('Declaration attributes');attributes.append(values(e.attributes));content.append(attributes);
@@ -1112,6 +1448,7 @@
       if(byIndexedSource.has(o.id))content.append(indexedSourceLink(o.id));
     }
     if(state.focusInstruction && byInstruction.get(state.focusInstruction)?.rung.id===r.id)content.append(notice('Selected instruction',byInstruction.get(state.focusInstruction).instruction.opcode));
+    if(byExecutionInstruction.has(state.focusInstruction))content.append(button('Inspect execution context',()=>openDetail('executioncontext',byExecutionInstruction.get(state.focusInstruction))));
     if(byCustomCall.has(state.focusInstruction))content.append(customCallLink(byCustomCall.get(state.focusInstruction)));
     const text=panel('Rung text','Exact captured ladder source. No execution behavior is inferred.');text.append(sourceText(r.text));content.append(text);
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
@@ -1119,8 +1456,10 @@
     if(sfrCallsByRung.has(r.id)){const reset=section('SFR target context on this rung','Candidate matches do not establish reset execution or outgoing condition.');reset.append(sfrCallTable(sfrCallsByRung.get(r.id),'Rung SFR target contexts'));content.append(reset);}
     if(indexedByRung.has(r.id)){const indexed=section('Indexed source context on this rung','Array roots and possible selector reads stay separate from exact-address relationships.');indexed.append(indexedUseTable(indexedByRung.get(r.id),'Rung indexed source context'));content.append(indexed);}
     const inst=section('Parsed instructions');inst.append(table(['Order','Opcode','Arguments','Semantic status',...(access?['Operand-role coverage']:[])],r.instructions || [],(i,n)=>[String(n+1),node('span','mono',i.opcode),node('div','snippet',(i.arguments||[]).join(', ')),human(i.semantic_status),...(access?[badge(byInstructionAccess.get(i.id)?.status)]:[])],'Parsed rung instructions'));content.append(inst);
+    if(statefulOccurrencesByRung.has(r.id)){const p=section('Timer, counter and reset evidence on this rung');p.append(statefulOccurrenceTable(statefulOccurrencesByRung.get(r.id),'Rung timer counter and reset occurrences'));content.append(p);}
     if(rungPids.has(r.id)){const p=section('PID evidence on this rung');p.append(pidTable(rungPids.get(r.id),'Rung PID occurrences'));content.append(p);}
     if(rungCalculations.has(r.id)){const p=section('Calculations on this rung');p.append(calculationTable(rungCalculations.get(r.id),'Rung calculation occurrences'));content.append(p);}
+    if(calculationPaths){const paths=calculationPathOccurrences.filter(c=>c.rung_id===r.id);if(paths.length){const p=section('Calculation inputs and destinations on this rung');p.append(calculationPathTable(paths,'Rung calculation blocks'));content.append(p);}}
     const ops=section(access?.schema_version>=3?'Original reference bindings':'Operand bindings','Root resolution is source evidence only. A binding does not validate a member, array bound, data type or instruction effect.'+(access?.schema_version>=3?' These rows retain the original reference analysis; additional instruction access bindings appear separately below.':''));
     if((rungOperands.get(r.id)||[]).some(o=>byOperandAccess.get(o.id)?.reason==='timer_pseudo_operand'))ops.append(node('p','row-note','Timer preset and accumulator fields describe initialization, not separate runtime reads. A question mark supplies no value here. Timer values, units and configuration are not validated.'));
     ops.append(table(['Operand','Instruction / argument','Binding','Declared / resolved root',...(access?['Operand role']:[])],rungOperands.get(r.id)||[],o=>[node('span','mono',o.raw_text || '(blank)'),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),primary(badge(o.status),o.reason?human(o.reason):''),bindingRoots(o,o.reason),...(access?[accessCell(o)]:[])],'Rung operand bindings'));content.append(ops);
@@ -1135,6 +1474,71 @@
     const pattern=routinePatterns.get(r.id);if(pattern)content.append(button('Open syntax pattern · '+fmt(pattern.count)+' occurrences',()=>openDetail('pattern',pattern.id)));
     const structure=node('details','technical');structure.append(node('summary','','Parsed branch structure'),sourceText(JSON.stringify(r.structure,null,2)));content.append(structure,technical({'Source ID':r.id,'Routine ID':r.parent_id,'Scope ID':r.scope_id,'XML location':r.locator}));
   }
+  function sequenceConditionName(t){return elementName(byElement.get(t.transition_id));}
+  function sequenceConditionStatus(t){return ({modeled:'Syntax modeled',binding_gaps:'Reference binding gaps',unsupported:'Unmodeled condition'})[t.status]||human(t.status);}
+  function sequenceConditionNotice(){return notice('Source expressions, not evaluated transitions','Syntax grouping and bound roots describe this export. They do not prove Boolean data types, valid members, current values, transition truth, execution order, active edits or process intent. Unsupported source fragments remain accessible through their original SFC links; no partial expression tree is inferred.');}
+  function sequenceConditionGaps(t){return t.status!=='modeled'||(t.metadata_gaps||[]).length>0||t.reference_ids.some(id=>bySequenceContextReference.get(id)?.gap_id);}
+  function sequenceConditionTable(rows,caption){return table(['Transition','Captured condition','Analysis','References','Content version'],rows,t=>[
+    primary(button(sequenceConditionName(t),()=>openDetail('sequencecondition',t.id),'text-link'),entityPath(t.routine_id)),
+    node('div','snippet',short(t.raw_text,180)||'(Expression unavailable; inspect source)'),
+    primary(sequenceConditionStatus(t),[t.reason&&t.reason!=='none'?human(t.reason):'',...(t.metadata_gaps||[]).map(human),t.status==='modeled'&&t.reference_ids.some(id=>bySequenceContextReference.get(id)?.gap_id)?'Reference relationship diagnostic':''].filter(Boolean).join(' · ')||'Type and runtime interpretation remain unverified'),
+    t.reference_ids.length,human(t.edit_kind)
+  ],caption,{emptyTitle:'No transition conditions match',emptyDetail:'Clear the search or select another analysis status. Source and type limitations remain visible in each condition.'});}
+  function sequenceConditionsList(){
+    content.append(sequenceConditionNotice());
+    const summary=panel('Transition expression coverage');summary.append(values({'Captured transitions':sequenceConditions.length,'Syntax modeled':sequenceConditions.filter(t=>t.status==='modeled').length,'Reference binding gaps':sequenceConditions.filter(t=>t.status==='binding_gaps').length,'Unmodeled conditions':sequenceConditions.filter(t=>t.status==='unsupported').length,'Conditions with capture metadata gaps':sequenceConditions.filter(t=>(t.metadata_gaps||[]).length).length,'Other SFC text lines outside this analysis':sfcConditions.coverage.unprocessed_st_lines}));content.append(summary);
+    if(sequenceContext){const contextSummary=panel('Reference relationships');contextSummary.append(values({'Reference occurrences':sequenceContext.references.length,'Qualified exact addresses':sequenceContext.addresses.length,'Binding diagnostics':sequenceContext.gaps.length,'Step candidate associations':sequenceContext.step_links.length}));content.append(contextSummary);}
+    const rows=sequenceConditions.filter(t=>matches(t)&&(state.filter==='all'||(state.filter==='gap'?sequenceConditionGaps(t):state.filter==='context_gap'?t.reference_ids.some(id=>bySequenceContextReference.get(id)?.gap_id):t.status===state.filter)));
+    content.append(sequenceConditionTable(rows,'Sequence transition conditions'));
+  }
+  function sequenceConditionDetail(t){
+    setDetailHeading('SEQUENCE CONDITION',sequenceConditionName(t),entityPath(t.routine_id));content.append(sequenceConditionNotice());
+    const summary=panel('Captured transition expression');summary.append(values({'Analysis':sequenceConditionStatus(t),'Reason':t.reason&&t.reason!=='none'?human(t.reason):'No syntax rejection','Error character offset':t.error_offset??'None','Content version':human(t.edit_kind),'Capture metadata gaps':(t.metadata_gaps||[]).map(human).join(' · ')||'None reported','Type validation':'Not implemented','Runtime evaluation':'Not implemented'}));
+    const links=node('div','inline-links');links.append(sourceCell(t.transition_id),sourceCell(t.routine_id),sourceCell(t.content_id));if(t.condition_id)links.append(sourceCell(t.condition_id));if(t.st_content_id)links.append(sourceCell(t.st_content_id));summary.append(links);content.append(summary);
+    const raw=section('Condition source text','Lines remain in captured XML order. Character spans address this joined text; source links retain each original fragment.');raw.append(sourceText(t.raw_text||'No joined expression is available for this source shape. Follow the original condition or transition links above.'));raw.append(table(['Source line','Captured line number','Text'],t.line_ids.map(id=>byElement.get(id)).filter(Boolean),line=>[sourceCell(line.id),line.attributes?.Number??'Not supplied',sourceText(line.direct_text)],'Transition source lines',{emptyTitle:'No source lines captured',emptyDetail:'Inspect the condition and transition source elements for missing, direct or unsupported text.'}));content.append(raw);
+    const comments=section('Source comments','Comments are authored evidence. They are not treated as executable expressions or confirmed engineering descriptions.');comments.append(table(['Comment kind','Character span','Exact comment'],t.comment_ids.map(id=>bySequenceComment.get(id)).filter(Boolean),c=>[human(c.kind),c.start+'–'+c.end,primary(sourceText(c.raw_text),c.terminated?'':'Unterminated comment')],'Transition expression comments',{emptyTitle:'No expression comments captured',emptyDetail:'Other notes may appear on the original SFC elements.'}));content.append(comments);
+    const nodes=t.node_ids.map(id=>bySequenceNode.get(id)).filter(Boolean),labels=new Map(nodes.map((n,i)=>[n.id,'Node '+(i+1)]));
+    const tree=section('Expression grouping','Source operators and child order are preserved. A modeled tree is not proof of Boolean type or a true transition.');
+    let chosen=nodes.find(n=>n.id===state.focusSequenceNode)||bySequenceNode.get(t.root_node_id);const detail=node('div');
+    const showNode=n=>{chosen=n;state.focusSequenceNode=n.id;detail.replaceChildren();const box=panel(labels.get(n.id)+(n.id===t.root_node_id?' · expression root':''));box.append(values({'Kind':human(n.kind),'Source operator':n.operator||'Not an operator','Character span':n.start+'–'+n.end}),sourceText(t.raw_text.slice(n.start,n.end)));const childLinks=node('div','inline-links');n.children.forEach(id=>{const child=bySequenceNode.get(id);if(child)childLinks.append(button(labels.get(id),()=>showNode(child),'text-link'));});box.append(childLinks);const ref=bySequenceReference.get(n.binding_id);if(ref)box.append(primary(human(ref.binding_status),'Source root binding'),calculationBinding(ref.binding));detail.append(box);};
+    tree.append(table(['Node','Syntax kind','Source operator / spelling','Children','Span'],nodes,n=>[button(labels.get(n.id)+(n.id===t.root_node_id?' · root':''),()=>showNode(n),'text-link'),human(n.kind),node('span','mono',n.operator||short(n.raw_text,160)),n.children.map(id=>labels.get(id)).join(', ')||'Leaf',n.start+'–'+n.end],'Transition expression nodes',{emptyTitle:'Expression tree unavailable',emptyDetail:'The complete source expression was not accepted by this analysis; no partial tree is presented.'}));if(chosen)showNode(chosen);tree.append(detail);content.append(tree);
+    const references=section('Reference leaves','These are possible source reads in a fully parsed expression. Root binding does not validate suffix members, data types or array bounds.');references.append(table(['Reference spelling','Root binding','Declared / resolved root','Suffix','Span'],t.reference_ids.map(id=>bySequenceReference.get(id)).filter(Boolean),r=>[button(r.raw_text,()=>{const n=bySequenceNode.get(r.node_id);if(n){showNode(n);detail.scrollIntoView({block:'nearest'});}},'text-link'),primary(human(r.binding_status),r.binding?.reason?human(r.binding.reason):''),calculationBinding(r.binding),node('span','mono',r.binding?.suffix||'(root)'),r.start+'–'+r.end],'Transition expression references',{emptyTitle:'No reference leaves captured',emptyDetail:t.status==='unsupported'?'Unsupported conditions publish no partial reference bindings.':'A literal-only expression has no reference leaves.'}));content.append(references);
+    if(sequenceContext){
+      const contextSection=section('Ladder and chart relationships','Open a reference to inspect qualified ladder readers and writers, chart-step candidates and binding diagnostics. These associations do not establish execution or a transition value.');
+      contextSection.append(table(['Reference','Context','Exact address','Step candidates','Diagnostic'],t.reference_ids.map(id=>bySequenceContextReference.get(id)).filter(Boolean),r=>{
+        const a=bySequenceAddress.get(r.address_id),g=bySequenceGap.get(r.gap_id);
+        return [sequenceContextLink(r),human(r.status),a?sequenceAddressLink(a):'No qualified address',r.step_link_ids.length,g?human(g.kind):'No binding diagnostic'];
+      },'Transition reference relationships'));content.append(contextSection);
+      const chartLinks=section('Direct chart connections','These are captured diagram links incident to this transition. They do not select an active edit or prove sequence execution.');chartLinks.append(relationTable(elementLinks.get(t.transition_id)||[]));content.append(chartLinks);
+      const notes=section('Attached chart notes','Attachments describe source ownership only. Follow a text-box link to read its authored text.');notes.append(relationTable(elementNotes.get(t.transition_id)||[],true));content.append(notes);
+    }
+  }
+  function sequenceContextNotice(){return notice('Source associations with explicit limits','Exact address spelling connects qualified source uses. Step operands provide lexical candidates; no STEP type, member validity, active edit, runtime writer order or transition truth is inferred. Missing captured writers do not prove an uninitialized or unused value.');}
+  function sequenceContextLink(r){return button(bySequenceReference.get(r.condition_reference_id)?.raw_text||'Reference',()=>openDetail('sequencecontext',r.id),'text-link');}
+  function sequenceAddressLink(a){return button(addressName(a),()=>openDetail('sequenceaddress',a.id),'text-link');}
+  function sequenceStepTable(rows){return table(['Step source','Relationship to this condition','Match evidence','Operand spelling','Source qualification'],rows,l=>[
+    primary(sourceCell(l.step_element_id),entityPath(l.step_routine_id)+' · '+human(byContent.get(l.step_content_id)?.edit_kind||'absent')),human(l.relation),primary(human(l.match_kind),human(l.evidence)),node('span','mono',byElement.get(l.step_element_id)?.attributes?.Operand||'(missing operand)'),primary(human(l.step_binding_status),l.namespace_qualified?'Namespace qualified':'Unsupported namespace context')
+  ],'Sequence step candidates',{emptyTitle:'No step candidates captured',emptyDetail:'The reference remains visible even when no qualified or lexical chart-step candidate was found.'});}
+  function sequenceContextDetail(r){
+    const original=bySequenceReference.get(r.condition_reference_id),transition=bySequenceCondition.get(r.transition_id),a=bySequenceAddress.get(r.address_id),g=bySequenceGap.get(r.gap_id);
+    setDetailHeading('SEQUENCE REFERENCE CONTEXT',original?.raw_text||'Reference',entityPath(r.routine_id));content.append(sequenceContextNotice());
+    const summary=panel('Reference source');summary.append(values({'Context qualification':human(r.status),'Original root binding':human(r.binding_status),'Content version':human(r.edit_kind)}));const sourceLinks=node('div','inline-links');if(transition)sourceLinks.append(button('Open transition: '+sequenceConditionName(transition),()=>openDetail('sequencecondition',transition.id),'text-link'));sourceLinks.append(sourceCell(r.content_id));summary.append(sourceLinks);if(original)summary.append(calculationBinding(original.binding));if(a)summary.append(sequenceAddressLink(a));content.append(summary);
+    if(g){const gap=section('Binding diagnostic','Candidate names from another scope or a chart operand remain hints. They do not repair the original binding. TRUE/FALSE spellings, when reported, are lexical observations only.');gap.append(values({'Diagnostic':human(g.kind),'Lexical category':human(g.lexical_kind),'Lookup root':g.root_text||'(unavailable)'}),sourceCell(g.lookup_scope_id));
+      for(const [field,label] of [['outside_scope_entity_ids','Same-name declarations outside lookup scope'],['unqualified_outside_scope_entity_ids','Unqualified same-name declarations outside lookup scope']])if(g[field].length){const p=panel(label);p.append(table(['Declaration candidate'],g[field],id=>[sourceCell(id)],label));gap.append(p);}content.append(gap);}
+    const steps=section('Chart-step candidates','Each association retains the candidate content and routine. Same-content, other-edit and peer-chart candidates are kept separate; none selects an effective step.');steps.append(sequenceStepTable(r.step_link_ids.map(id=>bySequenceStepLink.get(id)).filter(Boolean)));content.append(steps);
+    if(a)sequenceAddressSections(a);
+  }
+  function sequenceAddressSections(a){
+    const writers=new Set([...a.write_operand_ids,...a.read_write_operand_ids].map(id=>byOperandAccess.get(id)?.instruction_id).filter(Boolean));
+    const summary=panel('Qualified exact address uses');summary.append(values({'Root declaration':entityName(a.target_id),'Exact suffix':a.suffix||'(root)','Transition reference occurrences':a.condition_reference_ids.length,'Distinct captured writer instructions':writers.size,'Operand reads':a.read_operand_ids.length,'Operand writes':a.write_operand_ids.length,'Read/write operands':a.read_write_operand_ids.length,'Unknown-role operands':a.unknown_operand_ids.length,'Expression reads':a.expression_use_ids.length}),sourceCell(a.target_id));
+    if(a.relationship_address_id)summary.append(button('Open original RLL relationship evidence',()=>openDetail('address',a.relationship_address_id),'text-link'));content.append(summary);
+    if(!writers.size)content.append(notice('No qualified explicit RLL writer captured','Other source forms, implicit instruction effects, communications or uncaptured code may supply this value. This count does not establish an uninitialized value or dead logic.'));
+    const users=section('Sequence references sharing this address');users.append(table(['Reference','Transition','Content version'],a.condition_reference_ids.map(id=>bySequenceContextReference.get(id)).filter(Boolean),r=>[sequenceContextLink(r),button(sequenceConditionName(bySequenceCondition.get(r.transition_id)),()=>openDetail('sequencecondition',r.transition_id),'text-link'),human(r.edit_kind)],'Sequence address references'));content.append(users);
+    for(const [field,title] of [['read_operand_ids','Qualified ladder readers'],['write_operand_ids','Qualified ladder writers'],['read_write_operand_ids','Qualified ladder read/write uses'],['unknown_operand_ids','Ladder uses with unknown roles']])if(a[field].length){const p=section(title);p.append(accessBindingTable(a[field].map(id=>byOperandAccess.get(id)).filter(Boolean),title));content.append(p);}
+    const rejected=Object.values(a.unqualified_operand_ids_by_role).flat();if(rejected.length){const p=section('Ladder uses excluded by namespace qualification','These source occurrences remain available but do not contribute to the qualified reader or writer counts.');p.append(accessBindingTable(rejected.map(id=>byOperandAccess.get(id)).filter(Boolean),'Excluded sequence address uses'));content.append(p);}
+    for(const [field,title] of [['expression_use_ids','Qualified ladder expression readers'],['unqualified_expression_use_ids','Excluded ladder expression readers']])if(a[field].length){const p=section(title);p.append(expressionUseTable(a[field].map(id=>byExpressionUse.get(id)).filter(Boolean),title));content.append(p);}
+  }
+  function sequenceAddressDetail(a){setDetailHeading('SEQUENCE EXACT ADDRESS',addressName(a),'Transition references and captured ladder uses');content.append(sequenceContextNotice());sequenceAddressSections(a);}
   function sfcList(){
     const rows=(sfc.routines||[]).filter(matches);
     content.append(table(['Routine','Scope','Content versions','Captured elements'],rows,r=>[button(entityName(r.routine_id),()=>openDetail('sfc',r.routine_id),'text-link'),entityPath(byEntity.get(r.routine_id)?.parent_id),fmt(r.content_ids.length),fmt(r.content_ids.reduce((n,id)=>n+(contentElements.get(id)||[]).length,0))],'SFC routines'));
@@ -1159,6 +1563,7 @@
     const selectBox=node('div','toolbar'),label=node('label','filter-wrap','Content version');const select=node('select');select.setAttribute('aria-label','SFC content version');
     contents.forEach((c,n)=>{const option=node('option','','Content '+(n+1)+' · '+(c.edit_kind==='absent'?'edit kind not specified':human(c.edit_kind)));option.value=c.id;select.append(option);});select.value=selected.id;select.addEventListener('change',()=>{state.contentId=select.value;render();});label.append(select);selectBox.append(label,sourceCell(routine.routine_id));content.append(selectBox);
     const rows=contentElements.get(selected.id)||[];
+    if(sfcConditions){const parsed=section('Transition condition analysis','Syntax evidence is kept separate for every captured content version.');parsed.append(sequenceConditionTable(sequenceConditions.filter(t=>t.content_id===selected.id),'SFC content transition conditions'));content.append(parsed);}
     const textKinds=new Set(['text_box','text_box_text','description','st_line','body','condition','preset','limit_high','limit_low']);
     const block=section('Source elements','All captured elements in this content version, including unmodeled structures. Open any row for exact attributes and text.');block.append(elementTable(rows));content.append(block);
     const text=section('Structured text & notes','Authored source text is preserved as separate elements. Notes are not automatically assigned as engineering descriptions.');text.append(elementTable(rows.filter(e=>textKinds.has(e.kind)),'SFC source text and notes'));content.append(text);
@@ -1171,6 +1576,7 @@
   function elementDetail(e){
     setDetailHeading('SFC ELEMENT',elementName(e),entityName(e.routine_id)+' · '+human(e.kind));
     const meta=node('div','detail-meta');meta.append(badge(e.kind),button('Open parent SFC content',()=>openDetail('sfc',e.routine_id,{contentId:e.content_id}),'text-link'));if(e.parent_id)meta.append(sourceCell(e.parent_id));content.append(meta);
+    if(bySequenceTransition.has(e.id))content.append(button('Inspect transition expression',()=>openDetail('sequencecondition',bySequenceTransition.get(e.id).id),'text-link'));
     const attrs=panel('Element attributes');attrs.append(values(e.attributes));content.append(attrs);
     const text=panel('Direct source text','Exact text captured on this element. Child text remains separately addressable below.');text.append(sourceText(e.direct_text));content.append(text);
     const children=elementChildren.get(e.id)||[];if(children.length){const p=section('Child elements');p.append(elementTable(children,'Child SFC elements'));content.append(p);}
@@ -1466,6 +1872,61 @@
   }
   function pidSlotLabel(slot){return ({pid_structure:'PID structure',process_variable:'Process variable (PV)',tieback:'Tieback',control_variable:'Control variable (CV)',master_loop:'Master PID operand',inhold_bit:'Inhold bit',inhold_value:'Inhold value',unknown:'Unclassified slot'})[slot] || human(slot);}
   function pidNotice(){return notice('Instruction evidence for loop review','Operand functions identify the positions in a supported PID signature. Read/write effects, active cascade behavior, execution timing and approved loop settings remain unmodeled. Multiple occurrences may share a declaration; this count is not a count of independent loops.');}
+  function pidConnectionNotice(){return notice('Observed source connections','Counts describe captured operand and expression uses at one exact expanded address spelling. They do not establish runtime data flow, scan order, execution, an active cascade or independent engineering loops. Unknown roles and namespace gaps remain separate; zero observed writers or readers does not prove an unused or uninitialized value.');}
+  function pidConnectionAddressLink(id){const a=byAddress.get(id);return a?button(addressName(a),()=>openDetail('pidaddress',id),'text-link'):node('span','muted','No exact address association');}
+  function pidConnectionCounts(a){return a?['read_operand_ids','write_operand_ids','read_write_operand_ids','unknown_operand_ids','expression_use_ids'].map(key=>fmt(a[key].length)):[0,0,0,0,0];}
+  function pidConnectionAddressTable(ids,caption){return table(['Exact address','Member / association','Operand reads','Writes','Read/write','Unknown roles','Expression reads'],ids.map(id=>byPidConnectionAddress.get(id)).filter(Boolean),a=>[
+    pidConnectionAddressLink(a.id),primary(a.field?pidMemberLabel(a.field):human(a.kind),a.field || ''),...pidConnectionCounts(a)
+  ],caption);}
+  function pidConnectionSections(p){
+    const c=byPidConnection.get(p.id);if(!c)return;
+    content.append(pidConnectionNotice());
+    const slots=section('Slot connections and observed usage','PV, CV, tieback, master and inhold are instruction positions. Setpoint uses appear below under the SP member. A linked address retains all its captured uses, including multiple writers.');
+    slots.append(table(['Operand function','Source operand','Identity evidence','Exact address','Operand reads','Writes','Read/write','Unknown roles','Expression reads'],c.slot_ids.map(id=>byPidConnectionSlot.get(id)).filter(Boolean),s=>[
+      pidSlotLabel(s.slot),sourceCell(s.id),human(s.status),pidConnectionAddressLink(s.address_id),...pidConnectionCounts(byPidConnectionAddress.get(s.address_id))
+    ],'PID slot connections'));content.append(slots);
+    const members=section('Member connections by function','Direct member spelling associates an observed address with this PID declaration. Saved headers remain separate evidence; a matching spelling does not validate a member value, type or effective configuration.');
+    members.append(values({'Control declaration association':human(c.control_status)}));
+    if(c.control_owner_id)members.append(sourceCell(c.control_owner_id));
+    const rows=Object.entries(c.member_address_ids_by_group).filter(([group])=>group!=='unknown').flatMap(([group,ids])=>ids.map(id=>({group,a:byPidConnectionAddress.get(id)}))).filter(x=>x.a);
+    members.append(table(['Function group','Member / label','Exact address','Operand reads','Writes','Read/write','Unknown roles','Expression reads'],rows,({group,a})=>[
+      human(group),primary(a.field,pidMemberLabel(a.field)),pidConnectionAddressLink(a.id),...pidConnectionCounts(a)
+    ],'PID member connections',{emptyTitle:'No direct member addresses associated',emptyDetail:'This only describes captured source references; missing observations do not establish unused members.'}));
+    for(const [key,title,detail] of [
+      ['whole_owner_address_ids','Whole-declaration uses','Whole-structure uses remain separate from direct member evidence.'],
+      ['deferred_address_ids','Deferred suffix uses','Nested members, element indices and bit suffixes retain exact spelling but are not promoted to direct member connections.'],
+      ['unknown_member_address_ids','Uncatalogued member spelling','These exact addresses have a direct member spelling outside the documented PID member catalogue.']
+    ])if(c[key].length){const extra=section(title,detail);extra.append(pidConnectionAddressTable(c[key],'PID '+title.toLocaleLowerCase()));members.append(extra);}
+    content.append(members);
+    const master=section('Explicit master operand candidates','Only the explicit master slot supplies this association. Candidate occurrences share an exact declaration identity; repeated occurrences, missing occurrences and self-reference remain visible. No active cascade is inferred.');
+    master.append(values({'Candidate status':human(c.master.status),'Self-reference':c.master.self_reference?'Yes':'No','Candidate occurrences':c.master.occurrence_ids.length}));
+    const masterLinks=node('div','inline-links');
+    if(c.master.operand_id)masterLinks.append(sourceCell(c.master.operand_id));
+    if(c.master.owner_id)masterLinks.append(sourceCell(c.master.owner_id));
+    master.append(masterLinks);
+    master.append(pidTable(c.master.occurrence_ids.map(id=>byPid.get(id)).filter(Boolean),'PID explicit master candidates'));content.append(master);
+    const incoming=section('Incoming condition evidence','These links reuse the captured condition nodes immediately before this PID occurrence. They are context evidence, not a PID execution guard; outgoing PID condition behavior remains unmodeled.');
+    const transfer=transferByInstruction.get(p.id);
+    incoming.append(table(['Incoming source condition','Condition evidence','Source rung'],c.incoming_condition_ids,id=>{
+      const n=byConditionNode.get(id);return [transfer?button(conditionNodeLabel(n),()=>openDetail('transfer',transfer.id,{focusConditionNode:id}),'text-link'):sourceCell(n?.instruction_id),conditionGuardLabel(conditionQuality(n)),sourceCell(p.rung_id)];
+    },'PID incoming conditions',{emptyTitle:'No incoming condition context captured',emptyDetail:'The absence of a link does not establish unconditional execution.'}));content.append(incoming);
+  }
+  function pidConnectionAddressDetail(a){
+    const exact=byAddress.get(a.id);
+    setDetailHeading('PID CONNECTION EVIDENCE',addressName(exact),human(a.kind));
+    content.append(pidConnectionNotice());
+    const summary=panel('Observed exact-address usage','Accepted uses and namespace gaps are counted separately. A namespace gap is retained evidence, not an association to the PID declaration.');
+    summary.append(values({'Declaration':addressRootPreview(a.owner_id),'Expanded suffix':exact.suffix || '(root address)','Member':a.field || 'No direct catalogued member','Group':a.group?human(a.group):'No direct member group','Saved member headers':a.member_ids.length,'Namespace operand gaps':a.namespace_gap_operand_ids.length,'Namespace expression gaps':a.namespace_gap_expression_use_ids.length}));
+    const links=node('div','inline-links');links.append(sourceCell(a.owner_id),button('Open complete exact address dossier',()=>openDetail('address',a.id),'text-link'));summary.append(links);content.append(summary);
+    for(const role of accessRoles){const ids=a[role+'_operand_ids'];if(!ids.length)continue;
+      const uses=section(({read:'Observed operand readers',write:'Observed operand writers',read_write:'Observed read/write uses',unknown:'Observed uses with unknown roles'})[role]);
+      uses.append(table(['Source operand','Rung','Instruction / argument','Role'],ids,id=>{const use=byOperandAccess.get(id);return[sourceCell(id),sourceCell(use.rung_id),sourceName(use.instruction_id)+' / '+(use.argument_index+1),accessCell(use)];},'PID connection '+role+' occurrences'));content.append(uses);
+    }
+    if(a.expression_use_ids.length){const uses=section('Observed expression readers');uses.append(expressionUseTable(a.expression_use_ids.map(id=>byExpressionUse.get(id)),'PID connection expression reads'));content.append(uses);}
+    if(a.member_ids.length){const headers=section('Saved direct member headers','Each stored representation and duplicate header remains separate. These are exported values, not effective settings.');headers.append(table(['Member evidence'],a.member_ids,id=>[sourceCell(id)],'PID connection saved member headers'));content.append(headers);}
+    if(a.namespace_gap_operand_ids.length){const gaps=section('Namespace gaps in operand uses','These observations are excluded from the accepted PID connection counts above.');gaps.append(table(['Source operand','Rung'],a.namespace_gap_operand_ids,id=>[sourceCell(id),sourceCell(byOperandAccess.get(id)?.rung_id)],'PID connection namespace operand gaps'));content.append(gaps);}
+    if(a.namespace_gap_expression_use_ids.length){const gaps=section('Namespace gaps in expression uses','These observations are excluded from the accepted PID connection counts above.');gaps.append(expressionUseTable(a.namespace_gap_expression_use_ids.map(id=>byExpressionUse.get(id)),'PID connection namespace expression gaps'));content.append(gaps);}
+  }
   function pidTable(rows,caption='PID instruction occurrences'){
     return table(['Occurrence','Rung','Signature','Storage association'],rows,p=>[
       button(pidName(p),()=>openDetail('pid',p.id),'text-link'),sourceCell(p.rung_id),badge(p.signature_status),badge(p.storage_status)
@@ -1478,6 +1939,7 @@
       'Occurrences with stored data':c.occurrences_with_data,'Occurrences with opaque-only data':c.occurrences_with_opaque_only,
       'Occurrences with multiple representations':c.occurrences_with_multiple_representations}));content.append(totals);
     if(pidMembers){const m=pidMembers.coverage,memberTotals=panel('Documented member coverage','These counts inspect each stored structure once, even when several PID instructions reference it. Header matches do not validate values or execution.');memberTotals.append(values({'Stored structures inspected':m.structures_total,'Direct member records':m.members_total,'Structures with member gaps':m.structures_with_gaps,'Missing catalog fields':m.missing_catalog_fields,'Duplicate catalog fields':m.duplicate_catalog_fields}));content.append(memberTotals);}
+    if(pidConnections){const c=pidConnections.coverage,connections=panel('Observed PID connections','Open an occurrence for slot usage, grouped member addresses, explicit master candidates and incoming condition evidence.');connections.append(values({'Exact addresses':c.addresses_total,'Slot observations':c.slots_total,'Direct member addresses':c.address_kinds.direct_member,'Master candidate links':c.master_candidate_links,'Occurrences with incoming context':c.occurrences_with_condition_context}));content.append(connections,pidConnectionNotice());}
     content.append(pidTable(pidOccurrences.filter(p=>(matches(p)||p.structure_candidates.some(c=>c.member_ids.some(id=>byPidMember.has(id)&&matches(byPidMember.get(id)))))&&(state.filter==='all'||p.storage_status===state.filter))));
   }
   function pidDetail(p){
@@ -1500,6 +1962,7 @@
       if(relationships){const exact=node('div','cell-sub');exact.append(addressCell(o.id));root.append(exact);}
       return[primary(String(e.argument_index+1),pidSlotLabel(e.slot)),link(o.raw_text,o.id),badge(o.status),root];
     },'PID operand functions'));content.append(args);
+    if(pidConnections)pidConnectionSections(p);
     const stored=section('Backing declaration and representations','All associated representations stay separate. Suffix, declaration and shape gaps remain visible; open the source declaration for their context.');
     if(p.backing_owner_id)stored.append(sourceCell(p.backing_owner_id));
     const representations=p.content_ids.map(id=>byTagContent.get(id)).filter(Boolean);
@@ -1517,6 +1980,39 @@
     },'PID saved members'));content.append(members);
     }
     content.append(technical({'Instruction ID':p.id,'Rung ID':p.rung_id,'Storage association':p.storage_status}));
+  }
+  function calculationPathStatus(status){return status==='eligible'?'Eligible for local links':'Unresolved block';}
+  function calculationPathName(c){return c.opcode+' · '+short(byOperand.get(c.destination_operand_id)?.raw_text||'(destination unresolved)',100);}
+  function calculationPathLink(id){const c=byCalculationPath.get(id);return c?button(calculationPathName(c),()=>openDetail('calculationpath',id),'text-link'):sourceCell(id);}
+  function calculationPathDestination(c){const address=byAddress.get(c.destination_address_id);return address?button('Address: '+addressName(address),()=>openDetail('address',address.id),'text-link'):node('span','muted','No accepted destination address'+(c.gap_reason?' · '+human(c.gap_reason):''));}
+  function calculationPathNotice(){return notice('Source blocks and possible local reuse','Inputs and destinations describe captured operand roles. A reuse link connects an earlier exact destination spelling to a later input only within one branch segment. Links stop at forks, joins, other instructions and unresolved blocks; they never cross rungs. Intervening predicates can change the condition between linked blocks. These links do not establish execution, a write guard, numeric results or confirmed data flow. Missing links do not establish dead ends.');}
+  function calculationPathTable(rows,caption){return table(['Calculation block','Input slots / expression reads','Destination evidence','Branch depth','Incoming condition','Recognition / gap','Rung'],rows,c=>[
+    calculationPathLink(c.id),fmt(c.input_operand_ids.length)+' / '+fmt(c.expression_use_ids.length),calculationPathDestination(c),c.branch_depth,human(c.condition_quality),primary(badge(calculationPathStatus(c.status)),c.gap_reason?human(c.gap_reason):'No block eligibility gap'),sourceCell(c.rung_id)
+  ],caption,{emptyTitle:'No calculation blocks in this selection',emptyDetail:'This view covers MOV, CLR, ADD, SUB, MUL, DIV, ABS, LN, SQR and CPT occurrences in captured ladder.'});}
+  function calculationPathReuseTable(rows,caption){return table(['Earlier destination block','Exact address','Later input block','Input occurrence','Condition context'],rows,l=>[
+    calculationPathLink(l.producer_instruction_id),byAddress.has(l.address_id)?button(addressName(byAddress.get(l.address_id)),()=>openDetail('address',l.address_id),'text-link'):node('span','muted','Unavailable'),calculationPathLink(l.consumer_instruction_id),engineeringEvidence(l.read_id),l.producer_condition_id===l.consumer_condition_id?'Same captured condition node':'Condition nodes differ; inspect both blocks'
+  ],caption,{emptyTitle:'No possible local reuse links',emptyDetail:'No eligible earlier exact destination was retained in this segment. This does not establish a dead end or unused result.'});}
+  function calculationPathList(){
+    content.append(calculationPathNotice());
+    const summary=panel('Captured calculation blocks','Every selected occurrence stays visible, including unrecognized signatures and unresolved inputs or destinations.');
+    summary.append(values({'Blocks':calculationPathOccurrences.length,'Branch segments':byCalculationRegion.size,'Possible local reuse links':calculationPathLinks.length,'Blocks with gaps':calculationPathOccurrences.filter(c=>c.status==='gap').length}));content.append(summary);
+    content.append(calculationPathTable(calculationPathOccurrences.filter(c=>matches(c)&&(state.filter==='all'||c.status===state.filter)),'Calculation block occurrences'));
+  }
+  function calculationPathDetail(c){
+    setDetailHeading('CALCULATION INPUTS AND DESTINATIONS',calculationPathName(c),sourceName(c.rung_id));
+    content.append(calculationPathNotice());
+    const region=byCalculationRegion.get(c.region_id),rungRegions=(calculationPaths?.regions||[]).filter(r=>r.rung_id===c.rung_id),segmentNumber=region?rungRegions.findIndex(r=>r.id===region.id)+1:0,summary=panel('Captured block and branch segment');
+    summary.append(values({'Opcode':c.opcode,'Eligibility':calculationPathStatus(c.status),'Gap':c.gap_reason?human(c.gap_reason):'No block eligibility gap','Branch depth':c.branch_depth,'Source segment on this rung':segmentNumber?'Segment '+segmentNumber+' of '+rungRegions.length:'Unavailable','Segment begins at':region?human(region.start_reason):'Unavailable','Segment ends at':region?human(region.end_reason):'Unavailable','Blocks in this segment':region?.blocks_count??0,'Incoming condition quality':human(c.condition_quality)}));
+    const links=node('div','inline-links');links.append(sourceCell(c.id),sourceCell(c.rung_id));if(byCalculation.has(c.id))links.append(button('Inspect CPT expression',()=>openDetail('calculation',c.id),'text-link'));const transfer=transferByInstruction.get(c.id);if(transfer)links.append(button('Inspect instruction condition transfer',()=>openDetail('transfer',transfer.id),'text-link'));summary.append(links);content.append(summary);
+    if(region){const segment=section('Blocks in this branch segment','Segment numbers follow retained source order within this rung. Separate sibling segments never share local reuse links; open the rung for its complete branch outline.');segment.append(calculationPathTable(calculationPathOccurrences.filter(other=>other.region_id===region.id),'Branch segment blocks'));content.append(segment);}
+    const inputs=section('Operand inputs','Literal operands remain source evidence. CPT expression containers are separate from their individual reference reads.');inputs.append(accessBindingTable(c.input_operand_ids.map(id=>byOperandAccess.get(id)).filter(Boolean),'Calculation input slots'));content.append(inputs);
+    if(c.expression_use_ids.length){const reads=section('CPT expression reads','Repeated reference leaves remain separate source occurrences.');reads.append(expressionUseTable(c.expression_use_ids.map(id=>byExpressionUse.get(id)).filter(Boolean),'Calculation expression reads'));content.append(reads);}
+    const destination=section('Destination operand','A captured destination role does not validate a writable member or confirm a final value.');if(c.destination_operand_id){const destinationLinks=node('div','inline-links');destinationLinks.append(sourceCell(c.destination_operand_id),calculationPathDestination(c));destination.append(destinationLinks);}else destination.append(node('p','muted','Destination role or exact address is unresolved; inspect the captured arguments.'));content.append(destination);
+    if(c.status==='gap'){const argumentsPanel=section('Captured arguments for this block','The eligibility gap above is explicit; original operand binding evidence remains available.');argumentsPanel.append(table(['Source operand','Binding / role'],(rungOperands.get(c.rung_id)||[]).filter(o=>o.instruction_id===c.id),o=>[sourceCell(o.id),accessCell(o)],'Calculation block arguments'));content.append(argumentsPanel);}
+    const reuse=section('Possible local reuse','Both endpoints are in the same branch segment. Condition changes remain visible and do not establish that either block executes.');reuse.append(calculationPathReuseTable(calculationPathLinks.filter(l=>l.producer_instruction_id===c.id||l.consumer_instruction_id===c.id),'Calculation block local reuse'));content.append(reuse);
+    if(c.incoming_condition_id)conditionGraph(c.incoming_condition_id,'Calculation incoming condition nodes','Incoming condition evidence');
+    else content.append(notice('Incoming condition unavailable','No supported condition context was attached to this occurrence.'));
+    content.append(technical({'Instruction ID':c.id,'Branch segment ID':c.region_id,'Incoming condition ID':c.incoming_condition_id}));
   }
   function calculationName(c){return 'CPT · '+short(byOperand.get(c.destination_operand_id)?.raw_text || '(destination not assigned)',100);}
   function calculationNotice(){return notice('Expression syntax and source evidence','Grouping and reference links describe the captured CPT expression. No value is calculated, and no execution, scan order, data type, member validity or control dependency is inferred. Unsupported expressions retain their source without a partial syntax tree or partial reference bindings.');}
@@ -1580,6 +2076,7 @@
   }
   function calculationSpan(n){return '['+n.start+', '+n.end+')';}
   function calculationDetail(c){
+    if(byCalculationPath.has(c.id))content.append(button('Inspect calculation inputs and destinations',()=>openDetail('calculationpath',c.id),'text-link'));
     setDetailHeading('CALCULATION SOURCE EVIDENCE',calculationName(c),sourceName(c.rung_id));
     content.append(calculationNotice());
     const meta=node('div','detail-meta');meta.append(badge(c.signature_status),badge(c.syntax_status),sourceCell(c.rung_id));content.append(meta);
@@ -1693,6 +2190,9 @@
     else if(state.view==='engineering')engineeringList();
     else if(state.view==='relationships')relationshipsList();
     else if(state.view==='conditions')conditionsList();
+    else if(state.view==='statefulobjects')statefulObjectsList();
+    else if(state.view==='sequenceconditions')sequenceConditionsList();
+    else if(state.view==='executioncontext')executionContextList();
     else if(state.view==='transfers')transfersList();
     else if(state.view==='bindingcontext')bindingContextList();
     else if(state.view==='instructioncontext')instructionContextList();
@@ -1706,6 +2206,7 @@
     else if(state.view==='tagdata')tagDataList();
     else if(state.view==='pid')pidList();
     else if(state.view==='calculations')calculationList();
+    else if(state.view==='calculationpaths')calculationPathList();
   }
   function render(focus=false){
     heading.replaceChildren();toolbar.replaceChildren();content.replaceChildren();
@@ -1716,11 +2217,19 @@
       else if(d.type==='rung')rungDetail(byRung.get(d.id));
       else if(d.type==='sfc')sfcDetail(bySfcRoutine.get(d.id));
       else if(d.type==='element')elementDetail(byElement.get(d.id));
+      else if(d.type==='sequencecondition')sequenceConditionDetail(bySequenceCondition.get(d.id));
+      else if(d.type==='sequencecontext')sequenceContextDetail(bySequenceContext.get(d.id));
+      else if(d.type==='executioncontext')executionContextDetail(byExecution.get(d.id));
+      else if(d.type==='sequenceaddress')sequenceAddressDetail(bySequenceAddress.get(d.id));
       else if(d.type==='pattern')patternDetail(byPattern.get(d.id));
       else if(d.type==='finding')findingDetail(byFinding.get(d.id));
       else if(d.type==='access')accessDetail(byRootAccess.get(d.id));
       else if(d.type==='address')addressDetail(byAddress.get(d.id));
       else if(d.type==='condition')conditionDetail(byConditionalOutput.get(d.id));
+      else if(d.type==='statefulobject')statefulObjectDetail(byStatefulGroup.get(d.id));
+      else if(d.type==='statefuloccurrence')statefulOccurrenceDetail(byStatefulOccurrence.get(d.id));
+      else if(d.type==='statefuluse')statefulUseDetail((statefulUsesByObject.get(state.statefulObjectId)||[]).find(u=>u.address_id===d.id));
+      else if(d.type==='outputaddress')outputContextAddressDetail(byOutputAddress.get(d.id));
       else if(d.type==='transfer')transferDetail(byConditionNode.get(d.id));
       else if(d.type==='bindingcontext')bindingContextDetail(byBindingContext.get(d.id));
       else if(d.type==='customcall')customCallDetail(byCustomCall.get(d.id));
@@ -1736,12 +2245,17 @@
       else if(d.type==='tagcontent')tagContentDetail(byTagContent.get(d.id));
       else if(d.type==='tagelement')tagElementDetail(byTagElement.get(d.id));
       else if(d.type==='pid')pidDetail(byPid.get(d.id));
+      else if(d.type==='pidaddress')pidConnectionAddressDetail(byPidConnectionAddress.get(d.id));
       else if(d.type==='calculation')calculationDetail(byCalculation.get(d.id));
+      else if(d.type==='calculationpath')calculationPathDetail(byCalculationPath.get(d.id));
     }else{
       const [title,subtitle]=headings[state.view];heading.append(node('p','eyebrow','SOURCE REVIEW · PHASE 1'),node('h1','',title),node('p','subtitle',subtitle));
       if(state.view==='engineering')engineeringToolbar();
       else if(state.view==='relationships')relationshipsToolbar();
       else if(state.view==='conditions')conditionsToolbar();
+      else if(state.view==='statefulobjects')statefulObjectsToolbar();
+      else if(state.view==='sequenceconditions')toolbarFor('Search transitions, expressions, comments or gaps',[['all','All transition conditions'],['gap','Unresolved evidence'],['modeled','Syntax modeled'],['binding_gaps','Reference binding gaps'],['unsupported','Unmodeled conditions'],...(sequenceContext?[['context_gap','Relationship binding diagnostics']]:[])]);
+      else if(state.view==='executioncontext')toolbarFor('Search task, program, routine, target, raw metadata previews or gaps',[['all','All execution context groups'],...Object.entries(executionGroups)]);
       else if(state.view==='transfers')toolbarFor('Search instruction opcodes, operand previews or rung context',[['all','All transfers'],['pass_through','Documented pass-through'],...(conditions?.schema_version>=3?[['stateful_transfer','ONS stored-state transfer']]:[]),['opaque_transfer','Unknown transfer']]);
       else if(state.view==='bindingcontext')bindingContextToolbar();
       else if(state.view==='instructioncontext')toolbarFor('Search instruction names, declarations, index expressions or context status');
@@ -1755,6 +2269,7 @@
       else if(state.view==='tagdata')toolbarFor('Search declarations, members, saved values or data text',countsFilter(tagContents,'format_kind'));
       else if(state.view==='pid')toolbarFor(pidMembers?'Search PID operands, member labels, groups or source context':'Search PID operands, rung context or association status',countsFilter(pidOccurrences,'storage_status'));
       else if(state.view==='calculations')toolbarFor('Search CPT destinations, expressions, rung context or syntax status',countsFilter(calculationOccurrences,'syntax_status'));
+      else if(state.view==='calculationpaths')toolbarFor('Search opcodes, inputs, destinations, rung context or gaps',[['all','All calculation blocks'],['eligible','Eligible for local links'],['gap','Unresolved blocks']]);
       renderList();
     }
     if(focus){document.getElementById('main').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}

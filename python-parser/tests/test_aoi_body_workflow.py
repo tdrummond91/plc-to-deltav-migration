@@ -157,7 +157,7 @@ class AoiBodyWorkflowTests(unittest.TestCase):
             envelope = first.pop('targeted_samples')
             self.assertIsNone(first.pop('diagnostic_sample'))
             payload = report()
-            payload.update(analysis=first, targeted_samples=envelope)
+            payload.update(schema_version=37, workflow_version='work-check-37', analysis=first, targeted_samples=envelope)
             work_check.validate_work_check_report(payload)
             path.write_bytes(source('NOP();'))
             with patch.object(work_check, 'build_targeted_samples', side_effect=AssertionError('No additional disclosure.')):
@@ -175,12 +175,18 @@ class AoiBodyWorkflowTests(unittest.TestCase):
                 result = work_check._analyze(root, path, root, REVISION)
             self.assertEqual((result['failure_code'], result['private_run_saved']), ('aoi_body_context_error', False))
             self.assertIsNone(result['aoi_body_summary'])
-            payload = failed_report(31, 'aoi_body_context_error')
+            payload = failed_report(37, 'aoi_body_context_error')
             payload['analysis'] = {k: v for k, v in result.items() if k not in {'diagnostic_sample', 'targeted_samples'}}
             self.assertNotIn('PRIVATE_FAILURE', work_check.render_work_check_report(payload))
             self.assertIn('PRIVATE_FAILURE', (root / 'analysis.log').read_text())
             payload.update(schema_version=30, workflow_version='work-check-30')
             payload['analysis'].pop('aoi_body_summary')
+            payload['analysis'].pop('pid_connection_summary')
+            payload['analysis'].pop('calculation_path_summary')
+            payload['analysis'].pop('output_context_summary')
+            payload['analysis'].pop('stateful_object_summary')
+            payload['analysis'].pop('sfc_condition_summary')
+            payload['analysis'].pop('sfc_context_summary')
             with self.assertRaises(ValueError):
                 work_check.validate_work_check_report(payload)
 

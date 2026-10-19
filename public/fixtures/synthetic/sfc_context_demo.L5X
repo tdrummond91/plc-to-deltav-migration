@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Independently invented relationship diagnostics. Deliberate invalid cases; not controller-ready. -->
+<RSLogix5000Content xmlns:x="urn:deliberate-foreign"><Controller Name="CONTEXT_DEMO"><Tags>
+<Tag Name="Gate" DataType="BOOL"/><Tag Name="StepA" DataType="SFC_STEP"/>
+<Tag Name="StepAB" DataType="SFC_STEP"/><Tag Name="Steps" DataType="SFC_STEP" Dimensions="4"/>
+<Tag Name="Result" DataType="REAL"/><Tag Name="StepAlias" TagType="Alias" AliasFor="StepA"/>
+<Tag Name="BrokenAlias" TagType="Alias" AliasFor="AbsentTarget"/>
+<Tag Name="Foreign" x:Marker="foreign-extension"/>
+</Tags><Programs><Program Name="DemoProgram" MainRoutineName="Main"><Routines>
+<Routine Name="Main" Type="RLL"><RLLContent>
+<Rung Number="0" Type="N"><Text><![CDATA[XIC(Gate)OTE(StepA.X);]]></Text></Rung>
+<Rung Number="1" Type="N"><Text><![CDATA[XIC(StepA.X)OTL(Gate);]]></Text></Rung>
+<Rung Number="2" Type="N"><Text><![CDATA[ADD(StepA.T,1,StepA.T);]]></Text></Rung>
+<Rung Number="3" Type="N"><Text><![CDATA[CPT(Result,StepA.T+2);]]></Text></Rung>
+<Rung Number="4" Type="N"><Text><![CDATA[INVENTED_BLOCK(StepA.X);]]></Text></Rung>
+<Rung Number="5" Type="N"><Text><![CDATA[OTU(StepAlias.X);]]></Text></Rung>
+<Rung Number="6" Type="N"><Text x:Name="foreign-name"><![CDATA[OTE(StepA.X);]]></Text></Rung>
+</RLLContent></Routine>
+<Routine Name="Sequence" Type="SFC"><SFCContent OnlineEditType="Original">
+<Step ID="1" Operand="StepA" InitialStep="true"/>
+<Step ID="2" Operand="Steps[0]" InitialStep="false"/>
+<Step ID="3" Operand="StepAlias" InitialStep="false"/>
+<Step ID="4" Operand="DiagramOnly" InitialStep="false"/>
+<Step ID="5" Operand="StepAB" InitialStep="false"/>
+<Transition ID="100" Operand="SharedStepMember"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="101" Operand="WholeStep"><Condition><STContent><Line Number="0"><![CDATA[StepA]]></Line></STContent></Condition></Transition>
+<Transition ID="102" Operand="TimerMember"><Condition><STContent><Line Number="0"><![CDATA[StepA.T >= 4]]></Line></STContent></Condition></Transition>
+<Transition ID="103" Operand="ExactArrayMember"><Condition><STContent><Line Number="0"><![CDATA[Steps[0].X]]></Line></STContent></Condition></Transition>
+<Transition ID="104" Operand="DifferentArraySpelling"><Condition><STContent><Line Number="0"><![CDATA[Steps[00].X]]></Line></STContent></Condition></Transition>
+<Transition ID="105" Operand="IdentifierSpellings"><Condition><STContent><Line Number="0"><![CDATA[TRUE OR FALSE]]></Line></STContent></Condition></Transition>
+<Transition ID="106" Operand="MissingAliasTarget"><Condition><STContent><Line Number="0"><![CDATA[BrokenAlias.X]]></Line></STContent></Condition></Transition>
+<Transition ID="107" Operand="OutsideScopeName"><Condition><STContent><Line Number="0"><![CDATA[PeerOnly]]></Line></STContent></Condition></Transition>
+<Transition ID="108" Operand="DiagramNameOnly"><Condition><STContent><Line Number="0"><![CDATA[DiagramOnly.X]]></Line></STContent></Condition></Transition>
+<Transition ID="109" Operand="ForeignDeclaration"><Condition><STContent><Line Number="0"><![CDATA[Foreign.X]]></Line></STContent></Condition></Transition>
+<Transition ID="110" Operand="MissingName"><Condition><STContent><Line Number="0"><![CDATA[Unknown.X]]></Line></STContent></Condition></Transition>
+<Transition ID="111" Operand="AliasMember"><Condition><STContent><Line Number="0"><![CDATA[StepAlias.X]]></Line></STContent></Condition></Transition>
+<Transition ID="112" Operand="DescendantMember"><Condition><STContent><Line Number="0"><![CDATA[StepA.Nested.X]]></Line></STContent></Condition></Transition>
+<Transition ID="113" Operand="PrefixCollision"><Condition><STContent><Line Number="0"><![CDATA[StepAB.X]]></Line></STContent></Condition></Transition>
+<Transition ID="114" Operand="CommentEvidence"><Condition><STContent><Line Number="0"><![CDATA[StepA.X // <script>window.contextFixtureLeak=true</script>]]></Line></STContent></Condition></Transition>
+<Transition ID="115" Operand="ContextPage00"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="116" Operand="ContextPage01"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="117" Operand="ContextPage02"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="118" Operand="ContextPage03"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="119" Operand="ContextPage04"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="120" Operand="ContextPage05"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="121" Operand="ContextPage06"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="122" Operand="ContextPage07"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="123" Operand="ContextPage08"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="124" Operand="ContextPage09"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="125" Operand="ContextPage10"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="126" Operand="ContextPage11"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="127" Operand="ContextPage12"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="128" Operand="ContextPage13"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="129" Operand="ContextPage14"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="130" Operand="ContextPage15"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="131" Operand="ContextPage16"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="132" Operand="ContextPage17"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="133" Operand="ContextPage18"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="134" Operand="ContextPage19"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="135" Operand="ContextPage20"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="136" Operand="ContextPage21"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="137" Operand="ContextPage22"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="138" Operand="ContextPage23"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="139" Operand="ContextPage24"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="140" Operand="ContextPage25"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="141" Operand="ContextPage26"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="142" Operand="ContextPage27"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="143" Operand="ContextPage28"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="144" Operand="ContextPage29"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="145" Operand="ContextPage30"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="146" Operand="ContextPage31"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="147" Operand="ContextPage32"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="148" Operand="ContextPage33"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="149" Operand="ContextPage34"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="150" Operand="ContextPage35"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="151" Operand="ContextPage36"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="152" Operand="ContextPage37"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="153" Operand="ContextPage38"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="154" Operand="ContextPage39"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="155" Operand="ContextPage40"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="156" Operand="ContextPage41"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="157" Operand="ContextPage42"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="158" Operand="ContextPage43"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="159" Operand="ContextPage44"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="160" Operand="ContextPage45"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="161" Operand="ContextPage46"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="162" Operand="ContextPage47"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="163" Operand="ContextPage48"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="164" Operand="ContextPage49"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="165" Operand="ContextPage50"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<Transition ID="166" Operand="ContextPage51"><Condition><STContent><Line Number="0"><![CDATA[StepA.X AND Gate]]></Line></STContent></Condition></Transition>
+<DirectedLink FromID="1" ToID="100"/><DirectedLink FromID="100" ToID="2"/>
+<TextBox ID="900"><Text><![CDATA[Invented note: compare the two possible writers before migration.]]></Text></TextBox>
+<Attachment FromID="900" ToID="100"/>
+</SFCContent><SFCContent OnlineEditType="PendingEdits">
+<Step ID="1" Operand="StepA" InitialStep="true"/>
+<Transition ID="100" Operand="PendingCondition"><Condition><STContent><Line Number="0"><![CDATA[StepA.X]]></Line></STContent></Condition></Transition>
+</SFCContent></Routine>
+<Routine Name="PeerChart" Type="SFC"><SFCContent>
+<Step ID="1" Operand="StepA" InitialStep="true"/>
+<Transition ID="100" Operand="PeerCondition"><Condition><STContent><Line Number="0"><![CDATA[StepA.X]]></Line></STContent></Condition></Transition>
+</SFCContent></Routine>
+</Routines></Program><Program Name="OtherProgram"><Tags>
+<Tag Name="PeerOnly" DataType="BOOL"/><Tag Name="AbsentTarget" DataType="SFC_STEP"/>
+<Tag Name="StepA" DataType="SFC_STEP"/>
+</Tags><Routines><Routine Name="OtherChart" Type="SFC"><SFCContent>
+<Step ID="1" Operand="StepA" InitialStep="true"/>
+<Transition ID="100" Operand="LocalShadow"><Condition><STContent><Line Number="0"><![CDATA[StepA.X]]></Line></STContent></Condition></Transition>
+</SFCContent></Routine></Routines></Program></Programs></Controller></RSLogix5000Content>

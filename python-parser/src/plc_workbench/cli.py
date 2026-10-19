@@ -233,7 +233,14 @@ def _review(args: argparse.Namespace) -> int:
     from .access import AccessError, analyze_access
     from .pid import PidError, analyze_pid
     from .pid_members import PidMemberError, analyze_pid_members
+    from .pid_connections import PidConnectionError, analyze_pid_connections
     from .calculations import CalculationError, analyze_calculations
+    from .calculation_paths import CalculationPathError, analyze_calculation_paths
+    from .output_context import OutputContextError, analyze_output_context
+    from .stateful_objects import StatefulObjectError, analyze_stateful_objects
+    from .sfc_conditions import SfcConditionError, analyze_sfc_conditions
+    from .sfc_context import SfcContextError, analyze_sfc_context
+    from .execution_context import ExecutionContextError, analyze_execution_context
     from .rung_analysis import RungAnalysisError, analyze_rungs
     from .relationships import RelationshipError, analyze_relationships
     from .conditions import ConditionError, analyze_conditions
@@ -271,16 +278,35 @@ def _review(args: argparse.Namespace) -> int:
         tag_data = analyze_tag_data(snapshot, inventory)
         pid = analyze_pid(snapshot, inventory, references, tag_data)
         pid_members = analyze_pid_members(snapshot, inventory, references, tag_data, pid)
+        pid_connections = analyze_pid_connections(
+            snapshot, inventory, references, access, calculations, rung_analysis, relationships,
+            conditions, tag_data, pid, pid_members)
+        calculation_paths = analyze_calculation_paths(
+            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
+        output_context = analyze_output_context(
+            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
+        stateful_objects = analyze_stateful_objects(
+            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions, tag_data)
+        sfc_conditions = analyze_sfc_conditions(snapshot, inventory, references, sfc)
+        sfc_context = analyze_sfc_context(
+            snapshot, inventory, references, access, calculations, rung_analysis,
+            relationships, sfc, sfr_context, sfc_conditions)
+        execution_context = analyze_execution_context(
+            snapshot, inventory, references, access, calculations, rung_analysis, relationships, conditions)
         saved = save_run(args.workspace, snapshot, inventory, references=references,
                          sfc_structure=sfc, include_review=True, access=access, tag_data=tag_data, pid=pid,
                          pid_members=pid_members, calculations=calculations, rung_analysis=rung_analysis, relationships=relationships,
                          conditions=conditions, binding_context=binding_context,
-                         custom_instruction_context=custom_context, indexed_access=indexed_access, sfr_context=sfr_context, aoi_body_context=aoi_body)
+                         custom_instruction_context=custom_context, indexed_access=indexed_access, sfr_context=sfr_context, aoi_body_context=aoi_body,
+                         pid_connections=pid_connections, calculation_paths=calculation_paths,
+                         output_context=output_context, stateful_objects=stateful_objects, sfc_conditions=sfc_conditions, sfc_context=sfc_context,
+                         execution_context=execution_context)
         print(f"Private review report: {saved / 'review.html'}")
         return 3 if "partial" in (inventory.status, references.status, sfc.status, access.status,
                                 tag_data.status, pid.status, pid_members.status, calculations.status, rung_analysis.status,
                                 relationships.status, conditions.status, binding_context.status,
-                                custom_context.status, indexed_access.status, sfr_context.status, aoi_body.status) else 0
+                                custom_context.status, indexed_access.status, sfr_context.status, aoi_body.status,
+                                pid_connections.status, calculation_paths.status, output_context.status, stateful_objects.status, sfc_conditions.status, sfc_context.status, execution_context.status) else 0
     except SourceError:
         print("plc: Cannot read or analyze source; no review report was produced.", file=sys.stderr)
         return 1
@@ -292,6 +318,24 @@ def _review(args: argparse.Namespace) -> int:
         return 1
     except PidError:
         print("plc: Cannot analyze PID evidence; no review report was produced.", file=sys.stderr)
+        return 1
+    except ExecutionContextError:
+        print("plc: Cannot analyze execution context; no review report was produced.", file=sys.stderr)
+        return 1
+    except SfcContextError:
+        print("plc: Cannot analyze SFC reference context; no review report was produced.", file=sys.stderr)
+        return 1
+    except SfcConditionError:
+        print("plc: Cannot analyze SFC transition conditions; no review report was produced.", file=sys.stderr)
+        return 1
+    except StatefulObjectError:
+        print("plc: Cannot analyze timer and counter context; no review report was produced.", file=sys.stderr)
+        return 1
+    except OutputContextError:
+        print("plc: Cannot analyze Boolean output context; no review report was produced.", file=sys.stderr)
+        return 1
+    except CalculationPathError:
+        print("plc: Cannot analyze calculation paths; no review report was produced.", file=sys.stderr)
         return 1
     except CalculationError:
         print("plc: Cannot analyze calculation evidence; no review report was produced.", file=sys.stderr)
@@ -310,6 +354,9 @@ def _review(args: argparse.Namespace) -> int:
         return 1
     except RungAnalysisError:
         print("plc: Cannot analyze rung structure; no review report was produced.", file=sys.stderr)
+        return 1
+    except PidConnectionError:
+        print("plc: Cannot analyze PID connections; no review report was produced.", file=sys.stderr)
         return 1
     except PidMemberError:
         print("plc: Cannot analyze PID member headers; no review report was produced.", file=sys.stderr)

@@ -1,11 +1,43 @@
 # PLC analysis workbench
 
-Latest checkpoint: returned `871b700` passed 1,128 application cases (two expected
-Windows skips) and 139 helpers. All 133 ONS instructions now have stored-state
-conditions, leaving one opaque coil guard. SFR targets match for 139 of 140 calls.
-Work31 adds AOI body/instance relationships and diagnostic context for unmatched
-SFR targets. Earlier analysis and the six-example reservation are preserved.
-See [scope and validation](public/docs/reviews/AOI_BODY_REVIEW.md).
+Latest checkpoint: return `4eca393` passed 1,469 application cases (two expected
+Windows skips) and 139 helpers. All earlier analysis and frozen examples are
+unchanged. Analysis/save/summary time improved 9%; total time stayed near 10:40
+because tests took longer. The next bundle adds source-declared scheduling,
+routine-call conditions and local jump/return boundaries. See
+[scope and validation](public/docs/reviews/EXECUTION_CONTEXT_REVIEW.md) and the
+[invented report](public/examples/execution-context-demo.html).
+The next step is a normal work-machine run; team review remains deferred.
+
+Historical source reuse checkpoint:
+
+Earlier checkpoint: return `0b5a9d9` passed 1,448 application cases (two expected
+Windows skips) and 139 helpers. Its measured 10:44 run prompted bounded reuse
+of protected XML and inventory templates during each work-check analysis.
+Canonical validation and report contracts remain in place. The next ordinary
+work-machine run measures the improvement. See
+[scope and validation](public/docs/reviews/SOURCE_REUSE_REVIEW.md).
+Team review remains deferred.
+
+Historical timing and alias diagnostic checkpoint:
+
+Earlier checkpoint: return `d9df280` passed 1,426 application cases (two expected
+Windows skips) and 139 helpers. Four sequence references remain unresolved
+through alias chains; 267 have qualified address context and 39 chart-step
+candidate links were found. Work38 adds stage timings and closed alias/rack
+hint diagnostics. See [scope and validation](public/docs/reviews/WORK_CHECK_TIMING_REVIEW.md).
+The next step is the normal work-machine run; team review remains deferred.
+
+Historical sequence relationship checkpoint:
+
+Earlier checkpoint: return `e8a328e` passed 1,386 application cases (two expected
+Windows skips) and 139 helpers. All 155 sequence transition conditions parsed;
+267 of 271 reference occurrences bind, leaving four unresolved.
+Work37 connects those references to qualified ladder uses and chart-step
+candidates, with closed diagnostics for the gaps. Earlier analysis and the
+frozen six examples remain unchanged.
+See [scope and validation](public/docs/reviews/SFC_CONTEXT_REVIEW.md) and the
+[invented report](public/examples/sfc-context-demo.html).
 The next step is the normal work-machine run; team review remains deferred.
 
 Historical save-failure checkpoint: returned `e0b6b0c` passed 870 application cases (one expected

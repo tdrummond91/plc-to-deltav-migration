@@ -55,3 +55,27 @@ For the first parsing discussion, read [L5X structure and branch locations](docs
 
 21. [AOI bodies and unmatched SFR target context](docs/reviews/AOI_BODY_REVIEW.md),
     with the [invented body-context report](examples/aoi-body-demo.html).
+
+See [PID connections and observed member uses](docs/reviews/PID_CONNECTIONS_REVIEW.md)
+and its [invented report](examples/pid-connections-demo.html).
+
+See [calculation inputs and destinations](docs/reviews/CALCULATION_PATHS_REVIEW.md)
+for the current checkpoint and [invented report](examples/calculation-paths-demo.html).
+
+- [Boolean output context](docs/reviews/OUTPUT_CONTEXT_REVIEW.md) and
+  [invented output-context report](examples/output-context-demo.html).
+
+Timer/counter/reset relationships: [scope and validation](docs/reviews/STATEFUL_OBJECTS_REVIEW.md), with an [invented demonstration](examples/stateful-objects-demo.html).
+
+Sequence transition expressions: [scope and validation](docs/reviews/SFC_CONDITIONS_REVIEW.md), with an [invented demonstration](examples/sfc-conditions-demo.html).
+
+Sequence reference relationships: [scope and validation](docs/reviews/SFC_CONTEXT_REVIEW.md), with an [invented demonstration](examples/sfc-context-demo.html).
+
+Work-check timing and alias diagnostics: [scope and validation](docs/reviews/WORK_CHECK_TIMING_REVIEW.md).
+
+Current performance checkpoint: [bounded source reuse](docs/reviews/SOURCE_REUSE_REVIEW.md)
+uses the returned work38 timings to reduce repeated source work while preserving
+validation and saved report contents. The next work-machine run measures its effect.
+
+- [Source-declared execution context](docs/reviews/EXECUTION_CONTEXT_REVIEW.md),
+  with the [invented report](examples/execution-context-demo.html).

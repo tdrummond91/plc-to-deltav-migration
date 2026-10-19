@@ -1,5 +1,111 @@
 # Data contracts, traceability, and checkpoints
 
+## Source-declared execution context revision (2026-10-17)
+
+Execution context1 authenticates conditions3 and the preceding source chain.
+Seven private record groups preserve raw scheduling metadata, lexical candidates,
+incoming condition DAG links, local labels, edit boundaries and explicit gaps.
+A 16 MiB companion is embedded only in review21 (296 MiB JSON / 328 MiB HTML).
+Manifest24 retains sixteen artifacts. Work39 adds an 8 KiB closed summary under
+an 88 KiB outer limit. Work32-38 retain their 80 KiB limit; timing1, historical
+contracts and the frozen six-example/eight-unit reservation remain unchanged.
+No runtime scheduling, parameter types/directions, edit selection or automatic
+Git transport is added. See [scope and validation](../reviews/EXECUTION_CONTEXT_REVIEW.md).
+
+## Source reuse implementation (2026-10-17)
+
+Work38/timing1, SFC context summary2, review20/manifest23 and all sixteen private
+artifacts are unchanged. Protected XML and inventory reuse is limited to one
+work-check analysis invocation, keyed by exact bytes and parsing policy, with
+fresh mutable copies and a 128 MiB retained-object budget. Canonical model
+comparisons remain in place; capacity exhaustion uses normal parsing. This
+adds no public fields, persistent cache, source excerpts or network operations.
+See [scope and validation](../reviews/SOURCE_REUSE_REVIEW.md).
+
+## Work timing and alias diagnostic revision (2026-10-16)
+
+Work38 adds top-level timing1: bounded integer milliseconds for six fixed stages,
+with null for a stage not attempted. Total time stops before feedback rendering,
+publication and the local commit; it excludes the uv bootstrap. Successful runs
+require all stages; failed runs retain the attempted failing stage's duration.
+No source names, paths or arbitrary timing labels enter this payload.
+
+SFC context summary2 preserves context1 coverage and adds closed alias-failure
+reasons, distinct terminal-alias counts and existing rack-match hints. These
+reuse the legacy lexical rack policy; module/port namespace provenance is not
+requalified and a match never resolves a source binding. Its cap is 5 KiB;
+summary1 retains its 4 KiB cap. The outer report remains bounded at 80 KiB.
+Review20, manifest23, sixteen private artifacts, historical readers and the
+frozen sample envelope remain unchanged. See
+[scope and validation](../reviews/WORK_CHECK_TIMING_REVIEW.md).
+
+## Sequence reference relationship revision (2026-10-16)
+
+SFC context1 retains one record per parsed reference, shared exact address-use
+groups, bounded chart-step candidates and private binding diagnostics. It
+authenticates earlier companions and separately qualifies RLL and SFC source
+provenance, including inferred module-name dependencies. Lexical hints never
+become resolved bindings. Review20 embeds the 16 MiB companion under 280 MiB JSON
+/ 312 MiB HTML limits. Manifest23 retains sixteen hashed artifacts. Work37 adds
+a closed 4 KiB summary under the unchanged 80 KiB outer envelope. Source names,
+addresses, IDs and text are absent from that summary. Historical contracts,
+earlier companions and frozen diagnostic samples remain unchanged.
+See [scope and validation](../reviews/SFC_CONTEXT_REVIEW.md).
+
+## Sequence expression revision (2026-10-16)
+
+SFC conditions1 retains one source-linked record per captured transition,
+with original line order, comments, expression nodes and reference evidence.
+Unsupported syntax and source shapes remain explicit; no partial parsed prefix
+is published. Review19 embeds the 16 MiB companion under 264 MiB JSON / 296 MiB
+HTML limits. Manifest22 retains sixteen hashed artifacts. Work36 adds a closed
+4 KiB summary under the unchanged 80 KiB outer allowance. Earlier companions,
+historical readers and the frozen diagnostic sample budget stay unchanged.
+See [scope and validation](../reviews/SFC_CONDITIONS_REVIEW.md).
+
+
+## Timer/counter/reset context revision (2026-10-16)
+
+Stateful objects1 connects instruction occurrences, exact control addresses,
+member-use evidence and existing stored-data records. Review18 embeds the
+16 MiB companion under 248 MiB JSON / 280 MiB HTML limits. Manifest21 retains
+sixteen hashed artifacts. Work35 adds a closed 4 KiB summary under the unchanged
+80 KiB envelope. Prior evidence and frozen samples retain their contracts.
+See [scope and validation](../reviews/STATEFUL_OBJECTS_REVIEW.md).
+
+## Boolean output context revision (2026-10-16)
+
+Output context1 links coil occurrences, shared exact-target uses, predicate/ONS
+read occurrences and rung-scoped authored hints. The existing condition graph
+provides consumer associations without expanding writer/consumer pairs.
+Review17 embeds the 16 MiB companion under 232 MiB JSON / 264 MiB HTML limits.
+Manifest20 retains sixteen hashed artifacts. Work34 adds its closed 4 KiB summary
+under the unchanged 80 KiB envelope. Older versions, earlier analysis semantics
+and frozen sample selection remain unchanged. See
+[scope and verification](../reviews/OUTPUT_CONTEXT_REVIEW.md).
+
+## Calculation path revision (2026-10-16)
+
+Calculation paths1 links selected math/move occurrences to existing input,
+destination, condition and exact-address evidence. Regions follow source AST
+segments; possible reuse never crosses branches or unsupported operations.
+Review16 embeds the 8 MiB companion with 216 MiB JSON / 248 MiB HTML limits.
+Manifest19 still hashes sixteen artifacts. Work33 adds its closed 4 KiB summary
+within the existing 80 KiB envelope. Earlier contracts, analysis payloads and
+sample selection remain unchanged. See [scope and verification](../reviews/CALCULATION_PATHS_REVIEW.md).
+
+## PID connection revision (2026-10-16)
+
+PID connections1 links existing PID slots, exact-address uses, direct member
+groups, master candidates and incoming conditions without changing prior
+analysis semantics. Review15 embeds the bounded 8 MiB companion under 208 MiB
+JSON / 240 MiB HTML limits. Manifest18 retains sixteen hashed artifacts.
+Work32 adds the closed PID connection summary under an 80 KiB outer limit;
+work28-31 retain 64 KiB. Work31 and work32 use compact JSON. The existing
+16 KiB diagnostic-record cap and frozen sample request are unchanged. The larger
+outer allowance accommodates fixed counters, not additional source examples.
+See [scope and verification](../reviews/PID_CONNECTIONS_REVIEW.md).
+
 ## AOI body and SFR gap revision (2026-10-16)
 
 AOI body context1 links existing body and access IDs without duplicating source

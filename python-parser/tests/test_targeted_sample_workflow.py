@@ -185,6 +185,12 @@ class TargetedSampleWorkflowTests(unittest.TestCase):
             result.pop('indexed_access_summary')
             result.pop('sfr_summary')
             result.pop('aoi_body_summary')
+            result.pop('pid_connection_summary')
+            result.pop('calculation_path_summary')
+            result.pop('output_context_summary')
+            result.pop('stateful_object_summary')
+            result.pop('sfc_condition_summary')
+            result.pop('sfc_context_summary')
             self.assertEqual(result.pop('condition_summary')['schema_version'], 3)
             self.assertEqual(result, {k: v for k, v in report()['analysis'].items() if k != 'condition_summary'})
 

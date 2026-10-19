@@ -1,6 +1,187 @@
 # Next development checkpoint
 
-Current checkpoint (2026-10-16): **AOI body ownership and unmatched SFR context**.
+Current checkpoint (2026-10-17): **Source-declared execution context**.
+Return `4eca393` tested clean `d3a5ec6`: 1,469 application cases passed (two
+expected Windows skips), plus 139 helpers. All 46 historical reports validate.
+All 21 analysis summaries and the frozen six examples are unchanged.
+Analysis, private saving and summary generation together improved by 38.779 s
+(9.1%); tests took 34.904 s longer, leaving total time nearly flat at 10:40.
+
+Review21/manifest24 adds task and program declarations, schedule candidates,
+main/fault designations, routine-call incoming conditions and local control
+boundaries. Work39 returns closed counts; sixteen private artifacts remain.
+See [scope and validation](EXECUTION_CONTEXT_REVIEW.md).
+
+This bundle passed 1,500 application cases (two expected Windows skips),
+139 helpers and 76 development workflow cases. Browser checks and artifact/summary
+comparison against the previous revision passed.
+
+The next ordinary work-machine run measures this context on the private source.
+No new plant samples or manual team review are requested. Git transport stays
+manual and the listener stays disabled. Equipment command/feedback and alarm
+relationships follow after the returned evidence is checked; this remains Phase 1.
+
+## Historical source reuse checkpoint
+
+Historical checkpoint (2026-10-17): **Bounded source reuse during work checks**.
+Return `0b5a9d9` tested clean `51202a8`: 1,448 application cases passed (two
+expected Windows skips), plus 139 helpers. All 45 historical reports validate.
+Twenty earlier summaries, sequence context coverage and the frozen six
+examples are unchanged. Four unresolved sequence occurrences trace through
+two aliases with two lexical rack-input candidates; bindings remain unresolved.
+
+Measured total time was 10:44: tests 3:38, analysis 2:09, private saving 2:42,
+and summaries 2:14. Protected XML and inventory templates are now reused only
+inside one work-check analysis, with fresh mutable copies and a 128 MiB
+retention limit. Canonical comparisons remain in place. Work38 and the private
+review20/manifest23 contracts stay unchanged. See [scope and validation](SOURCE_REUSE_REVIEW.md).
+
+The next ordinary work-machine run measures the effect on the private source.
+No new samples or manual team review are needed. Git transport stays manual;
+the listener stays disabled. Source-declared task and routine-call context
+comes next, supporting later equipment/alarm grouping; this remains Phase 1.
+
+## Historical timing and alias diagnostic checkpoint
+
+Historical checkpoint (2026-10-16): **Work-check timing and sequence alias diagnostics**.
+Return `d9df280` tested clean `0ee009a`: 1,426 application cases passed (two
+expected Windows skips), plus 139 helpers. All 267 bound transition references
+have qualified exact-address context; four unresolved references are alias-chain
+gaps. There are 167 distinct addresses and 39 bound step candidates (32 in the
+same chart content and seven in peer charts). All twenty preceding summaries
+and the frozen six examples are unchanged; all 44 historical reports validate.
+
+Work38 measures six workflow stages and adds closed alias-failure/rack-hint
+counts to SFC context summary2. The private evidence and review20/manifest23
+stay unchanged, with sixteen saved artifacts. See [scope and validation](WORK_CHECK_TIMING_REVIEW.md).
+
+The next ordinary work-machine run identifies the expensive stages and narrows
+the four alias gaps. No additional source examples or manual team review are
+requested. Git transport stays manual and the listener stays disabled. This
+remains Phase 1; equipment, alarm and execution-context analysis continues
+after the returned evidence is checked.
+
+## Historical sequence relationship checkpoint
+
+Historical checkpoint (2026-10-16): **Sequence reference relationships**.
+Return `e8a328e` tested clean `57e9bf6`: 1,386 application cases passed (two
+expected Windows skips), plus 139 helpers. All 155 transition conditions parsed;
+267 of 271 reference occurrences bind and four remain unresolved. There were no
+unsupported expression forms. All nineteen preceding summaries and the frozen
+six examples are unchanged; all 43 historical feedback reports validate.
+
+Review20/manifest23 connects transition reference occurrences to qualified
+exact ladder uses and chart-step candidates, while retaining source-only hints
+for binding gaps. Work37 adds closed diagnostic counts and keeps sixteen saved
+artifacts. See [scope and validation](SFC_CONTEXT_REVIEW.md).
+
+The next ordinary work-machine run measures these relationships and narrows
+the four unresolved reference occurrences. No new plant samples or manual team
+review are requested. Git transport stays manual and the listener stays
+disabled. Further equipment, alarm and execution-context analysis follows the
+returned evidence; this remains Phase 1.
+
+## Historical sequence expression checkpoint
+
+Historical checkpoint (2026-10-16): **Sequence transition expressions**.
+Return `3547344` tested clean `a6840f4`: 1,338 application cases passed (two
+expected Windows skips), plus 139 helpers. All 485 timer/counter/reset targets
+bind, all 48 resets match producers, and all 436 control objects have stored
+data. Eighteen earlier summaries and the frozen six samples are unchanged;
+all 42 historical feedback reports validate.
+
+Review19/manifest22 adds source-linked transition expressions, comments and
+reference bindings, with explicit unsupported and missing-condition cases.
+Work36 returns closed counts while retaining sixteen saved artifacts.
+See [scope and validation](SFC_CONDITIONS_REVIEW.md).
+
+The next ordinary work-machine run measures coverage of 155 transition
+conditions across 14 charts. No new plant samples or manual engineering/team
+review are requested. Git transport stays manual and the listener stays
+disabled. The returned syntax and binding gaps guide further sequence analysis.
+
+## Historical timer/counter checkpoint
+
+Historical checkpoint (2026-10-16): **Timers, counters and resets**.
+Return `19ccaee` tested clean `5ae8b6d`: 1,295 application cases passed (two
+expected Windows skips), plus 139 helpers. Boolean output context accounts for
+all 4,163 coil occurrences and 2,978 qualified exact targets, with 6,071 predicate
+reads. Multiple coil writers occur on 1,126 addresses; 315 have no captured
+explicit RLL reader, which does not prove they are unused. Seventeen previous
+summaries and the frozen six samples are unchanged; all 41 reports validate.
+
+Review18/manifest21 adds timer/counter/reset control associations, incoming
+source conditions, explicit member uses and exported stored-data context.
+Work35 returns closed counts while retaining sixteen saved artifacts.
+See [scope and validation](STATEFUL_OBJECTS_REVIEW.md).
+
+The next ordinary work-machine run measures this bundle. No new plant samples
+or manual engineering/team review are requested. Git transport stays manual and
+the listener stays disabled. Sequence-transition text is the next planned broad
+analysis bundle after returned evidence is checked.
+
+## Historical Boolean-output checkpoint
+
+Historical checkpoint (2026-10-16): **Boolean output context**.
+Return `48dcd22` tested clean `2105ce3`: 1,254 application cases passed (two
+expected Windows skips), plus 139 helpers. All 2,138 selected calculation blocks
+are accounted for, including 1,294 in branched rungs; two destinations remain
+unresolved. One possible local reuse link was found. All sixteen preceding
+summaries and the frozen six examples are unchanged; all 40 reports validate.
+
+Review17/manifest20 adds shared target-use evidence for the 4,163 coil
+occurrences, declaration direction, competing writers, condition readers and
+rung-scoped authored hints. The report follows actual condition-graph links,
+without inferring execution, physical channels or shutdown behavior. Work34
+returns closed counts while retaining sixteen saved artifacts.
+See [scope and validation](OUTPUT_CONTEXT_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new plant
+samples or manual engineering/team review are requested. Git transport stays
+manual and the listener stays disabled.
+
+## Historical calculation-path checkpoint
+
+Historical checkpoint (2026-10-16): **Calculation inputs and destinations**.
+Return `693e419` tested clean `f4f704d`: 1,216 application cases passed (two
+expected Windows skips), plus 139 helpers. All 46 PID controls and 322 slots
+are accounted for; 515 exact addresses include 333 referenced direct members.
+All master operands are literals, so no explicit master-reference candidates
+were found. Fifteen earlier summaries and the frozen six examples are unchanged;
+all 39 historical reports validate.
+
+Review16/manifest19 adds source-linked math/move records inside straight
+segments and branch legs, with incoming conditions and possible local result
+reuse. Forks, joins, unsupported blocks and stateful operations stop links.
+Work33 returns closed counts while retaining the sixteen saved artifacts and
+all earlier analysis semantics. See [scope and validation](CALCULATION_PATHS_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new plant
+samples or manual engineering/team review are requested. Git transport stays
+manual and the listener stays disabled.
+
+## Historical PID connection checkpoint
+
+Historical checkpoint (2026-10-16): **PID connections and observed member uses**.
+Return `4018156` passed 1,183 application cases (two expected Windows skips) and
+139 helpers. The AOI body has two rungs and three classified calculation blocks,
+with no recorded context gaps. The single unmatched SFR address has one exact
+candidate in another chart; its original missing match remains unchanged.
+Thirteen earlier summaries and the frozen six-example record are unchanged;
+all 38 historical reports validate.
+
+Review15/manifest18 adds source-linked PID slot, member-use and master-reference
+context while retaining sixteen artifacts. Work32 returns the closed connection
+counts. Existing access4 and condition3 semantics remain unchanged.
+See [scope, evidence and validation](PID_CONNECTIONS_REVIEW.md).
+
+The next ordinary work-machine run measures these additions. No new source
+samples or manual engineering/team review are needed. Git transport remains
+manual, and the listener remains disabled.
+
+## Historical AOI body checkpoint
+
+Historical checkpoint (2026-10-16): **AOI body ownership and unmatched SFR context**.
 Return `871b700` passed 1,128 application cases (two expected Windows skips) and
 139 helpers. All 133 ONS occurrences now have stored-state transfers; opaque
 coil guards fell from 59 to one. SFR target matching resolved 139 of 140 calls.
