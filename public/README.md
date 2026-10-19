@@ -1,5 +1,15 @@
 # Portable development materials
 
+Signal4 adds saved guard dependencies and bounded source trails across rungs.
+Search alarm/equipment/sensor wording, follow upstream writers or downstream
+guards, and inspect branches, cycles and explicit stop boundaries.
+See [scope and validation](docs/reviews/SIGNAL_DEPENDENCIES_REVIEW.md).
+
+Latest analysis bundle: [explicit alarm source evidence](docs/reviews/ALARM_EVIDENCE_REVIEW.md)
+and its [invented report](examples/alarm-evidence-review-demo.html). This adds
+source declarations and configuration alongside the existing ladder, signal,
+PID, calculation and sequence views. Automated Phase 1 development continues.
+
 This directory contains independently synthetic inputs, generic helper code, and planning documents. Application source and tests stay in ../python-parser/. Real exports and all private derived outputs stay in ../confidential/.
 
 Start here:

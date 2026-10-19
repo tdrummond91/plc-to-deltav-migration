@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RSLogix5000Content><Controller Name="InventedSignalCandidates"><Tags><Tag Name="Alarm_Input" TagType="Base" DataType="BOOL"><Description>Invented alarm lead &lt;img src=x onerror=alert(1)&gt;; not a shutdown classification</Description></Tag>
+<Tag Name="Sensor_Input" TagType="Base" DataType="BOOL"><Description>Invented sensor lead</Description></Tag>
+<Tag Name="Pump_Command" TagType="Base" DataType="BOOL"><Description>Invented pump command</Description></Tag>
+<Tag Name="Plain" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Relay" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Unseeded" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Opaque" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="State" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Memory" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Unbound" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Repeated" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Compared" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Latched" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan00" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan01" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan02" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan03" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan04" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan05" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan06" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan07" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan08" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan09" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan10" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan11" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan12" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan13" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan14" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan15" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan16" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan17" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan18" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan19" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan20" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan21" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan22" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan23" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan24" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan25" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan26" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan27" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan28" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan29" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan30" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan31" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan32" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan33" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan34" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan35" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan36" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan37" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan38" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan39" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan40" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan41" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan42" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan43" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan44" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan45" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan46" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan47" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan48" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan49" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan50" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan51" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan52" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan53" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Fan54" TagType="Base" DataType="BOOL"><Description>Invented generic signal</Description></Tag>
+<Tag Name="Alarm_Alias" TagType="Alias" AliasFor="Plain"/><Tag Name="Delay" TagType="Base" DataType="TIMER"/></Tags>
+<Modules><Module Name="M"><Communications><Connections><Connection Name="Data"><InputTag Name="M:I"/><OutputTag Name="M:O"/></Connection></Connections></Communications></Module></Modules>
+<Programs><Program Name="Demo" MainRoutineName="Main"><Routines><Routine Name="Main" Type="RLL"><RLLContent OnlineEditType="Original"><Rung Number="0" Type="N"><Comment>Wholly invented candidate relationship case 0</Comment><Text><![CDATA[XIC(Alarm_Input)XIO(Sensor_Input)OTE(Pump_Command);]]></Text></Rung>
+<Rung Number="1" Type="N"><Comment>Wholly invented candidate relationship case 1</Comment><Text><![CDATA[XIC(Alarm_Alias)OTE(Plain);]]></Text></Rung>
+<Rung Number="2" Type="N"><Comment>Wholly invented candidate relationship case 2</Comment><Text><![CDATA[XIC(Plain)OTE(Unseeded);]]></Text></Rung>
+<Rung Number="3" Type="N"><Comment>Wholly invented candidate relationship case 3</Comment><Text><![CDATA[XIC(Alarm_Input)[XIC(Plain),XIO(Sensor_Input)]OTE(Relay);]]></Text></Rung>
+<Rung Number="4" Type="N"><Comment>Wholly invented candidate relationship case 4</Comment><Text><![CDATA[XIC(Alarm_Input)XIC(Alarm_Input)OTE(Repeated);]]></Text></Rung>
+<Rung Number="5" Type="N"><Comment>Wholly invented candidate relationship case 5</Comment><Text><![CDATA[XIC(M:I.Data.0)OTE(M:O.Data.1);]]></Text></Rung>
+<Rung Number="6" Type="N"><Comment>Wholly invented candidate relationship case 6</Comment><Text><![CDATA[XIC(Alarm_Input)MYSTERY(Plain)OTE(Opaque);]]></Text></Rung>
+<Rung Number="7" Type="N"><Comment>Wholly invented candidate relationship case 7</Comment><Text><![CDATA[XIC(Alarm_Input)ONS(Memory)OTL(State);]]></Text></Rung>
+<Rung Number="8" Type="N"><Comment>Wholly invented candidate relationship case 8</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Missing);]]></Text></Rung>
+<Rung Number="9" Type="N"><Comment>Wholly invented candidate relationship case 9</Comment><Text><![CDATA[EQU(Sensor_Input,1)OTE(Compared);]]></Text></Rung>
+<Rung Number="10" Type="N"><Comment>Wholly invented candidate relationship case 10</Comment><Text><![CDATA[OTE(Pump_Command);]]></Text></Rung>
+<Rung Number="11" Type="N"><Comment>Wholly invented candidate relationship case 11</Comment><Text><![CDATA[XIC(Plain)OTE(Latched);]]></Text></Rung>
+<Rung Number="12" Type="N"><Comment>Wholly invented candidate relationship case 12</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan00);]]></Text></Rung>
+<Rung Number="13" Type="N"><Comment>Wholly invented candidate relationship case 13</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan01);]]></Text></Rung>
+<Rung Number="14" Type="N"><Comment>Wholly invented candidate relationship case 14</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan02);]]></Text></Rung>
+<Rung Number="15" Type="N"><Comment>Wholly invented candidate relationship case 15</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan03);]]></Text></Rung>
+<Rung Number="16" Type="N"><Comment>Wholly invented candidate relationship case 16</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan04);]]></Text></Rung>
+<Rung Number="17" Type="N"><Comment>Wholly invented candidate relationship case 17</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan05);]]></Text></Rung>
+<Rung Number="18" Type="N"><Comment>Wholly invented candidate relationship case 18</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan06);]]></Text></Rung>
+<Rung Number="19" Type="N"><Comment>Wholly invented candidate relationship case 19</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan07);]]></Text></Rung>
+<Rung Number="20" Type="N"><Comment>Wholly invented candidate relationship case 20</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan08);]]></Text></Rung>
+<Rung Number="21" Type="N"><Comment>Wholly invented candidate relationship case 21</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan09);]]></Text></Rung>
+<Rung Number="22" Type="N"><Comment>Wholly invented candidate relationship case 22</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan10);]]></Text></Rung>
+<Rung Number="23" Type="N"><Comment>Wholly invented candidate relationship case 23</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan11);]]></Text></Rung>
+<Rung Number="24" Type="N"><Comment>Wholly invented candidate relationship case 24</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan12);]]></Text></Rung>
+<Rung Number="25" Type="N"><Comment>Wholly invented candidate relationship case 25</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan13);]]></Text></Rung>
+<Rung Number="26" Type="N"><Comment>Wholly invented candidate relationship case 26</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan14);]]></Text></Rung>
+<Rung Number="27" Type="N"><Comment>Wholly invented candidate relationship case 27</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan15);]]></Text></Rung>
+<Rung Number="28" Type="N"><Comment>Wholly invented candidate relationship case 28</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan16);]]></Text></Rung>
+<Rung Number="29" Type="N"><Comment>Wholly invented candidate relationship case 29</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan17);]]></Text></Rung>
+<Rung Number="30" Type="N"><Comment>Wholly invented candidate relationship case 30</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan18);]]></Text></Rung>
+<Rung Number="31" Type="N"><Comment>Wholly invented candidate relationship case 31</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan19);]]></Text></Rung>
+<Rung Number="32" Type="N"><Comment>Wholly invented candidate relationship case 32</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan20);]]></Text></Rung>
+<Rung Number="33" Type="N"><Comment>Wholly invented candidate relationship case 33</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan21);]]></Text></Rung>
+<Rung Number="34" Type="N"><Comment>Wholly invented candidate relationship case 34</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan22);]]></Text></Rung>
+<Rung Number="35" Type="N"><Comment>Wholly invented candidate relationship case 35</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan23);]]></Text></Rung>
+<Rung Number="36" Type="N"><Comment>Wholly invented candidate relationship case 36</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan24);]]></Text></Rung>
+<Rung Number="37" Type="N"><Comment>Wholly invented candidate relationship case 37</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan25);]]></Text></Rung>
+<Rung Number="38" Type="N"><Comment>Wholly invented candidate relationship case 38</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan26);]]></Text></Rung>
+<Rung Number="39" Type="N"><Comment>Wholly invented candidate relationship case 39</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan27);]]></Text></Rung>
+<Rung Number="40" Type="N"><Comment>Wholly invented candidate relationship case 40</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan28);]]></Text></Rung>
+<Rung Number="41" Type="N"><Comment>Wholly invented candidate relationship case 41</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan29);]]></Text></Rung>
+<Rung Number="42" Type="N"><Comment>Wholly invented candidate relationship case 42</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan30);]]></Text></Rung>
+<Rung Number="43" Type="N"><Comment>Wholly invented candidate relationship case 43</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan31);]]></Text></Rung>
+<Rung Number="44" Type="N"><Comment>Wholly invented candidate relationship case 44</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan32);]]></Text></Rung>
+<Rung Number="45" Type="N"><Comment>Wholly invented candidate relationship case 45</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan33);]]></Text></Rung>
+<Rung Number="46" Type="N"><Comment>Wholly invented candidate relationship case 46</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan34);]]></Text></Rung>
+<Rung Number="47" Type="N"><Comment>Wholly invented candidate relationship case 47</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan35);]]></Text></Rung>
+<Rung Number="48" Type="N"><Comment>Wholly invented candidate relationship case 48</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan36);]]></Text></Rung>
+<Rung Number="49" Type="N"><Comment>Wholly invented candidate relationship case 49</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan37);]]></Text></Rung>
+<Rung Number="50" Type="N"><Comment>Wholly invented candidate relationship case 50</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan38);]]></Text></Rung>
+<Rung Number="51" Type="N"><Comment>Wholly invented candidate relationship case 51</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan39);]]></Text></Rung>
+<Rung Number="52" Type="N"><Comment>Wholly invented candidate relationship case 52</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan40);]]></Text></Rung>
+<Rung Number="53" Type="N"><Comment>Wholly invented candidate relationship case 53</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan41);]]></Text></Rung>
+<Rung Number="54" Type="N"><Comment>Wholly invented candidate relationship case 54</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan42);]]></Text></Rung>
+<Rung Number="55" Type="N"><Comment>Wholly invented candidate relationship case 55</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan43);]]></Text></Rung>
+<Rung Number="56" Type="N"><Comment>Wholly invented candidate relationship case 56</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan44);]]></Text></Rung>
+<Rung Number="57" Type="N"><Comment>Wholly invented candidate relationship case 57</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan45);]]></Text></Rung>
+<Rung Number="58" Type="N"><Comment>Wholly invented candidate relationship case 58</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan46);]]></Text></Rung>
+<Rung Number="59" Type="N"><Comment>Wholly invented candidate relationship case 59</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan47);]]></Text></Rung>
+<Rung Number="60" Type="N"><Comment>Wholly invented candidate relationship case 60</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan48);]]></Text></Rung>
+<Rung Number="61" Type="N"><Comment>Wholly invented candidate relationship case 61</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan49);]]></Text></Rung>
+<Rung Number="62" Type="N"><Comment>Wholly invented candidate relationship case 62</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan50);]]></Text></Rung>
+<Rung Number="63" Type="N"><Comment>Wholly invented candidate relationship case 63</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan51);]]></Text></Rung>
+<Rung Number="64" Type="N"><Comment>Wholly invented candidate relationship case 64</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan52);]]></Text></Rung>
+<Rung Number="65" Type="N"><Comment>Wholly invented candidate relationship case 65</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan53);]]></Text></Rung>
+<Rung Number="66" Type="N"><Comment>Wholly invented candidate relationship case 66</Comment><Text><![CDATA[XIC(Alarm_Input)OTE(Fan54);]]></Text></Rung></RLLContent><RLLContent OnlineEditType="Pending"><Rung Number="0" Type="N"><Text>XIO(Alarm_Input)OTE(Relay);</Text></Rung></RLLContent></Routine></Routines></Program></Programs></Controller></RSLogix5000Content>

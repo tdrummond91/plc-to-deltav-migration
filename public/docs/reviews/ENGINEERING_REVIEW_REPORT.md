@@ -1,6 +1,32 @@
 # Private engineering review report
 
-## Current conditional-output follow-up (2026-10-15)
+## Grouped candidates and block evidence
+
+Signal relationships now offers **Grouped source candidates**, with exact
+condition/output pairs, five seed filters and source-field evidence. Engineering
+analysis joins specialized PID, routine, file-operation and AOI context to the
+original blocks while retaining base roles and unresolved effects. See
+[scope and validation](SIGNAL_CANDIDATES_REVIEW.md) and the
+[invented report](../../examples/signal-candidates-review-demo.html).
+
+## Source trails
+
+Signal relationships now includes Source trail starting points, with qualified wording and
+module-root filters. Address dossiers offer upstream writer and downstream guard traces.
+The report preserves contact polarity and source provenance, separates shared branches
+from cycles, and stops at uncertainty or different source contents. See
+SIGNAL_DEPENDENCIES_REVIEW.md for bounds and the invented demo.
+
+## Current explicit alarm source view (2026-10-17)
+
+**Alarm source evidence** separates typed declarations, tag-based conditions,
+definition templates, messages, stored settings and source gaps. Search or
+filter a group, then open a record for its original attributes and parent/child
+links. Definition records are not expanded into operating alarms; numeric
+settings and shutdown behavior remain unverified. See [scope and validation](ALARM_EVIDENCE_REVIEW.md)
+and the [invented report](../../examples/alarm-evidence-review-demo.html).
+
+## Historical conditional-output follow-up (2026-10-15)
 
 Conditional outputs explains incoming conditions for OTE, OTL and OTU records,
 including outputs inside branches and unresolved targets. A compact node table

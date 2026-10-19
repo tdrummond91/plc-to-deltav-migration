@@ -1,6 +1,65 @@
 # L5X engineering review, calculations and source structure
 
-Latest bundle: **Source-declared execution context** connects task/program
+**Cross-rung groups** brings exact-address source uses together across Boolean
+guards, PID slots/address uses, calculations, timers/counters, SFC conditions and
+file operations. Search a group, inspect its captured roles and rungs, and follow
+links back to the original evidence. Unknown roles, branches, competing writers,
+source gaps and incomplete scans stay visible. These groups support engineering
+interpretation without declaring physical equipment or runtime behavior.
+Review29/manifest32/work47 retain sixteen artifacts and manual Git transport.
+See [scope and validation](../public/docs/reviews/ENGINEERING_ASSEMBLIES_REVIEW.md),
+the [invented report](../public/examples/engineering-assemblies-review-demo.html)
+and the [current completion tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md).
+
+Signal5 adds **Grouped source candidates**: exact condition/output associations
+seeded by qualified alarm/equipment/sensor wording or module input/output roots.
+Engineering analysis also brings specialized block evidence into its dossiers,
+while retaining unknown roles and base classifications. Review28/manifest31/work46
+keep sixteen artifacts and manual Git transport. See [scope and validation](../public/docs/reviews/SIGNAL_CANDIDATES_REVIEW.md)
+and the [invented report](../public/examples/signal-candidates-review-demo.html).
+
+Signal4 adds saved guard dependencies and bounded source trails across rungs.
+Search alarm/equipment/sensor wording, follow upstream writers or downstream
+guards, and inspect branches, cycles and explicit stop boundaries.
+See [scope and validation](../public/docs/reviews/SIGNAL_DEPENDENCIES_REVIEW.md).
+
+Prior bundle: **Explicit alarm source evidence** captures declared alarm types,
+tag-based conditions, definition templates, messages and stored settings with
+source links and visible structure gaps. Review26 embeds alarm evidence1;
+work44 returns closed counts. No operating alarm population or shutdown effect
+is inferred. See [scope and validation](../public/docs/reviews/ALARM_EVIDENCE_REVIEW.md)
+and the [invented report](../public/examples/alarm-evidence-review-demo.html).
+
+Prior bundle: **Authored signal wording** links matching alarm/equipment/sensor
+words to declaration names/descriptions and their captured source uses. Root
+context and alias context stay distinct; output dossiers exclude reader-only
+alias wording. Review25 embeds signal3; work43 returns closed counts. Wording
+remains an unreviewed lead, with explicit source gaps and bounded scans.
+See [scope and validation](../public/docs/reviews/SIGNAL_AUTHORED_REVIEW.md)
+and the [invented report](../public/examples/signal-authored-review-demo.html).
+
+Prior bundle: **Boolean contact and coil patterns** adds exact self XIC/XIO
+contacts, typed TIMER member contacts and same-content OTL/OTU groups. Separate
+writers, source edits, guard quality and truncated scans remain visible. Review24
+embeds signal2; work42 returns closed counts. These observations do not establish
+seal-in circuits, alarm delays or shutdown effects. See [scope and validation](../public/docs/reviews/SIGNAL_PATTERNS_REVIEW.md)
+and the [invented report](../public/examples/signal-patterns-review-demo.html).
+
+Prior bundle: **File and array operations** explains COP/CPS, AVE, FAL and
+SQO slots, starting addresses, symbolic indices and stored control context.
+FAL expression references and SQO destination preservation remain distinct from
+unevaluated ranges and execution. Review23 embeds private evidence; work41
+returns closed counts. See [scope and validation](../public/docs/reviews/FILE_OPERATIONS_REVIEW.md)
+and the [invented report](../public/examples/file-operations-review-demo.html).
+
+Prior bundle: **Cross-rung signal context** adds predicate inputs, exact-address
+dossiers and bounded source-condition navigation to individual outputs.
+It preserves comparison operands, one-shot storage and timer member associations
+as distinct evidence. Review22 embeds private records; work40 returns closed
+counts. See the [scope and validation](../public/docs/reviews/SIGNAL_CONTEXT_REVIEW.md)
+and [invented report](../public/examples/signal-context-review-demo.html).
+
+Prior bundle: **Source-declared execution context** connects task/program
 metadata and schedule candidates to main/fault designations, call-site guards,
 and SBR/RET/JMP/LBL source boundaries. Review21 embeds private evidence; work39
 returns closed counts. Runtime scheduling and parameter roles remain unmodeled.

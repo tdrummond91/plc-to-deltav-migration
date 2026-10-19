@@ -163,7 +163,7 @@ class BindingContextWorkflowTests(unittest.TestCase):
                 self.assertEqual((code, error), (3, ''))
                 saved, = (root / 'runs').iterdir()
                 self.assertIn(str(saved / 'review.html'), output)
-                from test_execution_context_workflow import captured as latest_captured, options as latest_options
+                from test_engineering_assemblies_workflow import captured as latest_captured, options as latest_options
                 latest = latest_captured(SOURCE)
                 data = build_review_data(*latest[:4], **latest_options(latest))
                 self.assertEqual((saved / 'review.html').read_bytes(), render_review_html(data).encode())

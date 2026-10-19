@@ -26,6 +26,10 @@ from .stateful_objects import StatefulObjectResult, analyze_stateful_objects
 from .sfc_conditions import SfcConditionResult, analyze_sfc_conditions
 from .sfc_context import SfcContextResult, analyze_sfc_context
 from .execution_context import ExecutionContextResult, analyze_execution_context
+from .signal_context import SignalContextResult, analyze_signal_context
+from .file_operations import FileOperationResult, analyze_file_operations
+from .alarm_evidence import AlarmEvidenceResult, analyze_alarm_evidence
+from .engineering_assemblies import build_engineering_assemblies
 from .rung_analysis import RungAnalysisResult, analyze_rungs
 from .relationships import RelationshipResult, analyze_relationships
 from .conditions import ConditionResult, analyze_conditions
@@ -59,6 +63,14 @@ MAX_REVIEW_V18_BYTES = 248 * 1024 * 1024
 MAX_REVIEW_V19_BYTES = 264 * 1024 * 1024
 MAX_REVIEW_V20_BYTES = 280 * 1024 * 1024
 MAX_REVIEW_V21_BYTES = 296 * 1024 * 1024
+MAX_REVIEW_V22_BYTES = 328 * 1024 * 1024
+MAX_REVIEW_V23_BYTES = 336 * 1024 * 1024
+MAX_REVIEW_V24_BYTES = 344 * 1024 * 1024
+MAX_REVIEW_V25_BYTES = 352 * 1024 * 1024
+MAX_REVIEW_V26_BYTES = 360 * 1024 * 1024
+MAX_REVIEW_V27_BYTES = 376 * 1024 * 1024
+MAX_REVIEW_V28_BYTES = 384 * 1024 * 1024
+MAX_REVIEW_V29_BYTES = 448 * 1024 * 1024
 MAX_REVIEW_FINDINGS = 500_000
 MAX_REVIEW_PATTERNS = 100_000
 _BOUND = frozenset({'root_bound', 'literal', 'non_data', 'system_flag'})
@@ -115,7 +127,15 @@ def _bounded_json(data: dict[str, Any], *, retain: bool = True) -> str:
     """Count UTF-8 bytes without retaining millions of small encoder chunks."""
     rendered = io.StringIO() if retain else None
     version = (data.get('schema_version'), data.get('report_version'))
-    limit = (MAX_REVIEW_V21_BYTES if version == (21, 'engineering-review-21') else
+    limit = (MAX_REVIEW_V29_BYTES if version == (29, 'engineering-review-29') else
+             MAX_REVIEW_V28_BYTES if version == (28, 'engineering-review-28') else
+             MAX_REVIEW_V27_BYTES if version == (27, 'engineering-review-27') else
+             MAX_REVIEW_V26_BYTES if version == (26, 'engineering-review-26') else
+             MAX_REVIEW_V25_BYTES if version == (25, 'engineering-review-25') else
+             MAX_REVIEW_V24_BYTES if version == (24, 'engineering-review-24') else
+             MAX_REVIEW_V23_BYTES if version == (23, 'engineering-review-23') else
+             MAX_REVIEW_V22_BYTES if version == (22, 'engineering-review-22') else
+             MAX_REVIEW_V21_BYTES if version == (21, 'engineering-review-21') else
              MAX_REVIEW_V20_BYTES if version == (20, 'engineering-review-20') else
              MAX_REVIEW_V19_BYTES if version == (19, 'engineering-review-19') else
              MAX_REVIEW_V18_BYTES if version == (18, 'engineering-review-18') else
@@ -252,7 +272,11 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                       stateful_objects: StatefulObjectResult | None = None,
                       sfc_conditions: SfcConditionResult | None = None,
                       sfc_context: SfcContextResult | None = None,
-                      execution_context: ExecutionContextResult | None = None) -> dict[str, Any]:
+                      execution_context: ExecutionContextResult | None = None,
+                      signal_context: SignalContextResult | None = None,
+                      file_operations: FileOperationResult | None = None,
+                      alarm_evidence: AlarmEvidenceResult | None = None,
+                      include_engineering_assemblies: bool = False) -> dict[str, Any]:
     """Build a bounded PRIVATE report using only the captured immutable bytes.
 
     All inputs are checked by canonical replay before any caller-supplied tree
@@ -265,6 +289,12 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                 or type(sfc_structure) is not SfcStructureResult
                 or type(snapshot.data) is not bytes or type(snapshot.size_bytes) is not int
                 or type(snapshot.id) is not str or type(snapshot.sha256) is not str):
+            _fail()
+        if (type(include_engineering_assemblies) is not bool
+                or (include_engineering_assemblies and
+                    (type(signal_context) is not SignalContextResult
+                     or type(signal_context.schema_version) is not int
+                     or signal_context.schema_version != 5))):
             _fail()
         if tag_data is not None and access is None:
             _fail()
@@ -318,6 +348,22 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
         if sfc_context is not None and sfc_conditions is None:
             _fail()
         if execution_context is not None and sfc_context is None:
+            _fail()
+        if signal_context is not None:
+            if (type(signal_context) is not SignalContextResult
+                    or type(signal_context.schema_version) is not int
+                    or signal_context.schema_version not in (1, 2, 3, 4, 5)
+                    or execution_context is None
+                    or (signal_context.schema_version in (2, 3, 4, 5) and file_operations is None)
+                    or (signal_context.schema_version in (4, 5) and alarm_evidence is None)):
+                _fail()
+        if file_operations is not None and signal_context is None:
+            _fail()
+        if alarm_evidence is not None and (
+                type(alarm_evidence) is not AlarmEvidenceResult
+                or type(alarm_evidence.schema_version) is not int or alarm_evidence.schema_version != 1
+                or signal_context is None or signal_context.schema_version not in (3, 4, 5)
+                or file_operations is None or tag_data is None):
             _fail()
         canonical_inventory = analyze_snapshot(snapshot)
         if not _strict_equal(canonical_inventory, inventory):
@@ -470,6 +516,28 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                 canonical_calculations, canonical_rungs, canonical_relationships, canonical_conditions)
             if not _strict_equal(canonical_execution_context, execution_context):
                 _fail()
+        canonical_signal_context = None
+        if signal_context is not None:
+            canonical_signal_context = analyze_signal_context(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_calculations, canonical_rungs, canonical_relationships, canonical_conditions,
+                canonical_tag_data, canonical_output_context, canonical_stateful_objects,
+                canonical_execution_context, schema_version=signal_context.schema_version)
+            if not _strict_equal(canonical_signal_context, signal_context):
+                _fail()
+        canonical_file_operations = None
+        if file_operations is not None:
+            canonical_file_operations = analyze_file_operations(
+                snapshot, canonical_inventory, canonical_references, canonical_access,
+                canonical_calculations, canonical_rungs, canonical_relationships, canonical_conditions,
+                canonical_tag_data)
+            if not _strict_equal(canonical_file_operations, file_operations):
+                _fail()
+        canonical_alarm_evidence = None
+        if alarm_evidence is not None:
+            canonical_alarm_evidence = analyze_alarm_evidence(snapshot, canonical_inventory, canonical_tag_data)
+            if not _strict_equal(canonical_alarm_evidence, alarm_evidence):
+                _fail()
         patterns = _patterns(canonical_inventory)
         findings = _findings(canonical_inventory, canonical_references, canonical_sfc)
         data = {
@@ -618,6 +686,37 @@ def build_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          'execution_context': canonical_execution_context.to_dict()})
             if canonical_execution_context.status == 'partial':
                 data['status'] = 'partial'
+        if canonical_signal_context is not None:
+            data.update({'schema_version': 22, 'report_version': 'engineering-review-22',
+                         'signal_context': canonical_signal_context.to_dict()})
+            if canonical_signal_context.status == 'partial':
+                data['status'] = 'partial'
+        if canonical_file_operations is not None:
+            data.update({'schema_version': 23, 'report_version': 'engineering-review-23',
+                         'file_operations': canonical_file_operations.to_dict()})
+            if canonical_file_operations.status == 'partial':
+                data['status'] = 'partial'
+        if canonical_signal_context is not None and canonical_signal_context.schema_version == 2:
+            data.update({'schema_version': 24, 'report_version': 'engineering-review-24'})
+        if canonical_signal_context is not None and canonical_signal_context.schema_version == 3:
+            data.update({'schema_version': 25, 'report_version': 'engineering-review-25'})
+        if canonical_alarm_evidence is not None:
+            data.update({'schema_version': 26, 'report_version': 'engineering-review-26',
+                         'alarm_evidence': canonical_alarm_evidence.to_dict()})
+            if canonical_alarm_evidence.status == 'partial':
+                data['status'] = 'partial'
+        if canonical_signal_context is not None and canonical_signal_context.schema_version == 4:
+            data.update({'schema_version': 27, 'report_version': 'engineering-review-27'})
+        if canonical_signal_context is not None and canonical_signal_context.schema_version == 5:
+            data.update({'schema_version': 28, 'report_version': 'engineering-review-28'})
+        if include_engineering_assemblies:
+            # Derive only from the canonically replayed providers above. This
+            # report companion is never accepted as a caller supplied model.
+            assemblies = build_engineering_assemblies(data)
+            data.update({'schema_version': 29, 'report_version': 'engineering-review-29',
+                         'engineering_assemblies': assemblies})
+            if assemblies['status'] == 'partial':
+                data['status'] = 'partial'
         _bounded_json(data, retain=False)
         return data
     except ReviewSizeLimitError:
@@ -647,7 +746,11 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                          stateful_objects: StatefulObjectResult | None = None,
                          sfc_conditions: SfcConditionResult | None = None,
                          sfc_context: SfcContextResult | None = None,
-                         execution_context: ExecutionContextResult | None = None) -> None:
+                         execution_context: ExecutionContextResult | None = None,
+                         signal_context: SignalContextResult | None = None,
+                         file_operations: FileOperationResult | None = None,
+                         alarm_evidence: AlarmEvidenceResult | None = None,
+                         include_engineering_assemblies: bool = False) -> None:
     """Compare every candidate field against bounded canonical captured evidence."""
     try:
         if _strict_equal(build_review_data(snapshot, inventory, references, sfc_structure,
@@ -662,7 +765,9 @@ def validate_review_data(snapshot: SourceSnapshot, inventory: InventoryResult,
                                           calculation_paths=calculation_paths,
                                           output_context=output_context, stateful_objects=stateful_objects,
                                           sfc_conditions=sfc_conditions, sfc_context=sfc_context,
-                                          execution_context=execution_context), data):
+                                          execution_context=execution_context, signal_context=signal_context,
+                                          file_operations=file_operations, alarm_evidence=alarm_evidence,
+                                          include_engineering_assemblies=include_engineering_assemblies), data):
             return
     except ReviewSizeLimitError:
         raise

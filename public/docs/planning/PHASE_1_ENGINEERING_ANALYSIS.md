@@ -1,5 +1,9 @@
 # Phase 1: automated engineering understanding before team review
 
+Current progress, completed work and remaining work-machine cycles live in the
+[pre-team-review tracker](PRE_TEAM_REVIEW_TRACKER.md). Update that tracker after
+each return; this document defines the scope and completion gate.
+
 Confirmed by Tyler on 2026-10-15: the work-machine pushes so far contain
 **automated run results**, not engineering feedback or approved classifications.
 Continue improving the analysis until the script has extracted and explained

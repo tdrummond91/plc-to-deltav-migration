@@ -1,5 +1,47 @@
 # Independently synthetic L5X fixture
 
+## Exact-address engineering assembly demo
+
+[engineering_assemblies_demo.L5X](engineering_assemblies_demo.L5X) is wholly
+invented: twelve ladder rungs plus pending-edit and SFC transition context.
+It combines all six assembly evidence providers, repeated contacts, aliases,
+PID/selector slots, calculations, timer/reset/member uses, file slots, MSG,
+dynamic references and namespace/opaque boundaries. It exercises source
+navigation and partial-analysis reporting, not controller import validity.
+The [offline report](../../examples/engineering-assemblies-review-demo.html)
+has fifteen groups and eighty-four retained source memberships.
+See [scope and validation](../../docs/reviews/ENGINEERING_ASSEMBLIES_REVIEW.md).
+
+## Grouped source candidate demo
+
+`signal_candidates_demo.L5X` is wholly invented: 68 rungs covering qualified
+wording, reader-only aliases, repeated contacts, branch alternatives, module
+roots, stateful/unknown transfers, unresolved targets and a paginated fanout.
+Its offline report is `public/examples/signal-candidates-review-demo.html`.
+See [scope and validation](../../docs/reviews/SIGNAL_CANDIDATES_REVIEW.md).
+
+`engineering_evidence_demo.L5X` is a separate invented ten-rung fixture for
+PID, file-operation, routine-call and AOI context, malformed signatures,
+namespace gaps and missing bodies. Its report is
+`public/examples/engineering-evidence-review-demo.html`.
+
+## Guard dependency and source trail fixture
+
+signal_dependencies_demo.L5X is wholly invented: 89 rungs, linear chains, a diamond, a
+cycle, competing writers, ONS, timer/unknown/binding boundaries, alternate edits/routines,
+a long chain and 55-way fanout. It supports navigation and budget checks, not a Studio
+5000 import-validity claim. The corresponding public/examples/signal-dependencies-review-
+demo.html is reproduced with the current CLI.
+
+## Explicit alarm evidence fixture
+
+[alarm_evidence_demo.L5X](alarm_evidence_demo.L5X) is entirely invented. It
+contains typed alarm declarations, stored alarm data, tag-based conditions,
+definition templates, multilingual text and deliberate duplicate, namespace and
+placement gaps. More than fifty records exercise paging; markup-like messages
+must remain literal text. The [offline report](../../examples/alarm-evidence-review-demo.html)
+shows the new views. These fixtures are parser inputs, not controller projects.
+
 ## Timer/counter/reset relationships fixture
 
 [stateful_objects_demo.L5X](stateful_objects_demo.L5X) contains 152 independently

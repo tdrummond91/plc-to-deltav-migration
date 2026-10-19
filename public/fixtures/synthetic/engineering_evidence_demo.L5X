@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Entirely invented mixed-provider evidence; no plant source or values. -->
+<RSLogix5000Content xmlns:x="urn:invented-foreign" SoftwareRevision="35.00">
+<Controller Name="InventedEngineeringEvidence"><Tags>
+<Tag Name="Permit" DataType="BOOL"/><Tag Name="Output" DataType="BOOL"/>
+<Tag Name="PV" DataType="REAL"/><Tag Name="CV" DataType="REAL"/>
+<Tag Name="Samples" DataType="REAL" Dimensions="8"/>
+<Tag Name="Average" DataType="REAL"/><Tag Name="Instance" DataType="Widget"/>
+<Tag Name="Loop" DataType="PID"><Data Format="Decorated"><Structure DataType="PID"><DataValueMember Name="SP" DataType="REAL" Value="12"/></Structure></Data></Tag>
+<Tag Name="Control" DataType="CONTROL"><Data Format="Decorated"><Structure DataType="CONTROL"><DataValueMember Name="LEN" DataType="DINT" Value="4"/><DataValueMember Name="POS" DataType="DINT" Value="0"/><DataValueMember Name="EN" DataType="BOOL" Value="0"/><DataValueMember Name="DN" DataType="BOOL" Value="0"/><DataValueMember Name="ER" DataType="BOOL" Value="0"/></Structure></Data></Tag>
+</Tags><AddOnInstructionDefinitions><AddOnInstructionDefinition Name="Widget">
+<Parameters><Parameter Name="Input" Usage="Input" Required="false" Visible="false" DataType="BOOL"/></Parameters>
+<Routines><Routine Name="Logic" Type="RLL"><RLLContent><Rung Number="0" Type="N"><Text><![CDATA[XIC(Input);]]></Text></Rung></RLLContent></Routine></Routines>
+</AddOnInstructionDefinition></AddOnInstructionDefinitions>
+<Programs><Program Name="Demo" MainRoutineName="Main"><Routines>
+<Routine Name="Main" Type="RLL"><RLLContent OnlineEditType="Original">
+<Rung Number="0" Type="N"><Comment>Mixed providers: &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Permit)PID(Loop,PV,0,CV,0,0,0)AVE(Samples[0],0,Average,Control,?,?)JSR(Sub,0)Widget(Instance)OTE(Output);]]></Text></Rung>
+<Rung Number="1" Type="N"><Comment>Malformed signatures</Comment><Text><![CDATA[PID(Loop,PV)AVE(Samples[0],0,Average);]]></Text></Rung>
+<Rung Number="2" Type="N" x:Marker="foreign"><Comment>Foreign namespace remains a gap</Comment><Text><![CDATA[AVE(Samples[0],0,Average,Control,?,?);]]></Text></Rung>
+<Rung Number="3" Type="N"><Comment>Missing targets</Comment><Text><![CDATA[JSR(Missing,0)MissingCall(Instance);]]></Text></Rung>
+<Rung Number="4" Type="N"><Comment>Existing target missing body</Comment><Text><![CDATA[JSR(NoBody,0);]]></Text></Rung>
+<Rung Number="5" Type="N"><Comment>Unknown binding and repeated branch operations</Comment><Text><![CDATA[XIC(MissingPermit)[AVE(Samples[0],0,Average,Control,?,?),AVE(Samples[1],0,Average,Control,?,?)];]]></Text></Rung>
+<Rung Number="6" Type="N"><Comment>Additional unmapped custom arguments</Comment><Text><![CDATA[Widget(Instance,PV,CV);]]></Text></Rung>
+<Rung Number="7" Type="N"><Comment>Base recognized function</Comment><Text><![CDATA[XIC(Permit)OTE(Output);]]></Text></Rung>
+</RLLContent></Routine>
+<Routine Name="Sub" Type="RLL"><RLLContent><Rung Number="0" Type="N"><Text><![CDATA[SBR(PV)RET(PV);]]></Text></Rung></RLLContent></Routine>
+<Routine Name="NoBody" Type="RLL"/>
+</Routines></Program></Programs></Controller></RSLogix5000Content>

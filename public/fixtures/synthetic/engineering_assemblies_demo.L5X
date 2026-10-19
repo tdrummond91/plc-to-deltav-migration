@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Entirely invented cross-rung source assemblies. No plant data or values. -->
+<RSLogix5000Content xmlns:x="urn:invented-foreign" SoftwareRevision="35.00">
+<Controller Name="InventedAssemblies"><Tags>
+<Tag Name="Permit" DataType="BOOL"/><Tag Name="Pump" DataType="BOOL"/>
+<Tag Name="Alarm_Alias" TagType="Alias" AliasFor="Permit"/>
+<Tag Name="Sensor" DataType="REAL"/><Tag Name="Scaled" DataType="REAL"/>
+<Tag Name="CV" DataType="REAL"/><Tag Name="Demand" DataType="REAL"/>
+<Tag Name="Index" DataType="DINT"/><Tag Name="Samples" DataType="REAL" Dimensions="8"/>
+<Tag Name="Timer" DataType="TIMER"/><Tag Name="Counter" DataType="COUNTER"/>
+<Tag Name="State" DataType="SFC_STEP"/><Tag Name="Message" DataType="MESSAGE"/>
+<Tag Name="Loop" DataType="PID"><Data Format="Decorated"><Structure DataType="PID"><DataValueMember Name="SP" DataType="REAL" Value="12"/></Structure></Data></Tag>
+<Tag Name="Master" DataType="PID"/>
+<Tag Name="Control" DataType="CONTROL"/>
+<Tag Name="Foreign" DataType="BOOL" x:Marker="foreign"/>
+</Tags><Modules><Module Name="M"><Communications><Connections><Connection Name="C">
+<InputTag Name="M:I"/><OutputTag Name="M:O"/>
+</Connection></Connections></Communications></Module></Modules>
+<Programs><Program Name="Demo" MainRoutineName="Main"><Routines>
+<Routine Name="Main" Type="RLL"><RLLContent OnlineEditType="Original">
+<Rung Number="0" Type="N"><Comment>Input and repeated reader alias</Comment><Text><![CDATA[XIC(M:I.Data.0)XIC(Alarm_Alias)XIO(Alarm_Alias)OTE(Pump);]]></Text></Rung>
+<Rung Number="1" Type="N"><Comment>Analog scaling source occurrences</Comment><Text><![CDATA[MUL(Sensor,2,Scaled)ADD(Scaled,1,Demand);]]></Text></Rung>
+<Rung Number="2" Type="N"><Comment>PID named slots retain unresolved runtime roles</Comment><Text><![CDATA[XIC(Permit)PID(Loop,Scaled,0,CV,Master,0,0);]]></Text></Rung>
+<Rung Number="3" Type="N"><Comment>PID member and selector calculations</Comment><Text><![CDATA[MOV(Demand,Loop.SP)[XIC(Permit)MOV(CV,M:O.Data),XIO(Permit)MOV(0,M:O.Data)];]]></Text></Rung>
+<Rung Number="4" Type="N"><Comment>Timer state and shared equipment command</Comment><Text><![CDATA[XIC(Pump)TON(Timer,100,0)XIC(Timer.DN)OTE(Pump);]]></Text></Rung>
+<Rung Number="5" Type="N"><Comment>Reset source context</Comment><Text><![CDATA[XIO(Permit)RES(Timer);]]></Text></Rung>
+<Rung Number="6" Type="N"><Comment>File slots remain array span context</Comment><Text><![CDATA[AVE(Samples[0],0,Scaled,Control,?,?);]]></Text></Rung>
+<Rung Number="7" Type="N"><Comment>Dynamic and communication boundaries</Comment><Text><![CDATA[MOV(Samples[Index],Scaled)MSG(Message);]]></Text></Rung>
+<Rung Number="8" Type="N"><Comment>Whole roots and members remain separate</Comment><Text><![CDATA[XIC(State.X)XIC(Pump)OTE(M:O.Data.1);]]></Text></Rung>
+<Rung Number="9" Type="N"><Comment>Namespace condition never promoted</Comment><Text><![CDATA[XIC(Foreign)OTE(Pump);]]></Text></Rung>
+<Rung Number="10" Type="N"><Comment>Opaque and unknown roles remain boundaries</Comment><Text><![CDATA[XIC(Permit)MYSTERY(Demand)OTE(Pump);]]></Text></Rung>
+</RLLContent><RLLContent OnlineEditType="PendingEdits">
+<Rung Number="0" Type="N"><Comment>Alternate edit retained without active selection</Comment><Text><![CDATA[XIC(Permit)OTE(Pump);]]></Text></Rung>
+</RLLContent></Routine>
+<Routine Name="Chart" Type="SFC"><SFCContent>
+<Step ID="1" Operand="State" InitialStep="true"/>
+<Transition ID="2"><Condition><STContent><Line Number="0">Pump AND State.X</Line></STContent></Condition></Transition>
+</SFCContent></Routine>
+</Routines></Program></Programs></Controller></RSLogix5000Content>

@@ -1,6 +1,255 @@
 # Next development checkpoint
 
-Current checkpoint (2026-10-17): **Source-declared execution context**.
+Start with the [pre-team-review tracker](../planning/PRE_TEAM_REVIEW_TRACKER.md).
+It owns the completed-cycle checklist and remaining estimate. Update it after
+every returned run; explain estimate changes rather than reconstructing progress
+from historical notes.
+
+Current checkpoint (2026-10-18): **R2 exact-address engineering assemblies**.
+
+Return `d6c5fc1` validated clean `f5399e6`: 1,743 application cases (two
+expected Windows skips) and 139 helpers passed. All 54 work reports validate.
+All 4,163 candidate scans completed; 2,296 outputs retained 4,969 exact pairs.
+The 24 preceding non-signal summaries, 92 prior signal fields and frozen
+six-example/eight-reserved-unit sample record are unchanged. This closes R1.
+The tracker now records seven completed cycles and three remaining (range two
+to five), including the next R2 run. R2 is still open pending its export return.
+
+Engineering assemblies1 joins qualified occurrences by exact relationship
+address across signal guards, PID slots/address uses, calculations,
+timer/counter members, SFC conditions and file operations. Cross-rung groups
+shows captured roles, related rungs, source/edit context and original evidence
+links. Competing writers, branches, unknown roles and missing source remain
+explicit; a source group does not establish physical equipment or execution.
+Review29/manifest32/work47 retain sixteen private artifacts and closed counts.
+
+Release checks passed 1,786 application cases (two expected Windows skips),
+139 helpers, final 43 new production cases, eleven DOM cases and independent
+review. The final capacity-only adjustment passed targeted regressions and
+fresh canonical saved runs. All 25 preceding summaries and fifteen non-review
+artifacts are unchanged; two final saves, the CLI and the invented demo agree.
+The launcher made one local feedback commit and zero Git network calls.
+
+The next ordinary work-machine run must measure assembly coverage by provider,
+relation, boundary and gap, plus complete/truncated scans and the byte/visit
+budget. Compare all 25 preceding summaries (including 104 signal coverage
+fields) and the frozen sample envelope before closing R2. R3 then investigates residual source-supported gaps, including
+exact file slots absent from the base address universe and MSG payload context.
+Do not treat unimplemented rules as engineer-only questions. R4 owns final
+report readiness and the review guide. No team review or new plant sample is
+needed now. Git transport stays manual and the listener remains disabled.
+
+See [scope and validation](ENGINEERING_ASSEMBLIES_REVIEW.md).
+
+## Historical grouped source candidate checkpoint
+
+Historical checkpoint (2026-10-18): **Grouped source candidates and consolidated block evidence**.
+
+Return `b9240c8` tested clean `1b78327`: 1,707 application cases (two expected
+Windows skips) and 139 helpers passed. All 53 historical reports validate.
+The 24 non-signal summaries, 76 preceding signal fields and frozen sample
+allowance are unchanged. All 4,163 dependency scans completed without truncation,
+retaining 15,082 forward and 12,269 qualified reverse associations. Work-check
+finished in 13:46.631, almost unchanged from the preceding run.
+
+Signal5 groups exact condition/output pairs using qualified authored wording
+or module-root evidence. Every pair retains occurrence identity and its original
+guard; alias attribution, source edits, branches and unknown transfers remain
+explicit. Engineering analysis now joins specialized block context without
+promoting unknown operand roles or changing base classifications.
+Review28/manifest31 keeps sixteen artifacts; work46 returns closed counts.
+
+Release verification: 1,743 application cases (two expected Windows skips),
+139 helpers and 36 guarded new production cases passed. Independent review,
+final DOM/browser checks and the 4,606-rung invented capacity probe passed.
+The launcher made one local report commit and zero Git network calls. Final
+review corrections passed targeted checks and two fresh canonical saved runs.
+The 24 non-signal summaries, 92 preceding signal fields, fifteen non-review
+artifacts and all 53 historical reports remain unchanged. Both invented reports
+reproduce through the CLI; final runtime/test files match the verified snapshot.
+
+The next work-machine run measures these candidate intersections and any
+incomplete scans. No additional plant sample or manual team review is required.
+This remains Phase 1. Git transport is manual and the listener stays disabled.
+
+See [scope and validation](SIGNAL_CANDIDATES_REVIEW.md).
+
+## Historical guard dependency checkpoint
+
+Historical checkpoint (2026-10-17): **Guard dependencies and bounded source trails**.
+
+Return `d9eca23` tested clean `8f63a10`: 1,672 application cases (two expected
+Windows skips), plus 139 helpers, with no failures or errors. All 52 historical
+reports validate. All 24 preceding summaries and the frozen six-example/eight-unit
+sample envelope are unchanged. The explicit alarm scan covered 83,942 XML elements,
+7,035 entities and 11,117 data contents, finding zero supported declarations,
+containers or elements and zero capture gaps. This does not exclude Boolean or
+external HMI alarms. Total work-check time was 13:39.137, up 27.629 seconds,
+mostly in application tests.
+
+Signal4 saves direct output-guard operand associations and qualified reverse
+address indices. The report adds bounded upstream/downstream source trails,
+retaining branches and distinguishing cycles from shared destinations. Traces
+stop at competing writers, stateful/unknown logic, unresolved references and
+source-content boundaries. No execution, shutdown or physical pairing is inferred.
+Review27/manifest30 retains sixteen artifacts; work45 returns closed counts.
+
+Release verification passed 1,707 application cases (two expected Windows skips),
+139 helpers, 35 guarded new cases and 76 development workflow cases. Independent
+review, browser/DOM checks and a 4,606-rung invented capacity probe passed.
+All 24 non-signal summaries, 76 preceding signal fields and fifteen prior
+non-review artifacts are unchanged. The actual launcher made one local feedback
+commit and zero Git network calls. Two canonical saved runs and the CLI agree;
+all 242 runtime/asset/test files match the tested snapshot.
+
+The next ordinary work-machine run measures dependency populations and any
+truncation. No new plant sample or manual team review is required. This remains
+Phase 1; equipment/alarm interpretation, residual source gaps and report
+consolidation remain. Git transport stays manual and the listener stays disabled.
+
+See [scope and validation](SIGNAL_DEPENDENCIES_REVIEW.md).
+
+## Historical explicit alarm checkpoint
+
+Historical checkpoint (2026-10-17): **Explicit alarm source evidence**.
+Return `0c1e6d3` tested clean `1462800`: 1,627 application cases passed (two
+expected Windows skips), plus 139 helpers. All 51 historical reports validate.
+The 23 preceding non-signal summaries, all 55 signal2 coverage fields and the
+frozen sample envelope are unchanged. Authored wording links 1,073 qualified
+field associations to 1,072 addresses and 873 outputs. All 5,064 scans completed
+without description gaps or truncation. The 88 alarm-worded outputs remain
+lexical leads. Parsed RLL contains no ALMA/ALMD/ASO occurrences; other alarm
+sources are not ruled out. Total work-check time was 13:11.508, up 31.350 seconds,
+mostly application tests.
+
+Alarm evidence1 captures explicit typed declarations, tag-based conditions,
+definition templates, messages and exported settings with source locations and
+qualified/gap distinctions. It does not expand templates, bind relative inputs,
+select effective values or infer shutdown behavior. Review26/manifest29 retains
+sixteen artifacts; work44 returns closed counts. See [scope and validation](ALARM_EVIDENCE_REVIEW.md).
+
+Release verification passed 1,672 application cases (two expected Windows
+skips), 139 helpers, 45 guarded new production cases and 76 development
+workflow cases. Independent review, invented capacity, browser/DOM and
+canonical artifact checks passed. All 24 preceding summaries and fifteen
+non-review artifacts are unchanged. The script made one local report commit
+and zero Git network calls. The final renderer reproduces through the CLI.
+
+The next ordinary work-machine run measures these explicit source populations
+and their gaps. No new plant sample or manual team review is required. This
+remains Phase 1; equipment relationships, residual gaps and report consolidation
+remain. Git transport stays manual and the listener remains disabled.
+
+## Historical authored wording checkpoint
+
+Historical checkpoint (2026-10-17): **Authored signal wording attribution**.
+Return `8a6d7fb` tested clean `16d2c9b`: 1,597 application cases passed (two
+expected Windows skips), plus 139 helpers. All 50 historical reports validate.
+The 23 non-signal summaries, preceding signal fields and frozen samples are unchanged.
+There are 2,213 outputs with self contacts, 446 with timer contacts and 1,085
+same-content set/reset groups. All 4,163 guard scans completed without truncation.
+Total work-check time was 12:40.158, up 9.311 seconds, mostly in tests.
+
+Signal3 attributes alarm/equipment/sensor wording to individual declaration
+fields and exact source uses. Root-wide descriptions, aliases and missing or
+unqualified text remain distinct. Output dossiers exclude reader-only alias
+wording. Review25/manifest28 retains sixteen artifacts; work43 returns closed
+counts. See [scope and validation](SIGNAL_AUTHORED_REVIEW.md).
+
+The release rehearsal passed 1,627 application cases (two expected Windows skips),
+139 helpers and 76 development workflow cases. All 30 new cases passed under
+process/socket guards and independent review. Browser/DOM checks, full-scale
+invented capacity, canonical artifact comparisons and CLI demo reproduction
+passed. The script made one local report commit and zero Git network calls.
+
+The next ordinary work-machine run measures this attribution and its source gaps.
+No new plant sample or manual team review is required. This remains Phase 1;
+explicit alarm evidence, equipment relationships and report consolidation remain.
+Git transport stays manual and the listener remains disabled.
+
+## Historical Boolean contact and coil pattern checkpoint
+
+Historical checkpoint (2026-10-17): **Bounded Boolean contact and coil patterns**.
+Return `0e7d011` tested clean `764b521`: 1,569 application cases passed (two
+expected Windows skips), plus 139 helpers. All 49 historical reports validate.
+All 23 preceding summaries and the frozen six-example envelope are unchanged.
+File operations account for 95 operations and 294 slots without new gaps.
+Total work-check time was 12:30.847, up 41.111 seconds across analysis, saving,
+summary construction and tests.
+
+Signal2 adds same-content set/reset groups, exact self XIC/XIO guard contacts,
+and qualified TIMER EN/TT/DN contacts. Each writer keeps its original guard
+and source edit. These are source patterns without seal-in, delay, shutdown
+or execution-order claims. Review24/manifest27 keeps sixteen artifacts; work42
+returns closed counts. See [scope and validation](SIGNAL_PATTERNS_REVIEW.md).
+
+The release rehearsal passed 1,597 application cases (two expected Windows
+skips), 139 helpers and 76 development workflow cases. All 28 new production
+cases passed under process/socket guards. Independent review, Chrome/DOM checks,
+capacity testing, canonical artifact comparisons and CLI demo reproduction
+passed. The launcher made one local report commit and zero Git network calls.
+
+The next ordinary work-machine run measures these patterns and any bounded
+traversal gaps. No new source sample or team feedback is required. Git transport
+stays manual, the listener stays disabled, and this remains Phase 1. More precise
+alarm/equipment evidence and report consolidation remain ahead.
+
+## Historical file and array operation checkpoint
+
+Historical checkpoint (2026-10-17): **File and array operation evidence**.
+Return `f2165d5` tested clean `fb49ecf`: 1,532 application cases passed (two
+expected Windows skips), plus 139 helpers. All 48 historical reports validate.
+All 22 preceding summaries and the frozen six examples are unchanged.
+Signal analysis captured the predicted 12,741 condition slots, 5,064 exact
+signal addresses and 4,163 output occurrences. The private run saved; total
+work-check time was 11:50, about a minute longer than the previous run.
+
+Review23/manifest26 adds COP/CPS, AVE, FAL and SQO source operations, their
+slots, symbolic selectors, arithmetic expressions and separate stored control
+data. Work41 returns closed counts; sixteen private artifacts remain.
+Expected private-source intake is 95 operations and 294 slots, including
+three previously mnemonic-only blocks. See [scope and validation](FILE_OPERATIONS_REVIEW.md).
+
+This bundle passed 1,569 application cases (two expected Windows skips),
+139 helpers and 76 development workflow cases. All 37 new cases passed under
+process/socket guards. Artifact and prior-summary comparisons passed; the
+invented report reproduces exactly through the CLI. DOM navigation checks passed;
+visual browser QA remains pending because no browser was available.
+
+The next ordinary work-machine run measures this bundle. No new plant samples
+or manual team review are requested. Git transport stays manual and the listener
+stays disabled. This remains Phase 1; stronger Boolean patterns and precisely
+attributed alarm/equipment interpretations follow the returned evidence.
+
+## Historical signal context checkpoint
+
+Historical checkpoint (2026-10-17): **Cross-rung signal context**.
+Return `2eb51d2` tested clean `cf6f785`: 1,500 application cases passed (two
+expected Windows skips), plus 139 helpers. All 47 historical reports validate.
+All 21 preceding summaries and the frozen six examples are unchanged.
+All 76 JSR calls have unique target candidates; three program schedule/main
+links resolve. Eleven call/control guards contain stored-state conditions.
+Total work-check time was 10:47, about seven seconds longer than the prior run.
+
+Review22/manifest25 adds all predicate-input occurrences, exact-address dossiers
+and bounded navigation between source conditions and individual output guards.
+Timer/counter members and rung-wide hints remain typed contextual evidence.
+Work40 adds closed counts; sixteen private artifacts remain.
+See [scope and validation](SIGNAL_CONTEXT_REVIEW.md).
+
+This bundle passed 1,532 application cases (two expected Windows skips),
+139 helpers and 76 development workflow cases. All 32 new cases passed with
+subprocess/socket creation blocked. Browser checks, canonical capacity testing,
+artifact comparisons and all 22 preceding summary comparisons passed.
+
+The next ordinary work-machine run measures the expanded signal population.
+No new plant samples or manual team review are requested. Git transport stays
+manual and the listener stays disabled. This remains Phase 1; further equipment,
+alarm and unresolved-path analysis follows the returned evidence.
+
+## Historical execution context checkpoint
+
+Historical checkpoint (2026-10-17): **Source-declared execution context**.
 Return `4eca393` tested clean `d3a5ec6`: 1,469 application cases passed (two
 expected Windows skips), plus 139 helpers. All 46 historical reports validate.
 All 21 analysis summaries and the frozen six examples are unchanged.

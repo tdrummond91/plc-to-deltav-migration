@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RSLogix5000Content><Controller Name="InventedBooleanPatterns"><Tags><Tag Name="Start" DataType="BOOL"/><Tag Name="Command" DataType="BOOL"/><Tag Name="Stop" DataType="BOOL"/><Tag Name="Inhibit" DataType="BOOL"/><Tag Name="Latched" DataType="BOOL"/><Tag Name="Reset" DataType="BOOL"/><Tag Name="Bypass" DataType="BOOL"/><Tag Name="Timed" DataType="BOOL"/><Tag Name="Other" DataType="BOOL"/><Tag Name="AcrossEdits" DataType="BOOL"/><Tag Name="Uncertain" DataType="BOOL"/><Tag Name="Edge" DataType="BOOL"/><Tag Name="Repeated00" DataType="BOOL"/><Tag Name="Repeated01" DataType="BOOL"/><Tag Name="Repeated02" DataType="BOOL"/><Tag Name="Repeated03" DataType="BOOL"/><Tag Name="Repeated04" DataType="BOOL"/><Tag Name="Repeated05" DataType="BOOL"/><Tag Name="Repeated06" DataType="BOOL"/><Tag Name="Repeated07" DataType="BOOL"/><Tag Name="Repeated08" DataType="BOOL"/><Tag Name="Repeated09" DataType="BOOL"/><Tag Name="Repeated10" DataType="BOOL"/><Tag Name="Repeated11" DataType="BOOL"/><Tag Name="Repeated12" DataType="BOOL"/><Tag Name="Repeated13" DataType="BOOL"/><Tag Name="Repeated14" DataType="BOOL"/><Tag Name="Repeated15" DataType="BOOL"/><Tag Name="Repeated16" DataType="BOOL"/><Tag Name="Repeated17" DataType="BOOL"/><Tag Name="Repeated18" DataType="BOOL"/><Tag Name="Repeated19" DataType="BOOL"/><Tag Name="Repeated20" DataType="BOOL"/><Tag Name="Repeated21" DataType="BOOL"/><Tag Name="Repeated22" DataType="BOOL"/><Tag Name="Repeated23" DataType="BOOL"/><Tag Name="Repeated24" DataType="BOOL"/><Tag Name="Repeated25" DataType="BOOL"/><Tag Name="Repeated26" DataType="BOOL"/><Tag Name="Repeated27" DataType="BOOL"/><Tag Name="Repeated28" DataType="BOOL"/><Tag Name="Repeated29" DataType="BOOL"/><Tag Name="Repeated30" DataType="BOOL"/><Tag Name="Repeated31" DataType="BOOL"/><Tag Name="Repeated32" DataType="BOOL"/><Tag Name="Repeated33" DataType="BOOL"/><Tag Name="Repeated34" DataType="BOOL"/><Tag Name="Repeated35" DataType="BOOL"/><Tag Name="Repeated36" DataType="BOOL"/><Tag Name="Repeated37" DataType="BOOL"/><Tag Name="Repeated38" DataType="BOOL"/><Tag Name="Repeated39" DataType="BOOL"/><Tag Name="Repeated40" DataType="BOOL"/><Tag Name="Repeated41" DataType="BOOL"/><Tag Name="Repeated42" DataType="BOOL"/><Tag Name="Repeated43" DataType="BOOL"/><Tag Name="Repeated44" DataType="BOOL"/><Tag Name="Repeated45" DataType="BOOL"/><Tag Name="Repeated46" DataType="BOOL"/><Tag Name="Repeated47" DataType="BOOL"/><Tag Name="Repeated48" DataType="BOOL"/><Tag Name="Repeated49" DataType="BOOL"/><Tag Name="Repeated50" DataType="BOOL"/><Tag Name="Repeated51" DataType="BOOL"/><Tag Name="Repeated52" DataType="BOOL"/><Tag Name="Repeated53" DataType="BOOL"/><Tag Name="Repeated54" DataType="BOOL"/><Tag Name="Delay" DataType="TIMER"/><Tag Name="Counter" DataType="COUNTER"/></Tags>
+<Programs><Program Name="Demo" Type="Normal" MainRoutineName="Main"><Routines>
+<Routine Name="Main" Type="RLL"><RLLContent OnlineEditType="Original">
+<Rung Number="0" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[[XIC(Start),XIC(Command)]XIO(Stop)OTE(Command);]]></Text></Rung>
+<Rung Number="1" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIO(Inhibit)OTL(Latched);]]></Text></Rung>
+<Rung Number="2" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Reset)OTU(Latched);]]></Text></Rung>
+<Rung Number="3" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[OTE(Latched);]]></Text></Rung>
+<Rung Number="4" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIO(Command)OTE(Command);]]></Text></Rung>
+<Rung Number="5" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Start)TON(Delay,?,?);]]></Text></Rung>
+<Rung Number="6" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[[XIC(Delay.DN),XIC(Bypass)]OTE(Timed);]]></Text></Rung>
+<Rung Number="7" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIO(Delay.TT)XIC(Delay.EN)OTE(Other);]]></Text></Rung>
+<Rung Number="8" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[RES(Delay);]]></Text></Rung>
+<Rung Number="9" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[EQU(Command,1)OTE(Command);]]></Text></Rung>
+<Rung Number="10" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[[XIC(Command)OTE(Other),XIC(Start)OTE(Command)];]]></Text></Rung>
+<Rung Number="11" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[OTL(AcrossEdits);]]></Text></Rung>
+<Rung Number="12" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Unknown)OTE(Uncertain);]]></Text></Rung>
+<Rung Number="13" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[CTU(Counter,?,?);]]></Text></Rung>
+<Rung Number="14" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Counter.DN)OTE(Other);]]></Text></Rung>
+<Rung Number="15" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Command)ONS(Edge)OTE(Command);]]></Text></Rung>
+<Rung Number="16" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Start)MYSTERY(Command)OTE(Command);]]></Text></Rung>
+<Rung Number="17" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated00)OTE(Repeated00);]]></Text></Rung>
+<Rung Number="18" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated01)OTE(Repeated01);]]></Text></Rung>
+<Rung Number="19" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated02)OTE(Repeated02);]]></Text></Rung>
+<Rung Number="20" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated03)OTE(Repeated03);]]></Text></Rung>
+<Rung Number="21" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated04)OTE(Repeated04);]]></Text></Rung>
+<Rung Number="22" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated05)OTE(Repeated05);]]></Text></Rung>
+<Rung Number="23" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated06)OTE(Repeated06);]]></Text></Rung>
+<Rung Number="24" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated07)OTE(Repeated07);]]></Text></Rung>
+<Rung Number="25" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated08)OTE(Repeated08);]]></Text></Rung>
+<Rung Number="26" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated09)OTE(Repeated09);]]></Text></Rung>
+<Rung Number="27" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated10)OTE(Repeated10);]]></Text></Rung>
+<Rung Number="28" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated11)OTE(Repeated11);]]></Text></Rung>
+<Rung Number="29" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated12)OTE(Repeated12);]]></Text></Rung>
+<Rung Number="30" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated13)OTE(Repeated13);]]></Text></Rung>
+<Rung Number="31" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated14)OTE(Repeated14);]]></Text></Rung>
+<Rung Number="32" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated15)OTE(Repeated15);]]></Text></Rung>
+<Rung Number="33" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated16)OTE(Repeated16);]]></Text></Rung>
+<Rung Number="34" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated17)OTE(Repeated17);]]></Text></Rung>
+<Rung Number="35" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated18)OTE(Repeated18);]]></Text></Rung>
+<Rung Number="36" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated19)OTE(Repeated19);]]></Text></Rung>
+<Rung Number="37" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated20)OTE(Repeated20);]]></Text></Rung>
+<Rung Number="38" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated21)OTE(Repeated21);]]></Text></Rung>
+<Rung Number="39" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated22)OTE(Repeated22);]]></Text></Rung>
+<Rung Number="40" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated23)OTE(Repeated23);]]></Text></Rung>
+<Rung Number="41" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated24)OTE(Repeated24);]]></Text></Rung>
+<Rung Number="42" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated25)OTE(Repeated25);]]></Text></Rung>
+<Rung Number="43" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated26)OTE(Repeated26);]]></Text></Rung>
+<Rung Number="44" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated27)OTE(Repeated27);]]></Text></Rung>
+<Rung Number="45" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated28)OTE(Repeated28);]]></Text></Rung>
+<Rung Number="46" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated29)OTE(Repeated29);]]></Text></Rung>
+<Rung Number="47" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated30)OTE(Repeated30);]]></Text></Rung>
+<Rung Number="48" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated31)OTE(Repeated31);]]></Text></Rung>
+<Rung Number="49" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated32)OTE(Repeated32);]]></Text></Rung>
+<Rung Number="50" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated33)OTE(Repeated33);]]></Text></Rung>
+<Rung Number="51" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated34)OTE(Repeated34);]]></Text></Rung>
+<Rung Number="52" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated35)OTE(Repeated35);]]></Text></Rung>
+<Rung Number="53" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated36)OTE(Repeated36);]]></Text></Rung>
+<Rung Number="54" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated37)OTE(Repeated37);]]></Text></Rung>
+<Rung Number="55" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated38)OTE(Repeated38);]]></Text></Rung>
+<Rung Number="56" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated39)OTE(Repeated39);]]></Text></Rung>
+<Rung Number="57" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated40)OTE(Repeated40);]]></Text></Rung>
+<Rung Number="58" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated41)OTE(Repeated41);]]></Text></Rung>
+<Rung Number="59" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated42)OTE(Repeated42);]]></Text></Rung>
+<Rung Number="60" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated43)OTE(Repeated43);]]></Text></Rung>
+<Rung Number="61" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated44)OTE(Repeated44);]]></Text></Rung>
+<Rung Number="62" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated45)OTE(Repeated45);]]></Text></Rung>
+<Rung Number="63" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated46)OTE(Repeated46);]]></Text></Rung>
+<Rung Number="64" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated47)OTE(Repeated47);]]></Text></Rung>
+<Rung Number="65" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated48)OTE(Repeated48);]]></Text></Rung>
+<Rung Number="66" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated49)OTE(Repeated49);]]></Text></Rung>
+<Rung Number="67" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated50)OTE(Repeated50);]]></Text></Rung>
+<Rung Number="68" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated51)OTE(Repeated51);]]></Text></Rung>
+<Rung Number="69" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated52)OTE(Repeated52);]]></Text></Rung>
+<Rung Number="70" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated53)OTE(Repeated53);]]></Text></Rung>
+<Rung Number="71" Type="N"><Comment>Invented contact pattern &lt;img src=x onerror=alert(1)&gt;</Comment><Text><![CDATA[XIC(Repeated54)OTE(Repeated54);]]></Text></Rung>
+</RLLContent><RLLContent OnlineEditType="Pending">
+<Rung Number="0" Type="N"><Text><![CDATA[OTU(AcrossEdits);]]></Text></Rung>
+<Rung Number="1" Type="N"><Text><![CDATA[XIO(Start)OTE(Command);]]></Text></Rung>
+</RLLContent></Routine></Routines></Program></Programs></Controller></RSLogix5000Content>

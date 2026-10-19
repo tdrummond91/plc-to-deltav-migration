@@ -1,8 +1,42 @@
 # Artifact validation record
 
+## Exact-address engineering assemblies checkpoint
+
+Return `d6c5fc1` validated `f5399e6`: 1,743 application cases (two expected
+Windows skips), 139 helpers and all 54 historical/current work reports passed.
+Candidate scans completed for all 4,163 outputs. This closes R1 in the
+[completion tracker](docs/planning/PRE_TEAM_REVIEW_TRACKER.md).
+The next bundle adds assemblies1 and Cross-rung groups under review29,
+manifest32 and work47. Its release evidence is recorded in
+[ENGINEERING_ASSEMBLIES_REVIEW.md](docs/reviews/ENGINEERING_ASSEMBLIES_REVIEW.md).
+R2 remains open until its export return. No new plant sample is requested;
+the work script makes a local feedback commit and Git transport remains manual.
+
+## Historical grouped source candidates checkpoint
+
+The returned `b9240c8` run passed 1,707 application cases and 139 helpers;
+all 4,163 dependency scans completed without truncation. The next bundle adds
+signal5 candidate pairs and UI consolidation of specialized block evidence.
+Release rehearsal passed 1,743 application cases (two expected skips), 139 helpers,
+36 guarded new cases, independent review and final artifact/browser checks.
+Detailed evidence is recorded in [SIGNAL_CANDIDATES_REVIEW.md](docs/reviews/SIGNAL_CANDIDATES_REVIEW.md).
+No new plant source sample is requested; Git transport remains manual.
+
+## Current guard dependency and source trail checkpoint (2026-10-17)
+
+See [guard dependency validation](docs/reviews/SIGNAL_DEPENDENCIES_REVIEW.md)
+for returned work-machine evidence, canonical compatibility, bounds, independent
+review and report checks. Earlier checkpoints remain historical records.
+
+## Historical explicit alarm evidence checkpoint (2026-10-17)
+
+See [alarm source evidence validation](docs/reviews/ALARM_EVIDENCE_REVIEW.md)
+for the latest returned work-machine results, compatibility checks and release
+verification. Previous checkpoints below retain their historical evidence.
+
 Prepared: 2026-10-08, planning revision 0.2.
 
-## Current save repair checkpoint (2026-10-15)
+## Historical save repair checkpoint (2026-10-15)
 
 See [save-failure validation](docs/reviews/SAVE_FAILURE_REVIEW.md). The new work
 return passed its tests but did not supply condition coverage. The repair adds

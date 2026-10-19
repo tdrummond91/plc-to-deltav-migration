@@ -1,5 +1,130 @@
 # Data contracts, traceability, and checkpoints
 
+## Exact-address engineering assemblies (2026-10-18)
+
+Engineering assemblies1 groups qualified occurrences from signal, PID connection,
+calculation path, stateful object, SFC context and file-operation companions by
+exact relationship address. Groups retain membership IDs, rung IDs, providers,
+context flags and scan status. Memberships retain provider/source occurrence,
+captured relation, instruction/rung and related address; repeated occurrences
+remain separate. Closed source-gap counts explain excluded provider rows.
+The index asserts source associations only; it does not assign physical equipment,
+runtime execution, control direction to PID slots, alarm effects or priorities.
+
+The private extension is capped at 64 MiB, 100,000 memberships, 20,000 groups and
+500,000 source visits. Conservative reservation and final serialized-size checks
+enforce the byte bound. Incomplete inputs or budget truncation remain explicit
+and make the review partial. Its closed summary is capped at 8 KiB.
+Review29/manifest32/work47 require assemblies1 and preceding companions; the
+sixteen saved artifacts remain unchanged. Review JSON/HTML caps are 448 MiB /
+480 MiB; the work-report cap stays 104 KiB. Current CLI/work checks opt in with
+`include_engineering_assemblies=True`; historical reusable defaults and earlier
+version validators remain available. See [scope and validation](../reviews/ENGINEERING_ASSEMBLIES_REVIEW.md).
+
+## Grouped source candidates (2026-10-18)
+
+Signal5 adds `output.candidate_context` with `scan_status`, `target_categories`
+and `conditions` containing `condition_read_id` and `categories`. Categories
+are closed: alarm, equipment, sensor, module_input, module_output. Exact source
+use membership qualifies wording; condition/output pairings require exact
+endpoints and a namespace-qualified guard. Twelve closed coverage fields count
+seeds, pairs and bounded join work. Existing signal4 fields remain unchanged.
+Review28/manifest31/work46 require signal5 and all preceding companions, retaining
+sixteen artifacts. Private signal/summary limits are 72 MiB/24 KiB; review JSON/HTML
+limits are 384 MiB/416 MiB. Work report cap stays 104 KiB. Engineering evidence
+consolidation is a UI projection of validated companions, without serialized
+reclassification or changes to access4/rung-analysis1. See [the full contract](../reviews/SIGNAL_CANDIDATES_REVIEW.md).
+
+## Guard dependencies and source trails
+
+Signal4 adds output.guard_dependencies (traversal_status, visited_nodes, visited_edges,
+condition_read_ids) and address.dependent_output_ids. Each direct read occurrence stays
+separate; reverse output IDs are unique per exact address and exclude namespace-gap
+guards. All dependency coverage fields are closed counts. Any truncated output means
+reverse indices are subsets globally. Private/summary caps are 64 MiB / 20 KiB.
+Review27/manifest30/work45 require signal4 plus alarm1 and fileops1; sixteen artifacts and
+the 104 KiB work cap remain. Historical schemas retain their contracts. UI trails are
+bounded source navigation only; no transitive execution graph is persisted.
+
+## Explicit alarm source revision (2026-10-17)
+
+Alarm evidence1 preserves supported typed declarations and captured alarm XML
+with snapshot-bound identities, raw fields, parent/child links and explicit
+source gaps. Canonical replay authenticates the snapshot, inventory and stored
+tag data. It does not alter signal3, instruction signatures or earlier analyses.
+The companion has an 8 MiB private cap and an 8 KiB closed summary cap.
+Review26 uses 360 MiB JSON /392 MiB HTML; manifest29 retains sixteen artifacts.
+Work44 requires alarm evidence1 with signal3/file operations1 under the unchanged 104 KiB
+report cap. Earlier version limits and default API behavior remain unchanged.
+Sampling and manual Git transport are unchanged. See [scope and validation](../reviews/ALARM_EVIDENCE_REVIEW.md).
+
+## Authored signal wording revision (2026-10-17)
+
+Signal context3 adds per-address `authored_evidence`, `authored_scan_status` and
+`authored_description_gap_ids`. Matching fields preserve entity, relationship,
+field, declaration-root scope, qualification, closed words/categories and
+accepted source-use IDs. Output attribution filters by the exact target operand.
+Root descriptions do not establish member meaning; unmentioned intermediate
+aliases and rung comments are not promoted. Duplicate/nested descriptions retain
+gap IDs without selecting text. Existing signal1/2 contracts remain unchanged.
+
+Current CLI/work checks opt into signal3; reusable analysis defaults remain1.
+Signal3 is capped at 48 MiB private JSON and 16 KiB closed summary. Review25 uses
+352 MiB JSON /384 MiB HTML limits; manifest28 still has sixteen artifacts.
+Work43 requires signal summary3 and retains the 104 KiB report cap; work42 keeps
+signal2. Timing1 and the six-example/eight-reserved-unit envelope stay unchanged.
+See [scope and validation](../reviews/SIGNAL_AUTHORED_REVIEW.md).
+
+## Boolean signal pattern revision (2026-10-17)
+
+Signal context2 extends existing output rows with bounded guard-contact evidence
+and address rows with coil groups by exact routine/content. Version1 remains
+the default API and retains its old bytes. Version2 is explicitly selected by
+current CLI/work-check paths. Canonical replay authenticates either version.
+
+Self XIC/XIO contacts require exact target identity and actual condition ancestry.
+Timer contacts require qualified direct EN/TT/DN members on a valid TIMER control.
+Groups retain every OTE/OTL/OTU separately; set/reset presence requires both
+within one source content. Limits on traversal work, cache and retained links
+produce explicit truncation and partial status. No effective edit, seal-in,
+timing, shutdown or writer-precedence claim is introduced.
+
+Signal2 private/summary caps are 40 MiB/12 KiB; v1 remains 32 MiB/8 KiB.
+Review24 JSON/HTML limits are 344 MiB/376 MiB. Manifest27 keeps sixteen artifacts.
+Work42 requires signal summary2, with a 104 KiB outer cap and a conservative
+93,646-byte reservation. Earlier summaries, timing1, historical version gates
+and the frozen six-example/eight-unit envelope remain intact. See
+[review](../reviews/SIGNAL_PATTERNS_REVIEW.md).
+
+## File and array operation revision (2026-10-17)
+
+File operations1 authenticates the condition/source chain and tag data. Private
+records retain source operations, documented slots, FAL expression nodes,
+symbolic index uses, control associations and separate stored-data links.
+Access4 and condition3 are unchanged; roles in this companion supplement the
+base catalogue. Ranges, current values and runtime effects remain uncomputed.
+
+An 8 MiB companion is embedded in review23 (336 MiB JSON / 368 MiB HTML).
+Manifest26 retains sixteen artifacts. Work41 adds a closed 8 KiB summary under
+a 104 KiB outer limit. Work40 retains 96 KiB, work39 retains 88 KiB, and earlier
+limits remain unchanged. Timing1 and the frozen six-example/eight-unit sample
+envelope keep their prior behavior. See [review](../reviews/FILE_OPERATIONS_REVIEW.md).
+
+## Cross-rung signal context revision (2026-10-17)
+
+Signal context1 canonically authenticates conditions3, output context1,
+stateful objects1 and execution context1. It retains all predicate operand
+occurrences and ONS storage slots, exact-address dossiers, separate output
+occurrences and qualified source-content/routine/rung provenance. Shared
+condition DAGs remain shared; no reader/writer cross product, selected edit,
+combined target equation or runtime/shutdown effect is inferred.
+
+The 32 MiB private companion is embedded only in review22 (328 MiB JSON /
+360 MiB HTML). Manifest25 still lists sixteen artifacts. Work40 adds a closed
+8 KiB signal summary under a 96 KiB outer cap; work39 stays 88 KiB and work32-38
+stay 80 KiB. Timing1, earlier summary bytes and the frozen six-example/eight-unit
+reservation remain unchanged. See [review](../reviews/SIGNAL_CONTEXT_REVIEW.md).
+
 ## Source-declared execution context revision (2026-10-17)
 
 Execution context1 authenticates conditions3 and the preceding source chain.

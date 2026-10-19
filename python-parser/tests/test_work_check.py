@@ -638,9 +638,51 @@ class GitAndWorkflowTests(unittest.TestCase):
             analysis_payload['execution_context_summary'] = build_execution_context_summary(
                 *execution_inputs, analyze_execution_context(*execution_inputs),
                 revision={"commit": COMMIT, "worktree": "clean"})
-            def timed_analysis(*args, timings, sfc_context_schema_version, include_execution_context):
+            from plc_workbench.signal_context import analyze_signal_context
+            from plc_workbench.signal_context_summary import build_signal_context_summary
+            signal_inputs = (*execution_inputs, tag_data, analyze_output_context(*path_inputs),
+                             analyze_stateful_objects(*stateful_inputs), analyze_execution_context(*execution_inputs))
+            analysis_payload['signal_context_summary'] = build_signal_context_summary(
+                *signal_inputs, analyze_signal_context(*signal_inputs, schema_version=5),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.file_operations import analyze_file_operations
+            from plc_workbench.file_operation_summary import build_file_operation_summary
+            file_inputs = (*execution_inputs, tag_data)
+            analysis_payload["file_operation_summary"] = build_file_operation_summary(
+                *file_inputs, analyze_file_operations(*file_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.alarm_evidence import analyze_alarm_evidence
+            from plc_workbench.alarm_evidence_summary import build_alarm_evidence_summary
+            alarm_inputs = (snapshot, inventory, tag_data)
+            analysis_payload["alarm_evidence_summary"] = build_alarm_evidence_summary(
+                *alarm_inputs, analyze_alarm_evidence(*alarm_inputs),
+                revision={"commit": COMMIT, "worktree": "clean"})
+            from plc_workbench.engineering_assemblies import build_engineering_assemblies
+            from plc_workbench.engineering_assemblies_summary import build_engineering_assemblies_summary
+            assembly_inputs = {
+                "relationships": relationships.to_dict(), "access": access.to_dict(),
+                "signal_context": analyze_signal_context(*signal_inputs, schema_version=5).to_dict(),
+                "pid_connections": analyze_pid_connections(*connection_inputs).to_dict(),
+                "calculation_paths": analyze_calculation_paths(*path_inputs).to_dict(),
+                "stateful_objects": analyze_stateful_objects(*stateful_inputs).to_dict(),
+                "sfc_context": analyze_sfc_context(*context_inputs).to_dict(),
+                "file_operations": analyze_file_operations(*file_inputs).to_dict(),
+            }
+            assembly = build_engineering_assemblies(assembly_inputs)
+            analysis_payload["engineering_assemblies_summary"] = build_engineering_assemblies_summary(
+                assembly, tool_revision={"commit": COMMIT, "worktree": "clean"})
+            if assembly["status"] == "partial":
+                analysis_payload["status"] = "partial"
+            def timed_analysis(*args, timings, sfc_context_schema_version, include_execution_context,
+                               include_signal_context, include_file_operations, signal_context_schema_version,
+                               include_alarm_evidence, include_engineering_assemblies):
                 self.assertEqual(sfc_context_schema_version, 2)
                 self.assertTrue(include_execution_context)
+                self.assertTrue(include_signal_context)
+                self.assertTrue(include_file_operations)
+                self.assertTrue(include_alarm_evidence)
+                self.assertTrue(include_engineering_assemblies)
+                self.assertEqual(signal_context_schema_version, 5)
                 for name in ("analysis_build", "private_save", "summary_build", "sample_replay"):
                     with timings.phase(name):
                         pass
@@ -674,11 +716,12 @@ class GitAndWorkflowTests(unittest.TestCase):
             outcome, calls, published, analysis = self._workflow(
                 Path(folder).resolve(), [test_result(), test_result()])
         self.assertEqual(outcome, 0)
-        self.assertEqual(published[0]['schema_version'], 39)
+        self.assertEqual(published[0]['schema_version'], 47)
         self.assertEqual(published[0]['timings']['total_ms'], 0)
         self.assertEqual(published[0]['timings']['phases_ms'], dict.fromkeys(PHASES, 0))
         self.assertFalse(any(call[0] in {'fetch', 'pull', 'push'} for call in calls))
         self.assertEqual(analysis.call_args.kwargs['sfc_context_schema_version'], 2)
+        self.assertEqual(analysis.call_args.kwargs['signal_context_schema_version'], 5)
 
     def test_failed_suite_commits_only_local_report_without_analysis_or_remote_access(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

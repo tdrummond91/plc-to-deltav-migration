@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Entirely invented source evidence; no production names or settings. -->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="38.00" xmlns:x="urn:invented-extension">
+  <Controller Name="InventedAlarmEvidence">
+    <AlarmDefinitions>
+      <DataTypeAlarmDefinition Name="InventedRecord">
+        <MemberAlarmDefinition Name="DefinitionHigh" Input=".PV" Limit="0012.50" Severity="0500" Expression="Input &gt; Limit">
+          <AlarmConfig><Messages><Message Type="ADM"><Text Lang="en-US"><![CDATA[Definition message remains stored wording.]]></Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMIGroup>InventedGroup</HMIGroup><HMICmd>InventedCommand()</HMICmd></AlarmConfig>
+        </MemberAlarmDefinition>
+      </DataTypeAlarmDefinition>
+    </AlarmDefinitions>
+    <Tags>
+      <Tag Name="InventedAlarm01" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 1; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0001" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 1</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay1</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm02" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 2; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0002" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 2</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay2</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm03" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 3; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0003" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 3</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay3</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm04" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 4; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0004" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 4</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay4</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm05" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 5; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0005" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 5</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay5</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm06" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 6; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0006" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 6</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay6</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm07" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 7; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0007" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 7</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay7</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm08" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 8; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0008" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 8</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay8</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm09" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 9; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0009" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 9</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay9</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm10" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 10; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0010" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 10</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay10</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm11" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 11; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0011" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 11</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay11</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm12" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 12; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0012" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 12</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay12</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm13" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 13; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0013" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 13</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay13</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm14" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 14; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0014" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 14</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay14</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm15" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 15; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0015" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 15</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay15</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm16" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 16; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0016" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 16</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay16</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm17" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 17; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0017" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 17</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay17</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm18" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 18; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0018" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 18</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay18</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm19" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 19; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0019" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 19</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay19</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm20" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 20; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0020" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 20</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay20</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm21" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 21; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0021" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 21</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay21</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm22" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 22; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0022" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 22</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay22</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm23" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 23; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0023" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 23</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay23</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm24" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 24; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0024" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 24</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay24</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm25" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 25; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0025" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 25</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay25</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm26" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 26; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0026" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 26</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay26</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm27" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 27; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0027" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 27</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay27</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm28" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 28; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0028" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 28</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay28</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm29" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 29; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0029" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 29</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay29</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm30" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 30; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0030" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 30</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay30</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm31" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 31; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0031" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 31</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay31</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm32" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 32; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0032" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 32</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay32</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm33" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 33; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0033" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 33</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay33</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm34" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 34; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0034" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 34</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay34</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm35" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 35; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0035" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 35</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay35</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm36" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 36; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0036" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 36</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay36</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm37" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 37; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0037" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 37</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay37</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm38" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 38; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0038" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 38</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay38</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm39" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 39; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0039" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 39</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay39</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm40" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 40; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0040" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 40</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay40</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm41" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 41; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0041" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 41</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay41</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm42" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 42; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0042" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 42</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay42</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm43" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 43; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0043" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 43</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay43</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm44" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 44; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0044" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 44</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay44</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm45" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 45; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0045" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 45</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay45</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm46" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 46; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0046" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 46</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay46</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm47" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 47; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0047" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 47</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay47</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm48" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 48; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0048" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 48</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay48</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm49" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 49; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0049" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 49</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay49</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm50" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 50; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0050" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 50</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay50</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm51" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 51; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0051" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 51</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay51</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm52" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 52; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0052" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 52</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay52</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm53" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 53; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0053" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 53</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay53</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm54" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 54; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0054" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 54</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay54</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm55" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 55; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0055" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 55</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay55</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm56" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 56; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0056" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 56</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay56</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm57" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 57; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0057" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 57</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay57</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm58" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 58; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0058" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 58</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay58</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm59" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 59; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0059" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 59</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay59</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAlarm60" TagType="Base" DataType="ALARM_DIGITAL">
+        <Description>Invented declaration 60; no operating behavior inferred.</Description>
+        <Data Format="Alarm"><AlarmDigitalParameters Severity="0060" ProgAck="false"/><AlarmConfig><Messages><Message Type="AM"><Text Lang="en-US">Invented alarm message 60</Text></Message></Messages><AlarmClass>InventedClass</AlarmClass><HMICommand>InventedDisplay60</HMICommand></AlarmConfig></Data>
+      </Tag>
+      <Tag Name="InventedAnalog" TagType="Base" DataType="ALARM_ANALOG"><Data Format="Alarm"><AlarmAnalogParameters HHLimit="0009.00" HHSeverity="0999"/><AlarmConfig><Messages><Message Type="HH"><Text Lang="en-US"><![CDATA[<img src=x onerror=window.alarmInjected=true> & raw stored message]]></Text><Text Lang="fr-FR">Texte invente</Text></Message></Messages><AlarmClass>InventedAnalogClass</AlarmClass><HMICommand>InventedDisplay</HMICommand></AlarmConfig></Data><Data Format="L5K">[0009,0999]</Data></Tag>
+      <Tag Name="InventedSensor" TagType="Base" DataType="DINT"><AlarmConditions><AlarmCondition Name="ConditionBit" Input=".1" Severity="0075" Used="false"><AlarmConfig><Messages><Message Type="CAM"><Text Lang="en-US">Tag condition wording</Text></Message></Messages><HMIGroup>InventedConditionGroup</HMIGroup><HMICmd>StoredOnly()</HMICmd></AlarmConfig></AlarmCondition></AlarmConditions><Data Format="Decorated"><DataValue DataType="DINT" Value="0"/></Data></Tag>
+      <Tag Name="ForeignAttributeOwner" TagType="Base" DataType="DINT"><AlarmConditions x:ReviewMark="namespace-confounded"><AlarmCondition Name="ForeignQualifiedCondition" Input=".2"><AlarmConfig><AlarmClass>Inherited namespace gap</AlarmClass></AlarmConfig></AlarmCondition></AlarmConditions></Tag>
+      <Tag Name="AmbiguousConditionOwner" TagType="Base" DataType="DINT"><AlarmConditions><AlarmCondition Name="Repeated" Input=".1"><AlarmConfig><Messages><Message Type="CAM"><Text Lang="en-US">First retained text</Text></Message></Messages></AlarmConfig></AlarmCondition><AlarmCondition Name="Repeated" Input=".2"><AlarmConfig><Messages><Message Type="CAM"><Text Lang="en-US">Second retained text</Text><Text Lang="en-US">Duplicate language retained</Text></Message></Messages></AlarmConfig></AlarmCondition></AlarmConditions></Tag>
+      <Tag Name="UnknownShapeOwner" TagType="Base" DataType="DINT"><AlarmConditions><AlarmCondition Name="NestedText" Input=".3"><AlarmConfig><Messages><Message Type="CAM"><Text Lang="en-US">Outer text<InventedMarkup>Nested XML retained separately</InventedMarkup></Text></Message></Messages><VendorSetting PrivateValue="unchanged"><AlarmClass>Never promoted through unknown parent</AlarmClass></VendorSetting></AlarmConfig></AlarmCondition></AlarmConditions></Tag>
+      <Tag DataType="ALARM_DIGITAL" TagType="Base"><Data Format="Alarm"><AlarmDigitalParameters Severity="0010"/></Data></Tag>
+      <Tag Name="InventedInput" TagType="Base" DataType="BOOL"/>
+      <Tag Name="InventedOutput" TagType="Base" DataType="BOOL"/>
+    </Tags>
+    <VendorAlarmExtension><AlarmCondition Name="Misplaced" Input=".Unknown"><AlarmConfig><AlarmClass>Misplaced source evidence</AlarmClass></AlarmConfig></AlarmCondition></VendorAlarmExtension>
+    <Programs><Program Name="InventedProgram"><Routines><Routine Name="InventedRoutine" Type="RLL"><RLLContent><Rung Number="0" Type="N"><Comment>Ordinary signal navigation remains separate from alarm declarations.</Comment><Text><![CDATA[XIC(InventedInput)OTE(InventedOutput);]]></Text></Rung></RLLContent></Routine></Routines></Program></Programs>
+  </Controller>
+</RSLogix5000Content>
