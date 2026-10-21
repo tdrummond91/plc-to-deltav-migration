@@ -95,7 +95,7 @@
       `${TOPICS.filter((id) => completed.has(id)).length} / ${TOPICS.length} explored`;
     const remaining = CORE.find((id) => !completed.has(id));
     const actions = {
-      orient: ["Go to step 1 — choose your source →", "#first-look"],
+      orient: ["Go to step 1 — confirm your source →", "#first-look"],
       navigate: ["Go to step 2 — inspect a complete rung →", "#practice"],
       interpret: ["Go to step 3 — save a decision →", "#interpret"],
       respond: ["Go to step 4 — reopen and back up →", "#respond"],

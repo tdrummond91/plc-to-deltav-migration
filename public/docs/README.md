@@ -25,9 +25,10 @@ records preserve why the implementation works as it does; older status and
 Phase 1 source analysis has fourteen validated cycles, followed by successful
 cleanup and embedded-guide confirmations: sixteen completed cycles, zero
 further unchanged-source parser runs are required to open that evidence. The
-current review entry point is `Open-Workbench.cmd` on
-`feat/engineering-workspace-pc`. Import the completed saved run and use the
-structured editor. PCSD and FHX remain later phases. The earlier report-only
+primary entry point is `bash ./run-work-check.sh` on
+`feat/engineering-workspace-pc`: check, analyze, update the selected project and
+open the structured editor. To reopen saved work without analysis, use
+`bash ./open-workbench.sh`. PCSD and FHX remain later phases. The earlier report-only
 review handoff is superseded; the new editor still needs its first work-PC
 source/import walkthrough before team distribution.
 

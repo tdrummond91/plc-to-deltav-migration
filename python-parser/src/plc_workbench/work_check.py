@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tempfile
 import traceback
-from typing import Any
+from typing import Any, Callable
 from uuid import uuid4
 
 from .access import analyze_access
@@ -1623,6 +1623,7 @@ def _phase_elapsed(name: str, milliseconds: int) -> None:
 
 def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str], *,
              timings: WorkCheckTiming | None = None,
+             on_saved_run: Callable[[Path], None] | None = None,
              sfc_context_schema_version: int = 1,
              include_execution_context: bool = False,
              include_signal_context: bool = False,
@@ -1654,11 +1655,13 @@ def _analyze(root: Path, source: Path, logs: Path, revision: dict[str, str], *,
                                include_control_interpretation=include_control_interpretation,
                                include_residual_diagnostics=include_residual_diagnostics,
                                include_rack_backing_context=include_rack_backing_context,
+                               **({"on_saved_run": on_saved_run} if on_saved_run is not None else {}),
                                **({"review_debug": True} if review_debug else {}))
 
 
 def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, str], *,
                     timings: WorkCheckTiming | None = None,
+                    on_saved_run: Callable[[Path], None] | None = None,
                     sfc_context_schema_version: int = 1,
                     include_execution_context: bool = False,
                     include_signal_context: bool = False,
@@ -1988,6 +1991,10 @@ def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, st
                                           rung_analysis, relationships, sample_conditions, sample_context)
         with timings.phase("sample_replay") if timings is not None else nullcontext():
             result["targeted_samples"] = resolve_targeted_samples(root, frozen_sample_request)
+        # Keep the exact finalized run out of the closed, shareable report schema.
+        # Notify only after all analysis stages finish; never infer a latest run.
+        if on_saved_run is not None:
+            on_saved_run(saved_run)
     except Exception as exc:
         # Only our exact storage exception may refine the save stage. Do not
         # inspect arbitrary exception attributes, messages, causes or tracebacks:
@@ -2002,7 +2009,8 @@ def _analyze_source(root: Path, source: Path, logs: Path, revision: dict[str, st
     return result
 
 
-def run_check(root: Path, supplied_source: str | None, *, review_debug: bool = False) -> int:
+def run_check(root: Path, supplied_source: str | None, *, review_debug: bool = False,
+              open_workspace: bool = False) -> int:
     """Commit only the validated feedback report, without contacting a remote."""
     timings = WorkCheckTiming(announce=_phase_elapsed)
     branch = _branch(root)
@@ -2016,6 +2024,7 @@ def run_check(root: Path, supplied_source: str | None, *, review_debug: bool = F
     print(f"Selected local source: {source}", flush=True)
     print(f"Local logs: {logs}", flush=True)
     results: dict[str, Any] = {}
+    saved_runs: list[Path] = []
     for suite in ("application", "helpers"):
         print(f"Running {suite} parser tests (work-machine selection)...", flush=True)
         with timings.phase(f"{suite}_tests"):
@@ -2032,6 +2041,7 @@ def run_check(root: Path, supplied_source: str | None, *, review_debug: bool = F
                             engineering_assemblies_schema_version=3, include_communication_context=True,
                             include_residual_interpretation=True, include_control_interpretation=True,
                             include_residual_diagnostics=True, include_rack_backing_context=True,
+                            **({"on_saved_run": saved_runs.append} if open_workspace else {}),
                             **({"review_debug": True} if review_debug else {}))
     else:
         analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False,
@@ -2083,7 +2093,39 @@ def run_check(root: Path, supplied_source: str | None, *, review_debug: bool = F
     print(f"Committed work-machine report locally: {saved_commit[:12]}", flush=True)
     print("Nothing was pulled or pushed. Review the report, then run git push when ready.", flush=True)
     print(f"Check status: {status}. Raw logs and engineering records remain under confidential/.", flush=True)
-    return 1 if status == "failed" else 0
+    if status == "failed":
+        return 1
+    if open_workspace:
+        if (len(saved_runs) != 1 or not analysis["private_run_saved"]
+                or analysis["failure_code"] is not None):
+            print("Analysis and its feedback commit are saved, but the exact run could not be handed to the editor. "
+                  "Open the workspace and choose the completed run manually; another analysis is not required.",
+                  file=sys.stderr)
+            return 1
+        return _open_completed_workspace(root, saved_runs[0], logs)
+    return 0
+
+
+def _open_completed_workspace(root: Path, saved_run: Path, logs: Path) -> int:
+    """Open only this successful run after publication and commit verification."""
+    from .workspace import main as open_workspace
+
+    print("Analysis is saved. Updating the editable project and opening the workspace...", flush=True)
+    print("Keep this terminal open while reviewing. Close workspace returns here for manual git push.", flush=True)
+    try:
+        result = open_workspace([
+            "--runs", str(root / "confidential" / "workspaces" / "work-check"),
+            "--import-run", str(saved_run),
+        ])
+    except Exception:
+        _private_failure(logs / "workspace.log")
+        result = 1
+    if result:
+        print("Analysis and its feedback commit are already saved; the editor did not open. "
+              "Close any existing workspace, then use bash ./open-workbench.sh and Choose analysis run. "
+              "You do not need to repeat the analysis.", file=sys.stderr)
+        print(f"Completed run: {saved_run}", file=sys.stderr)
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -2091,9 +2133,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("source", nargs="?", help="L5X filename under confidential/plc-code, or an explicit path. Saved locally for later runs.")
     parser.add_argument("--debug", action="store_true",
                         help="Include implementation diagnostics in the private HTML report.")
+    parser.add_argument("--open-workspace", action="store_true",
+                        help="Import this completed run and open the editable project after the local feedback commit.")
     arguments = parser.parse_args(argv)
     try:
         return run_check(_checkout_root(), arguments.source,
+                         **({"open_workspace": True} if arguments.open_workspace else {}),
                          **({"review_debug": True} if arguments.debug else {}))
     except WorkCheckError as exc:
         print(str(exc), file=sys.stderr)

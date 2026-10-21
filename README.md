@@ -5,20 +5,26 @@ DeltaV. The current tool builds a searchable, offline engineering report from
 the source: rungs and branches, I/O, PID evidence, calculations, sequences,
 alarms, communication and related groups, with uncertainty kept visible.
 
-**Start on the work PC by double-clicking [Open-Workbench.cmd](Open-Workbench.cmd).**
-Choose your existing completed analysis run, browse the source, and save
-categories, groups and engineering properties in a local project database.
-There is no default practice report and no separate text-feedback requirement.
+**On the work PC, keep using the same command from the repository folder:**
+
+```bash
+bash ./run-work-check.sh
+```
+
+It runs the checks, analyzes the remembered L5X, saves the complete private
+result, creates the validated feedback commit locally, and opens the editable
+workspace with that exact new analysis loaded. Review categories, groups and
+engineering properties save in a local project database.
 
 **Current step:** connecting Phase 1 source analysis to persistent engineering
-review. The workspace imports saved results without another parser run. PCSD
-and FHX generation remain later phases.
+review. The usual work-check command now carries the result into that review
+workspace. PCSD and FHX generation remain later phases.
 
 ## What to do next
 
 Use [START-HERE.html](START-HERE.html) for four short, checkable steps.
-The app opens at <http://127.0.0.1:8745> after launching. Select **Choose analysis
-run**, verify the source name and total rung count, and open a familiar rung.
+The app opens at <http://127.0.0.1:8745> after the check. Verify the source name
+and total rung count in the automatically loaded result, and open a familiar rung.
 Change its reviewed categories or properties and select **Save review**.
 
 **Back up project** saves the whole private project. **Restore backup** opens
@@ -26,13 +32,15 @@ a new restored copy without replacing the original. The built-in **How to
 review** page explains the controls. See the [workspace guide](public/docs/reviews/ENGINEERING_WORKSPACE.md)
 only when you need storage, rerun or handoff details.
 
-The launcher uses the work PC's existing parser environment. No Git operations,
-background listener or automatic parser runs occur. **Close workspace** stops
-the application. Original saved HTML remains available as supporting evidence.
+The script uses the work PC's existing parser environment. It does not fetch,
+pull or push, and it does not install a background listener. **Close workspace**
+stops the review application. Original saved HTML remains available as supporting
+evidence.
 
-## Run a future check when needed
+## Your usual work cycle
 
-For a changed export or a requested correction, use:
+Pull updated code yourself when needed, run the same script, then push the
+locally created feedback commit yourself:
 
 ```bash
 git pull
@@ -40,10 +48,10 @@ bash ./run-work-check.sh
 git push
 ```
 
-The script runs the parser tests, analyzes the remembered local L5X, saves a
-fresh private report and creates the validated feedback commit locally. It does
-not fetch, pull or push; the two Git commands above are manual. For a new
-checkout, supply the source once:
+The two Git commands above are manual. The script handles testing, analysis,
+the local feedback commit, and opening the editable project. Its terminal stays
+occupied while the workspace is running. Select **Close workspace** when done
+to return to Bash, then push. For a new checkout, supply the source once:
 
 ```bash
 bash ./run-work-check.sh A19CHL02-unencrypted.L5X
@@ -56,6 +64,23 @@ for prerequisites, results and failure handling.
 Normal reports include the reviewer instructions and engineering evidence.
 To include developer version and rule diagnostics in a separate run, use
 `bash ./run-work-check.sh --debug`. Keep the normal report for review.
+
+## Reopen a saved review without another analysis
+
+This optional shortcut opens the existing project directly:
+
+```bash
+bash ./open-workbench.sh
+```
+
+Double-clicking `Open-Workbench.cmd` is an alternative to this shortcut.
+**Choose analysis run** remains available to import an already completed run
+manually. Neither opener runs the parser or synchronizes Git.
+
+If a workspace is already using port 8745, the work-check script leaves the new
+completed run saved and does not import it into that running application. Select
+**Close workspace**, run the optional opener above, and use **Choose analysis
+run** to load the completed result. You do not need to repeat the long analysis.
 
 ## Supporting source evidence
 
@@ -75,8 +100,8 @@ within the approved work environment.
 | Location | Purpose |
 |---|---|
 | [START-HERE.html](START-HERE.html) | First-use path and your personal learning checklist. |
-| `Open-Workbench.cmd` | Open the editable source review application. |
-| `run-work-check.sh` | Run a new parser check when requested or after a changed export. |
+| `run-work-check.sh` | Usual command: test, analyze, save the result and local feedback commit, then open the updated editable project. |
+| `open-workbench.sh` / `Open-Workbench.cmd` | Optional shortcuts to reopen an existing review without reanalysis. |
 | `confidential/` | Ignored local exports, complete reports and logs; Git does not back these up. |
 | [python-parser/](python-parser/README.md) | Application code, tests and locked Python environment. |
 | [public/docs/](public/docs/README.md) | Current instructions, plans and retained review evidence. |

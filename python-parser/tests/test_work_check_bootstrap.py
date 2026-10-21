@@ -117,6 +117,25 @@ git rev-parse HEAD > "$WORK_CHECK_CAPTURE_HEAD"
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(self.arguments_log.exists())
 
+    @unittest.skipUnless(os.name == "nt", "Windows paths are case-insensitive by default.")
+    def test_windows_checkout_path_case_does_not_reject_the_same_directory(self) -> None:
+        self.worker = self.worker.with_name(self.worker.name.upper())
+        result = self._run("invented.L5X")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(self.arguments_log.exists())
+        self.assertTrue(set(self._commands()) <= {"rev-parse", "status", "symbolic-ref"})
+
+    def test_launcher_copied_below_checkout_root_stops_before_uv(self) -> None:
+        nested = self.worker / "copied scripts"
+        nested.mkdir()
+        shutil.copyfile(self.bootstrap, nested / "run-work-check.sh")
+        self.worker = nested
+        result = self._run("invented.L5X")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("original repository checkout", result.stderr)
+        self.assertFalse(self.arguments_log.exists())
+        self.assertEqual(self._commands(), ["rev-parse"])
+
     def test_uses_local_checkout_without_pulling_and_preserves_argument_boundaries(self) -> None:
         old_head = self._git("rev-parse", "HEAD", cwd=self.worker)
         (self.seed / "remote-update.txt").write_text("synthetic remote change\n", encoding="utf-8")
@@ -134,7 +153,7 @@ git rev-parse HEAD > "$WORK_CHECK_CAPTURE_HEAD"
         arguments = self.arguments_log.read_bytes().decode("utf-8").split("\0")[:-1]
         self.assertEqual(arguments, [
             "run", "--project", "python-parser", "--locked", "python", "-B", "-m",
-            "plc_workbench.work_check", "--debug", "folder with spaces/invented unit.L5X", "literal-dollar-$value",
+            "plc_workbench.work_check", "--open-workspace", "--debug", "folder with spaces/invented unit.L5X", "literal-dollar-$value",
         ])
         self.assertTrue(set(self._commands()) <= {"rev-parse", "status", "symbolic-ref"})
 

@@ -7,11 +7,19 @@ recategorization and saved engineering corrections before meaningful review;
 copying text feedback was not an acceptable substitute. Development branch:
 `feat/engineering-workspace-pc`, based on the prior onboarding branch.
 
-The new entry point is `Open-Workbench.cmd` (or `bash ./open-workbench.sh`).
-It opens a local browser editor at `http://127.0.0.1:8745`, imports a completed
-saved run and preserves all captured rungs. No default practice report, Git
-network operation, listener or automatic parser run is involved. The existing
-work-PC saved analysis can be imported without another 18-minute parser run.
+Tyler's primary entry point remains **`bash ./run-work-check.sh`**. It runs the
+existing tests and L5X analysis, verifies its local feedback commit, then imports
+that exact completed run into the selected editable project and opens the
+browser at `http://127.0.0.1:8745`. Complete and partial analyses can proceed;
+failed checks cannot import an older result. Saved corrections remain in the
+project, with changed evidence flagged for revalidation. The terminal stays
+occupied until **Close workspace** or Ctrl+C. Git synchronization remains manual.
+
+`bash ./open-workbench.sh` is an optional shortcut to reopen saved work without
+analysis; `Open-Workbench.cmd` is the optional double-click equivalent. Do not
+replace the established work-check command with a separate mandatory import
+workflow. Existing completed runs can still be chosen manually, including after
+an editor launch failure; another 18-minute parser run is unnecessary for that.
 
 Implemented: program/routine navigation; complete rung text/comments and a
 series/parallel structural diagram; every instruction/operand and linked
@@ -44,6 +52,26 @@ affected saved reviews for revalidation. No private report has been opened
 here. The first actual work-PC import/editing walkthrough remains outstanding;
 do not equate synthetic validation with accepted team usability or source
 engineering approval.
+
+Launcher follow-up: the work-check script's original-checkout check compared
+path strings and could reject a correct Windows checkout when capitalization
+differed. It now compares filesystem identity; copied launchers below the
+repository root still fail before invoking the parser. This message belongs
+to `run-work-check.sh`, not the editor launcher. The Bash editor launcher has
+also been checked directly with `--help` through the existing uv environment.
+
+Single-command follow-up validation: 8 exact-run handoff tests, 26 workspace
+tests, 17 onboarding tests, and 58 work-check/presentation tests passed. Four
+focused Bash bootstrap regressions passed, including Windows path capitalization,
+copied-launcher rejection and argument forwarding; argument forwarding passed
+again after adding the workspace flag. The new handoff tests cover finalized
+manifests, partial results, failed saves/checks, verified local commits and editor
+failure recovery. Workspace tests cover occupied ports before import, preserved
+restored-project selection and invalid selection files without fallback writes.
+Independent review found no blockers. Both the Bash launcher and direct
+work-check CLI require the repository root before selecting the local project.
+These are focused follow-up checks; the broader suites above preceded this wiring
+change. The actual work-PC source and editing walkthrough remain to be checked.
 
 ## Prior analysis and report history
 

@@ -579,6 +579,195 @@ class WorkspaceIntegrationTests(unittest.TestCase):
         with running_workspace(self.project, self.runs) as client:
             self.assertEqual(client.get('/api/state')['source']['rung_count'], 0)
 
+    def test_automatic_launch_imports_exact_run_after_binding_before_browser(self) -> None:
+        servers: list[WorkspaceServer] = []
+        events: list[str] = []
+        expected = json.loads((self.first_run / 'manifest.json').read_text())['run_id']
+
+        def bind(address: tuple[str, int], workspace: Workspace) -> WorkspaceServer:
+            server = WorkspaceServer(address, workspace)
+            servers.append(server)
+            events.append('bound')
+            self.assertIsNone(workspace.state()['active_run'])
+            return server
+
+        def open_browser(url: str) -> bool:
+            events.append('browser')
+            state = servers[0].workspace.state()
+            self.assertEqual(url, servers[0].origin)
+            self.assertEqual(state['active_run'], expected)
+            self.assertEqual(state['source']['rung_count'], 105)
+            self.assertIn('105 captured rungs', state['startup_notice'])
+            self.assertIn('Analysis ready', state['startup_notice'])
+            return True
+
+        def serve(server: WorkspaceServer, **_: object) -> None:
+            events.append('serving')
+            self.assertEqual(server.workspace.state()['active_run'], expected)
+
+        with patch('plc_workbench.workspace.WorkspaceServer', side_effect=bind), \
+                patch.object(WorkspaceServer, 'serve_forever', new=serve), \
+                patch('plc_workbench.workspace.webbrowser.open', side_effect=open_browser):
+            self.assertEqual(main(['--project', str(self.project), '--runs', str(self.runs),
+                                   '--import-run', str(self.first_run), '--port', '0']), 0)
+        self.assertEqual(events, ['bound', 'browser', 'serving'])
+        self.assertEqual(servers[0].socket.fileno(), -1)
+        with self.assertRaises(sqlite3.ProgrammingError):
+            servers[0].workspace.store.connection.execute('SELECT 1')
+
+    def test_automatic_failed_import_closes_resources_without_opening_browser(self) -> None:
+        workspace = Workspace(self.project, self.runs)
+        workspace.close()
+        before = self.project.read_bytes()
+        for run in (self.runs / 'missing-run', Path(self.temporary.name)):
+            servers: list[WorkspaceServer] = []
+
+            def bind(address: tuple[str, int], selected: Workspace) -> WorkspaceServer:
+                server = WorkspaceServer(address, selected)
+                servers.append(server)
+                return server
+
+            with self.subTest(run=run), \
+                    patch('plc_workbench.workspace.WorkspaceServer', side_effect=bind), \
+                    patch.object(WorkspaceServer, 'serve_forever') as serve, \
+                    patch('plc_workbench.workspace.webbrowser.open') as browser:
+                self.assertEqual(main(['--project', str(self.project), '--runs', str(self.runs),
+                                       '--import-run', str(run), '--port', '0']), 1)
+                browser.assert_not_called()
+                serve.assert_not_called()
+            self.assertEqual(self.project.read_bytes(), before)
+            self.assertEqual(servers[0].socket.fileno(), -1)
+            with self.assertRaises(sqlite3.ProgrammingError):
+                servers[0].workspace.store.connection.execute('SELECT 1')
+
+    def test_automatic_occupied_port_does_not_import_or_change_database(self) -> None:
+        workspace = Workspace(self.project, self.runs)
+        server = WorkspaceServer(('127.0.0.1', 0), workspace)
+        try:
+            before = workspace.state()
+            before_bytes = self.project.read_bytes()
+            with patch.object(Workspace, 'import_run') as import_run, \
+                    patch('plc_workbench.workspace.webbrowser.open') as browser:
+                self.assertEqual(main(['--project', str(self.project), '--runs', str(self.runs),
+                                       '--import-run', str(self.first_run),
+                                       '--port', str(server.server_address[1])]), 1)
+                import_run.assert_not_called()
+                browser.assert_not_called()
+            self.assertEqual(workspace.state(), before)
+            self.assertEqual(self.project.read_bytes(), before_bytes)
+        finally:
+            server.server_close()
+            workspace.close()
+
+    def test_automatic_invalid_selection_fails_before_creating_fallback(self) -> None:
+        previous_directory = Path.cwd()
+        try:
+            for index, content in enumerate(('{broken', '[]', '{"filename":"../outside.sqlite"}',
+                                             '{"filename":"missing.sqlite"}', ' ' * 1025)):
+                with self.subTest(content=content[:50]):
+                    case = Path(self.temporary.name) / f'case-{index}'
+                    projects = case / 'confidential' / 'projects'
+                    projects.mkdir(parents=True)
+                    pointer = projects / 'last-project.json'
+                    pointer.write_text(content, encoding='utf-8')
+                    os.chdir(case)
+                    with patch('plc_workbench.workspace.Workspace') as construct, \
+                            patch('plc_workbench.workspace.webbrowser.open') as browser:
+                        self.assertEqual(main(['--runs', str(self.runs), '--port', '0',
+                                               '--import-run', str(self.first_run)]), 1)
+                        construct.assert_not_called()
+                        browser.assert_not_called()
+                    self.assertFalse((projects / 'engineering.sqlite').exists())
+                    self.assertEqual(pointer.read_text(encoding='utf-8'), content)
+        finally:
+            os.chdir(previous_directory)
+
+    def test_automatic_import_uses_selected_restored_project_and_preserves_reviews(self) -> None:
+        projects = Path(self.temporary.name) / 'confidential' / 'projects'
+        restored = projects / 'restored-selection.sqlite'
+        workspace = Workspace(restored, self.runs)
+        try:
+            initial = workspace.import_run(str(self.first_run), workspace.state()['revision'])
+            source_id = self.inventory['rungs'][0]['id']
+            workspace.store.mutate({'op': 'review', 'source_ids': [source_id], 'status': 'confirmed',
+                                    'fields': {'purpose': 'Keep my correction'}}, initial['revision'])
+        finally:
+            workspace.close()
+        pointer = projects / 'last-project.json'
+        pointer.write_text(json.dumps({'filename': restored.name}), encoding='utf-8')
+        observed: list[dict] = []
+
+        def serve(server: WorkspaceServer, **_: object) -> None:
+            observed.append(server.workspace.state())
+
+        previous_directory = Path.cwd()
+        try:
+            os.chdir(self.temporary.name)
+            with patch.object(WorkspaceServer, 'serve_forever', new=serve), \
+                    patch('plc_workbench.workspace.webbrowser.open') as browser:
+                self.assertEqual(main(['--runs', str(self.runs), '--import-run', str(self.rerun),
+                                       '--port', '0', '--no-browser']), 0)
+                browser.assert_not_called()
+        finally:
+            os.chdir(previous_directory)
+        self.assertEqual(observed[0]['project_path'], str(restored))
+        self.assertEqual(observed[0]['reviews'][source_id]['fields']['purpose'], 'Keep my correction')
+        self.assertEqual(observed[0]['reviews'][source_id]['status'], 'confirmed')
+        expected = json.loads((self.rerun / 'manifest.json').read_text())['run_id']
+        self.assertEqual(observed[0]['active_run'], expected)
+        self.assertFalse((projects / 'engineering.sqlite').exists())
+
+    def test_automatic_invalid_selected_database_never_creates_fallback(self) -> None:
+        projects = Path(self.temporary.name) / 'confidential' / 'projects'
+        projects.mkdir(parents=True)
+        selected = projects / 'selected.sqlite'
+        selected.write_bytes(b'This is not a project database')
+        (projects / 'last-project.json').write_text(json.dumps({'filename': selected.name}), encoding='utf-8')
+        previous_directory = Path.cwd()
+        try:
+            os.chdir(self.temporary.name)
+            with patch('plc_workbench.workspace.webbrowser.open') as browser, \
+                    patch.object(Workspace, 'import_run') as import_run:
+                self.assertEqual(main(['--runs', str(self.runs), '--port', '0',
+                                       '--import-run', str(self.first_run)]), 1)
+                browser.assert_not_called()
+                import_run.assert_not_called()
+        finally:
+            os.chdir(previous_directory)
+        self.assertFalse((projects / 'engineering.sqlite').exists())
+        self.assertEqual(selected.read_bytes(), b'This is not a project database')
+
+    def test_exclusive_listener_can_reopen_same_port_after_clean_shutdown(self) -> None:
+        with running_workspace(self.project, self.runs) as client:
+            port = client.server.server_address[1]
+            client.get('/api/state')
+        workspace = Workspace(self.project, self.runs)
+        try:
+            server = WorkspaceServer(('127.0.0.1', port), workspace)
+            server.server_close()
+        finally:
+            workspace.close()
+
+    def test_manual_invalid_selection_retains_explanatory_fallback(self) -> None:
+        projects = Path(self.temporary.name) / 'confidential' / 'projects'
+        projects.mkdir(parents=True)
+        (projects / 'last-project.json').write_text('{broken', encoding='utf-8')
+        observed: list[dict] = []
+
+        def serve(server: WorkspaceServer, **_: object) -> None:
+            observed.append(server.workspace.state())
+
+        previous_directory = Path.cwd()
+        try:
+            os.chdir(self.temporary.name)
+            with patch.object(WorkspaceServer, 'serve_forever', new=serve):
+                self.assertEqual(main(['--runs', str(self.runs), '--port', '0', '--no-browser']), 0)
+        finally:
+            os.chdir(previous_directory)
+        self.assertEqual(observed[0]['project_path'], str(projects / 'engineering.sqlite'))
+        self.assertIn('default project is open', observed[0]['startup_notice'])
+        self.assertEqual(observed[0]['source']['rung_count'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

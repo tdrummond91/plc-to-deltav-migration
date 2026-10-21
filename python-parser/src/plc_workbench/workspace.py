@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import socket
 import sqlite3
 import threading
 from typing import Any
@@ -366,10 +367,19 @@ class Workspace:
 
 
 class WorkspaceServer(HTTPServer):
+    # Windows SO_REUSEADDR can permit two listeners on one port. Exclusive
+    # ownership must be established before an automatic import changes a project.
+    allow_reuse_address = os.name != 'nt'
+
     def __init__(self, address: tuple[str, int], workspace: Workspace):
         self.workspace = workspace
         self.token = secrets.token_urlsafe(32)
         super().__init__(address, WorkspaceHandler)
+
+    def server_bind(self) -> None:
+        if os.name == 'nt' and hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
 
     @property
     def origin(self) -> str:
@@ -530,48 +540,83 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
             self._json(500, {"error": "Could not save the project. Check disk space and access, then retry."})
 
 
+def _startup_project(explicit: Path | None, *, automatic_import: bool) -> tuple[Path, str]:
+    """Resolve the selected project before opening or creating any database.
+
+    Manual startup can explain a fallback and let the reviewer choose a backup.
+    An automatic import must never send new analysis to that unintended fallback.
+    """
+    if explicit is not None:
+        return explicit, ''
+    default = Path('confidential/projects/engineering.sqlite')
+    pointer = default.parent / 'last-project.json'
+    if not pointer.exists() and not pointer.is_symlink():
+        return default, ''
+    try:
+        if pointer.is_file() and not pointer.is_symlink() and pointer.stat().st_size <= 1024:
+            filename = json.loads(pointer.read_text(encoding='utf-8')).get('filename')
+            if isinstance(filename, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*\.sqlite', filename):
+                candidate = default.parent / filename
+                if candidate.is_file() and not candidate.is_symlink():
+                    return candidate, ''
+    except (OSError, ValueError, AttributeError):
+        pass
+    if automatic_import:
+        raise ProjectError(
+            'The previously selected project is missing or its selection file is invalid. '
+            'No analysis was imported and no fallback project was created. '
+            'Open the workspace manually to select or restore the intended project, '
+            'then choose the already completed run under Import analysis. No analysis rerun is needed.'
+        )
+    return default, (
+        'The previously selected project could not be found. '
+        'The default project is open; earlier project files have not been replaced.'
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Open the local editable engineering workspace. No Git operations.")
     parser.add_argument("--project", type=Path, help="Explicit project; otherwise reopen the last selected local project.")
     parser.add_argument("--runs", type=Path, default=Path("confidential/workspaces/work-check"))
+    parser.add_argument("--import-run", type=Path,
+                        help="Import this completed run into the selected project before opening the editor.")
     parser.add_argument("--port", type=int, default=8745)
     parser.add_argument("--no-browser", action="store_true")
     args = parser.parse_args(argv)
     if not 0 <= args.port <= 65535:
         parser.error("port must be between 0 and 65535")
     try:
-        project = args.project
-        startup_notice = ''
-        if project is None:
-            project = Path('confidential/projects/engineering.sqlite')
-            pointer = project.parent / 'last-project.json'
-            if pointer.exists():
-                startup_notice = ('The previously selected project could not be found. '
-                                  'The default project is open; earlier project files have not been replaced.')
-            if pointer.is_file() and not pointer.is_symlink() and pointer.stat().st_size <= 1024:
-                try:
-                    filename = json.loads(pointer.read_text(encoding='utf-8')).get('filename')
-                    if isinstance(filename, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*\.sqlite', filename):
-                        candidate = project.parent / filename
-                        if candidate.is_file() and not candidate.is_symlink():
-                            project = candidate
-                            startup_notice = ''
-                except (ValueError, AttributeError):
-                    pass
+        project, startup_notice = _startup_project(args.project, automatic_import=args.import_run is not None)
         with_workspace = Workspace(project, args.runs)
         with_workspace.startup_notice = startup_notice
         try:
             server = WorkspaceServer(("127.0.0.1", args.port), with_workspace)
-            print(f"Engineering workspace: {server.origin}", flush=True)
-            print("Open Import analysis to choose your saved run. Stop with Close workspace or Ctrl+C.", flush=True)
-            if startup_notice:
-                print(startup_notice, flush=True)
-            if not args.no_browser:
-                webbrowser.open(server.origin)
             try:
-                server.serve_forever(poll_interval=0.2)
-            except KeyboardInterrupt:
-                pass
+                # Binding first avoids changing the project if another editor
+                # already occupies the requested port. Import remains atomic.
+                if args.import_run is not None:
+                    loaded = with_workspace.import_run(
+                        str(args.import_run), with_workspace.store.state()['revision']
+                    )
+                    startup_notice = (
+                        f"Analysis ready: {loaded['source']['name']} - "
+                        f"{loaded['source']['rung_count']:,} captured rungs. "
+                        'Saved review corrections are retained; changed evidence is flagged for review.'
+                    )
+                    with_workspace.startup_notice = startup_notice
+                print(f"Engineering workspace: {server.origin}", flush=True)
+                if args.import_run is None:
+                    print("Open Import analysis to choose your saved run. Stop with Close workspace or Ctrl+C.", flush=True)
+                else:
+                    print("Your analysis is loaded. Stop with Close workspace or Ctrl+C.", flush=True)
+                if startup_notice:
+                    print(startup_notice, flush=True)
+                if not args.no_browser:
+                    webbrowser.open(server.origin)
+                try:
+                    server.serve_forever(poll_interval=0.2)
+                except KeyboardInterrupt:
+                    pass
             finally:
                 server.server_close()
         finally:
@@ -581,7 +626,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Workspace: {exc}")
         return 1
     except OSError:
-        print("Could not open the workspace. Check folder access; port 8745 may already be in use.")
+        print(f"Could not open the workspace. Check folder access; port {args.port} may already be in use.")
         return 1
 
 

@@ -9,8 +9,10 @@ inferred candidates and unresolved questions remain distinguishable.
 Phase 1's fourteen analysis cycles, cleanup confirmation and C16 embedded-guide
 refresh are validated. The current editor imports those saved results without
 another parser run and saves categories, groups, rules and engineering
-properties in a private SQLite project. Launch `Open-Workbench.cmd` from the
-repository root. PCSD and FHX are later phases. Use the
+properties in a private SQLite project. The established `bash ./run-work-check.sh`
+now checks and analyzes the source, loads the completed run into that project
+and opens the editor. `bash ./open-workbench.sh` only reopens saved work without
+another analysis. PCSD and FHX are later phases. Use the
 [project README](../README.md) for the normal user workflow and the
 [tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md) for current status.
 

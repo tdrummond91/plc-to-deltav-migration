@@ -47,6 +47,7 @@ class StartHerePage(HTMLParser):
             self.active_label['starts'].append((tag, attributes))
 
     def handle_data(self, data: str) -> None:
+        self.stack[-1].setdefault('text', []).append(data)
         if self.active_label is not None:
             self.active_label['text'].append(data)
 
@@ -62,6 +63,10 @@ class StartHerePage(HTMLParser):
 
 def descendants(node: dict) -> list[dict]:
     return [child for direct in node['children'] for child in [direct, *descendants(direct)]]
+
+
+def node_text(node: dict) -> str:
+    return ' '.join(' '.join(current.get('text', [])) for current in [node, *descendants(node)])
 
 
 _DOM = r"""
@@ -151,6 +156,24 @@ new AsyncFunction('assert','createPage','progress','PROGRESS_KEY','THEME_KEY','R
 
 
 class StartHerePageTests(unittest.TestCase):
+    def test_primary_command_runs_the_check_and_optional_reopen_stays_separate(self) -> None:
+        nodes = descendants(StartHerePage().tree)
+        launch = next(node for node in nodes if 'launch-card' in node['attrs'].get('class', '').split())
+        optional = next(node for node in descendants(launch) if node['attrs'].get('id') == 'reopen-help')
+        optional_nodes = [optional, *descendants(optional)]
+        primary_code = [node_text(node).strip() for node in descendants(launch)
+                        if node['tag'] == 'code' and node not in optional_nodes]
+        self.assertEqual(primary_code, ['bash ./run-work-check.sh'])
+        self.assertIn('bash ./open-workbench.sh', node_text(optional))
+        self.assertIn('Open-Workbench.cmd', node_text(optional))
+        self.assertNotIn('open', optional['attrs'], 'Optional instructions must start collapsed')
+        first = next(node for node in nodes if node['attrs'].get('id') == 'first-look')
+        tasks = next(node for node in first['children'][1]['children'] if node['tag'] == 'ol')
+        instructions = ' '.join(node_text(node) for node in tasks['children'])
+        self.assertIn('exact analysis run', instructions)
+        self.assertIn('total rung count', instructions)
+        self.assertNotIn('Import analysis', instructions)
+
     def test_all_links_and_resources_resolve_locally_and_anchor_ids_are_unique(self) -> None:
         page = StartHerePage()
         ids = [attrs['id'] for _, attrs in page.starts if 'id' in attrs]

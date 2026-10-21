@@ -7,7 +7,9 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
 Usage: bash ./run-work-check.sh [--debug] [SOURCE.L5X]
 
 Run parser tests, analyze the local source, and commit its feedback report locally.
-Open Open-Workbench.cmd to import the saved analysis and edit review decisions.
+Then import that completed analysis into the editable project and open the workspace.
+Saved corrections stay in the project. Keep this terminal open while reviewing.
+Use Close workspace to return to Bash; open-workbench.sh reopens without analysis.
 Add --debug to include developer diagnostics in the private HTML report.
 No automatic fetch, pull or push. Review the report, then run git push when ready.
 A bare filename is found under confidential/plc-code/. An explicit path also works.
@@ -27,7 +29,9 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 script_root="$(pwd -P)"
 repo_root="$(git rev-parse --show-toplevel)"
-if [[ "$(cd -- "$repo_root" && pwd -P)" != "$script_root" ]]; then
+# Windows can spell one directory with different capitalization. Compare the
+# actual directories so a valid checkout is not rejected by string spelling.
+if [[ ! "$repo_root" -ef "$script_root" ]]; then
     printf '%s\n' 'Run the script from its original repository checkout.' >&2
     exit 1
 fi
@@ -44,4 +48,4 @@ command -v uv >/dev/null || {
     exit 1
 }
 
-exec uv run --project python-parser --locked python -B -m plc_workbench.work_check "$@"
+exec uv run --project python-parser --locked python -B -m plc_workbench.work_check --open-workspace "$@"

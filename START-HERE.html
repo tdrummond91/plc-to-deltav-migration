@@ -21,9 +21,9 @@
           <p class="eyebrow">START HERE / YOUR FIRST SAVED REVIEW</p>
           <h1 id="page-title">Your source.<br />Your decisions.</h1>
           <p class="intro">
-            Open the engineering workspace, inspect a complete rung, and save a
-            classification. These four steps guide you through the actual
-            application.
+            Run your usual work-check command. It opens the new result in the
+            engineering workspace, ready to inspect and edit. Follow these four
+            steps to save your first classification.
           </p>
           <p class="finish-line">
             Review changes save in a local project database. Source evidence and
@@ -48,19 +48,21 @@
         </aside>
       </section>
       <section class="section launch-card" aria-labelledby="launch-title">
-        <h2 id="launch-title">First, launch the local application</h2>
+        <h2 id="launch-title">Start with your usual work-check command</h2>
         <ol>
           <li>
-            In <strong>File Explorer</strong>, open this repository's folder and
-            double-click <strong>Open-Workbench.cmd</strong>.
+            In <strong>Git Bash</strong>, from this repository's folder, run:
+            <pre class="command"><code>bash ./run-work-check.sh</code></pre>
           </li>
           <li>
-            Leave its terminal window open while reviewing. It starts the local
-            workspace and opens your browser.
+            Let the tests and analysis finish. The script saves the complete
+            private result, creates the feedback commit locally, updates the
+            editable project, and opens your browser to that exact result.
           </li>
           <li>
-            If the browser did not open, use the button below. If the page
-            cannot connect, run the launcher first.
+            Leave that terminal open while reviewing. Select
+            <strong>Close workspace</strong> when finished to return to Bash. If
+            only the browser did not open, use the button below.
           </li>
         </ol>
         <div class="actions">
@@ -70,19 +72,39 @@
             target="_blank"
             rel="noopener"
             data-workspace-view="rungs"
-            >Open engineering workspace ↗</a
+            >Open running workspace ↗</a
           >
         </div>
         <p class="small">
-          A browser page cannot start the command file for you. The launcher is
-          in your repository folder, beside this Start Here page. It does not
-          pull or push Git changes.
+          The command remembers your local source file. Git pull and push remain
+          manual; the script does not synchronize Git or start a background
+          listener. This button opens an already running workspace.
         </p>
         <p class="small">
-          Already have a completed work-check run? Use it in step 1. A parser
-          rerun is not required just to start reviewing. Keep this guide open in
-          a separate tab.
+          Keep this guide open in a separate tab. The checks below track your
+          learning; your actual engineering changes save in the project
+          database.
         </p>
+        <details id="reopen-help">
+          <summary>
+            Optional: reopen a saved review without another analysis
+          </summary>
+          <p>
+            From the same repository folder, run
+            <code>bash ./open-workbench.sh</code>. Double-clicking
+            <code>Open-Workbench.cmd</code> in File Explorer is an alternative.
+            These shortcuts reopen the saved project without repeating tests or
+            parsing.
+          </p>
+          <p>
+            If the work-check script saved its result but an existing workspace
+            was already using port 8745, it leaves that result intact and skips
+            automatic import. Select <strong>Close workspace</strong> in the
+            existing app, use the optional opener, then select
+            <strong>Choose analysis run</strong> to load the completed result.
+            You do not need to repeat the long analysis.
+          </p>
+        </details>
       </section>
       <section
         class="section walkthrough"
@@ -92,7 +114,7 @@
           <div class="lesson-number" aria-hidden="true">01</div>
           <div class="lesson-body">
             <p class="eyebrow">OPEN YOUR ACTUAL SOURCE</p>
-            <h2>Choose your saved analysis run</h2>
+            <h2>Confirm the automatically loaded source</h2>
             <div class="actions">
               <a
                 class="button primary"
@@ -105,31 +127,31 @@
             </div>
             <ol>
               <li>
-                In the workspace sidebar, select
-                <strong>Choose analysis run</strong>.
-              </li>
-              <li>
-                Select your completed run from the list, then select
-                <strong>Import analysis</strong>. Use the most recent successful
-                run for the export you want to inspect.
+                The workspace loads the exact analysis run your work-check
+                command just saved. Find <strong>Your source</strong> in the
+                sidebar.
               </li>
               <li>
                 Check the <strong>source name</strong> and
-                <strong>rung count</strong> in the sidebar. These must describe
-                your unit. No practice dataset is loaded automatically.
+                <strong>total rung count</strong>. They must describe the export
+                you intended to analyze.
+              </li>
+              <li>
+                Review the listed programs and routines before opening a rung.
+                No practice dataset is loaded automatically.
               </li>
             </ol>
             <p class="look-for">
-              <strong>If the run list is empty:</strong> complete a local
-              work-check first, or launch the workspace with the folder that
-              contains your completed runs. The workspace reads saved analysis;
-              it does not reconstruct a unit from a summary report.
+              <strong>Manual fallback:</strong>
+              <strong>Choose analysis run</strong>
+              can load an already completed run from
+              <code>confidential/workspaces/work-check</code>. If your completed
+              result did not open, use the optional reopening instructions
+              above.
             </p>
             <label class="checkpoint"
               ><input type="checkbox" data-check="orient" /><span
-                ><strong
-                  >Done — I imported my run and verified the source
-                  identity</strong
+                ><strong>Done — I verified the loaded source identity</strong
                 ><small
                   >The source name and total rung count match the export I
                   intend to review.</small
@@ -299,10 +321,11 @@
               </li>
             </ol>
             <p class="look-for">
-              <strong>When you rerun analysis:</strong> import the new completed
-              run into the same project. Prior decisions remain recorded.
-              Changed source or changed evidence is flagged for review; explicit
-              correspondence reconnects a prior decision to a new source record.
+              <strong>When you rerun analysis:</strong> the usual work-check
+              command updates the same project with its completed result. Prior
+              decisions remain recorded. Changed source or changed evidence is
+              flagged for review; explicit correspondence reconnects a prior
+              decision to a new source record.
             </p>
             <label class="checkpoint"
               ><input type="checkbox" data-check="respond" /><span

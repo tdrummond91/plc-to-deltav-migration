@@ -9,8 +9,9 @@ Read this first for progress; use linked reviews for detailed evidence.
 **The report-only review handoff is superseded.** Tyler requires complete source
 navigation and persistent structured editing before team review. The editable
 workspace is implemented on `feat/engineering-workspace-pc`; use
-`Open-Workbench.cmd` and import the existing completed run. No unchanged-source
-parser run is needed for this step. The next gate is a work-PC source/import
+`bash ./run-work-check.sh` for the full check/analyze/update/open workflow.
+`bash ./open-workbench.sh` optionally reopens an existing completed project
+without another parser run. The next gate is a work-PC source/import
 and editing walkthrough, not another analysis iteration. Follow the
 [workspace guide](../reviews/ENGINEERING_WORKSPACE.md).
 
@@ -67,7 +68,7 @@ reviews are superseded for current planning, and their text remains intact.
 | Remaining work-machine cycles before official review | 0 |
 | Latest analyzed return | 23d073d, testing clean 07a935c |
 | Current bundle | C16 accepted: embedded Review guide, feedback instructions and optional debug presentation; all 29 summaries unchanged |
-| Immediate user action | Use feat/engineering-workspace-pc; open Open-Workbench.cmd and import the existing completed run |
+| Immediate user action | Use feat/engineering-workspace-pc; bash ./run-work-check.sh checks, analyzes and opens the loaded editor |
 | Team engineering review | Await the editable-workspace walkthrough and Tyler's usability acceptance; engineering decisions remain unreviewed |
 
 The former one-to-two-cycle analysis range closed with C14. C15, added at

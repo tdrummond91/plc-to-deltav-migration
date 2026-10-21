@@ -1,17 +1,21 @@
 # Editable engineering workspace
 
-The review entry point is now **Open-Workbench.cmd** in the repository root.
-Double-click it on the work PC. It opens the application at
-<http://127.0.0.1:8745> using the same local Python environment as the parser.
-The application runs only while open; **Close workspace** stops it. It does
-not fetch, pull, push, watch GitHub, or run the parser automatically.
+Keep using **`bash ./run-work-check.sh`** from the repository folder on the
+work PC. It tests the tools, analyzes the remembered L5X, saves the complete
+private result and creates the validated feedback commit locally. It then
+updates the editable project from that exact completed run and opens the
+application at <http://127.0.0.1:8745>.
+
+Git pull and push remain manual. There is no background listener.
+Keep the command's terminal open while reviewing. **Close workspace** stops
+the local application and returns to Bash; Ctrl+C also stops the server.
 
 ## First session
 
-1. Select **Choose analysis run**, then a completed run from
-   `confidential/workspaces/work-check`. This imports its saved inventory and
-   analysis; it does not repeat the full work check. Verify the source name
-   and total rung count before continuing. There is no default demonstration.
+1. When the work check opens the workspace, verify the source name and total
+   rung count in the automatically loaded result. There is no default
+   demonstration. **Choose analysis run** is a manual fallback for an already
+   completed run under `confidential/workspaces/work-check`.
 2. Choose a program/routine or search for a known tag. The result count and
    page controls cover all captured rungs. Open a rung to see its complete
    text, source comment, instruction arguments and nested branch structure.
@@ -23,6 +27,16 @@ not fetch, pull, push, watch GitHub, or run the parser automatically.
 4. Reopen the application and verify the saved change. Select **Back up
    project**. **Restore backup** opens a new restored project and keeps the
    previous project and backup intact.
+
+For later review sessions that do not need new analysis, the optional command
+`bash ./open-workbench.sh` reopens the saved project. Double-clicking
+`Open-Workbench.cmd` is an alternative to that shortcut. The opener does not
+run tests, analyze the L5X, or perform Git operations.
+
+If port 8745 is occupied by an existing workspace, the work-check script keeps
+its completed result and does not automatically import into the running app.
+Close that workspace, use the optional opener, and select **Choose analysis
+run** to load the new completed result. No second parser run is necessary.
 
 **Tags & source objects** exposes declarations, descriptions and I/O/module
 context. **Open full source analysis** retains the existing detailed PID,
@@ -64,8 +78,10 @@ Adding or editing a rule retains existing categories and properties, but marks
 affected saved reviews for revalidation. The full source analysis shows the
 imported parser proposals; the workspace shows your current saved decisions.
 
-Import a newer completed analysis through **Choose analysis run**. Reimporting
-the identical run has no effect. Unchanged source keeps its decisions. A
+The usual work-check command imports its new completed analysis into the
+project automatically. **Choose analysis run** can import a saved result
+manually without reanalysis. Reimporting the identical run has no effect.
+Unchanged source keeps its decisions. A
 change in saved analysis evidence conservatively requests revalidation rather
 than silently retaining an approval. A changed export preserves old decisions
 and requires explicit correspondence to current records. **Changes &
