@@ -73,6 +73,30 @@ work-check CLI require the repository root before selecting the local project.
 These are focused follow-up checks; the broader suites above preceded this wiring
 change. The actual work-PC source and editing walkthrough remain to be checked.
 
+## Equation presentation follow-up (2026-10-21)
+
+Rung detail now opens with an **Equations** tab above the engineering review.
+Native offline MathML displays CPT expression trees, arithmetic and comparisons;
+**Branch structure** retains instruction-fragment selection, and **Original text**
+retains the complete captured source. Unsupported/stateful instructions remain
+named calls. No branch is algebraically collapsed, no expression is evaluated,
+and no review decision or database schema changes for this display.
+
+The source-detail API exposes only the selected instruction/rung's calculation
+syntax. Saved syntax is authenticated against the existing bounded CPT grammar,
+without rebinding addresses or rerunning L5X analysis. Missing/corrupt optional
+evidence retains a readable original-instruction fallback. Run selection and
+restored projects invalidate the presentation cache. This also works with
+already imported runs after restarting the updated workspace.
+
+Validation: 9 new projection tests and 26 existing workspace tests passed;
+11 new typesetting/interaction tests and 17 existing workspace UI tests passed.
+Chrome verified fractions, radicals, left-associated powers, literal unsupported
+calls, separate branch paths, original text, keyboard tab navigation and both
+themes on invented source. Read-only viewing left the project revision unchanged.
+Independent review found no blockers. The saved preview is local and ignored at
+`confidential/equation-preview/equations-verified.png`.
+
 ## Prior analysis and report history
 
 History cleanup: `main` contains eight consolidated milestones above the prior

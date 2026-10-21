@@ -54,6 +54,7 @@ class Workspace:
         self._patterns: dict[str, dict | None] = {}
         self._historical_labels: dict[str, str] = {}
         self._report_cache: tuple[str | None, bytes] = (None, b'')
+        self._calculation_cache: tuple[str | None | object, dict] = (_UNLOADED, {})
         self.startup_notice = ''
 
     def close(self) -> None:
@@ -272,9 +273,129 @@ class Workspace:
         return {"source": source, "path": self.path(identifier), "kind": kind,
                 "proposals": self._proposals.get(rung_id or identifier, []),
                 "review": state.get("reviews", {}).get(identifier, {}), "operands": operands,
+                "calculations": self._calculation_detail(instruction_ids if rung_id else []),
                 "rule_proposals": self.rule_proposals(rung_id or identifier, state),
                 "related": list({row["id"]: row for row in related}.values()),
                 "group_ids": [g["id"] for g in state.get("groups", []) if identifier in g.get("member_ids", [])]}
+
+    def _calculation_detail(self, instruction_ids: list[str]) -> dict:
+        """Expose saved expression syntax only after matching its captured source.
+
+        Validation reuses the existing bounded CPT grammar for the selected
+        instructions. It never evaluates expressions, rebinds addresses, reruns
+        L5X analysis, or writes project records. Optional old/corrupt evidence
+        cannot prevent reviewing the original source.
+        """
+        from .calculations import (
+            CALCULATION_CONSTANTS, CALCULATION_V1_CONSTANTS, ERROR_CODES,
+            FUNCTIONS, FUNCTIONS_V1, MAX_CALCULATION_BYTES, CalculationResult,
+            _Parser, _Unsupported, render_calculation_json,
+        )
+        from .project_store import _decode
+        from .tag_data import _strict_match
+
+        empty = {"status": "absent", "occurrences": [], "nodes": []}
+        unavailable = {"status": "unavailable", "occurrences": [], "nodes": [],
+                       "message": "Saved calculation evidence could not be verified. Original source remains available."}
+        if not instruction_ids:
+            return empty
+        if self._calculation_cache[0] != self._run:
+            try:
+                data = self.store.artifact("calculations.json", self._run)
+            except ProjectError:
+                self._calculation_cache = (self._run, empty)
+            else:
+                try:
+                    if len(data) > MAX_CALCULATION_BYTES:
+                        raise ValueError
+                    payload = _decode(data)
+                    result = CalculationResult(**payload)
+                    # Reuse the publisher's container, depth and size limits.
+                    render_calculation_json(result)
+                    constants = CALCULATION_V1_CONSTANTS if result.schema_version == 1 else CALCULATION_CONSTANTS
+                    if (type(result.schema_version) is not int or result.schema_version not in {1, 2}
+                            or any(payload.get(key) != value for key, value in constants.items())
+                            or not _strict_match(self._inventory.get("snapshot"), result.snapshot)
+                            or result.status not in {"partial", "complete"}
+                            or not isinstance(result.occurrences, list) or not isinstance(result.nodes, list)):
+                        raise ValueError
+                    occurrences, nodes = {}, defaultdict(list)
+                    for row in result.occurrences:
+                        if (not isinstance(row, dict) or not isinstance(row.get("id"), str)
+                                or row["id"] in occurrences or row["id"] not in self._rung_for
+                                or self._sources[row["id"]].get("opcode", "").upper() != "CPT"
+                                or row.get("rung_id") != self._rung_for[row["id"]]):
+                            raise ValueError
+                        occurrences[row["id"]] = row
+                    seen = set()
+                    for node in result.nodes:
+                        if (not isinstance(node, dict) or not isinstance(node.get("id"), str)
+                                or node["id"] in seen or not isinstance(node.get("instruction_id"), str)
+                                or node["instruction_id"] not in occurrences):
+                            raise ValueError
+                        seen.add(node["id"])
+                        nodes[node["instruction_id"]].append(node)
+                    self._calculation_cache = (self._run, {
+                        "status": "available", "occurrences": occurrences, "nodes": nodes,
+                        "schema_version": result.schema_version,
+                    })
+                except (ProjectError, TypeError, ValueError, KeyError, RecursionError, OverflowError):
+                    self._calculation_cache = (self._run, unavailable)
+        evidence = self._calculation_cache[1]
+        if evidence["status"] != "available":
+            return dict(evidence)
+        occurrences, nodes = [], []
+        try:
+            for identifier in instruction_ids:
+                if self._sources[identifier].get("opcode", "").upper() != "CPT":
+                    continue
+                row = evidence["occurrences"].get(identifier)
+                if row is None:
+                    raise ValueError
+                expected_keys = {"id", "rung_id", "destination_operand_id", "expression_operand_id",
+                                 "signature_status", "syntax_status", "error_code", "error_offset",
+                                 "root_node_id", "node_ids"}
+                if row.keys() != expected_keys:
+                    raise ValueError
+                arguments = self._sources[identifier]["arguments"]
+                signature = ("argument_count_mismatch" if len(arguments) != 2 else
+                             "empty_argument" if any(not arg.strip() for arg in arguments) else "recognized")
+                operand_ids = {operand["argument_index"]: operand["id"] for operand in self._operands[identifier]}
+                if (row["signature_status"] != signature
+                        or row["destination_operand_id"] != operand_ids.get(0)
+                        or row["expression_operand_id"] != operand_ids.get(1)):
+                    raise ValueError
+                saved_nodes = evidence["nodes"].get(identifier, [])
+                if signature != "recognized":
+                    if (row["syntax_status"] != "signature_unresolved" or row["error_code"] is not None
+                            or row["error_offset"] is not None or row["root_node_id"] is not None
+                            or row["node_ids"] != [] or saved_nodes):
+                        raise ValueError
+                elif row["syntax_status"] == "unsupported":
+                    if (row["error_code"] not in ERROR_CODES or type(row["error_offset"]) is not int
+                            or not 0 <= row["error_offset"] <= len(arguments[1])
+                            or row["root_node_id"] is not None or row["node_ids"] != [] or saved_nodes):
+                        raise ValueError
+                elif row["syntax_status"] == "parsed":
+                    functions = FUNCTIONS_V1 if evidence["schema_version"] == 1 else FUNCTIONS
+                    parser = _Parser(arguments[1], identifier, str(self._inventory["snapshot"]["id"]), functions)
+                    root = parser.parse()
+                    syntax_nodes = [{key: value for key, value in node.items() if key != "binding"}
+                                    for node in saved_nodes]
+                    expected_nodes = [{key: value for key, value in node.items() if key != "binding"}
+                                      for node in parser.nodes]
+                    if (row["error_code"] is not None or row["error_offset"] is not None
+                            or row["root_node_id"] != root
+                            or row["node_ids"] != [node["id"] for node in parser.nodes]
+                            or not _strict_match(expected_nodes, syntax_nodes)):
+                        raise ValueError
+                    nodes.extend(syntax_nodes)
+                else:
+                    raise ValueError
+                occurrences.append(dict(row))
+        except (TypeError, ValueError, KeyError, RecursionError, OverflowError, _Unsupported):
+            return unavailable
+        return {"status": "available", "occurrences": occurrences, "nodes": nodes}
 
     def rule_proposals(self, identifier: str, state: dict) -> list:
         pattern = self._patterns.get(identifier)
@@ -362,6 +483,7 @@ class Workspace:
         self.store, self.project = restored, destination
         self._run = _UNLOADED
         self._report_cache = (None, b'')
+        self._calculation_cache = (_UNLOADED, {})
         self._historical_labels = {}
         return self.state()
 

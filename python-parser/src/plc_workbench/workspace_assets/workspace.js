@@ -673,48 +673,14 @@
       summary.append(chip("Proposed: " + familyName(category), "proposed")),
     );
     root.append(summary);
+    if (isRung) renderRungLogic(root, s, data.calculations || {});
     const editor = section(
       root,
       "Your engineering review",
-      "Choose categories and save your decision. Original source remains below for direct comparison. Engineering properties are optional structured fields.",
+      "Choose categories and save your decision using the source above. Engineering properties are optional structured fields.",
     );
     renderEditor(editor, s.id, data.review || {}, data.revision);
     if (isRung) {
-      const graphical = section(
-        root,
-        "Rung structure",
-        "Instruction boxes and branch legs preserve the captured source structure. This is a structural view, not an execution or electrical simulation.",
-      );
-      const chosen = new Set();
-      if (s.structure) {
-        const scroll = node("div", null, "structure-scroll");
-        scroll.append(
-          renderStructure(
-            s.structure,
-            new Map(s.instructions.map((i) => [i.id, i])),
-            chosen,
-          ),
-        );
-        graphical.append(scroll);
-      } else
-        graphical.append(
-          node(
-            "div",
-            "No complete structure is available for this rung. The exact captured text below remains available for inspection.",
-            "warning-panel",
-          ),
-        );
-      graphical.append(
-        button("Group checked instructions", () => {
-          if (!chosen.size) {
-            notify("Check one or more instruction boxes first.");
-            return;
-          }
-          groupPicker([...chosen]);
-        }),
-      );
-      const raw = section(root, "Complete captured rung text");
-      raw.append(node("pre", s.text ?? "Source text unavailable."));
       const instructions = node("details", null, "detail-section");
       instructions.append(
         node(
@@ -829,6 +795,179 @@
         );
       });
     root.append(list);
+  }
+  function renderRungLogic(root, source, calculations) {
+    const area = section(root, "Rung logic",
+      "Read each instruction in its source position. ← means stores into the destination when enabled. Branches remain separate; data types, rounding and timer state still follow the original instruction.");
+    const tabs = node("div", null, "logic-tabs");
+    tabs.setAttribute("role", "tablist");
+    tabs.setAttribute("aria-label", "Rung display");
+    const byId = new Map(source.instructions.map((i) => [i.id, i]));
+    const occurrences = new Map((calculations.occurrences || []).map((c) => [c.id, c]));
+    const nodes = new Map((calculations.nodes || []).map((n) => [n.id, n]));
+    const panels = [], controls = [];
+    const activate = (index) => {
+      panels.forEach((panel, i) => { panel.hidden = i !== index; });
+      controls.forEach((control, i) => {
+        control.setAttribute("aria-selected", String(i === index));
+        control.tabIndex = i === index ? 0 : -1;
+      });
+    };
+    ["Equations", "Branch structure", "Original text"].forEach((name, index) => {
+      const panel = node("div", null, "logic-panel");
+      panel.id = `logic-${source.id}-${index}`;
+      panel.setAttribute("role", "tabpanel");
+      panel.tabIndex = 0;
+      const control = button(name, () => activate(index));
+      control.id = panel.id + "-tab";
+      control.setAttribute("role", "tab");
+      control.setAttribute("aria-controls", panel.id);
+      panel.setAttribute("aria-labelledby", control.id);
+      control.addEventListener("keydown", (event) => {
+        const next = event.key === "ArrowRight" ? (index + 1) % 3
+          : event.key === "ArrowLeft" ? (index + 2) % 3
+          : event.key === "Home" ? 0 : event.key === "End" ? 2 : null;
+        if (next !== null) { event.preventDefault(); activate(next); controls[next].focus(); }
+      });
+      panels.push(panel); controls.push(control); tabs.append(control);
+    });
+    area.append(tabs, ...panels);
+    activate(0);
+    if (calculations.status === "unavailable")
+      panels[0].append(node("p", "Saved expression structure could not be verified. CPT instructions retain their original expressions.", "warning-panel"));
+    if (source.structure) {
+      const positions = new Map(source.instructions.map((i, index) => [i.id, index + 1]));
+      panels[0].append(renderEquationTree(source.structure, byId, occurrences, nodes, positions));
+      const chosen = new Set();
+      const scroll = node("div", null, "structure-scroll");
+      scroll.append(renderStructure(source.structure, byId, chosen));
+      panels[1].append(node("p", "Boxes and parallel paths preserve the captured structure. Select individual instructions here to group them."), scroll,
+        button("Group checked instructions", () => {
+          if (!chosen.size) { notify("Check one or more instruction boxes first."); return; }
+          groupPicker([...chosen]);
+        }));
+    } else {
+      panels[0].append(node("p", "A complete parsed structure is unavailable. Inspect the captured source below.", "warning-panel"), node("pre", source.text ?? "Source text unavailable."));
+      panels[1].append(node("p", "No complete branch structure is available. Use Original text."));
+    }
+    panels[2].append(node("pre", source.text ?? "Source text unavailable."));
+  }
+  function mathNode(tag, ...children) {
+    const element = document.createElementNS("http://www.w3.org/1998/Math/MathML", tag);
+    children.forEach((child) => element.append(typeof child === "string" ? document.createTextNode(child) : child));
+    return element;
+  }
+  function mathAtom(text) {
+    // Keep full source names, including underscores and array indices, literal.
+    const element = mathNode("mi", String(text));
+    element.setAttribute("mathvariant", "normal");
+    return element;
+  }
+  function mathFence(child, left = "(", right = ")") {
+    return mathNode("mrow", mathNode("mo", left), child, mathNode("mo", right));
+  }
+  function mathExpression(root, nodes, instructionId) {
+    const seen = new Set();
+    function visit(id, depth = 0) {
+      const current = nodes.get(id);
+      if (!current || current.instruction_id !== instructionId || seen.has(id) || depth > 64 || seen.size >= 512)
+        throw new Error("Incomplete expression structure");
+      seen.add(id);
+      const children = current.child_ids || [];
+      const arity = { literal: 0, reference: 0, group: 1, unary: 1, binary: 2, function: 1 }[current.kind];
+      if (arity === undefined || children.length !== arity) throw new Error("Unsupported expression node");
+      const terms = children.map((child) => visit(child, depth + 1));
+      if (current.kind === "reference") return mathAtom(current.raw_text);
+      if (current.kind === "literal") return mathNode("mn", current.raw_text);
+      if (current.kind === "group") return mathFence(terms[0]);
+      const op = current.operator;
+      if (current.kind === "unary") {
+        if (!["-", "NOT"].includes(op)) throw new Error("Unsupported unary operator");
+        return mathNode("mrow", mathNode("mo", op === "-" ? "−" : op), terms[0]);
+      }
+      if (current.kind === "function") {
+        if (["SQR", "SQRT"].includes(op)) return mathNode("msqrt", terms[0]);
+        if (op === "ABS") return mathFence(terms[0], "|", "|");
+        return mathNode("mrow", mathAtom(op), mathFence(terms[0]));
+      }
+      if (op === "/") return mathNode("mfrac", ...terms);
+      if (op === "**") {
+        // Fenced bases preserve Logix left-associative powers and signed bases.
+        const left = nodes.get(children[0]);
+        const base = ["binary", "unary"].includes(left.kind) ? mathFence(terms[0]) : terms[0];
+        return mathNode("msup", base, terms[1]);
+      }
+      if (!["+", "-", "*", "MOD", "AND", "OR", "XOR"].includes(op))
+        throw new Error("Unsupported binary operator");
+      const expression = mathNode("mrow", terms[0], mathNode("mo", ({ "-": "−", "*": "×" })[op] || op), terms[1]);
+      // Explicit grouping avoids changing precedence when a subtree is nested.
+      return depth ? mathFence(expression) : expression;
+    }
+    return visit(root);
+  }
+  function instructionEquation(inst, occurrence, nodes) {
+    const args = inst.arguments || [], opcode = inst.opcode.toUpperCase();
+    const assign = (destination, expression) => mathNode("mrow", mathAtom(destination), mathNode("mo", "←"), expression);
+    const call = () => mathNode("mrow", mathAtom(inst.opcode), mathFence(mathNode("mrow", ...args.flatMap((arg, i) =>
+      [...(i ? [mathNode("mo", ",")] : []), mathNode("mtext", arg)]))));
+    let expression, label = "Instruction", fallback = false;
+    const valid = (count) => args.length === count && args.every((arg) => typeof arg === "string" && arg.trim());
+    if (opcode === "CPT") {
+      if (valid(2) && occurrence?.syntax_status === "parsed") {
+        try { expression = assign(args[0], mathExpression(occurrence.root_node_id, nodes, inst.id)); }
+        catch { fallback = true; }
+      } else fallback = true;
+      label = fallback ? "Original expression · typesetting unavailable" : "Calculation";
+    } else if (["ADD", "SUB", "MUL", "DIV"].includes(opcode) && valid(3)) {
+      const left = mathAtom(args[0]), right = mathAtom(args[1]);
+      expression = assign(args[2], opcode === "DIV" ? mathNode("mfrac", left, right)
+        : mathNode("mrow", left, mathNode("mo", { ADD: "+", SUB: "−", MUL: "×" }[opcode]), right));
+      label = "Calculation";
+    } else if (["ABS", "LN", "SQR", "SQRT"].includes(opcode) && valid(2)) {
+      const value = mathAtom(args[0]);
+      expression = assign(args[1], opcode === "ABS" ? mathFence(value, "|", "|")
+        : opcode === "LN" ? mathNode("mrow", mathAtom("LN"), mathFence(value)) : mathNode("msqrt", value));
+      label = "Calculation";
+    } else if (["EQU", "NEQ", "LES", "LEQ", "GRT", "GEQ"].includes(opcode) && valid(2)) {
+      expression = mathNode("mrow", mathAtom(args[0]), mathNode("mo", { EQU: "=", NEQ: "≠", LES: "<", LEQ: "≤", GRT: ">", GEQ: "≥" }[opcode]), mathAtom(args[1]));
+      label = "Comparison";
+    } else if (opcode === "MOV" && valid(2)) {
+      expression = assign(args[1], mathAtom(args[0])); label = "Move value";
+    } else if (opcode === "CLR" && valid(1)) {
+      expression = assign(args[0], mathNode("mn", "0")); label = "Clear value";
+    }
+    const math = mathNode("math", expression || call());
+    math.setAttribute("display", "block");
+    math.setAttribute("aria-label", `${inst.opcode}(${args.join(", ")})`);
+    return { math, label, fallback };
+  }
+  function renderEquationTree(tree, byId, occurrences, nodes, positions, depth = 0) {
+    if (!tree || depth > 140) return node("p", "Structure display limit reached. Use Original text.", "warning-panel");
+    if (tree.kind === "sequence") {
+      const sequence = node("div", null, "equation-sequence");
+      if (!tree.items?.length) sequence.append(node("p", "Empty branch path", "empty-leg"));
+      (tree.items || []).forEach((item) => sequence.append(renderEquationTree(item, byId, occurrences, nodes, positions, depth + 1)));
+      return sequence;
+    }
+    if (tree.kind === "branch") {
+      const branch = node("div", null, "equation-branch");
+      branch.append(node("span", "PARALLEL PATHS", "equation-branch-label"));
+      (tree.legs || []).forEach((leg, index) => {
+        const path = node("div", null, "equation-path");
+        path.append(node("strong", "Path " + (index + 1)), renderEquationTree(leg, byId, occurrences, nodes, positions, depth + 1));
+        branch.append(path);
+      });
+      return branch;
+    }
+    const inst = tree.kind === "instruction" && byId.get(tree.instruction_id);
+    if (!inst) return node("p", "Instruction structure unavailable. Use Original text.", "warning-panel");
+    const row = node("div", null, "equation-row"), heading = node("div", null, "equation-heading");
+    const rendered = instructionEquation(inst, occurrences.get(inst.id), nodes);
+    heading.append(node("strong", `${positions.get(inst.id)} · ${inst.opcode}`), node("span", rendered.label), link("Evidence ↗", inst.id));
+    const display = node("div", null, "equation-display");
+    display.append(rendered.math);
+    row.append(heading, display);
+    return row;
   }
   function renderStructure(tree, byId, chosen, depth = 0) {
     if (depth > 140)
@@ -1761,7 +1900,7 @@
       [
         "inspect",
         "Inspect one complete rung",
-        "Open Rungs. Select a program and routine, then a rung title. Check the source comment, complete text, branch structure, and every instruction.",
+        "Open Rungs. Select a program and routine, then a rung title. Equations shows formatted calculations in source order. Use Branch structure for parallel paths and fragment selection, or Original text to verify the exact source. Every instruction & operand contains the full argument list.",
         "Open rungs",
         () => switchView("rungs"),
       ],
@@ -2141,7 +2280,7 @@
         body.append(
           node(
             "p",
-            "Saved reviews remain in the project database. This stops the local server; use Open-Workbench.cmd to reopen it.",
+            "Saved reviews remain in the project database. This stops the local server; run bash ./open-workbench.sh to reopen saved work without another analysis.",
           ),
         ),
       async () => {

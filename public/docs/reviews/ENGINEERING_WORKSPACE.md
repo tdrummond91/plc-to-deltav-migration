@@ -17,9 +17,12 @@ the local application and returns to Bash; Ctrl+C also stops the server.
    demonstration. **Choose analysis run** is a manual fallback for an already
    completed run under `confidential/workspaces/work-check`.
 2. Choose a program/routine or search for a known tag. The result count and
-   page controls cover all captured rungs. Open a rung to see its complete
-   text, source comment, instruction arguments and nested branch structure.
-   The diagram describes source structure, not a simulated operating state.
+   page controls cover all captured rungs. Open a rung to see **Equations**:
+   calculations use fractions, powers, roots and comparison symbols. The
+   arrow `destination ← expression` means storing a value when enabled.
+   **Branch structure** shows connected instruction boxes and fragment selection;
+   **Original text** shows the exact captured rung. **Every instruction & operand**
+   retains the complete argument list. Parallel paths stay separate in both views.
 3. In **Your engineering review**, select categories, change properties and
    press **Save review**. A rung can have multiple categories. Use groups to
    associate several rungs, individual instructions or source objects; a
@@ -32,6 +35,22 @@ For later review sessions that do not need new analysis, the optional command
 `bash ./open-workbench.sh` reopens the saved project. Double-clicking
 `Open-Workbench.cmd` is an alternative to that shortcut. The opener does not
 run tests, analyze the L5X, or perform Git operations.
+
+The equation display works offline using the browser's mathematical typesetting.
+It uses the saved CPT expression structure after checking it against the source.
+Supported arithmetic instructions and comparisons also receive mathematical
+notation. Timers, unfamiliar instructions and unsupported expressions keep their
+instruction names and exact arguments; no branch or sequence is collapsed into
+an assumed combined equation. Formatting does not evaluate values or change
+classifications. Existing completed runs can use this display after restarting
+the updated workspace; another full work check is not needed for formatting.
+
+Expression grouping follows the existing parser and the documented
+[CPT operation order](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/compute-math-instructions/compute--cpt-.html).
+Explicit groups, signed bases and left-associated powers remain distinguishable.
+Bitwise operators retain their names, and tag/address spelling stays literal.
+Arithmetic notation does not replace the controller's data-conversion, rounding
+or enable-condition rules.
 
 If port 8745 is occupied by an existing workspace, the work-check script keeps
 its completed result and does not automatically import into the running app.
