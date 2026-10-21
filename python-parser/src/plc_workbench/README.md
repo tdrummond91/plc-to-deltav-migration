@@ -13,6 +13,9 @@ the table is a navigation guide, not a new execution order. Start with the
 | [source.py](source.py), [models.py](models.py), [source_reuse.py](source_reuse.py) | Captured source, inventory structures and bounded reuse within an analysis. |
 | [review.py](review.py) | Compose and validate the private engineering review. |
 | [storage.py](storage.py) | Fresh private run directories, artifact serialization and final manifests. |
+| [project_store.py](project_store.py) | Private SQLite projects: immutable imported artifacts, reviewed decisions, categories/groups/rules, revision checks, history and portable backups. |
+| [workspace.py](workspace.py), [workspace_assets/](workspace_assets/) | Explicitly launched loopback editor, source browsing, structured review controls and restore workflow. |
+| [workspace_report.py](workspace_report.py) | Refresh saved evidence views with current navigation while preserving original artifacts. |
 | [review_html.py](review_html.py), [review_assets/](review_assets/) | Offline HTML rendering, JavaScript navigation and CSS. |
 | [review_assets/review_guide.js](review_assets/review_guide.js) | Embedded reviewer checklists, response guidance, glossary and selectable feedback template. |
 | [work_check.py](work_check.py), [work_check_timing.py](work_check_timing.py) | Work-PC stages, bounded returned feedback, local commit and stage timings. |

@@ -1,10 +1,27 @@
 # Pre-team-review completion tracker
 
-Updated 2026-10-19. This records the completed automated Phase 1 analysis and
+Updated 2026-10-21. This records the completed automated Phase 1 analysis and
 requested report updates before Tyler presents the reports to the team.
 Read this first for progress; use linked reviews for detailed evidence.
 
 ## Current estimate and next action
+
+**The report-only review handoff is superseded.** Tyler requires complete source
+navigation and persistent structured editing before team review. The editable
+workspace is implemented on `feat/engineering-workspace-pc`; use
+`Open-Workbench.cmd` and import the existing completed run. No unchanged-source
+parser run is needed for this step. The next gate is a work-PC source/import
+and editing walkthrough, not another analysis iteration. Follow the
+[workspace guide](../reviews/ENGINEERING_WORKSPACE.md).
+
+- [x] Complete captured-rung browser, instruction/operand links and source structure.
+- [x] SQLite categories, properties, groups, reusable rules and review history.
+- [x] Revision checks, rerun preservation, explicit correspondence and backup restore.
+- [x] Synthetic backend/API/UI tests and independent code review.
+- [ ] First work-PC import and source/editing walkthrough.
+- [ ] Tyler accepts usability before distributing to the review team.
+
+## Completed source-analysis baseline
 
 **Sixteen cycles are complete: fourteen analysis cycles, C15 cleanup and C16
 embedded-guide confirmation. Zero further unchanged-source runs are planned
@@ -50,8 +67,8 @@ reviews are superseded for current planning, and their text remains intact.
 | Remaining work-machine cycles before official review | 0 |
 | Latest analyzed return | 23d073d, testing clean 07a935c |
 | Current bundle | C16 accepted: embedded Review guide, feedback instructions and optional debug presentation; all 29 summaries unchanged |
-| Immediate user action | git switch main; git pull --ff-only; open the existing saved review.html from completed check 20261019T201714Z-38434b5f |
-| Team engineering review | Report ready for walkthrough and official review; engineering decisions remain unreviewed |
+| Immediate user action | Use feat/engineering-workspace-pc; open Open-Workbench.cmd and import the existing completed run |
+| Team engineering review | Await the editable-workspace walkthrough and Tyler's usability acceptance; engineering decisions remain unreviewed |
 
 The former one-to-two-cycle analysis range closed with C14. C15, added at
 Tyler's explicit request, now passes with all 29 summary families and complete

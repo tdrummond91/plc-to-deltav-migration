@@ -602,10 +602,15 @@
   function countsFilter(rows,key) { const m=new Map();rows.forEach(r=>m.set(r[key],(m.get(r[key])||0)+1));return [['all','All types'],...Array.from(m).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([k,v])=>[k,human(k)+' ('+fmt(v)+')'])]; }
   function notice(title,text){const n=node('div','notice');const body=node('div');body.append(node('strong','',title),node('div','',text));n.append(node('span','notice-icon','i'),body);return n;}
   function overview() {
-    const guideStart=panel('Start here: Review guide','Use the Review guide for subject checklists, explanations of report terms, and a feedback template. Then follow the source links in the sections relevant to your assignment.');
+    const inWorkspace=typeof WORKSPACE_REVIEW !== 'undefined' && WORKSPACE_REVIEW;
+    const guideStart=panel('Start here: Review guide',inWorkspace
+      ? 'Use the Review guide for source navigation and explanations of report terms. Follow the source links, then return to the editable workspace to save categories, properties and groups.'
+      : 'Use the Review guide for subject checklists, explanations of report terms, and a feedback template. Then follow the source links in the sections relevant to your assignment.');
     guideStart.append(button('Open Review guide',()=>go('guide'),'guide-entry'));content.append(guideStart);
     content.append(notice(rungAnalysis?'Engineering review':'Captured source for review',rungAnalysis
-      ? 'Engineering analysis brings recognized functions, possible purpose and unresolved blocks together. Confirm interpretations against the source and supporting engineering records, and record your response in your review notes.' : access
+      ? (inWorkspace
+        ? 'Engineering analysis brings recognized functions, possible purpose and unresolved blocks together. Confirm interpretations against the source and supporting engineering records, then save your decisions in the editable workspace.'
+        : 'Engineering analysis brings recognized functions, possible purpose and unresolved blocks together. Confirm interpretations against the source and supporting engineering records, and record your response in your review notes.') : access
       ? 'Supported ladder operand roles now identify possible reads and writes. Root grouping does not establish member overlap, execution, shutdown effects, alarm priority or sequence behavior.'
       : 'Browse captured evidence and follow exact references. Root bindings do not validate members or establish reads, writes, shutdown effects, alarm priority or sequence behavior.'));
     const cards=node('div','cards');
@@ -2217,7 +2222,10 @@
     },'Rung branch outline');
   }
   function engineeringRungDetail(r,a){
-    const summary=panel('Engineering analysis','Instruction functions and possible purpose from this snapshot. No engineering confirmation has been recorded.');
+    const inWorkspace=typeof WORKSPACE_REVIEW !== 'undefined' && WORKSPACE_REVIEW;
+    const summary=panel('Engineering analysis',inWorkspace
+      ? 'These parser proposals belong to the imported analysis. Current saved categories, properties and review status are shown in the editable workspace.'
+      : 'Instruction functions and possible purpose from this snapshot. No engineering confirmation has been recorded.');
     const structureAvailable=a.structure!=='unparsed',unavailable='Unavailable: rung not parsed';
     summary.append(values({'Base catalogue group':engineeringGroupLabel(a),'Structure':engineeringShape(a),'Result evidence':engineeringResult(a),'Captured blocks':a.block_ids.length,'Branches / legs':structureAvailable?a.branch_count+' / '+a.branch_legs:unavailable,'Empty branch legs':structureAvailable?a.empty_legs:unavailable,'A path bypasses all blocks':structureAvailable?(a.nullable?'Yes':'No'):unavailable,'Comment':human(a.comment_status),'Missing rung identifiers':a.missing_metadata.join(', ') || 'None'}));
     const candidates=engineeringCandidates(a);
@@ -2226,7 +2234,7 @@
       const detail=node('details','technical');detail.append(node('summary','','Supporting evidence ('+c.evidence_ids.length+')'),engineeringIdTable(c.evidence_ids,'Candidate evidence '+c.id));proof.append(detail);
       const missing=node('div');for(const item of c.missing_evidence)missing.append(node('p','row-note',engineeringMissing(item)));
       if(!c.missing_evidence.length)missing.append(node('span','muted','No additional gap identified for this candidate; purpose remains unconfirmed.'));
-      missing.append(node('p','row-note','Review status: '+human(c.review_status)));
+      missing.append(node('p','row-note',(inWorkspace?'Imported proposal status: ':'Review status: ')+human(c.review_status)));
       if(debugReport){const rule=node('details','technical');rule.append(node('summary','','Analysis rule'),values({'Rule':c.rule_id,'Version':c.rule_version}));missing.append(rule);}
       return [primary(ENGINEERING_FAMILIES[c.category] || human(c.category),engineeringBasis(c)),proof,missing];
     },'Rung function candidates',{emptyTitle:'No function candidate yet',emptyDetail:'The rung remains in the unclassified group. Its captured source and any parsed blocks remain below.'}));content.append(summary);
@@ -2478,12 +2486,22 @@
     const evidence=panel('Source evidence','Follow the originating record and its context before deciding whether a parser correction is needed.');
     evidence.append(sourceCell(f.source_id));const ids=Array.from(new Set(f.related_ids||[])).filter(id=>id!==f.source_id);
     if(ids.length)evidence.append(table(['Related evidence'],ids,id=>[sourceCell(id)],'Finding related evidence'));content.append(evidence);
-    content.append(notice('Review status is not stored here','This report is read-only and belongs to one source snapshot. Keep proposed corrections in your review notes; persistent classifications and editable handoffs are a later stage.'));
+    const inWorkspace=typeof WORKSPACE_REVIEW !== 'undefined' && WORKSPACE_REVIEW;
+    content.append(notice(inWorkspace?'Review status is saved in the workspace':'Review status is not stored here',inWorkspace
+      ? 'This evidence view is read-only and belongs to one source snapshot. Return to the editable workspace to save categories, properties, groups and review status for the originating source record.'
+      : 'This report is read-only and belongs to one source snapshot. Keep proposed corrections in your review notes; persistent classifications and editable handoffs are a later stage.'));
     if(f.locator){const location=panel('Source location');location.append(sourceText(f.locator));content.append(location);}
     content.append(technical({'Finding ID':f.id,'Source ID':f.source_id,'Code':f.code,'XML location':f.locator}));
   }
   function setDetailHeading(eyebrow,title,subtitle){
     heading.replaceChildren(button('← Back to previous view',goBack,'back'),node('p','eyebrow',eyebrow),node('h1','',title),node('p','subtitle',subtitle));
+    if(typeof WORKSPACE_REVIEW !== 'undefined' && WORKSPACE_REVIEW) {
+      const id=(state.detail?.type==='rung'?state.focusInstruction:null)||state.detail?.id;
+      const captured=byRung.has(id)||byEntity.has(id)||byInstruction.has(id);
+      const edit=node('a','text-link','Return to editable workspace');
+      edit.href='/#view=rungs'+(captured?'&source='+encodeURIComponent(id):'');
+      heading.append(edit);return;
+    }
     heading.append(button('Prepare review feedback',()=>{
       // Some detail renderers choose their default content after this heading.
       // Read the final selection at click time, and exclude prior-view context.

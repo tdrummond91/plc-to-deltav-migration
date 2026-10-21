@@ -7,7 +7,7 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
 Usage: bash ./run-work-check.sh [--debug] [SOURCE.L5X]
 
 Run parser tests, analyze the local source, and commit its feedback report locally.
-The HTML includes a review guide, source evidence and a feedback template.
+Open Open-Workbench.cmd to import the saved analysis and edit review decisions.
 Add --debug to include developer diagnostics in the private HTML report.
 No automatic fetch, pull or push. Review the report, then run git push when ready.
 A bare filename is found under confidential/plc-code/. An explicit path also works.

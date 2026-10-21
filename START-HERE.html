@@ -1,142 +1,545 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="dark light">
-  <title>Start here · PLC analysis workbench</title>
-  <link rel="stylesheet" href="public/start-here/start-here.css">
-  <script src="public/start-here/start-here.js" defer></script>
-</head>
-<body>
-<a class="skip" href="#first-look">Skip to the first steps</a>
-<header class="topbar">
-  <a class="brand" href="START-HERE.html"><span class="brand-mark" aria-hidden="true">W</span> PLC analysis workbench</a>
-  <button id="theme-toggle" type="button" disabled>Switch to light</button>
-</header>
-<main>
-  <section class="hero" aria-labelledby="page-title">
-    <div>
-      <p class="eyebrow">START HERE / GUIDED WALKTHROUGH</p>
-      <h1 id="page-title">Open. Explore.<br>Check it off.</h1>
-      <p class="intro">Follow the four steps below. Each has a link to the report, a small task and a Done checkbox. Keep this page open and return after each task.</p>
-      <p class="finish-line">The tool currently explains L5X source logic. Editable corrections, PCSD documents and DeltaV class mapping come later.</p>
-    </div>
-    <aside class="progress-card" aria-label="Your learning progress">
-      <p class="eyebrow">YOUR NEXT STEP</p>
-      <p class="progress-number"><span id="core-count">0</span><span class="muted"> / 4</span></p>
-      <label class="sr-only" for="core-progress">Orientation checkpoints completed</label>
-      <progress id="core-progress" value="0" max="4"></progress>
-      <p>Check each step after doing it. Opening a link does not mark it done.</p>
-      <a class="button primary" id="next-action" href="#first-look">Go to step 1 →</a>
-      <a class="resume-link" href="#learning">Save or move my progress</a>
-    </aside>
-  </section>
-
-  <section class="section report-choice" id="your-report" aria-labelledby="report-title">
-    <h2 id="report-title">Which report am I opening?</h2>
-    <p id="report-status" role="status">Practice report selected. The links below use a small invented example.</p>
-    <p class="small">Report links open a separate tab. Come back to this Start Here tab to check the step off.</p>
-    <details><summary>Use my actual unit report instead</summary>
-      <ol><li>On the work PC, find your saved <strong>review.html</strong> inside <code>confidential → workspaces → work-check</code>. Use the newest completed run or the <strong>Private review report:</strong> path from your last check.</li><li>In File Explorer, right-click that file and choose <strong>Copy as path</strong> (Shift + right-click if needed).</li><li>Paste it below and select <strong>Use my report</strong>. The walkthrough and subject links will use that file.</li></ol>
-      <label class="path-label" for="report-path">Full path to your saved review.html</label>
-      <input id="report-path" class="path-input" type="text" placeholder="C:\your-project\confidential\workspaces\work-check\run-folder\review.html" autocomplete="off" spellcheck="false">
-      <div class="actions"><button id="use-report" type="button" disabled>Use my report</button><button id="use-practice" type="button" disabled>Use practice report</button></div>
-      <p id="report-error" role="status"></p>
-      <p class="small">The path stays in this browser and is excluded from progress exports. This page does not read or upload the report. Open START-HERE.html directly from File Explorer to use local report links.</p>
-    </details>
-    <p id="legacy-note" class="small callout" hidden>Your saved report may predate direct section links. If a link opens Overview, select the named section in the report’s left sidebar. You can still follow every step; no parser rerun is needed.</p>
-  </section>
-
-  <section class="section walkthrough" aria-label="Four steps to your first review">
-    <article class="lesson" id="first-look">
-      <div class="lesson-number" aria-hidden="true">01</div><div class="lesson-body">
-        <p class="eyebrow">START WITH THE PURPOSE / 2 MINUTES</p><h2>Open the report and read its guide</h2>
-        <div class="actions"><a class="button primary" data-report-view="overview" href="public/examples/control-interpretation-review-demo.html#view=overview" target="_blank" rel="noopener">Open Overview ↗</a><a class="button" data-report-view="guide" href="public/examples/control-interpretation-review-demo.html#view=guide" target="_blank" rel="noopener">Open Review guide ↗</a></div>
-        <ol><li>In <strong>Overview</strong>, find the source identity and the report’s scope.</li><li>In <strong>Review guide</strong>, read <strong>What this review is for</strong> and <strong>Find and follow the evidence</strong>.</li></ol>
-        <p class="look-for"><strong>Before moving on:</strong> know that captured source evidence, suggested interpretations and unanswered questions are different. This report does not approve or edit plant logic.</p>
-        <label class="checkpoint"><input type="checkbox" data-check="orient"><span><strong>Done — I opened the report and understand its purpose</strong><small>I can explain what Phase 1 shows and where to find the review instructions.</small></span></label>
-        <a class="step-next" href="#practice">Next: find one item →</a>
-      </div>
-    </article>
-    <article class="lesson" id="practice">
-      <div class="lesson-number" aria-hidden="true">02</div><div class="lesson-body">
-        <p class="eyebrow">FIND YOUR WAY / 3 MINUTES</p><h2>Find one rung and open its evidence</h2>
-        <div class="actions"><a class="button primary" data-report-view="engineering" href="public/examples/control-interpretation-review-demo.html#view=engineering" target="_blank" rel="noopener">Open Engineering analysis ↗</a><a class="button practice-example" href="public/examples/control-interpretation-review-demo.html#view=ladder&amp;source=rung_dd91ec99f1401b37f1f49d38deea66bcaec34b9ab197ec207a269a7c18051f85" target="_blank" rel="noopener">Open the simple MOV example ↗</a></div>
-        <ol><li>Scroll to <strong>Rung analysis</strong>. Choose one familiar item; search within this section if helpful.</li><li>Open the rung. Find its <strong>Rung text</strong> and <strong>Ordered block functions</strong>.</li><li>Follow an instruction or source link, then use <strong>Back to previous view</strong> inside the report.</li></ol>
-        <p class="look-for"><strong>Look for:</strong> instruction names, input operands and written results. The MOV practice example uses <code>InputValue</code> and <code>OutputValue</code>. The source alone does not tell you a live value or equipment purpose.</p>
-        <label class="checkpoint"><input type="checkbox" data-check="navigate"><span><strong>Done — I found an item, followed a link and came back</strong><small>I can use the section search, open a detail and return to the earlier view.</small></span></label>
-        <a class="step-next" href="#interpret">Next: separate evidence from interpretation →</a>
-      </div>
-    </article>
-    <article class="lesson" id="interpret">
-      <div class="lesson-number" aria-hidden="true">03</div><div class="lesson-body">
-        <p class="eyebrow">READ ONE ITEM / 3 MINUTES</p><h2>Identify a fact, an interpretation and a question</h2>
-        <div class="actions"><a class="button primary" data-report-view="pid" href="public/examples/control-interpretation-review-demo.html#view=pid" target="_blank" rel="noopener">Open PID evidence ↗</a><a class="button" data-report-view="residuals" href="public/examples/control-interpretation-review-demo.html#view=residuals" target="_blank" rel="noopener">Open Unresolved analysis ↗</a></div>
-        <ol><li>Open one PID occurrence. Find its operands and connections. If your report has no PID evidence, use the item from step 2.</li><li>Name one fact directly supported by the source, one proposed interpretation and one limit or unanswered question.</li><li>Open <strong>Unresolved analysis</strong> to see how remaining questions are grouped. You do not need to resolve the whole list.</li></ol>
-        <p class="look-for"><strong>Example distinction:</strong> “A PID instruction is present” is a source fact. Its process purpose needs context. Choosing <code>AI_PID_AO</code> or a cascade of classes is a later design decision.</p>
-        <label class="checkpoint"><input type="checkbox" data-check="interpret"><span><strong>Done — I can distinguish a fact, an interpretation and a question</strong><small>I found one of each and understand why a report category does not select a DeltaV class.</small></span></label>
-        <a class="step-next" href="#respond">Next: write one useful response →</a>
-      </div>
-    </article>
-    <article class="lesson" id="respond">
-      <div class="lesson-number" aria-hidden="true">04</div><div class="lesson-body">
-        <p class="eyebrow">TRY THE REVIEW PROCESS / 3 MINUTES</p><h2>Prepare feedback for that one item</h2>
-        <div class="actions"><a class="button primary" data-report-view="engineering" href="public/examples/control-interpretation-review-demo.html#view=engineering" target="_blank" rel="noopener">Open an item to review ↗</a><a class="button" data-report-view="guide" href="public/examples/control-interpretation-review-demo.html#view=guide" target="_blank" rel="noopener">Open response instructions ↗</a></div>
-        <ol><li>Open your chosen item’s detail and select <strong>Prepare review feedback</strong>.</li><li>Select the template, copy it, and paste into your separate review notes. The report identity and record ID should identify the selected item.</li><li>Choose <strong>Checked</strong>, <strong>Needs correction</strong>, <strong>Evidence missing</strong> or <strong>Not applicable</strong>. Explain what you checked, what should change or remains unknown, and the supporting evidence.</li></ol>
-        <p class="look-for"><strong>Finish with one entry.</strong> Practice feedback can stay in personal notes. Keep actual unit feedback in the approved work environment. The report does not save or submit answers.</p>
-        <label class="checkpoint"><input type="checkbox" data-check="respond"><span><strong>Done — I wrote one response with an item ID and supporting evidence</strong><small>I know how to record a correction or an unanswered question so it can be acted on.</small></span></label>
-        <a class="step-next" href="#learning">Save my place →</a>
-      </div>
-    </article>
-  </section>
-
-  <section class="section save-card" id="learning" aria-labelledby="learning-title">
-        <h2 id="learning-title">Keep your place</h2><p class="small">These checks track learning, not engineering approval. Existing checks are retained; uncheck a step if you want to try it again.</p>
-        <p id="storage-status" role="status">Learning progress is saved here when browser storage is available.</p>
-        <p class="small">Progress belongs to this browser and this device. Export it to keep a backup or move it to your other computer. The file contains only these checklist choices.</p>
-        <div class="actions"><button id="export-progress" type="button" disabled>Export progress</button><label class="button file-button">Import progress<input id="import-progress" type="file" accept=".json,application/json" disabled></label></div>
-        <p class="small muted">Import adds completed checks; it keeps checks already marked here.</p>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Start here · PLC Workbench</title>
+    <link rel="stylesheet" href="public/start-here/start-here.css" />
+    <script src="public/start-here/start-here.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#first-look">Skip to the first steps</a>
+    <header class="topbar">
+      <a class="brand" href="START-HERE.html"
+        ><span class="brand-mark" aria-hidden="true">W</span> PLC Workbench</a
+      ><button id="theme-toggle" type="button" disabled>Switch to light</button>
+    </header>
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">START HERE / YOUR FIRST SAVED REVIEW</p>
+          <h1 id="page-title">Your source.<br />Your decisions.</h1>
+          <p class="intro">
+            Open the engineering workspace, inspect a complete rung, and save a
+            classification. These four steps guide you through the actual
+            application.
+          </p>
+          <p class="finish-line">
+            Review changes save in a local project database. Source evidence and
+            parser proposals stay separate. PCSD generation and DeltaV class
+            mapping remain later stages.
+          </p>
+        </div>
+        <aside class="progress-card" aria-label="Your learning progress">
+          <p class="eyebrow">YOUR NEXT STEP</p>
+          <p class="progress-number">
+            <span id="core-count">0</span><span class="muted"> / 4</span>
+          </p>
+          <label class="sr-only" for="core-progress"
+            >Getting started checkpoints completed</label
+          ><progress id="core-progress" value="0" max="4"></progress>
+          <p>
+            Check a step after doing it. Opening a link does not mark it done.
+          </p>
+          <a class="button primary" id="next-action" href="#first-look"
+            >Go to step 1 →</a
+          ><a class="resume-link" href="#learning">Keep my place</a>
+        </aside>
+      </section>
+      <section class="section launch-card" aria-labelledby="launch-title">
+        <h2 id="launch-title">First, launch the local application</h2>
+        <ol>
+          <li>
+            In <strong>File Explorer</strong>, open this repository's folder and
+            double-click <strong>Open-Workbench.cmd</strong>.
+          </li>
+          <li>
+            Leave its terminal window open while reviewing. It starts the local
+            workspace and opens your browser.
+          </li>
+          <li>
+            If the browser did not open, use the button below. If the page
+            cannot connect, run the launcher first.
+          </li>
+        </ol>
+        <div class="actions">
+          <a
+            class="button primary"
+            href="http://127.0.0.1:8745/"
+            target="_blank"
+            rel="noopener"
+            data-workspace-view="rungs"
+            >Open engineering workspace ↗</a
+          >
+        </div>
+        <p class="small">
+          A browser page cannot start the command file for you. The launcher is
+          in your repository folder, beside this Start Here page. It does not
+          pull or push Git changes.
+        </p>
+        <p class="small">
+          Already have a completed work-check run? Use it in step 1. A parser
+          rerun is not required just to start reviewing. Keep this guide open in
+          a separate tab.
+        </p>
+      </section>
+      <section
+        class="section walkthrough"
+        aria-label="Four steps to your first saved review"
+      >
+        <article class="lesson" id="first-look">
+          <div class="lesson-number" aria-hidden="true">01</div>
+          <div class="lesson-body">
+            <p class="eyebrow">OPEN YOUR ACTUAL SOURCE</p>
+            <h2>Choose your saved analysis run</h2>
+            <div class="actions">
+              <a
+                class="button primary"
+                href="http://127.0.0.1:8745/"
+                target="_blank"
+                rel="noopener"
+                data-workspace-view="rungs"
+                >Open workspace ↗</a
+              >
+            </div>
+            <ol>
+              <li>
+                In the workspace sidebar, select
+                <strong>Choose analysis run</strong>.
+              </li>
+              <li>
+                Select your completed run from the list, then select
+                <strong>Import analysis</strong>. Use the most recent successful
+                run for the export you want to inspect.
+              </li>
+              <li>
+                Check the <strong>source name</strong> and
+                <strong>rung count</strong> in the sidebar. These must describe
+                your unit. No practice dataset is loaded automatically.
+              </li>
+            </ol>
+            <p class="look-for">
+              <strong>If the run list is empty:</strong> complete a local
+              work-check first, or launch the workspace with the folder that
+              contains your completed runs. The workspace reads saved analysis;
+              it does not reconstruct a unit from a summary report.
+            </p>
+            <label class="checkpoint"
+              ><input type="checkbox" data-check="orient" /><span
+                ><strong
+                  >Done — I imported my run and verified the source
+                  identity</strong
+                ><small
+                  >The source name and total rung count match the export I
+                  intend to review.</small
+                ></span
+              ></label
+            ><a class="step-next" href="#practice"
+              >Next: inspect a complete rung →</a
+            >
+          </div>
+        </article>
+        <article class="lesson" id="practice">
+          <div class="lesson-number" aria-hidden="true">02</div>
+          <div class="lesson-body">
+            <p class="eyebrow">VERIFY AGAINST THE ORIGINAL</p>
+            <h2>Find one rung and follow its evidence</h2>
+            <div class="actions">
+              <a
+                class="button primary"
+                href="http://127.0.0.1:8745/#view=rungs"
+                target="_blank"
+                rel="noopener"
+                data-workspace-view="rungs"
+                >Open rungs ↗</a
+              ><a
+                class="button"
+                href="http://127.0.0.1:8745/#view=objects"
+                target="_blank"
+                rel="noopener"
+                data-workspace-view="objects"
+                >Open tags &amp; source objects ↗</a
+              >
+            </div>
+            <ol>
+              <li>
+                Under <strong>Programs &amp; routines</strong>, choose a
+                familiar routine. Select a rung's <strong>title</strong> to open
+                it; its checkbox is for bulk edits.
+              </li>
+              <li>
+                Compare the source comment, graphical branch structure,
+                <strong>Complete captured rung text</strong>, and
+                <strong>Every instruction &amp; operand</strong>.
+              </li>
+              <li>
+                Follow an evidence link to the full analysis. Return to the
+                workspace tab. Use <strong>Next</strong> to continue through the
+                inventory; use <strong>Clear filters</strong> and
+                <strong>All</strong> to restore the complete list.
+              </li>
+            </ol>
+            <p class="look-for">
+              <strong>Keep the layers distinct:</strong> original source is
+              captured evidence; parser interpretation and project rules are
+              proposals; your saved review is a separate decision. Instruction
+              recognition alone does not prove process purpose.
+            </p>
+            <label class="checkpoint"
+              ><input type="checkbox" data-check="navigate" /><span
+                ><strong
+                  >Done — I found complete source and followed a linked
+                  operand</strong
+                ><small
+                  >I understand the displayed result count, filters, page
+                  controls, and source details.</small
+                ></span
+              ></label
+            ><a class="step-next" href="#interpret"
+              >Next: save your interpretation →</a
+            >
+          </div>
+        </article>
+        <article class="lesson" id="interpret">
+          <div class="lesson-number" aria-hidden="true">03</div>
+          <div class="lesson-body">
+            <p class="eyebrow">MAKE A STRUCTURED CHANGE</p>
+            <h2>Recategorize, group, and save</h2>
+            <div class="actions">
+              <a
+                class="button primary"
+                href="http://127.0.0.1:8745/#view=rungs"
+                target="_blank"
+                rel="noopener"
+                data-workspace-view="rungs"
+                >Review a rung ↗</a
+              ><a
+                class="button"
+                href="http://127.0.0.1:8745/#view=groups"
+                target="_blank"
+                rel="noopener"
+                data-workspace-view="groups"
+                >Open engineering groups ↗</a
+              >
+            </div>
+            <ol>
+              <li>
+                In the rung detail, find
+                <strong>Your engineering review</strong>. Choose one or more
+                categories. Use <strong>Manage categories</strong> if you need
+                another label.
+              </li>
+              <li>
+                Set <strong>Needs review</strong> while uncertain, or
+                <strong>Confirmed</strong> after checking. Enter an engineering
+                property such as Purpose, PV, SP, Output, or Equation. Select
+                <strong>Save review</strong>.
+              </li>
+              <li>
+                Select <strong>Add this source to a group</strong>, or check
+                individual instruction boxes and select
+                <strong>Group checked instructions</strong>. Name the
+                engineering group and save it.
+              </li>
+            </ol>
+            <p class="look-for">
+              <strong>Use the right scope:</strong> a saved classification
+              changes that source's reviewed interpretation. A reusable category
+              rule proposes labels for other rungs with the same opcode and
+              branch pattern; it never approves them. Group membership supports
+              several rungs per object and several groups per rung.
+            </p>
+            <label class="checkpoint"
+              ><input type="checkbox" data-check="interpret" /><span
+                ><strong
+                  >Done — I saved a category, a property, and a group
+                  membership</strong
+                ><small
+                  >My decisions are in the project database, linked to the
+                  source I inspected.</small
+                ></span
+              ></label
+            ><a class="step-next" href="#respond"
+              >Next: verify persistence and back up →</a
+            >
+          </div>
+        </article>
+        <article class="lesson" id="respond">
+          <div class="lesson-number" aria-hidden="true">04</div>
+          <div class="lesson-body">
+            <p class="eyebrow">CHECK THAT YOUR WORK SURVIVES</p>
+            <h2>Reopen your decision and back up</h2>
+            <div class="actions">
+              <a
+                class="button primary"
+                href="http://127.0.0.1:8745/#view=changes"
+                target="_blank"
+                rel="noopener"
+                data-workspace-view="changes"
+                >Open changes &amp; reconciliation ↗</a
+              >
+            </div>
+            <ol>
+              <li>
+                Select another rung and return to the one you edited. Reload the
+                page and open that rung again. Verify that your reviewed
+                categories and properties remain.
+              </li>
+              <li>
+                Open <strong>Changes &amp; reconciliation</strong> to inspect
+                the recorded change.
+                <strong>Undo latest change</strong> reverses the latest eligible
+                edit while retaining its history.
+              </li>
+              <li>
+                Select <strong>Back up project</strong> in the top bar. Keep
+                that database backup with your original source exports and saved
+                analysis runs in your private project location.
+              </li>
+            </ol>
+            <p class="look-for">
+              <strong>When you rerun analysis:</strong> import the new completed
+              run into the same project. Prior decisions remain recorded.
+              Changed source or changed evidence is flagged for review; explicit
+              correspondence reconnects a prior decision to a new source record.
+            </p>
+            <label class="checkpoint"
+              ><input type="checkbox" data-check="respond" /><span
+                ><strong
+                  >Done — I reopened a saved decision, checked history, and
+                  backed up</strong
+                ><small
+                  >I can keep reviewing without preparing separate
+                  copy-and-paste feedback notes.</small
+                ></span
+              ></label
+            ><a class="step-next" href="#learning">Keep my place →</a>
+          </div>
+        </article>
+      </section>
+      <section
+        class="section save-card"
+        id="learning"
+        aria-labelledby="learning-title"
+      >
+        <h2 id="learning-title">Keep your place in this guide</h2>
+        <p class="small">
+          These browser checkmarks track learning. They do not approve
+          engineering records and do not back up the project database.
+        </p>
+        <p id="storage-status" role="status">
+          Learning progress saves here when browser storage is available.
+        </p>
+        <div class="actions">
+          <button id="export-progress" type="button" disabled>
+            Export learning progress</button
+          ><label class="button file-button"
+            >Import learning progress<input
+              id="import-progress"
+              type="file"
+              accept=".json,application/json"
+              disabled
+          /></label>
+        </div>
+        <p class="small">
+          The JSON contains only fixed checklist choices. Import adds completed
+          checks without removing current ones. Earlier guide files retain
+          optional subjects; the four new application tasks start unchecked.
+        </p>
         <p id="transfer-status" role="status"></p>
-        <noscript><p>JavaScript is unavailable. You can read this page, but progress cannot be saved or transferred.</p></noscript>
-  </section>
-
-  <section class="section extras" id="subjects" aria-label="Optional next steps">
-    <details>
-      <summary><span>Learn one subject at a time</span><span class="summary-note" id="topic-count">0 / 7 explored</span></summary>
-      <p>Pick the subject that feels most familiar. Stop after one example. Mark “explored” when you know how to inspect it, rather than when every item is approved.</p>
-      <div class="topic-list">
-        <div class="topic"><a class="button" data-report-view="engineering" href="public/examples/control-interpretation-review-demo.html#view=engineering" target="_blank" rel="noopener">Open rung analysis ↗</a><label><input type="checkbox" data-check="rungs"><span><strong>Rungs and branches</strong><small>Engineering analysis: can I follow the conditions, paths, instructions and destinations?</small></span></label></div>
-        <div class="topic"><a class="button" data-report-view="signalcontext" href="public/examples/control-interpretation-review-demo.html#view=signalcontext" target="_blank" rel="noopener">Open signal relationships ↗</a><label><input type="checkbox" data-check="io"><span><strong>I/O and signals</strong><small>Objects, signal relationships and rack source addresses: what is linked, and what still needs wiring evidence?</small></span></label></div>
-        <div class="topic"><a class="button" data-report-view="pid" href="public/examples/control-interpretation-review-demo.html#view=pid" target="_blank" rel="noopener">Open PID evidence ↗</a><label><input type="checkbox" data-check="loops"><span><strong>PID loops</strong><small>PID evidence: can I locate PV, SP, output and connections without assuming a final class?</small></span></label></div>
-        <div class="topic"><a class="button" data-report-view="calculationpaths" href="public/examples/control-interpretation-review-demo.html#view=calculationpaths" target="_blank" rel="noopener">Open calculation inputs and destinations ↗</a><label><input type="checkbox" data-check="calculations"><span><strong>Equations and calculations</strong><small>Calculations: what reads the inputs, what is written and where does branching change the path?</small></span></label></div>
-        <div class="topic"><a class="button" data-report-view="sequenceconditions" href="public/examples/control-interpretation-review-demo.html#view=sequenceconditions" target="_blank" rel="noopener">Open sequence conditions ↗</a><label><input type="checkbox" data-check="sequences"><span><strong>States, timers and sequences</strong><small>Stateful and sequence views: what enables, resets or transitions the logic, and what remains unknown?</small></span></label></div>
-        <div class="topic"><a class="button" data-report-view="alarmevidence" href="public/examples/control-interpretation-review-demo.html#view=alarmevidence" target="_blank" rel="noopener">Open alarm source evidence ↗</a><label><input type="checkbox" data-check="alarms"><span><strong>Alarms and interlocks</strong><small>Alarm source evidence: what indicates an alarm, and what proves its severity or effect?</small></span></label></div>
-        <div class="topic"><a class="button" data-report-view="communication" href="public/examples/control-interpretation-review-demo.html#view=communication" target="_blank" rel="noopener">Open communication context ↗</a><label><input type="checkbox" data-check="connections"><span><strong>Calls, communication and unresolved items</strong><small>Execution, communication and unresolved views: can I distinguish a configured reference from proven runtime behavior?</small></span></label></div>
-      </div>
-    </details>
-    <details>
-      <summary>Where your DeltaV classes fit later</summary>
-      <p>Source behavior and target class allocation are separate decisions. A single source group can map to several classes, and several source fragments can contribute to one target object.</p>
-      <ul>
-        <li>A loop may fit <code>AI_PID_AO</code>, or use <code>AI_PID</code> with further classes before an <code>_AO</code> output.</li>
-        <li>Simple alarms may be built into a class. More complex alarm behavior may need a separate or split implementation.</li>
-        <li>An equation may need a different engineering category or target treatment after review.</li>
-        <li>Multiple or nested timers can exceed a chosen class’s capability. Splitting logic, including the proposed use of a DC for another timer in a state, is a future mapping decision.</li>
-      </ul>
-      <p>These are captured requirements for your team’s class library. The current report does not perform those mappings or certify behavior. Keep source evidence and review decisions linked when splitting or combining target objects.</p>
-    </details>
-    <details>
-      <summary>When you need more help</summary>
-      <ul>
-        <li><strong>Inside a report:</strong> use Review guide for the glossary, subject checklists and response examples.</li>
-        <li><strong>Appearance:</strong> this page and the current practice reports have a light/dark switch. An older saved unit report keeps its original appearance; it is still usable. Newly generated reports include the switch.</li>
-        <li><strong>No private report here:</strong> practice on this computer, then open the saved unit report on the work PC.</li>
-        <li><strong>Later reading:</strong> the <a href="public/docs/reviews/REPORT_REVIEW_GUIDE.md">report reading guide</a> explains the views in more detail. The <a href="public/docs/README.md">documentation index</a> is a reference library, not a required reading list.</li>
-      </ul>
-    </details>
-  </section>
-</main>
-<footer><span>PLC analysis workbench</span><span>Open one page. Complete one task. Check it off.</span></footer>
-</body>
+        <noscript
+          ><p>
+            JavaScript is unavailable. You can read the guide and open the
+            application, but guide progress cannot be saved.
+          </p></noscript
+        >
+      </section>
+      <section
+        class="section extras"
+        id="subjects"
+        aria-label="Optional next steps"
+      >
+        <details>
+          <summary>
+            <span>Explore one engineering subject</span
+            ><span class="summary-note" id="topic-count">0 / 7 explored</span>
+          </summary>
+          <p>
+            Use the linked full analysis for evidence, then save classifications
+            and groups in the workspace. Explore one subject at a time.
+          </p>
+          <div class="topic-list">
+            <div class="topic">
+              <a
+                class="button"
+                href="http://127.0.0.1:8745/#view=rungs"
+                target="_blank"
+                rel="noopener"
+                data-workspace-view="rungs"
+                >Open rungs ↗</a
+              ><label
+                ><input type="checkbox" data-check="rungs" /><span
+                  ><strong>Rungs and branches</strong
+                  ><small
+                    >I can follow the captured conditions, nested paths,
+                    instructions, and destinations.</small
+                  ></span
+                ></label
+              >
+            </div>
+            <div class="topic">
+              <a
+                class="button"
+                href="http://127.0.0.1:8745/#view=objects"
+                target="_blank"
+                rel="noopener"
+                data-workspace-view="objects"
+                >Open source objects ↗</a
+              ><label
+                ><input type="checkbox" data-check="io" /><span
+                  ><strong>I/O and signals</strong
+                  ><small
+                    >I can locate declarations and linked addresses while
+                    keeping wiring assumptions explicit.</small
+                  ></span
+                ></label
+              >
+            </div>
+            <div class="topic">
+              <a
+                class="button"
+                href="http://127.0.0.1:8745/analysis#view=pid"
+                target="_blank"
+                rel="noopener"
+                data-analysis-view="pid"
+                >Open PID evidence ↗</a
+              ><label
+                ><input type="checkbox" data-check="loops" /><span
+                  ><strong>PID loops</strong
+                  ><small
+                    >I can inspect PV, SP, output, and connections without
+                    assuming a final DeltaV class.</small
+                  ></span
+                ></label
+              >
+            </div>
+            <div class="topic">
+              <a
+                class="button"
+                href="http://127.0.0.1:8745/analysis#view=calculationpaths"
+                target="_blank"
+                rel="noopener"
+                data-analysis-view="calculationpaths"
+                >Open calculation paths ↗</a
+              ><label
+                ><input type="checkbox" data-check="calculations" /><span
+                  ><strong>Equations and calculations</strong
+                  ><small
+                    >I can trace inputs and destinations and save a reviewed
+                    equation or purpose.</small
+                  ></span
+                ></label
+              >
+            </div>
+            <div class="topic">
+              <a
+                class="button"
+                href="http://127.0.0.1:8745/analysis#view=sequenceconditions"
+                target="_blank"
+                rel="noopener"
+                data-analysis-view="sequenceconditions"
+                >Open sequence conditions ↗</a
+              ><label
+                ><input type="checkbox" data-check="sequences" /><span
+                  ><strong>States, timers, and sequences</strong
+                  ><small
+                    >I can inspect enabling, reset, and transition evidence and
+                    group related fragments.</small
+                  ></span
+                ></label
+              >
+            </div>
+            <div class="topic">
+              <a
+                class="button"
+                href="http://127.0.0.1:8745/analysis#view=alarmevidence"
+                target="_blank"
+                rel="noopener"
+                data-analysis-view="alarmevidence"
+                >Open alarm evidence ↗</a
+              ><label
+                ><input type="checkbox" data-check="alarms" /><span
+                  ><strong>Alarms and interlocks</strong
+                  ><small
+                    >I can distinguish alarm indications from supported severity
+                    and shutdown effects.</small
+                  ></span
+                ></label
+              >
+            </div>
+            <div class="topic">
+              <a
+                class="button"
+                href="http://127.0.0.1:8745/analysis#view=communication"
+                target="_blank"
+                rel="noopener"
+                data-analysis-view="communication"
+                >Open communication evidence ↗</a
+              ><label
+                ><input type="checkbox" data-check="connections" /><span
+                  ><strong>Calls and communication</strong
+                  ><small
+                    >I can inspect configured references without treating them
+                    as proven runtime behavior.</small
+                  ></span
+                ></label
+              >
+            </div>
+          </div>
+        </details>
+        <details>
+          <summary>Optional: inspect an invented read-only example</summary>
+          <p>
+            This small practice report is invented. It is not your unit and it
+            does not save engineering changes. Use it only to become familiar
+            with source-analysis views when you do not have your private project
+            here.
+          </p>
+          <a
+            class="button"
+            href="public/examples/control-interpretation-review-demo.html#view=overview"
+            target="_blank"
+            rel="noopener"
+            >Open invented practice report ↗</a
+          >
+        </details>
+        <details>
+          <summary>How DeltaV classes fit later</summary>
+          <p>
+            A source group can map to several target classes, and several source
+            fragments can contribute to one target object. A loop might fit
+            AI_PID_AO, or AI_PID with intermediate classes and an _AO output.
+            Class alarms, equations, and multiple or nested timers may require
+            different categories or split implementations. Use groups and
+            structured properties to retain those decisions. The workspace does
+            not yet generate or certify those target designs.
+          </p>
+        </details>
+        <details>
+          <summary>Reference reading, only when needed</summary>
+          <p>
+            The workspace's <strong>How to review</strong> page explains the
+            controls. The
+            <a href="public/docs/README.md">documentation index</a> is a
+            reference library, not required reading before your first review.
+          </p>
+        </details>
+      </section>
+    </main>
+    <footer>
+      <span>PLC Workbench</span
+      ><span>Inspect one source. Save one decision. Verify it remains.</span>
+    </footer>
+  </body>
 </html>

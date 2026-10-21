@@ -9,6 +9,7 @@ records preserve why the implementation works as it does; older status and
 | Need | Page |
 |---|---|
 | First use; learn what to inspect | [Offline start page and learning checklist](../../START-HERE.html) |
+| Browse all source and save classifications, groups and properties | [Editable engineering workspace](reviews/ENGINEERING_WORKSPACE.md) |
 | Understand the start page, progress and themes | [First-use implementation](reviews/GETTING_STARTED_REVIEW.md) |
 | Resume development | [Project README](../../README.md) and [current handoff](../CODEX_HANDOFF.md) |
 | Synchronize main and open the accepted report | [Work-PC instructions](reviews/WORK_MACHINE_REFERENCES_RUN.md) |
@@ -23,9 +24,12 @@ records preserve why the implementation works as it does; older status and
 
 Phase 1 source analysis has fourteen validated cycles, followed by successful
 cleanup and embedded-guide confirmations: sixteen completed cycles, zero
-further unchanged-source runs before review. Synchronize `main`, open the
-accepted saved report and start with **Review guide**. Editable corrections,
-PCSD and FHX remain later phases.
+further unchanged-source parser runs are required to open that evidence. The
+current review entry point is `Open-Workbench.cmd` on
+`feat/engineering-workspace-pc`. Import the completed saved run and use the
+structured editor. PCSD and FHX remain later phases. The earlier report-only
+review handoff is superseded; the new editor still needs its first work-PC
+source/import walkthrough before team distribution.
 
 ## Planning and contracts
 
@@ -38,8 +42,8 @@ PCSD and FHX remain later phases.
 | Repository setup history | [Git fresh-start notes](planning/GIT_FRESH_START.md) |
 
 Some plans describe the destination architecture as well as implemented work.
-Use their dates and the current handoff to distinguish future editor/database
-proposals from the working read-only report.
+Use their dates and the current handoff to distinguish historical proposals
+from the implemented SQLite editor and supporting read-only evidence views.
 
 ## Implementation evidence and historical reviews
 

@@ -80,11 +80,11 @@ not need Python, SQL or programming knowledge. Excel remains a possible review,
 exchange and test-sheet format. Select the GUI toolkit after a small real workflow
 and its data contracts are demonstrated.
 
-Proposal: evaluate a local SQLite project store with versioned records, explicit
-change history and portable JSON/Excel exchanges. This revises the earlier idea
-that SQLite could only be a later search index; the canonical storage choice is
-not finalized. If selected, SQLite is the authoritative editor store and exports
-are versioned snapshots, not a second independently writable database. A local
+Decision D035 selects a local SQLite project store with versioned records and
+explicit change history. The implemented workspace imports immutable saved-run
+artifacts and stores reviewed decisions separately. Complete SQLite backups
+include the evidence and can be restored as a new project. JSON/Excel exchanges
+remain future versioned snapshots, not a second independently writable database. A local
 store plus validated handoff packages supports the preferred initial sequential
 review workflow: one active editor at a time. Each handoff identifies its base
 revision; returned changes must match the expected base before application.

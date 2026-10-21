@@ -1,5 +1,12 @@
 # Phase 1 report review handoff
 
+**2026-10-21 update:** The source-analysis evidence below remains the baseline,
+but its report-only handoff is superseded by the
+[editable engineering workspace](ENGINEERING_WORKSPACE.md). Structured saved
+corrections and the first work-PC workspace walkthrough now precede team
+distribution. Import the existing saved run; another parser run is not needed
+just to open it. The following dated results record the earlier analysis gate.
+
 The requested cleanup confirmation is now complete. C15 return `d53e1ee` tested
 clean `4c5386c`: 2,112 application cases (two expected skips), 139 helpers and a
 successful private save with no failure code. All 29 C14 analysis summaries,

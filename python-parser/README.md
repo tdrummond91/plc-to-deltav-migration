@@ -7,9 +7,10 @@ conditions, sequences, communication and cross-rung groups. Source facts,
 inferred candidates and unresolved questions remain distinguishable.
 
 Phase 1's fourteen analysis cycles, cleanup confirmation and C16 embedded-guide
-refresh are validated. The saved report is ready for official review without
-another parser run. Editable records,
-persistent correction workflows, PCSD and FHX are later phases. Use the
+refresh are validated. The current editor imports those saved results without
+another parser run and saves categories, groups, rules and engineering
+properties in a private SQLite project. Launch `Open-Workbench.cmd` from the
+repository root. PCSD and FHX are later phases. Use the
 [project README](../README.md) for the normal user workflow and the
 [tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md) for current status.
 
@@ -36,10 +37,9 @@ explicit partial coverage, not a failed save. The command creates a fresh run;
 it does not overwrite earlier reports. For the work-PC check with automatic
 local feedback commit, use [the normal script](../public/docs/reviews/WORK_MACHINE_REFERENCES_RUN.md).
 
-Open **Review guide** for subject checklists, response guidance and a glossary.
-**Prepare review feedback** on a detail page supplies that record's context in
-a copyable template. The report is read-only: copy the template into separate
-notes and record your answers there.
+The standalone report is read-only. Import its completed run into the workspace
+for saved classifications, groups, properties and review status. Its former
+text-feedback template is superseded by the workspace controls.
 
 Add `--debug` to `plc review` to include developer versions and rule diagnostics
 in the HTML. Normal HTML keeps the engineering evidence and uncertainty while

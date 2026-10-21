@@ -1,5 +1,52 @@
 # Current handoff: PLC analysis workbench
 
+## Active implementation: editable engineering workspace (2026-10-21)
+
+The previous report-only handoff below is superseded. Tyler needs structured
+recategorization and saved engineering corrections before meaningful review;
+copying text feedback was not an acceptable substitute. Development branch:
+`feat/engineering-workspace-pc`, based on the prior onboarding branch.
+
+The new entry point is `Open-Workbench.cmd` (or `bash ./open-workbench.sh`).
+It opens a local browser editor at `http://127.0.0.1:8745`, imports a completed
+saved run and preserves all captured rungs. No default practice report, Git
+network operation, listener or automatic parser run is involved. The existing
+work-PC saved analysis can be imported without another 18-minute parser run.
+
+Implemented: program/routine navigation; complete rung text/comments and a
+series/parallel structural diagram; every instruction/operand and linked
+source evidence; editable category registry, many-to-many engineering groups,
+structured properties and review status; bulk changes that preserve omitted
+fields; reusable category proposals based on exact opcode/branch patterns;
+SQLite revisions/history, stale-save rejection, undo, changed-source explicit
+correspondence, portable backups and restore-as-new-project.
+
+Source facts, parser proposals, project rules and reviewed decisions stay
+separate. The editor changes the engineering model, not executable L5X.
+Class allocation, PCSD/FHX generation and packaged reviewer distribution
+remain later deliverables. Source-dependent uncertainty is not an approved
+engineering purpose. Read the [workspace guide](docs/reviews/ENGINEERING_WORKSPACE.md)
+for the implementation boundary and concrete operating steps.
+
+Validation completed on invented sources: 121 focused feature/presentation
+tests passed. A separate 116-test regression command passed with one expected
+skip; its boundary tests executed the complete audited work-PC application and
+helper suites while denying subprocess/socket access. The final presentation
+follow-up passed 56 tests, including current manifest-38/report-35 import.
+Independent review ended with no blockers.
+
+Chrome verification covered 105 rungs / 234 instructions, all three pages,
+source text/comments, category and property saves, group membership, a rule
+with 104 exact-pattern matches, reopen, complete backup/restore into a new
+project, a post-restore save, source-report round-trip links, light/dark themes
+and clean shutdown. Adding a rule preserves categories/properties and marks
+affected saved reviews for revalidation. No private report has been opened
+here. The first actual work-PC import/editing walkthrough remains outstanding;
+do not equate synthetic validation with accepted team usability or source
+engineering approval.
+
+## Prior analysis and report history
+
 History cleanup: `main` contains eight consolidated milestones above the prior
 baseline. The review-guide milestone includes the accepted C16 return and
 history-cleanup notes. Completed branch names and iteration archive tags are
@@ -53,7 +100,7 @@ The cleanup centralizes work-report size/serialization policy under
 report's base rack-binding labels. Its accepted return took 18m 06.389s. See the
 [cleanup record](docs/reviews/CLEANUP_REVIEW.md) for validation and timing detail.
 
-## Next action: complete a short orientation, then inspect one report item
+## Superseded report-only review handoff
 
 Tyler requested an embedded page explaining what to check and how to answer,
 with normal reviewer output free of development attribution and example

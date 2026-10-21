@@ -5,39 +5,30 @@ DeltaV. The current tool builds a searchable, offline engineering report from
 the source: rungs and branches, I/O, PID evidence, calculations, sequences,
 alarms, communication and related groups, with uncertainty kept visible.
 
-**First time here? Double-click [START-HERE.html](START-HERE.html) in the
-repository folder.** It is an offline, 15-minute orientation with a practice
-report and a small learning checklist. No code or Markdown reading is required.
+**Start on the work PC by double-clicking [Open-Workbench.cmd](Open-Workbench.cmd).**
+Choose your existing completed analysis run, browse the source, and save
+categories, groups and engineering properties in a local project database.
+There is no default practice report and no separate text-feedback requirement.
 
-**Current step:** Phase 1 source analysis, cleanup and the requested review-guide
-refresh have passed. **The saved report is ready for the walkthrough and
-official engineering review; no further parser run is needed.** Editable
-records, persistent corrections, PCSD and FHX generation are later phases.
+**Current step:** connecting Phase 1 source analysis to persistent engineering
+review. The workspace imports saved results without another parser run. PCSD
+and FHX generation remain later phases.
 
 ## What to do next
 
-Begin with **START-HERE.html**. Each of its four steps has report links, a
-specific task, a completion checkbox and a next-step link. Use **Go to step 1**,
-open the linked report page, complete the task, then return and check it off.
-Stop after one step if you like. Progress is saved locally and can be exported
-or imported between computers; it does not record engineering approval.
+Use [START-HERE.html](START-HERE.html) for four short, checkable steps.
+The app opens at <http://127.0.0.1:8745> after launching. Select **Choose analysis
+run**, verify the source name and total rung count, and open a familiar rung.
+Change its reviewed categories or properties and select **Save review**.
 
-The links initially use the invented practice report. To use your saved unit
-report, expand **Use my actual unit report instead** and paste its full Windows
-path using File Explorer's **Copy as path**. That path stays in this browser
-and is excluded from progress exports. Older saved reports may open at Overview;
-choose the named section in their sidebar. Current demos and newly generated
-reports support direct links to sections and captured source records.
+**Back up project** saves the whole private project. **Restore backup** opens
+a new restored copy without replacing the original. The built-in **How to
+review** page explains the controls. See the [workspace guide](public/docs/reviews/ENGINEERING_WORKSPACE.md)
+only when you need storage, rerun or handoff details.
 
-On the work PC, use the existing `review.html` saved by completed work check
-`20261019T201714Z-38434b5f`. Start with **Review guide**. This return passed both
-test suites and retained all 29 analysis summary families unchanged. You do not
-need to run the script again to review it.
-
-The start page and newly generated reports have a light/dark switch, defaulting
-to the existing dark theme. The two current practice reports include it. A
-previously saved unit report keeps its original interface and remains usable;
-pulling updated code does not rewrite private HTML files.
+The launcher uses the work PC's existing parser environment. No Git operations,
+background listener or automatic parser runs occur. **Close workspace** stops
+the application. Original saved HTML remains available as supporting evidence.
 
 ## Run a future check when needed
 
@@ -66,27 +57,26 @@ Normal reports include the reviewer instructions and engineering evidence.
 To include developer version and rule diagnostics in a separate run, use
 `bash ./run-work-check.sh --debug`. Keep the normal report for review.
 
-## Read your report
+## Supporting source evidence
 
 The script prints **Private review report:** and its path. In File Explorer,
 open `confidential/workspaces/work-check/`, choose the newest completed run and
 double-click **`review.html`**. It works in a browser without a server.
 
-Open **Review guide** from Overview or the left navigation. It explains what
-to check by subject, what the report's terms mean, and how to write a useful
-response. On a detail page, **Prepare review feedback** fills in its record ID,
-source snapshot and selected context. Copy the template into your review notes
-and complete it there; the HTML does not save or send responses. No code reading
-is needed. The [reading guide](public/docs/reviews/REPORT_REVIEW_GUIDE.md)
-provides additional context. Keep the full report within the approved work
-environment.
+For the current editing workflow, use **Open full source analysis** inside the
+workspace. Source links connect the detailed analysis to editable source
+records. Save categories, properties, groups and review status in the workspace.
+Standalone HTML remains read-only; its older feedback-template controls are
+superseded by these saved edits. Keep complete reports and project databases
+within the approved work environment.
 
 ## Find things
 
 | Location | Purpose |
 |---|---|
 | [START-HERE.html](START-HERE.html) | First-use path and your personal learning checklist. |
-| `run-work-check.sh` | The normal work-PC entrypoint. |
+| `Open-Workbench.cmd` | Open the editable source review application. |
+| `run-work-check.sh` | Run a new parser check when requested or after a changed export. |
 | `confidential/` | Ignored local exports, complete reports and logs; Git does not back these up. |
 | [python-parser/](python-parser/README.md) | Application code, tests and locked Python environment. |
 | [public/docs/](public/docs/README.md) | Current instructions, plans and retained review evidence. |

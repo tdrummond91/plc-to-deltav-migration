@@ -3,6 +3,16 @@ function renderReviewGuide(api) {
   'use strict';
   const {node, button, panel, values, labels, go, back, data, context} = api;
   const page = node('div', 'review-guide');
+  if(typeof WORKSPACE_REVIEW !== 'undefined' && WORKSPACE_REVIEW) {
+    const intro=panel('Read source evidence, then save your review',
+      'This view contains the imported source analysis. Follow its rung, instruction and tag links to verify the evidence. Save categories, groups and engineering properties in the editable workspace.');
+    const backLink=node('a','text-link','Open the editable workspace');
+    backLink.href='/#view=guide';intro.append(backLink);
+    const browse=panel('Choose the evidence you need',
+      'Ladder contains every captured rung. Objects contains source declarations. The remaining views organize calculations, PID evidence, alarms, sequences and unresolved questions. A recognized instruction family is not a confirmed equipment purpose or a complete control loop.');
+    Object.entries(labels).filter(([key])=>key!=='guide').forEach(([key,label])=>browse.append(button(label,()=>go(key),'text-link')));
+    page.append(intro,browse);return page;
+  }
   const list = (items, ordered=false) => {
     const result = node(ordered ? 'ol' : 'ul', 'guide-list');
     items.forEach(text => result.append(node('li', '', text)));
