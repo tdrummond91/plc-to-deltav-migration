@@ -16,7 +16,12 @@ the local application and returns to Bash; Ctrl+C also stops the server.
    rung count in the automatically loaded result. There is no default
    demonstration. **Choose analysis run** is a manual fallback for an already
    completed run under `confidential/workspaces/work-check`.
-2. Choose a program/routine or search for a known tag. The result count and
+2. Open **Classification & groups** for the automatic functional overview.
+   Choose **Function** to find DC, AC, PID, alarms, timers, counters, structured
+   objects, or I/O candidates. Expand **Evidence, parameters & source links**
+   on a relevant item, then follow its rung links to inspect the logic.
+   You can browse every proposal before saving any groups.
+3. Choose a program/routine or search for a known tag. The result count and
    page controls cover all captured rungs. The list previews formatted instructions
    and opens the first rung automatically when no selection is pending. **Rung flow**
    connects every displayed instruction from left to right, preserving nested
@@ -26,18 +31,18 @@ the local application and returns to Bash; Ctrl+C also stops the server.
    **Equations** offers a vertical reading view. **Branch structure** retains fragment selection;
    **Original text** shows the exact captured rung. **Every instruction & operand**
    retains the complete argument list. Parallel paths stay separate in both views.
-3. Select **Explore inputs & outputs**. The **Connection map** places the focused
+4. Select **Explore inputs & outputs**. The **Connection map** places the focused
    rung between upstream writers and downstream readers, with exact signals
    between them. Click a signal to expand its fan-out, then click a neighboring
    rung to continue the trace. **Back in trace** restores the prior selection.
    Scope and direction filters narrow the view; signal and connected-rung page
    controls expose the remaining records. **Open focused rung** returns to its
    complete source and review form.
-4. In **Your engineering review**, select categories, change properties and
+5. In **Your engineering review**, select categories, change properties and
    press **Save review**. A rung can have multiple categories. Use groups to
    associate several rungs, individual instructions or source objects; a
    source record can belong to more than one group.
-5. Reopen the application and verify the saved change. Select **Back up
+6. Reopen the application and verify the saved change. Select **Back up
    project**. **Restore backup** opens a new restored project and keeps the
    previous project and backup intact.
 
@@ -45,6 +50,59 @@ For later review sessions that do not need new analysis, the optional command
 `bash ./open-workbench.sh` reopens the saved project. Double-clicking
 `Open-Workbench.cmd` is an alternative to that shortcut. The opener does not
 run tests, analyze the L5X, or perform Git operations.
+
+## Classifications, parameters, and migration decisions
+
+**Classification & groups** projects the saved analysis into source-linked
+proposals. Opening it reads the imported snapshot and saved evidence once; it
+does not rerun the analysis pipeline. Existing completed projects can use this
+view after updating and reopening the application.
+
+**DC** means a discrete calculation with a true/false result. Latches and edge
+storage retain their stateful qualification. **AC** means an analogue calculation
+whose captured result type is REAL or LREAL. Integer or unproved result types
+remain under **Calculation — result type unresolved**.
+
+**AI/AO/DI/DO** are candidates supported by module direction and a uniquely
+captured data leaf. An internal BOOL is not automatically a digital output;
+module status flags are not automatically physical digital inputs. Packed
+integer channels, missing types, unsupported XML paths and other gaps stay
+visible for investigation. Names and comments can suggest alarms or equipment,
+but do not establish shutdown consequences or physical identity.
+
+PID, timer/counter, structured object and AOI groups collect captured settings
+and related source uses. Each value links back to its source. These are exported
+values, not a selection of the effective live setting. A PID may span several
+DeltaV classes; nested timers remain separate source objects. Shared addresses
+associate evidence without asserting one equipment item or module boundary.
+
+To save an interpretation:
+
+1. Choose **Adopt & edit group**. This creates a saved engineering group from
+   the detected source memberships, without confirming its meaning.
+2. Select all applicable function categories and a **Migration decision**:
+   retain, replace with a DeltaV implementation, exclude, or investigate.
+3. Adjust its name or memberships and choose **Save**. Changes are stored in
+   the project database with revision history, undo and backup support.
+4. Use **Migration decision → Hide reviewed exclusions** to narrow the working
+   list. **All migration decisions** shows those items again.
+
+If you remove members from an adopted group, its saved decisions apply to that
+smaller group. The larger detected proposal keeps its original categories and
+stays in scope for investigation, so an exclusion cannot hide the omitted logic.
+
+Use **Function → Allen-Bradley platform detail** to examine controller-specific
+configuration and logic. Exclusion requires a saved decision: status reads,
+communication, timing and control-flow instructions can express behavior the
+target still needs. Exclusion changes this review filter, not the original L5X
+or a generated FHX.
+
+Saved decisions survive reopening and reruns. Changed source or classification
+evidence flags the old decision for rechecking; a stale exclusion remains in
+scope as **Investigate before deciding**. Changed source IDs require explicit
+correspondence. A count of rungs linked to groups does not mean every function
+has been identified. Display limits, unknowns and unresolved evidence remain
+visible, and all original rungs stay accessible in **Rungs**.
 
 ## Reading layout and English wording
 

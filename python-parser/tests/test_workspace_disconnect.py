@@ -38,6 +38,7 @@ class WorkspaceDisconnectTests(unittest.TestCase):
         workspace = Mock()
         workspace.report.return_value = b'<html>Invented report</html>'
         workspace.state.return_value = {'revision': 2}
+        workspace.mutate.return_value = {'revision': 2}
         handler.server = SimpleNamespace(workspace=workspace, token='synthetic-session',
                                          origin='http://127.0.0.1:12345')
         handler.command = method
@@ -77,9 +78,8 @@ class WorkspaceDisconnectTests(unittest.TestCase):
                     self.assertTrue(handler.close_connection)
                     self.assertEqual(len(stream.attempts), fail_on)
                     self.assertTrue(stream.attempts[0].startswith(b'HTTP/1.0 200 '))
-                    handler.server.workspace.store.mutate.assert_called_once_with(
+                    handler.server.workspace.mutate.assert_called_once_with(
                         {'type': 'synthetic'}, 1, author='Reviewer')
-                    handler.server.workspace.state.assert_called_once_with()
 
     def test_post_body_disconnect_makes_no_change_or_error_response(self) -> None:
         for error_type in DISCONNECTS:
@@ -90,7 +90,7 @@ class WorkspaceDisconnectTests(unittest.TestCase):
                 handler.do_POST()
                 self.assertTrue(handler.close_connection)
                 self.assertEqual(handler.wfile.attempts, [])
-                handler.server.workspace.store.mutate.assert_not_called()
+                handler.server.workspace.mutate.assert_not_called()
                 handler.server.workspace.state.assert_not_called()
 
     def test_project_read_oserrors_still_produce_a_controlled_500(self) -> None:
@@ -108,7 +108,7 @@ class WorkspaceDisconnectTests(unittest.TestCase):
 
     def test_project_write_oserror_still_produces_a_controlled_500(self) -> None:
         handler = self.handler('/api/mutate', method='POST')
-        handler.server.workspace.store.mutate.side_effect = PermissionError('private-source-path')
+        handler.server.workspace.mutate.side_effect = PermissionError('private-source-path')
         handler.do_POST()
         self.assertTrue(handler.wfile.attempts[0].startswith(b'HTTP/1.0 500 '))
         body = json.loads(handler.wfile.attempts[1])

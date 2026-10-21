@@ -10,6 +10,7 @@ import argparse
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -60,6 +61,7 @@ class Workspace:
         self._translation_run: str | None = None
         self._translation_catalog_cache: tuple[Any, dict] = (_UNLOADED, {})
         self._translation_history: tuple[Any, dict] = (_UNLOADED, {})
+        self._classification_cache: tuple[Any, dict] = (_UNLOADED, {})
         self.startup_notice = ''
 
     def close(self) -> None:
@@ -218,6 +220,7 @@ class Workspace:
         return result
 
     def state(self) -> dict:
+        from .workspace_classification import CATEGORY_DEFINITIONS
         state = self.store.state()
         self._load(state)
         snapshot = self._inventory.get("snapshot", {})
@@ -255,11 +258,133 @@ class Workspace:
             self._retain_labels(self.store.inventory(run_id))
         for row in state['pending_reviews']:
             row['path'] = self._historical_labels.get(row['source_id'], row['path'])
+        current_proposals = ({row['id']: row for row in self._classification_cache[1].get('groups', [])}
+                             if self._classification_cache[0] == state['active_run'] else {})
         for group in state.get('groups', []):
-            group['members'] = [{'id': identifier, 'path': self.path(identifier) or self._historical_labels.get(identifier, 'Earlier source · ' + identifier)}
+            proposed = current_proposals.get(group.get('proposal_id'))
+            if (group.get('proposal_id') and self._classification_cache[0] == state['active_run']
+                    and (not proposed or group.get('proposal_signature') != self._classification_signature(proposed))):
+                group['needs_revalidation'] = True
+                group['revalidation_reasons'] = sorted(set(group.get('revalidation_reasons', [])
+                                                           + ['classification_evidence_changed']))
+            group['members'] = [{'id': identifier, 'path': self.path(identifier) or self._historical_labels.get(identifier, 'Earlier source · ' + identifier),
+                                 'kind': 'rung' if identifier in self._rung_for else self._sources.get(identifier, {}).get('kind', 'object')}
                                 for identifier in group.get('member_ids', [])]
         state["project_path"] = str(self.project)
         state['startup_notice'] = self.startup_notice
+        state['classification_categories'] = CATEGORY_DEFINITIONS
+        return state
+
+    def _classifications(self) -> dict:
+        """Project saved evidence once per run; browsing never changes reviews."""
+        from .workspace_classification import build_classification
+        from .workspace_report import read_report_data
+        self._load(self.store.state())
+        if not self._run:
+            raise ProjectError('Import a completed source analysis first.')
+        if self._classification_cache[0] != self._run:
+            report = read_report_data(self.store.artifact('review.html'), self._inventory)
+            result = build_classification(self._inventory, self.store.analysis(), report,
+                                          source=self.store.artifact('snapshot.L5X'))
+            self._classification_cache = (self._run, result)
+        return self._classification_cache[1]
+
+    @staticmethod
+    def _classification_signature(proposal: dict) -> str:
+        # Covers advanced providers embedded only in review.html, which the
+        # older project-wide JSON-artifact proposal digest does not include.
+        return hashlib.sha256(json.dumps(proposal, sort_keys=True, ensure_ascii=False,
+                                         allow_nan=False).encode('utf-8')).hexdigest()
+
+    def mutate(self, command: dict, expected_revision: int, author: str = 'Reviewer') -> dict:
+        if isinstance(command, dict) and command.get('op') == 'group' and command.get('id'):
+            existing = next((group for group in self.store.state()['groups']
+                             if group['id'] == command['id']), None)
+            if existing and existing.get('proposal_id') and 'migration_status' in command:
+                proposal = next((row for row in self._classifications()['groups']
+                                 if row['id'] == existing['proposal_id']), None)
+                if proposal is not None:
+                    command = dict(command, proposal_signature=self._classification_signature(proposal))
+        self.store.mutate(command, expected_revision, author=author)
+        return self.state()
+
+    def classification(self, query: dict) -> dict:
+        from .project_store import MIGRATION_STATUSES
+        state = self.state()
+        definitions = state['classification_categories']
+        if not state['active_run']:
+            return dict(self._page([], query), pages=1, categories=definitions,
+                        coverage={}, limitations=[], run_id=None)
+        projection = self._classifications()
+        category = query.get('category', '')
+        migration = query.get('migration', '')
+        if category and category not in {row['id'] for row in definitions}:
+            raise ProjectError('Choose an available function classification.')
+        if migration and migration not in MIGRATION_STATUSES | {'in_scope'}:
+            raise ProjectError('Choose an available migration filter.')
+        saved = {group['proposal_id']: group for group in state['groups'] if group.get('proposal_id')}
+        search = query.get('query', '').casefold()
+        rows = []
+        for proposed in projection['groups']:
+            adopted = saved.get(proposed['id'])
+            limited_scope = bool(adopted and not set(proposed['member_ids']).issubset(adopted['member_ids']))
+            functions = adopted.get('function_categories', proposed['category_ids']) if adopted and not limited_scope else proposed['category_ids']
+            disposition = adopted.get('migration_status', 'unreviewed') if adopted else 'unreviewed'
+            stale = bool(adopted and (adopted.get('needs_revalidation')
+                         or adopted.get('proposal_signature') != self._classification_signature(proposed)))
+            if stale or limited_scope:
+                disposition = 'investigate'
+            if category and category not in functions:
+                continue
+            if migration == 'in_scope' and disposition == 'exclude':
+                continue
+            if migration and migration != 'in_scope' and migration != disposition:
+                continue
+            name = adopted['name'] if adopted and not limited_scope else proposed['name']
+            if search and search not in ' '.join([name, proposed.get('reason', ''),
+                    self.path(proposed.get('anchor_id', '')), ' '.join(functions),
+                    adopted.get('migration_note', '') if adopted else '',
+                    json.dumps(proposed.get('parameters', []), ensure_ascii=False)]).casefold():
+                continue
+            rows.append(dict(proposed, name=name,
+                             saved_group_id=adopted['id'] if adopted else None,
+                             migration_scope_limited=limited_scope,
+                             saved_member_count=len(adopted['member_ids']) if adopted else 0,
+                             needs_revalidation=stale,
+                             effective_category_ids=functions, effective_migration_status=disposition))
+        result = self._page(rows, query)
+        result.update(pages=max(1, (len(rows) + PAGE_SIZE - 1) // PAGE_SIZE),
+                      categories=definitions, coverage=projection['coverage'],
+                      limitations=projection['limitations'], run_id=state['active_run'])
+        # Human labels are resolved only for the visible page; canonical IDs stay
+        # available for opening every member without flattening its source.
+        for row in result['items']:
+            row['members'] = [{'id': member, 'label': self.path(member)} for member in row['member_ids']]
+            row['source_labels'] = {member['id']: member['label'] for member in row['members']}
+        return result
+
+    def adopt_classification(self, payload: dict) -> dict:
+        state = self.state()
+        if payload.get('run_id') != state['active_run'] or payload.get('expected_revision') != state['revision']:
+            raise RevisionConflict('The project or analysis changed. Refresh the classification before saving it.')
+        if type(payload.get('expected_revision')) is not int:
+            raise ProjectError('A current project revision is required.')
+        identifier = payload.get('proposal_id')
+        if not isinstance(identifier, str):
+            raise ProjectError('Choose a source classification to edit.')
+        proposal = next((row for row in self._classifications()['groups'] if row['id'] == identifier), None)
+        if proposal is None:
+            raise ProjectError('This source classification is not present in the active analysis.')
+        existing = next((group for group in state['groups'] if group.get('proposal_id') == identifier), None)
+        if existing is None:
+            self.store.mutate({'op': 'group', 'name': proposal['name'][:160],
+                               'member_ids': proposal['member_ids'], 'function_categories': proposal['category_ids'],
+                               'migration_status': 'unreviewed', 'proposal_id': identifier,
+                               'proposal_signature': self._classification_signature(proposal)},
+                              state['revision'], author=payload.get('author', 'Reviewer'))
+            state = self.state()
+            existing = next(group for group in state['groups'] if group.get('proposal_id') == identifier)
+        state['selected_group_id'] = existing['id']
         return state
 
     def _retain_labels(self, inventory: dict) -> None:
@@ -671,6 +796,7 @@ class Workspace:
         self._translation_run = None
         self._translation_catalog_cache = (_UNLOADED, {})
         self._translation_history = (_UNLOADED, {})
+        self._classification_cache = (_UNLOADED, {})
         self.store, self.project = restored, destination
         self._run = _UNLOADED
         self._report_cache = (None, b'')
@@ -789,6 +915,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._json(200, workspace.connections(query))
             elif url.path == "/api/objects":
                 self._json(200, workspace.objects(query))
+            elif url.path == '/api/classification':
+                self._json(200, workspace.classification(query))
             elif url.path == "/api/source":
                 self._json(200, workspace.source(query.get("id", ""), query.get("run_id")))
             elif url.path == "/api/translation":
@@ -803,7 +931,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._send(200, workspace.report(query.get('language')), "text/html; charset=utf-8", report=True)
             elif url.path in ("/", "/index.html", "/workspace.js", "/workspace.css",
                               "/rung-flow.js", "/rung-flow.css", "/connections.js", "/connections.css",
-                              "/reading-layout.js", "/reading-layout.css", "/translation.js", "/translation.css"):
+                              "/reading-layout.js", "/reading-layout.css", "/translation.js", "/translation.css",
+                              '/classification.js', '/classification.css'):
                 name = "index.html" if url.path in ("/", "/index.html") else url.path[1:]
                 data = (ASSETS / name).read_bytes()
                 if name == "index.html":
@@ -839,13 +968,14 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 raise ProjectError("Expected a workspace operation.")
             route = urlsplit(self.path).path
             if route == "/api/mutate":
-                workspace.store.mutate(payload.get("command", {}), payload.get("expected_revision"),
-                                       author=payload.get("author", "Reviewer"))
-                result = workspace.state()
+                result = workspace.mutate(payload.get("command", {}), payload.get("expected_revision"),
+                                          author=payload.get("author", "Reviewer"))
             elif route == "/api/import":
                 result = workspace.import_run(payload.get("path", ""), payload.get("expected_revision"))
             elif route == '/api/translation':
                 result = workspace.configure_translation(payload)
+            elif route == '/api/classification/adopt':
+                result = workspace.adopt_classification(payload)
             elif route == "/api/backup":
                 result = workspace.backup()
             elif route == '/api/restore':

@@ -29,6 +29,7 @@ _SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 _SCHEMA_VERSION = 1
 _APPLICATION_ID = 0x504C4357  # ASCII PLCW; distinguishes this file from other SQLite applications.
 _EDIT_TABLES = ("categories", "groups", "reviews", "rules")
+MIGRATION_STATUSES = frozenset({'unreviewed', 'retain', 'replace', 'exclude', 'investigate'})
 _TABLE_COLUMNS = {
     "project": {"singleton", "revision", "active_run"},
     "runs": {"id", "snapshot_id", "fingerprint", "proposal_digest", "manifest", "imported_utc"},
@@ -660,6 +661,19 @@ class ProjectStore:
                         revalidation_reasons=sorted(set(review.get("revalidation_reasons", []) + [reason])),
                     )
                     self._put("reviews", source_id, review)
+            # Keep human group decisions, but do not let a prior exclusion hide
+            # newly changed source/proposals without another look.
+            for group_id, original in before['groups'].items():
+                if not original.get('proposal_id'):
+                    continue
+                reasons = set(original.get('revalidation_reasons', []))
+                if original.get('snapshot_id') != snapshot_id:
+                    reasons.add('source_changed_requires_correspondence')
+                elif original.get('proposal_digest') != proposal_digest:
+                    reasons.add('parser_evidence_changed')
+                if reasons:
+                    self._put('groups', group_id, dict(original, needs_revalidation=True,
+                              revalidation_reasons=sorted(reasons), revision=revision))
             self._record_history(
                 "import", {"run_id": identifier, "previous_run": old_run["id"] if old_run else None},
                 before, "Import",
@@ -764,6 +778,7 @@ class ProjectStore:
         self._put("categories", identifier, {"id": identifier, "name": name})
 
     def _group(self, command: dict[str, Any]) -> None:
+        from .workspace_classification import CATEGORY_DEFINITIONS
         existing = self._records("groups")
         identifier = _text(command["id"], "Group identifier", 256) if command.get("id") else f"group-{uuid4().hex}"
         if command.get("id") and identifier not in existing:
@@ -771,15 +786,47 @@ class ProjectStore:
         name = _text(command.get("name"), "Group name", 160)
         members = _ids(command.get("member_ids", []), "Group members")
         active_ids = self._active_ids()
-        previous = existing.get(identifier, {}).get("member_ids", [])
+        old = existing.get(identifier, {})
+        previous = old.get("member_ids", [])
         # Existing old-snapshot memberships remain editable/visible, but cannot
         # be invented by submitting an arbitrary source identifier.
         if any(member not in active_ids and member not in previous for member in members):
             raise ProjectError("Group members must belong to this run or the group's retained evidence.")
-        self._put("groups", identifier, {
+        functions = _ids(command.get('function_categories', old.get('function_categories', [])), 'Function categories')
+        if not set(functions).issubset({row['id'] for row in CATEGORY_DEFINITIONS}):
+            raise ProjectError('Choose one of the available engineering function categories.')
+        migration = command.get('migration_status', old.get('migration_status', 'unreviewed'))
+        if not isinstance(migration, str) or migration not in MIGRATION_STATUSES:
+            raise ProjectError('Choose an available migration disposition.')
+        note = _text(command.get('migration_note', old.get('migration_note', '')),
+                     'Migration note', 4000, empty=True)
+        proposal = old.get('proposal_id')
+        if 'proposal_id' in command:
+            supplied = _text(command['proposal_id'], 'Source proposal', 256)
+            if proposal is not None and supplied != proposal:
+                raise ProjectError('The source proposal for an existing group cannot be changed.')
+            proposal = supplied
+        record = {
             "id": identifier, "name": name, "member_ids": members,
+            'function_categories': functions, 'migration_status': migration, 'migration_note': note,
             "revision": self._head()["revision"] + 1,
-        })
+        }
+        if proposal:
+            record['proposal_id'] = proposal
+            signature = command.get('proposal_signature', old.get('proposal_signature'))
+            if signature is not None:
+                if not isinstance(signature, str) or not re.fullmatch(r'[0-9a-f]{64}', signature):
+                    raise ProjectError('The source group evidence signature is invalid.')
+                record['proposal_signature'] = signature
+            run = self._run()
+            reaffirmed = 'migration_status' in command and all(member in active_ids for member in members)
+            record.update(
+                snapshot_id=run['snapshot_id'] if reaffirmed else old.get('snapshot_id', run['snapshot_id']),
+                proposal_digest=run['proposal_digest'] if reaffirmed else old.get('proposal_digest', run['proposal_digest']),
+                needs_revalidation=False if reaffirmed else old.get('needs_revalidation', False),
+                revalidation_reasons=[] if reaffirmed else old.get('revalidation_reasons', []),
+            )
+        self._put("groups", identifier, record)
 
     def _rebind(self, command: dict[str, Any]) -> None:
         from_id = _text(command.get("from_id"), "Previous source", 256)

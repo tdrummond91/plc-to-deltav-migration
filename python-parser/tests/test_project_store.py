@@ -190,6 +190,33 @@ class ProjectStoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ProjectError, "no edits"):
             self.change({"op": "undo"})
 
+    def test_function_and_migration_decisions_survive_membership_edits_backup_and_undo(self) -> None:
+        before = self.store.artifact('snapshot.L5X')
+        first = self.change({'op': 'group', 'name': 'Invented calculation', 'member_ids': [self.rung_id],
+                             'function_categories': ['dc', 'alarm'], 'migration_status': 'replace',
+                             'migration_note': 'Keep behavior using the target alarm class.'})
+        group = first['groups'][0]
+        edited = self.change({'op': 'group', 'id': group['id'], 'name': group['name'],
+                              'member_ids': [self.rung_id, self.instruction_id]})['groups'][0]
+        for field in ('function_categories', 'migration_status', 'migration_note'):
+            self.assertEqual(edited[field], group[field])
+        backup = self.store.backup(self.root / 'backups' / 'classified.sqlite')
+        with ProjectStore(backup) as reopened:
+            self.assertEqual(reopened.state()['groups'], [edited])
+            self.assertEqual(reopened.artifact('snapshot.L5X'), before)
+        undone = self.change({'op': 'undo'})['groups'][0]
+        self.assertEqual(undone['member_ids'], [self.rung_id])
+        self.assertEqual(undone['migration_status'], 'replace')
+
+    def test_invalid_function_or_migration_metadata_does_not_write(self) -> None:
+        before = self.store.state()
+        for extra in ({'function_categories': ['fictional']}, {'migration_status': 'silently_drop'},
+                      {'migration_status': []}, {'migration_note': 'x' * 4001},
+                      {'proposal_id': 'invented', 'proposal_signature': 'wrong'}):
+            with self.subTest(extra=extra), self.assertRaises(ProjectError):
+                self.change({'op': 'group', 'name': 'Invalid', 'member_ids': [self.rung_id], **extra})
+            self.assertEqual(self.store.state(), before)
+
     def test_undo_does_not_remove_imported_evidence(self) -> None:
         self.review()
         self.store.import_run(invented_run(self.root / "runs"))

@@ -1,5 +1,47 @@
 # Current handoff: PLC analysis workbench
 
+## Functional classification workspace (2026-10-21)
+
+The editable workspace now exposes **Classification & groups** before any manual
+group creation. `workspace_classification.py` projects authenticated saved report
+companions plus the captured snapshot into deterministic source/address groups,
+PID and stateful objects, captured parameters, and residual rung functions.
+The XML read qualifies namespace/binding paths; it does not rerun the analysis
+pipeline. DC means a true/false calculation; AC requires a floating-point result.
+Typed module data supports AI/AO/DI/DO candidates. Status flags, packed integer
+channels, unsupported types/namespaces, and unresolved instruction functions do
+not gain physical signal identity through these labels.
+
+Groups support multiple function categories and a separate reviewed migration
+disposition. Adoption copies canonical source memberships into a saved group;
+it never changes source artifacts or confirms engineering meaning. Existing JSON
+group records gain optional classification/disposition/proposal fields without
+a database schema migration. Omitted fields survive membership-only edits.
+Imports flag changed source/proposal evidence; a per-group content signature
+also detects provider changes stored only in the report. Stale exclusions remain
+visible for investigation. Source changes do not automatically match old groups.
+Removing members limits saved decisions to the edited group; the original
+proposal remains in scope rather than inheriting a subset's exclusion.
+Manual source category rules remain distinct from these function group proposals.
+
+The browser filters by function, migration decision and text. Evidence disclosures
+load their DOM lazily; source links and group-editor members page in batches of
+50. Projection limits are 20,000 groups, 100,000 memberships, 100,000 displayed
+parameters total and 128 parameters per group. Limits are explicit and never
+remove original evidence. This is review organization, not approved DeltaV class
+allocation, physical wiring inference, runtime simulation, or FHX generation.
+
+Validation: 153 classification/workspace/store/presentation tests passed before
+final refinements; the final focused run passed 104 tests (overlapping coverage).
+Review findings were fixed with real-parser regressions for foreign owners,
+attributes, aliases, scopes, Text, decorated data and ambiguous structural
+ancestors, plus API tests for partial/empty group exclusions. Browser checks on
+an invented nine-rung source verified automatic groups, PID parameter evidence,
+AC and AI filters, source navigation, saved multi-function migration edits, and
+theme switching. Work-PC use: manually pull the development
+branch, close any older workspace, run `bash ./open-workbench.sh`, then choose
+**Classification & groups**. A full work-check rerun is unnecessary for this view.
+
 ## Active implementation: editable engineering workspace (2026-10-21)
 
 The previous report-only handoff below is superseded. Tyler needs structured

@@ -10,10 +10,12 @@
     <link rel="stylesheet" href="/connections.css" />
     <link rel="stylesheet" href="/reading-layout.css" />
     <link rel="stylesheet" href="/translation.css" />
+    <link rel="stylesheet" href="/classification.css" />
     <script defer src="/rung-flow.js"></script>
     <script defer src="/connections.js"></script>
     <script defer src="/reading-layout.js"></script>
     <script defer src="/translation.js"></script>
+    <script defer src="/classification.js"></script>
     <script defer src="/workspace.js"></script>
   </head>
   <body>
@@ -66,7 +68,7 @@
             Tags &amp; source objects
           </button>
           <button type="button" data-view="connections">Connection map</button>
-          <button type="button" data-view="groups">Engineering groups</button>
+          <button type="button" data-view="groups">Classification &amp; groups</button>
           <button type="button" data-view="changes">
             Changes &amp; reconciliation
           </button>
@@ -214,17 +216,21 @@
         <section id="view-groups" class="view" hidden>
           <div class="page-heading">
             <div>
-              <span class="eyebrow">ORGANIZE ENGINEERING MEANING</span>
-              <h1>Engineering groups</h1>
+              <span class="eyebrow">UNDERSTAND AND ORGANIZE THE SOURCE</span>
+              <h1>Classification &amp; groups</h1>
               <p>
-                A group can contain several rungs, individual instructions, or
-                source objects. The same source can belong to more than one
-                group.
+                Start with detected functions, inspect their source evidence,
+                then save and adjust the groups you want to migrate.
               </p>
             </div>
             <button id="new-group" type="button" class="primary">
               New group
             </button>
+          </div>
+          <div id="classification-browser"></div>
+          <div class="classification-saved-heading">
+            <h2>Your saved engineering groups</h2>
+            <p>A group can contain several rungs, instructions, or source objects. The same source can belong to more than one group. Saved classifications and migration decisions remain editable.</p>
           </div>
           <div id="group-list" class="card-grid"></div>
         </section>

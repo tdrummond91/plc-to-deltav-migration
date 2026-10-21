@@ -200,6 +200,7 @@
     $("category-filter").value = selected;
     renderRoutines();
     renderGroups();
+    if (state.view === "groups") classificationBrowser.refresh();
     renderChanges();
     renderGuide();
   }
@@ -291,7 +292,10 @@
     });
     if (view === "rungs") run(loadRungs);
     if (view === "objects") run(loadObjects);
-    if (view === "groups") renderGroups();
+    if (view === "groups") {
+      renderGroups();
+      classificationBrowser.refresh();
+    }
     if (view === "changes") renderChanges();
     if (view === "connections") renderConnections();
     return true;
@@ -1522,6 +1526,13 @@
         node("h2", g.name),
         node("p", (g.member_ids || []).length + " linked source records"),
       );
+      const labels = new Map((state.project.classification_categories || []).map(c => [c.id, c.label || c.name || c.id]));
+      const classifications = node("div", null, "classification-chips");
+      (g.function_categories || []).forEach(id => classifications.append(chip(labels.get(id) || id)));
+      classifications.append(chip(window.PLCClassification.migrationLabel(g.migration_status || "unreviewed"), "classification-decision"));
+      card.append(classifications);
+      if (g.migration_note) card.append(node("p", g.migration_note));
+      if (g.needs_revalidation) card.append(node("p", "Source evidence changed. Recheck the saved classification and migration decision. This group remains in scope until reviewed.", "warning-panel"));
       if (g.unresolved_member_ids?.length)
         card.append(
           node(
@@ -1531,22 +1542,34 @@
             "warning-panel",
           ),
         );
-      const members = node("div", null, "members");
-      (g.members || g.member_ids || []).forEach((m) => {
-        const id = typeof m === "string" ? m : m.id;
-        members.append(
-          button(typeof m === "string" ? m : m.path || m.label || id, () =>
-            run(async () => {
-              if (!discard()) return;
-              switchView("rungs", true);
-              await openSource(id, "rung-detail", true);
-            }),
-          ),
-        );
+      const disclosure = node("details"), members = node("div", null, "members");
+      const controls = node("div", null, "pagination");
+      disclosure.append(node("summary", "Linked source records"), members, controls);
+      const sourceMembers = g.members || g.member_ids || [];
+      let memberPage = 0, built = false;
+      function paintMembers() {
+        clear(members); clear(controls);
+        const start = memberPage * 50, end = Math.min(start + 50, sourceMembers.length);
+        sourceMembers.slice(start, end).forEach(m => {
+          const id = typeof m === "string" ? m : m.id;
+          members.append(button(typeof m === "string" ? m : m.path || m.label || id, () => run(async () => {
+            if (!discard()) return;
+            const view = typeof m !== "string" && m.kind === "rung" ? "rungs" : "objects";
+            switchView(view, true);
+            await openSource(id, view === "rungs" ? "rung-detail" : "object-detail", true);
+          })));
+        });
+        const previous = button("Previous members", () => {memberPage -= 1; paintMembers();});
+        const next = button("Next members", () => {memberPage += 1; paintMembers();});
+        previous.disabled = memberPage === 0; next.disabled = end >= sourceMembers.length;
+        controls.append(previous, node("span", sourceMembers.length ? `${start + 1}–${end} of ${sourceMembers.length}` : "No members"), next);
+      }
+      disclosure.addEventListener("toggle", () => {
+        if (disclosure.open && !built) {built = true; paintMembers();}
       });
-      card.append(members);
+      card.append(disclosure);
       const actions = node("div", null, "actions");
-      actions.append(button("Edit name & members", () => groupEditor(g)));
+      actions.append(button("Edit categories, migration & members", () => groupEditor(g)));
       card.append(actions);
       root.append(card);
     });
@@ -1562,27 +1585,32 @@
   }
   function groupEditor(group = {}) {
     if (!discard()) return;
-    let name;
+    let name, classificationFields;
     const members = new Set(group.member_ids || []);
     modal(
       group.id ? "Edit engineering group" : "New engineering group",
       (body) => {
         name = input(group.name || "", "Group name");
+        classificationFields = window.PLCClassification.groupFields(group, state.project.classification_categories || []);
         body.append(
           field("Name", name),
+          classificationFields.element,
           node(
             "p",
             "Remove memberships below, or add source records through the Rungs and Tags views. Removing membership does not delete source evidence.",
           ),
         );
-        const container = node("div");
+        const container = node("div"), pages = node("div", null, "pagination");
+        const memberLabels = new Map((group.members || []).map(m => [m.id, m.path || m.label || m.id]));
+        let page = 0;
         function paint() {
-          clear(container);
-          [...members].forEach((id) => {
+          clear(container); clear(pages);
+          page = Math.min(page, Math.max(0, Math.ceil(members.size / 50) - 1));
+          const start = page * 50, end = Math.min(start + 50, members.size);
+          [...members].slice(start, end).forEach((id) => {
             const row = node("div", null, "member-row");
-            const member = (group.members || []).find((m) => m.id === id);
             row.append(
-              node("span", member?.path || member?.label || id),
+              node("span", memberLabels.get(id) || id),
               button("Remove", () => {
                 members.delete(id);
                 modalDirty = true;
@@ -1591,6 +1619,10 @@
             );
             container.append(row);
           });
+          const previous = button("Previous members", () => {page -= 1; paint();});
+          const next = button("Next members", () => {page += 1; paint();});
+          previous.disabled = page === 0; next.disabled = end >= members.size;
+          pages.append(previous, node("span", members.size ? `${start + 1}–${end} of ${members.size}` : "No members"), next);
           if (!members.size)
             container.append(
               node(
@@ -1600,7 +1632,7 @@
             );
         }
         paint();
-        body.append(container);
+        body.append(container, pages);
       },
       async () => {
         if (!name.value.trim()) throw new Error("Enter a group name.");
@@ -1608,6 +1640,7 @@
           op: "group",
           name: name.value.trim(),
           member_ids: [...members],
+          ...classificationFields.values(),
         };
         if (group.id) command.id = group.id;
         await mutate(command);
@@ -2479,6 +2512,39 @@
   window.addEventListener("hashchange", () => run(() => openLocation()));
   window.PLCReadingLayout.mount(document.querySelector("#view-rungs .workspace-grid"), $("rung-reading-settings"));
   const translations = window.PLCTranslation.mount($("translation-controls"), api, translationChanged);
+  const classificationBrowser = window.PLCClassification.mount($("classification-browser"), {
+    api,
+    getState: () => state.project,
+    reportLink: link,
+    openSource: (id, kind) => run(async () => {
+      if (!discard()) return;
+      const view = kind === "rung" ? "rungs" : "objects";
+      switchView(view, true);
+      await openSource(id, view === "rungs" ? "rung-detail" : "object-detail", true);
+    }),
+    editGroup: (id, needsRevalidation) => {
+      const group = groups().find(item => item.id === id);
+      if (group) groupEditor(needsRevalidation ? {...group, needs_revalidation: true} : group);
+      else notify("This saved group changed. Refresh the project before editing it.", true);
+    },
+    adopt: async (proposal, runId) => {
+      if (!discard()) return;
+      state.saving = true;
+      let result;
+      try {
+        result = await api("/api/classification/adopt", {
+          proposal_id: proposal.id, run_id: runId,
+          expected_revision: state.project.revision,
+          author: $("reviewer-name").value.trim() || "Local reviewer",
+        });
+        state.project = result;
+        renderProject();
+      } finally {state.saving = false;}
+      const group = groups().find(item => item.id === result.selected_group_id || item.proposal_id === proposal.id);
+      if (group) groupEditor(group);
+      notify("Detected group saved. Adjust its categories, migration decision, or members here.");
+    },
+  });
   run(async () => {
     await refresh();
     await openLocation(true);

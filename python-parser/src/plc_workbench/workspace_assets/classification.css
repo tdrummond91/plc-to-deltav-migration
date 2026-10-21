@@ -1,0 +1,49 @@
+.classification-intro {
+  padding: 1.1rem 1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+.classification-intro p:last-child { margin-bottom: 0; }
+.classification-filters > label:first-child { flex: 2 1 20rem; }
+.classification-filter-description, .classification-help { font-size: .88rem; }
+.classification-status { color: var(--accent); font-weight: 600; margin-top: .8rem; }
+.classification-list { display: grid; gap: 1rem; }
+.classification-card {
+  padding: 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  min-width: 0;
+}
+.classification-card-heading { display: flex; align-items: start; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
+.classification-card h3 { overflow-wrap: anywhere; font-size: 1.08rem; }
+.classification-chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.classification-decision { color: var(--magenta); }
+.classification-reason { max-width: 100ch; }
+.classification-hint { padding: .7rem .9rem; border-left: 2px solid var(--orange); background: var(--panel); margin-bottom: .7rem; }
+.classification-hint strong { color: var(--orange); font-size: .85rem; }
+.classification-hint p { margin: .2rem 0 0; font-size: .9rem; }
+.classification-member-count { font-size: .85rem; }
+.classification-evidence, .classification-limitations { border-top: 1px solid var(--border); padding: .7rem 0; }
+.classification-evidence summary, .classification-limitations summary { color: var(--accent); cursor: pointer; }
+.classification-evidence[open] summary, .classification-limitations[open] summary { margin-bottom: .8rem; }
+.classification-evidence h4 { margin-top: 1rem; }
+.classification-evidence p { max-width: 110ch; font-size: .88rem; }
+.classification-gap { color: var(--orange); }
+.classification-parameters { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.classification-parameters th, .classification-parameters td { text-align: left; padding: .5rem; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; vertical-align: top; }
+.classification-parameters th { color: var(--muted); font-size: .8rem; }
+.classification-source-links { display: flex; flex-wrap: wrap; gap: .3rem .8rem; margin: .8rem 0; }
+.classification-saved-heading { border-top: 1px solid var(--border); margin-top: 2rem; padding-top: 1.4rem; }
+.classification-editor { display: grid; gap: .8rem; margin: 1rem 0; }
+.classification-category-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: .6rem; border: 1px solid var(--border); border-radius: 8px; padding: .8rem; }
+.classification-category-picker legend { color: var(--ink); font-size: .9rem; padding: 0 .3rem; }
+.classification-category-picker label { display: flex; flex-direction: row-reverse; justify-content: flex-end; align-items: center; gap: .5rem; }
+@media (max-width: 720px) {
+  .classification-card { padding: .8rem; }
+  .classification-parameters { font-size: .82rem; }
+  .classification-parameters th, .classification-parameters td { padding: .35rem; }
+}
