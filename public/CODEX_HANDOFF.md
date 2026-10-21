@@ -8,7 +8,13 @@ checkpoints, preservation checks and the work-PC synchronization procedure.
 
 Updated 2026-10-21. First-time users start with
 [START-HERE.html](../START-HERE.html): a short orientation, invented practice
-report and fixed learning checkpoints. Progress is local to the browser with
+report and fixed learning checkpoints. Each task now contains direct report
+links, explicit instructions and its own completion checkbox. An optional
+drive-qualified local report path retargets section links; that path is stored
+only in the browser and never included in progress exports. Older private HTML
+uses the explained sidebar fallback. New reports accept bounded section/source
+fragment links while preserving internal Back navigation.
+Progress is local to the browser with
 bounded JSON export/import; it is not engineering review state. The start page
 and newly generated reports include a light/dark switch. Existing private HTML
 does not change merely by pulling this presentation update. No work-PC parser

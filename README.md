@@ -16,11 +16,18 @@ records, persistent corrections, PCSD and FHX generation are later phases.
 
 ## What to do next
 
-Begin with **START-HERE.html**. Read the three first steps, try the practice
-report, then find one familiar item in your saved unit report. Stop after that
-first session if you like. Mark the learning checkpoints as you become
-comfortable; they do not record engineering approval. Export/import the small
-progress file to keep your place across computers.
+Begin with **START-HERE.html**. Each of its four steps has report links, a
+specific task, a completion checkbox and a next-step link. Use **Go to step 1**,
+open the linked report page, complete the task, then return and check it off.
+Stop after one step if you like. Progress is saved locally and can be exported
+or imported between computers; it does not record engineering approval.
+
+The links initially use the invented practice report. To use your saved unit
+report, expand **Use my actual unit report instead** and paste its full Windows
+path using File Explorer's **Copy as path**. That path stays in this browser
+and is excluded from progress exports. Older saved reports may open at Overview;
+choose the named section in their sidebar. Current demos and newly generated
+reports support direct links to sections and captured source records.
 
 On the work PC, use the existing `review.html` saved by completed work check
 `20261019T201714Z-38434b5f`. Start with **Review guide**. This return passed both

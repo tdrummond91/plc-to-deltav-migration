@@ -6,7 +6,9 @@ report is the latest `review.html` under the work PC's
 `confidential/workspaces/work-check/`.
 
 For a short first session, open the root [START-HERE.html](../../START-HERE.html)
-and follow its three steps. Its learning checklist is separate from engineering
+and follow its four linked steps. Each task has a completion checkbox beside
+its instructions. Report links open the relevant section; the simple MOV
+example opens one specific invented rung. Its learning checklist is separate from engineering
 review decisions and can be exported/imported between computers.
 
 ## Start with these current demonstrations

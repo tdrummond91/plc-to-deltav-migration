@@ -62,12 +62,12 @@
     byId('topic-count').textContent = `${TOPICS.filter(id => completed.has(id)).length} / ${TOPICS.length} explored`;
     const remaining = CORE.find(id => !completed.has(id));
     const actions = {
-      orient: ['Start with the big picture →', '#first-look'],
-      navigate: ['Try one item in the practice report →', '#practice'],
-      interpret: ['Separate evidence from interpretation →', '#interpret'],
-      respond: ['Prepare your first response →', '#respond']
+      orient: ['Go to step 1 — open the report →', '#first-look'],
+      navigate: ['Go to step 2 — find one item →', '#practice'],
+      interpret: ['Go to step 3 — read the evidence →', '#interpret'],
+      respond: ['Go to step 4 — prepare feedback →', '#respond']
     };
-    const [label, href] = actions[remaining] || ['Ready to review one real item →', '#your-report'];
+    const [label, href] = actions[remaining] || ['Walkthrough complete — explore a subject →', '#subjects'];
     next.textContent = label;
     next.setAttribute('href', href);
   }
@@ -133,6 +133,53 @@
       importInput.value = '';
     }
   });
+
+  // Only construct local file links. Never read the report or put its path in an export.
+  const REPORT_KEY = 'plc-workbench-local-report-v1';
+  const DEMO = 'public/examples/control-interpretation-review-demo.html';
+  const reportLinks = Array.from(document.querySelectorAll('[data-report-view]'));
+  const practiceExamples = Array.from(document.querySelectorAll('.practice-example'));
+  const reportPath = byId('report-path');
+  const reportStatus = byId('report-status');
+  const reportError = byId('report-error');
+  function localReportUrl(raw) {
+    if (typeof raw !== 'string' || raw.length > 4096) throw new Error('path');
+    const path = raw.trim().replace(/^"(.*)"$/, '$1');
+    // Copy as path supplies a drive-qualified Windows path, not a web address.
+    if (!/^[A-Za-z]:[\\/]/.test(path) || /[\x00-\x1f]/.test(path) ||
+        !/\.html?$/i.test(path)) throw new Error('path');
+    return 'file:///' + path.slice(0, 2) + path.slice(2).split(/[\\/]/).map(encodeURIComponent).join('/');
+  }
+  function selectReport(raw) {
+    const target = raw ? localReportUrl(raw) : DEMO;
+    for (const link of reportLinks) link.setAttribute('href', target + '#view=' + link.dataset.reportView);
+    for (const example of practiceExamples) example.hidden = Boolean(raw);
+    byId('legacy-note').hidden = !raw;
+    reportPath.value = raw;
+    reportStatus.textContent = raw ? 'Your unit report is selected. All walkthrough and subject links open that local file.' :
+      'Practice report selected. The links below use a small invented example.';
+  }
+  try {
+    const saved = localStorage.getItem(REPORT_KEY);
+    if (saved) selectReport(saved);
+  } catch { /* A stale or inaccessible selection leaves the working practice links. */ }
+  for (const [id, value] of [['use-report', null], ['use-practice', '']]) {
+    const control = byId(id);
+    control.disabled = false;
+    control.addEventListener('click', () => {
+      const chosen = value === null ? reportPath.value.trim() : value;
+      try {
+        if (value === null && !chosen) throw new Error('path');
+        selectReport(chosen);
+      } catch {
+        reportError.textContent = 'Paste the full Windows path to your saved .html file, for example C:\\project\\run-folder\\review.html. Existing links have not changed.';
+        return;
+      }
+      reportError.textContent = '';
+      try { localStorage.setItem(REPORT_KEY, chosen); }
+      catch { reportError.textContent = 'This selection works for this visit, but the browser cannot save it. Choose the report again next time.'; }
+    });
+  }
 
   const toggle = byId('theme-toggle');
   let theme = 'dark';

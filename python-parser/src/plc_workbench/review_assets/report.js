@@ -499,6 +499,30 @@
   }
   function go(view,selection={}) { backStack.length=0;state={view,query:'',filter:'all',detail:null,contentId:null,listPages:{},...selection};render(true); }
   function goBack() { if(backStack.length){state=backStack.pop();render(true);} }
+  // Offline entry links select only a visible view and an existing source ID.
+  // Internal navigation keeps its own Back stack and never changes the URL.
+  function followReviewLink() {
+    const hash=window.location?.hash;
+    if(typeof hash!=='string'||hash.length>2048||!hash.startsWith('#view='))return false;
+    const fields=hash.slice(1).split('&');
+    if(fields.length>2)return false;
+    const values=new Map();
+    try{
+      for(const field of fields){
+        const pair=field.split('=');
+        if(pair.length!==2||!['view','source'].includes(pair[0])||values.has(pair[0]))return false;
+        const value=decodeURIComponent(pair[1]);
+        if(!value||value.length>256)return false;
+        values.set(pair[0],value);
+      }
+    }catch(_){return false;}
+    const view=values.get('view'),source=values.get('source');
+    if(!Object.prototype.hasOwnProperty.call(labels,view))return false;
+    if(source&&![byEntity,byRung,byOperand,byInstruction,byElement,byContent,byTagContent,byTagElement].some(map=>map.has(source)))return false;
+    go(view);
+    if(source)openSource(source);
+    return true;
+  }
   const searchIndex = new Map();
   function searchable(row, words) { searchIndex.set(row,words.join(' ').toLocaleLowerCase()); }
   // One bounded search preview per XML record; never copy ancestor subtrees.
@@ -3265,7 +3289,7 @@
       else if(state.view==='alarmevidence')toolbarFor('Search names, messages, settings or source gaps (field previews)',[['all','All captured records'],['conditions','Tag-based conditions'],['definitions','Definition templates'],['declarations','Typed declarations'],['messages','Messages'],['settings','Stored settings'],['gaps','Unresolved source evidence'],['xml','Other XML structure']]);
       renderList();
     }
-    if(focus){document.getElementById('main').focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}
+    if(focus){document.getElementById('main').focus({preventScroll:true});if(typeof window.scrollTo==='function')window.scrollTo({top:0,behavior:'instant'});}
   }
   const nav=document.getElementById('navigation');
   Object.keys(labels).forEach(view=>{const b=button('',()=>go(view),'nav-button');b.dataset.view=view;b.append(node('span','',labels[view]));if(navCounts[view]!==undefined)b.append(node('span','nav-count',fmt(navCounts[view])));nav.append(b);});
@@ -3274,5 +3298,6 @@
     if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){const input=document.getElementById('review-search') || document.getElementById('pid-member-search');if(input){event.preventDefault();input.focus();input.select();}}
     if(event.key==='Escape'&&state.detail&&!['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)){event.preventDefault();goBack();}
   });
-  render();
+  if(typeof window.addEventListener==='function')window.addEventListener('hashchange',followReviewLink);
+  if(!followReviewLink())render();
 })();

@@ -8,6 +8,16 @@ item, then find a familiar item in the already saved private report. Technical
 documentation and subject-specific learning topics are optional disclosures.
 No new work-PC parser run is required.
 
+The follow-up walkthrough puts links, specific tasks, expected observations and
+completion checkboxes together in four ordered lessons. The same progress IDs
+are retained. Each optional learning subject also has a report link. A local
+Windows path selector lets the user point the links at their existing unit
+report without reading or uploading it. Paths are saved separately from progress
+and excluded from exports. Older reports without fragment support use the
+explicit sidebar fallback; the current demos and new reports open directly to
+the selected section or known source record. Unknown, malformed and oversized
+fragments are ignored, including ordinary anchors such as `#main`.
+
 ## Behavior and boundaries
 
 - Four orientation checkpoints and seven optional subjects track personal
@@ -29,6 +39,23 @@ No new work-PC parser run is required.
   for later mapping. Source classification does not assign a target class.
 
 ## Validation
+
+Linked-walkthrough follow-up: 75 focused tests passed (21 onboarding tests and
+54 report/link/guide/theme/presentation/rung tests). New coverage exercises every
+linked demo destination, the exact MOV example, path quoting/encoding/rejection,
+selection restoration, export privacy, storage failure and strict fragment
+navigation. Final independent code review found no blockers. Chrome confirmed
+the guide and specific rung destinations, checkbox persistence, and local-path
+retargeting/restoration. Only invented paths were entered; no unit file was read.
+Both refreshed demo evidence payloads still match their previous complete payloads.
+
+```bash
+PYTHONPATH='python-parser/src;python-parser/tests' python-parser/.venv/Scripts/python.exe -m unittest \
+  test_start_here_ui test_review_links test_review_html test_review_guide_ui \
+  test_review_theme test_rung_analysis_review_ui test_review_presentation
+```
+
+Original first-use implementation validation:
 
 - 13 onboarding tests passed: local resources and links, accessible checkpoint
   labels, counts, next actions, persistence, bounded import validation, export,
