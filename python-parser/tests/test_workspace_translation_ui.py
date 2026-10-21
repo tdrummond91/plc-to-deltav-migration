@@ -1,4 +1,4 @@
-"""Check local translation controls without changing source or engineering forms."""
+"""Exercise whole-import English controls and safe local prose presentation."""
 from __future__ import annotations
 
 import subprocess
@@ -13,13 +13,12 @@ const assert = require('node:assert/strict');
 class Element {
   constructor(tag) {
     this.tagName = tag; this.children = []; this.attributes = {}; this.events = {};
-    this.hidden = false; this.checked = false; this.disabled = false;
+    this.hidden = false; this.disabled = false; this.open = false;
     this.isConnected = true; this.value = ''; this.className = ''; this._text = '';
   }
   set textContent(value) {this._text = String(value); this.children = [];}
   get textContent() {return this._text + this.children.map(child => child.textContent).join('');}
   append(...children) {children.forEach(child => {child.parent = this; this.children.push(child);});}
-  prepend(...children) {children.forEach(child => {child.parent = this;}); this.children.unshift(...children);}
   replaceChildren(...children) {this._text = ''; this.children = []; this.append(...children);}
   setAttribute(key, value) {this.attributes[key] = String(value);}
   addEventListener(name, callback) {this.events[name] = callback;}
@@ -37,10 +36,10 @@ const timers = new Map();
 const setTimeout = (callback, delay) => {const id = ++timerId; timers.set(id, {callback, delay}); return id;};
 const clearTimeout = id => {timers.delete(id);};
 const tick = async () => {for (let i = 0; i < 8; i++) await Promise.resolve();};
-const nextTimer = async () => {
+const nextTimer = async (expectedDelay = 1200) => {
   assert.equal(timers.size, 1);
   const [id, timer] = timers.entries().next().value;
-  assert.equal(timer.delay, 1200);
+  assert.equal(timer.delay, expectedDelay);
   timers.delete(id); await timer.callback(); await tick();
 };
 const deferred = () => {
@@ -51,12 +50,16 @@ const deferred = () => {
 const all = root => [root, ...root.children.flatMap(all)];
 const byClass = (root, cls) => all(root).filter(node => node.className.split(' ').includes(cls));
 const container = new Element('section');
-const toggle = () => all(container).find(node => node.tagName === 'input');
-const retry = () => all(container).find(node => node.tagName === 'button');
-const status = () => byClass(container, 'translation-status')[0];
+const control = cls => byClass(container, cls)[0];
+const mode = () => control('translation-mode');
+const prepare = () => control('translation-prepare');
+const retry = () => control('translation-retry');
+const status = () => control('translation-status');
+const report = () => control('translation-report');
 const state = (changes = {}) => ({
-  enabled: false, available: true, state: 'idle', run_id: 'invented-run',
-  total: 2, completed: 0, cached: 0, needs_review: 0, failed: 0, fields: {}, ...changes,
+  presentation_mode: 'original', enabled: false, available: true, state: 'idle',
+  run_id: 'invented-run', total: 2, completed: 0, cached: 0, needs_review: 0, failed: 0,
+  fields: {}, write_generation: 0, elapsed_seconds: 0, remaining_seconds: null, ...changes,
 });
 const source = (id = 'rung-one', comment = 'Fermer la vanne', description = 'Pompe de transfert') => ({
   run_id: 'invented-run', historical: false, source: {id, comment, description},
@@ -86,7 +89,7 @@ class WorkspaceTranslationUiTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("TRANSLATION_TEST_COMPLETE", result.stdout)
 
-    def test_original_comment_and_description_remain_visible_and_are_plain_text(self) -> None:
+    def test_original_comment_and_description_remain_plain_text(self) -> None:
         self.run_js(r"""
 const controller = window.PLCTranslation.mount(container, api);
 await controller.refresh();
@@ -95,13 +98,13 @@ const data = source('invented id & /?', '<script>fermer la vanne</script>', 'Pom
 data.run_id = 'saved run & /?';
 controller.show(root, data); await tick();
 assert.equal(byClass(root, 'translation-pair').length, 2);
-assert.ok(root.textContent.includes('Original comment'));
-assert.ok(root.textContent.includes('Original description'));
+assert.ok(root.textContent.includes('Source comment'));
+assert.ok(root.textContent.includes('Source description'));
 assert.ok(root.textContent.includes(data.source.comment));
 assert.ok(root.textContent.includes(data.source.description));
 assert.equal(all(root).some(node => node.tagName === 'script'), false);
-assert.ok(byClass(root, 'translation-english').every(node => node.hidden));
-assert.equal(toggle().checked, false);
+assert.equal(byClass(root, 'translation-english').length, 0);
+assert.equal(mode().value, 'original');
 const request = new URL(calls.at(-1).path, 'http://localhost');
 assert.equal(request.searchParams.get('source_id'), data.source.id);
 assert.equal(request.searchParams.get('run_id'), data.run_id);
@@ -110,51 +113,150 @@ assert.ok(calls.every(call => !JSON.stringify(call).includes(data.source.comment
 assert.equal(timers.size, 0);
 """)
 
-    def test_enable_shows_english_alongside_original_without_touching_review_form(self) -> None:
+    def test_english_mode_hides_original_in_disclosure_and_preserves_unsaved_form(self) -> None:
         self.run_js(r"""
-const controller = window.PLCTranslation.mount(container, api);
-const root = new Element('section');
-const outer = new Element('section'); const form = new Element('form');
+const changes = [];
+const controller = window.PLCTranslation.mount(container, api, value => changes.push(value));
+const root = new Element('section'), outer = new Element('section'), form = new Element('form');
 const input = new Element('input'); input.value = 'Unsaved operator category';
 form.append(input); outer.append(root, form);
 controller.show(root, source()); await tick();
-respond = async () => state({enabled: true, state: 'complete', completed: 2, fields: translation()});
-toggle().checked = true; await toggle().fire('change');
-const update = calls.find(call => call.body);
-assert.deepEqual(update, {path: '/api/translation', body: {enabled: true, run_id: 'invented-run', retry: false}});
-assert.ok(root.textContent.includes('Fermer la vanne'));
-assert.ok(root.textContent.includes('Pompe de transfert'));
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2, fields: translation()});
+mode().value = 'english'; await mode().fire('change');
+assert.deepEqual(calls.find(call => call.body).body,
+  {presentation_mode: 'english', prepare: true, run_id: 'invented-run', retry: false});
+assert.equal(byClass(root, 'translation-original-disclosure').length, 2);
+assert.ok(byClass(root, 'translation-original-disclosure').every(node => !node.open));
+assert.ok(byClass(root, 'translation-original-disclosure')[0].textContent.includes('Fermer la vanne'));
 assert.ok(root.textContent.includes('Close the valve'));
-assert.ok(root.textContent.includes('Transfer pump'));
-assert.ok(byClass(root, 'translation-english').every(node => !node.hidden));
 assert.equal(all(root).filter(node => node.lang === 'en').length, 2);
 assert.equal(form.children[0], input); assert.equal(input.value, 'Unsaved operator category');
 assert.deepEqual(outer.children, [root, form]);
-assert.equal(toggle().disabled, false); assert.equal(retry().disabled, false);
-respond = async () => state();
-toggle().checked = false; await toggle().fire('change');
-assert.ok(byClass(root, 'translation-english').every(node => node.hidden));
-assert.ok(root.textContent.includes('Fermer la vanne'));
+assert.equal(mode().disabled, false);
+assert.equal(report().href, '/analysis?language=english');
+assert.equal(changes.length, 1);
+respond = async () => state({presentation_mode: 'both', enabled: true, state: 'complete', completed: 2, fields: translation()});
+mode().value = 'both'; await mode().fire('change');
+assert.equal(byClass(root, 'translation-original-disclosure').length, 0);
+assert.equal(byClass(root, 'translation-original-block').length, 2);
+assert.ok(root.textContent.includes('Fermer la vanne')); assert.ok(root.textContent.includes('Close the valve'));
+assert.equal(report().href, '/analysis?language=both');
 assert.equal(input.value, 'Unsaved operator category');
 """)
 
-    def test_late_source_response_cannot_overwrite_new_selection_or_status(self) -> None:
+    def test_switching_to_original_does_not_cancel_preparation_or_polling(self) -> None:
+        self.run_js(r"""
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'running'});
+const controller = window.PLCTranslation.mount(container, api);
+const root = new Element('section'); controller.show(root, source()); await tick();
+respond = async () => state({presentation_mode: 'original', enabled: true, state: 'running', completed: 1});
+mode().value = 'original'; await mode().fire('change');
+assert.deepEqual(calls.find(call => call.body).body,
+  {presentation_mode: 'original', prepare: false, run_id: 'invented-run', retry: false});
+assert.equal(byClass(root, 'translation-english').length, 0);
+assert.ok(root.textContent.includes('Fermer la vanne'));
+assert.equal(timers.size, 1);
+assert.ok(status().textContent.includes('Preparing English locally'));
+assert.equal(report().href, '/analysis?language=original');
+controller.destroy();
+""")
+
+    def test_prepare_all_can_run_while_view_remains_original(self) -> None:
+        self.run_js(r"""
+const controller = window.PLCTranslation.mount(container, api); await controller.refresh();
+assert.equal(prepare().disabled, false);
+respond = async () => state({enabled: true, state: 'running'});
+await prepare().fire('click');
+assert.deepEqual(calls.find(call => call.body).body,
+  {presentation_mode: 'original', prepare: true, run_id: 'invented-run', retry: false});
+assert.equal(mode().value, 'original'); assert.equal(prepare().disabled, true);
+assert.equal(timers.size, 1);
+assert.ok(container.textContent.includes('No full parser rerun is needed'));
+assert.ok(container.textContent.includes('several minutes'));
+controller.destroy();
+""")
+
+    def test_progress_reports_time_pending_gaps_and_cache_generations(self) -> None:
+        self.run_js(r"""
+let step = 0; const changes = [];
+respond = async () => ++step === 1
+  ? state({presentation_mode: 'english', enabled: true, state: 'running', elapsed_seconds: 65})
+  : step === 2 ? state({presentation_mode: 'english', enabled: true, state: 'running', completed: 1,
+      elapsed_seconds: 70, remaining_seconds: 80, write_generation: 1, fields: {comment: translation().comment}})
+  : state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2, cached: 1,
+      elapsed_seconds: 140, write_generation: 2, fields: translation()});
+const controller = window.PLCTranslation.mount(container, api, value => changes.push(value));
+const root = new Element('section'); controller.show(root, source()); await tick();
+assert.match(status().textContent, /0 \/ 2 unique texts/);
+assert.ok(status().textContent.includes('2 pending'));
+assert.ok(status().textContent.includes('elapsed 1m 5s'));
+assert.ok(status().textContent.includes('estimating remaining time'));
+assert.ok(root.textContent.includes('This wording is queued while the whole source is prepared'));
+assert.ok(report().textContent.includes('gaps marked'));
+await nextTimer();
+assert.ok(status().textContent.includes('about 1m 20s remaining'));
+assert.ok(root.textContent.includes('Close the valve'));
+await nextTimer();
+assert.ok(status().textContent.includes('1 reused'));
+assert.ok(root.textContent.includes('Transfer pump'));
+assert.equal(timers.size, 0); assert.equal(changes.length, 2);
+assert.equal(report().textContent, 'Open English analysis report');
+await controller.refresh();
+assert.equal(changes.length, 2);
+""")
+
+    def test_partial_english_does_not_present_untranslated_french_as_english(self) -> None:
+        self.run_js(r"""
+const root = new Element('section');
+window.PLCTranslation.renderProse(root, 'Ne pas ouvrir', {status: 'needs_review', text: 'Ne pas ouvrir', warning: 'Compare uncertain wording.'}, 'english');
+assert.equal(byClass(root, 'translation-gap')[0].textContent, 'Compare uncertain wording.');
+assert.ok(!byClass(root, 'translation-english')[0].textContent.includes('Ne pas ouvrir'));
+const original = byClass(root, 'translation-original-disclosure')[0];
+assert.equal(original.open, false); assert.ok(original.textContent.includes('Ne pas ouvrir'));
+window.PLCTranslation.renderProse(root, '<img src=x onerror=alert(1)>', {status: 'translated', text: '<script>alert(1)</script>'}, 'english');
+assert.equal(all(root).some(node => ['img','script'].includes(node.tagName)), false);
+assert.ok(root.textContent.includes('<script>alert(1)</script>'));
+""")
+
+    def test_completed_batch_missing_wording_does_not_claim_it_is_still_queued(self) -> None:
+        self.run_js(r"""
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2});
+const controller = window.PLCTranslation.mount(container, api);
+const root = new Element('section'); controller.show(root, source()); await tick();
+assert.ok(root.textContent.includes('English wording is not ready'));
+assert.ok(!root.textContent.includes('queued'));
+assert.ok(!root.textContent.includes('background'));
+assert.equal(timers.size, 0);
+""")
+
+    def test_original_disclosure_stays_open_during_unrelated_batch_updates(self) -> None:
+        self.run_js(r"""
+let generation = 1;
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'running',
+  fields: translation(), write_generation: generation++});
+const controller = window.PLCTranslation.mount(container, api);
+const root = new Element('section'); controller.show(root, source()); await tick();
+const original = byClass(root, 'translation-original-disclosure')[0]; original.open = true;
+await nextTimer();
+assert.equal(byClass(root, 'translation-original-disclosure')[0], original);
+assert.equal(original.open, true); controller.destroy();
+""")
+
+    def test_late_source_response_cannot_overwrite_new_selection(self) -> None:
         self.run_js(r"""
 const old = deferred(), next = deferred();
 respond = path => path.includes('rung-old') ? old.promise : next.promise;
 const controller = window.PLCTranslation.mount(container, api);
 const oldRoot = new Element('section'), nextRoot = new Element('section');
-controller.show(oldRoot, source('rung-old'));
-controller.show(nextRoot, source('rung-new'));
-next.resolve(state({enabled: true, state: 'complete', completed: 2, fields: translation('New selection')}));
-await tick();
-const statusText = status().textContent;
-old.resolve(state({enabled: true, state: 'running', completed: 0, fields: translation('Stale selection')}));
+controller.show(oldRoot, source('rung-old')); controller.show(nextRoot, source('rung-new'));
+next.resolve(state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2, fields: translation('New selection')}));
+await tick(); const statusText = status().textContent;
+old.resolve(state({presentation_mode: 'both', enabled: true, state: 'running', fields: translation('Stale selection')}));
 await tick();
 assert.ok(nextRoot.textContent.includes('New selection'));
 assert.ok(!nextRoot.textContent.includes('Stale selection'));
 assert.ok(!oldRoot.textContent.includes('Stale selection'));
-assert.equal(status().textContent, statusText);
+assert.equal(status().textContent, statusText); assert.equal(mode().value, 'english');
 assert.equal(timers.size, 0);
 """)
 
@@ -164,153 +266,250 @@ const request = deferred(); respond = () => request.promise;
 const controller = window.PLCTranslation.mount(container, api);
 const root = new Element('section'); controller.show(root, source());
 root.isConnected = false;
-request.resolve(state({enabled: true, state: 'complete', fields: translation()})); await tick();
+request.resolve(state({presentation_mode: 'english', enabled: true, state: 'complete', fields: translation()})); await tick();
 assert.ok(!root.textContent.includes('Close the valve'));
 respond = async () => state(); await controller.refresh();
 assert.equal(calls.at(-1).path, '/api/translation');
 """)
 
-    def test_progress_poll_updates_selected_fields_then_stops_at_completion(self) -> None:
+    def test_missing_model_explains_setup_and_original_remains_accessible(self) -> None:
         self.run_js(r"""
-let step = 0;
-respond = async () => ++step === 1
-  ? state({enabled: true, state: 'running'})
-  : step === 2 ? state({enabled: true, state: 'running', completed: 1, fields: {comment: translation().comment}})
-  : state({enabled: true, state: 'complete', completed: 2, cached: 1, fields: translation()});
-const controller = window.PLCTranslation.mount(container, api);
-const root = new Element('section'); controller.show(root, source()); await tick();
-assert.match(status().textContent, /0 \/ 2 unique texts/);
-assert.ok(root.textContent.includes('Waiting for this text'));
-await nextTimer();
-assert.match(status().textContent, /1 \/ 2 unique texts/);
-assert.ok(root.textContent.includes('Close the valve'));
-assert.ok(root.textContent.includes('Waiting for this text'));
-await nextTimer();
-assert.match(status().textContent, /2 \/ 2 unique texts/);
-assert.ok(status().textContent.includes('1 reused'));
-assert.ok(root.textContent.includes('Transfer pump'));
-assert.equal(timers.size, 0); assert.equal(calls.length, 3);
-""")
-
-    def test_missing_model_explains_local_setup_and_preserves_originals(self) -> None:
-        self.run_js(r"""
-respond = async () => state({enabled: true, available: false, state: 'unavailable', message: 'Install the local French-to-English model.'});
+respond = async () => state({presentation_mode: 'english', enabled: true, available: false, state: 'unavailable',
+  message: 'Install the local French-to-English model.'});
 const controller = window.PLCTranslation.mount(container, api);
 const root = new Element('section'); controller.show(root, source()); await tick();
 assert.equal(status().textContent, 'Install the local French-to-English model.');
-assert.ok(root.textContent.includes('Fermer la vanne'));
 assert.ok(root.textContent.includes('Install the local French-to-English model.'));
+assert.ok(byClass(root, 'translation-original-disclosure')[0].textContent.includes('Fermer la vanne'));
 assert.ok(container.textContent.includes('bash ./setup-translation.sh'));
-assert.ok(container.textContent.includes('bash ./open-workbench.sh'));
-assert.ok(container.textContent.includes('downloads the translation software'));
 assert.ok(container.textContent.includes('without an internet connection after setup'));
-assert.equal(timers.size, 0); assert.equal(toggle().disabled, false);
-""")
-
-    def test_failed_enable_restores_toggle_and_reenables_controls_for_retry(self) -> None:
-        self.run_js(r"""
-const controller = window.PLCTranslation.mount(container, api); await controller.refresh();
-const request = deferred(); respond = () => request.promise;
-toggle().checked = true; const change = toggle().fire('change');
-assert.equal(toggle().disabled, true); assert.equal(retry().disabled, true);
-request.reject(new Error('Local service temporarily unavailable')); await change;
-assert.equal(toggle().checked, false);
-assert.equal(toggle().disabled, false); assert.equal(retry().disabled, false);
-assert.ok(status().textContent.includes('Local service temporarily unavailable'));
-respond = async () => state({enabled: true, state: 'complete', completed: 2});
-toggle().checked = true; await toggle().fire('change');
-assert.equal(toggle().checked, true); assert.equal(toggle().disabled, false);
+assert.equal(prepare().disabled, true); assert.equal(mode().disabled, false);
 assert.equal(timers.size, 0);
 """)
 
-    def test_retry_requests_only_missing_translations_for_current_run(self) -> None:
+    def test_failed_mode_change_restores_mode_without_losing_error_message(self) -> None:
+        self.run_js(r"""
+const controller = window.PLCTranslation.mount(container, api); await controller.refresh();
+const request = deferred(); respond = () => request.promise;
+mode().value = 'english'; const change = mode().fire('change');
+assert.equal(mode().disabled, true); assert.equal(prepare().disabled, true);
+request.reject(new Error('Local service temporarily unavailable')); await change;
+assert.equal(mode().value, 'original'); assert.equal(mode().disabled, false);
+assert.equal(prepare().disabled, false);
+assert.ok(status().textContent.includes('Local service temporarily unavailable'));
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2});
+mode().value = 'english'; await mode().fire('change');
+assert.equal(mode().value, 'english');
+""")
+
+    def test_retry_requests_missing_items_without_forcing_a_language_switch(self) -> None:
         self.run_js(r"""
 respond = async () => state({enabled: true, state: 'complete', needs_review: 1, failed: 1});
 const controller = window.PLCTranslation.mount(container, api); await controller.refresh();
 assert.equal(retry().hidden, false);
 respond = async () => state({enabled: true, state: 'running'});
 await retry().fire('click');
-const update = calls.find(call => call.body);
-assert.deepEqual(update.body, {enabled: true, run_id: 'invented-run', retry: true});
-assert.equal(retry().hidden, true); assert.equal(retry().disabled, false);
-assert.equal(timers.size, 1);
+assert.deepEqual(calls.find(call => call.body).body,
+  {presentation_mode: 'original', prepare: true, run_id: 'invented-run', retry: true});
+assert.equal(retry().hidden, true); assert.equal(timers.size, 1);
 controller.destroy(); assert.equal(timers.size, 0);
 """)
 
-    def test_engine_start_failure_allows_retry_but_missing_runtime_requires_setup(self) -> None:
+    def test_failed_configuration_rereads_applied_mode_and_resumes_running_poll(self) -> None:
         self.run_js(r"""
-respond = async () => state({enabled: true, available: true, state: 'error', failed: 0,
-  message: 'The local translation engine could not start.'});
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'running'});
+const controller = window.PLCTranslation.mount(container, api);
+const root = new Element('section'); controller.show(root, source()); await tick();
+const start = calls.length;
+respond = async (path, body) => {
+  if (body) throw new Error('Response lost after preference was applied');
+  return state({presentation_mode: 'original', enabled: true, state: 'running', completed: 1});
+};
+mode().value = 'original'; await mode().fire('change');
+assert.equal(calls.slice(start).filter(call => call.body).length, 1);
+assert.equal(calls.slice(start).filter(call => call.body === undefined).length, 1);
+assert.equal(mode().value, 'original');
+assert.equal(byClass(root, 'translation-english').length, 0);
+assert.equal(timers.size, 1); assert.equal(prepare().disabled, true);
+await nextTimer();
+assert.equal(calls.slice(start).filter(call => call.body).length, 1);
+assert.ok(status().textContent.includes('Preparing English locally'));
+controller.destroy();
+""")
+
+    def test_failed_configuration_and_status_recover_without_repeating_post(self) -> None:
+        self.run_js(r"""
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'running',
+  completed: 1, fields: {comment: translation().comment}});
+const controller = window.PLCTranslation.mount(container, api);
+const root = new Element('section'); controller.show(root, source()); await tick();
+const start = calls.length;
+respond = async () => {throw new Error('Server disconnected');};
+mode().value = 'both'; await mode().fire('change');
+assert.equal(calls.slice(start).filter(call => call.body).length, 1);
+assert.equal(mode().value, 'english');
+assert.ok(root.textContent.includes('Close the valve'));
+assert.ok(root.textContent.includes('Live translation status is interrupted'));
+assert.equal(timers.size, 1); assert.equal(control('translation-retry-status').hidden, false);
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2, fields: translation()});
+await nextTimer(5000);
+assert.equal(calls.slice(start).filter(call => call.body).length, 1);
+assert.equal(timers.size, 0); assert.equal(prepare().disabled, false);
+assert.ok(root.textContent.includes('Transfer pump'));
+""")
+
+    def test_engine_error_allows_retry_but_missing_runtime_requires_setup(self) -> None:
+        self.run_js(r"""
+respond = async () => state({enabled: true, state: 'error', message: 'The local translation engine could not start.'});
 const controller = window.PLCTranslation.mount(container, api); await controller.refresh();
 assert.equal(retry().hidden, false);
 assert.ok(status().textContent.includes('could not start'));
-respond = async () => state({enabled: true, state: 'running'});
-await retry().fire('click');
-assert.deepEqual(calls.find(call => call.body).body,
-  {enabled: true, run_id: 'invented-run', retry: true});
-assert.equal(retry().hidden, true);
-respond = async () => state({enabled: true, available: false, state: 'error', failed: 0,
-  message: 'Install the local translation runtime.'});
-await controller.refresh();
-assert.equal(retry().hidden, true);
+respond = async () => state({enabled: true, available: false, state: 'error', message: 'Install the local translation runtime.'});
+await controller.refresh(); assert.equal(retry().hidden, true);
 assert.ok(status().textContent.includes('Install the local translation runtime.'));
-assert.ok(container.textContent.includes('bash ./setup-translation.sh'));
 assert.equal(timers.size, 0);
 """)
 
-    def test_refresh_error_stops_poll_and_keeps_original_and_recovery_available(self) -> None:
+    def test_refresh_failure_marks_pending_wording_interrupted_then_recovers(self) -> None:
         self.run_js(r"""
-respond = async () => state({enabled: true, state: 'running'});
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'running'});
 const controller = window.PLCTranslation.mount(container, api);
 const root = new Element('section'); controller.show(root, source()); await tick();
 respond = async () => {throw new Error('Local connection closed');};
 await nextTimer();
-assert.equal(timers.size, 0);
-assert.ok(status().textContent.includes('Translation unavailable. Local connection closed'));
+assert.equal(timers.size, 1);
+assert.ok(status().textContent.includes('Translation status connection interrupted. Local connection closed'));
+assert.ok(status().textContent.includes('Retrying status in 5 seconds'));
+assert.ok(root.textContent.includes('Live translation status is interrupted'));
+assert.ok(!root.textContent.includes('This wording is queued'));
 assert.ok(root.textContent.includes('Fermer la vanne'));
-assert.equal(toggle().disabled, false);
-respond = async () => state({enabled: true, state: 'complete', completed: 2, fields: translation()});
-await controller.refresh();
-assert.ok(root.textContent.includes('Close the valve'));
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2, fields: translation()});
+await nextTimer(5000); assert.ok(root.textContent.includes('Close the valve'));
+assert.equal(timers.size, 0); assert.equal(control('translation-retry-status').hidden, true);
 """)
 
-    def test_historical_missing_translation_and_review_warnings_are_explicit(self) -> None:
+    def test_recovery_is_bounded_preserves_completed_wording_and_offers_read_only_retry(self) -> None:
         self.run_js(r"""
-respond = async () => state({enabled: true, state: 'complete', needs_review: 1,
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'running',
+  completed: 1, fields: {comment: translation().comment}});
+const controller = window.PLCTranslation.mount(container, api);
+const root = new Element('section'); controller.show(root, source()); await tick();
+const english = byClass(root, 'translation-english')[0];
+const original = byClass(root, 'translation-original-disclosure')[0]; original.open = true;
+respond = async () => {throw new Error('Server disconnected');};
+await nextTimer();
+assert.equal(byClass(root, 'translation-english')[0], english);
+assert.ok(english.textContent.includes('Close the valve')); assert.equal(original.open, true);
+assert.ok(byClass(root, 'translation-english')[1].textContent.includes('status is interrupted'));
+await nextTimer(5000); await nextTimer(5000); await nextTimer(5000);
+assert.equal(timers.size, 0);
+assert.ok(status().textContent.includes('Use Retry status to reconnect'));
+assert.equal(control('translation-retry-status').hidden, false);
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2, fields: translation()});
+await control('translation-retry-status').fire('click');
+assert.equal(control('translation-retry-status').hidden, true);
+assert.ok(root.textContent.includes('Transfer pump'));
+assert.ok(!root.textContent.includes('status is interrupted'));
+assert.ok(calls.every(call => call.body === undefined)); assert.equal(timers.size, 0);
+""")
+
+    def test_detached_translation_controls_stop_recovery_requests(self) -> None:
+        self.run_js(r"""
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'running'});
+const controller = window.PLCTranslation.mount(container, api);
+const root = new Element('section'); controller.show(root, source()); await tick();
+respond = async () => {throw new Error('Server disconnected');};
+await nextTimer();
+const count = calls.length; container.isConnected = false;
+await nextTimer(5000);
+assert.equal(calls.length, count); assert.equal(timers.size, 0);
+await controller.refresh(); assert.equal(calls.length, count);
+""")
+
+    def test_destroy_cancels_delayed_recovery_and_retains_review_warning(self) -> None:
+        self.run_js(r"""
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'running',
+  fields: {comment: {status: 'needs_review', warning: 'Check this abbreviation.'}}});
+const controller = window.PLCTranslation.mount(container, api);
+const root = new Element('section'); controller.show(root, source()); await tick();
+respond = async () => {throw new Error('Server disconnected');}; await nextTimer();
+assert.ok(root.textContent.includes('Check this abbreviation.'));
+assert.equal(timers.size, 1); controller.destroy(); assert.equal(timers.size, 0);
+""")
+
+    def test_historical_missing_translation_and_warning_are_explicit(self) -> None:
+        self.run_js(r"""
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2, needs_review: 1,
   fields: {description: {status: 'needs_review', warning: 'Unrecognized abbreviation; compare the original.'}}});
 const controller = window.PLCTranslation.mount(container, api);
 const root = new Element('section'); const data = source(); data.historical = true; data.run_id = 'earlier-run';
 controller.show(root, data); await tick();
 assert.ok(root.textContent.includes('No saved English version for this earlier source'));
-assert.ok(root.textContent.includes('Unrecognized abbreviation; compare the original.'));
-assert.ok(root.textContent.includes('Pompe de transfert'));
+assert.ok(root.textContent.includes('Unrecognized abbreviation'));
+assert.equal(byClass(root, 'translation-original-disclosure').length, 2);
 assert.ok(calls.at(-1).path.includes('run_id=earlier-run'));
+assert.ok(report().textContent.includes('gaps marked'));
 assert.equal(retry().hidden, true);
 """)
 
-    def test_destroy_discards_pending_read_response_and_poll(self) -> None:
+    def test_run_change_notifies_once_and_unknown_mode_is_original(self) -> None:
+        self.run_js(r"""
+const changes = [];
+const controller = window.PLCTranslation.mount(container, api, value => changes.push(value));
+await controller.refresh();
+respond = async () => state({presentation_mode: 'unexpected', run_id: 'new-run'});
+await controller.refresh(); await controller.refresh();
+assert.equal(changes.length, 1); assert.equal(controller.mode(), 'original');
+assert.equal(changes[0].run_id, 'new-run');
+assert.equal(report().href, '/analysis?language=original');
+""")
+
+    def test_catalog_coverage_and_exclusions_are_visible_without_claiming_complete_logic_translation(self) -> None:
+        self.run_js(r"""
+respond = async () => state({catalog_coverage: {annotations: 12, unique_texts: 8,
+  by_kind: {description: 4, comment: 6, text_box: 2}},
+  limitations: ['Stored values and executable code are not translated.', 'Extension notes excluded.']});
+const controller = window.PLCTranslation.mount(container, api); await controller.refresh();
+const coverage = control('translation-coverage');
+assert.equal(coverage.hidden, false);
+assert.ok(coverage.textContent.includes('12 source annotations'));
+assert.ok(coverage.textContent.includes('8 unique texts'));
+assert.ok(!coverage.textContent.includes('4 descriptions'));
+const details = control('translation-coverage-details');
+assert.ok(details.textContent.includes('4 descriptions'));
+assert.ok(details.textContent.includes('2 text boxes'));
+assert.ok(details.textContent.includes('Extension notes excluded.'));
+assert.equal(details.parent.tagName, 'details'); assert.equal(details.parent.open, false);
+""")
+
+    def test_destroy_discards_pending_read_and_configuration_responses(self) -> None:
         self.run_js(r"""
 const request = deferred(); respond = () => request.promise;
 const controller = window.PLCTranslation.mount(container, api);
 const root = new Element('section'); controller.show(root, source());
 const oldStatus = status().textContent; controller.destroy();
-request.resolve(state({enabled: true, state: 'running', fields: translation()})); await tick();
+request.resolve(state({presentation_mode: 'english', enabled: true, state: 'running', fields: translation()})); await tick();
 assert.equal(status().textContent, oldStatus);
-assert.ok(!root.textContent.includes('Close the valve'));
-assert.equal(timers.size, 0);
+assert.ok(!root.textContent.includes('Close the valve')); assert.equal(timers.size, 0);
+const nextContainer = new Element('section');
+respond = async () => state();
+const next = window.PLCTranslation.mount(nextContainer, api); await next.refresh();
+const changeRequest = deferred(); respond = () => changeRequest.promise;
+const nextMode = byClass(nextContainer, 'translation-mode')[0]; nextMode.value = 'english';
+const change = nextMode.fire('change'); const count = calls.length; next.destroy();
+changeRequest.resolve(state({presentation_mode: 'english', enabled: true, state: 'running'})); await change;
+assert.equal(calls.length, count); assert.equal(timers.size, 0);
 """)
 
-    def test_destroy_discards_pending_enable_response_without_an_extra_request(self) -> None:
+    def test_pending_poll_does_not_revert_new_mode(self) -> None:
         self.run_js(r"""
 const controller = window.PLCTranslation.mount(container, api); await controller.refresh();
-const request = deferred(); respond = () => request.promise;
-toggle().checked = true; const change = toggle().fire('change');
-const count = calls.length, oldStatus = status().textContent;
-controller.destroy();
-request.resolve(state({enabled: true, state: 'running'})); await change;
-assert.equal(calls.length, count);
-assert.equal(status().textContent, oldStatus);
-assert.equal(timers.size, 0);
+const pending = deferred(); respond = () => pending.promise;
+const oldRead = controller.refresh();
+respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2});
+mode().value = 'english'; await mode().fire('change');
+pending.resolve(state({presentation_mode: 'original'})); await oldRead;
+assert.equal(mode().value, 'english'); assert.equal(report().href, '/analysis?language=english');
 """)
 
 

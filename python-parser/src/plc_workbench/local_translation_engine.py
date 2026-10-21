@@ -8,6 +8,7 @@ Translations are derived reading aids, never source facts or review decisions.
 from __future__ import annotations
 
 from collections import Counter
+from itertools import islice
 import hashlib
 import importlib.util
 import json
@@ -27,6 +28,7 @@ REQUIRED_FILES = (
 MAX_TEXT_CHARS = 16_000
 MAX_SENTENCE_TOKENS = 140
 MAX_SEGMENTS = 128
+MAX_BATCH_TEXTS = 32
 
 _WORD = re.compile(r"[A-Za-z][A-Za-z0-9_]*(?:(?:[.:][A-Za-z0-9_]+)|(?:\[[0-9]+\]))*")
 _NUMBER = re.compile(r"(?<![\w])[-+]?\d+(?:[.,]\d+)?(?:[eE][-+]?\d+)?(?![\w])")
@@ -117,6 +119,48 @@ class Engine:
         return MODEL_ID
 
     def translate(self, text: str, protected_tokens: Iterable[str] = ()) -> dict:
+        return self.translate_many([text], protected_tokens=protected_tokens)[0]
+
+    def translate_many(self, texts: Iterable[str], protected_tokens: Iterable[str] = ()) -> list[dict]:
+        """Pack independent comments into bounded inference batches.
+
+        Sentence boundaries, decoding options, and every wording guard are the
+        same as single-comment translation. Only scheduling changes: CTranslate2
+        can process similarly sized sentences from several comments together.
+        """
+        results: list[dict] = []
+        sources = iter(texts)
+        extra = tuple(protected_tokens)
+        while group := tuple(islice(sources, MAX_BATCH_TEXTS)):
+            prepared = [self._prepare(text) for text in group]
+            tokenized = [tokens for item in prepared if isinstance(item, tuple) for tokens in item[2]]
+            if tokenized:
+                try:
+                    batches = self._translator.translate_batch(
+                        tokenized, beam_size=4, length_penalty=0.2, replace_unknowns=True,
+                        max_batch_size=512, batch_type="tokens", max_input_length=0,
+                        max_decoding_length=256, return_end_token=True,
+                    )
+                    if len(batches) != len(tokenized):
+                        raise ValueError("Incomplete local translation batch")
+                except Exception:
+                    batches = None
+            else:
+                batches = []
+            offset = 0
+            for item in prepared:
+                if isinstance(item, dict):
+                    results.append(item)
+                    continue
+                pieces, segments, tokens = item
+                if batches is None:
+                    results.append(_unsafe("The local model could not translate this comment. Review the original wording."))
+                else:
+                    results.append(self._finish(pieces, segments, batches[offset:offset + len(tokens)], extra))
+                offset += len(tokens)
+        return results
+
+    def _prepare(self, text: str) -> dict | tuple[list[str], list[str], list[list[str]]]:
         if not isinstance(text, str) or len(text) > MAX_TEXT_CHARS:
             return _unsafe("This comment is too long for the local reading aid; review the original wording.")
         if not text.strip():
@@ -131,18 +175,18 @@ class Engine:
             tokenized = [self._tokenizer.encode(part, out_type=str) for part in segments]
             if any(len(tokens) > MAX_SENTENCE_TOKENS for tokens in tokenized):
                 return _unsafe("A sentence exceeds the local model's reading limit. Review the original; nothing was truncated.")
-            batches = self._translator.translate_batch(
-                tokenized, beam_size=4, length_penalty=0.2, replace_unknowns=True,
-                max_batch_size=512, batch_type="tokens", max_input_length=0,
-                max_decoding_length=256, return_end_token=True,
-            )
+            return pieces, segments, tokenized
+        except Exception:
+            return _unsafe("The local model could not translate this comment. Review the original wording.")
+
+    def _finish(self, pieces: list[str], segments: list[str], batches: list, extra: tuple[str, ...]) -> dict:
+        try:
             if len(batches) != len(segments) or any(not batch.hypotheses[0] or batch.hypotheses[0][-1] != "</s>" for batch in batches):
                 return _unsafe("The local model did not finish this comment. Review the original; partial wording was withheld.")
             # The source tokenizer does not know every target-language piece.
             # Argos also normalizes residual SentencePiece space markers. Keep
             # real underscores intact because they can be part of PLC names.
             translated_segments = [self._tokenizer.decode(batch.hypotheses[0][:-1]).replace("▁", " ").strip() for batch in batches]
-            extra = tuple(protected_tokens)
             for original, candidate in zip(segments, translated_segments):
                 if token_fingerprint(original, extra) != token_fingerprint(candidate, extra):
                     return _unsafe("The translation changed a value, unit, address, or identifier, so it was withheld. Review the original wording.")

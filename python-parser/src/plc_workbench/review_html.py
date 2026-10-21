@@ -10,6 +10,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 MAX_REVIEW_HTML_BYTES = 80 * 1024 * 1024
@@ -347,20 +348,27 @@ def render_review_html(data: dict[str, Any], *, debug: bool = False) -> str:
         css = (asset_dir / 'report.css').read_text(encoding='utf-8')
         theme = (asset_dir / 'theme.js').read_text(encoding='utf-8')
         guide = (asset_dir / 'review_guide.js').read_text(encoding='utf-8')
+        language = (asset_dir / 'language.js').read_text(encoding='utf-8')
         application = (asset_dir / 'report.js').read_text(encoding='utf-8')
-        script = f"const REVIEW_DEBUG = {'true' if debug else 'false'};\n{theme}\n{guide}\n{application}"
+        script = f"const REVIEW_DEBUG = {'true' if debug else 'false'};\n{theme}\n{guide}\n{language}\n{application}"
     except (OSError, UnicodeError):
         raise ReviewHtmlError('Engineering review resources are unavailable.') from None
     policy = ("default-src 'none'; "
               f"script-src 'sha256-{_hash(script)}'; style-src 'sha256-{_hash(css)}'; "
               "connect-src 'none'; img-src 'none'; font-src 'none'; object-src 'none'; "
               "frame-src 'none'; base-uri 'none'; form-action 'none'")
-    page = (_TEMPLATE.replace('__POLICY__', policy).replace('__CSS__', css)
-            .replace('__APP__', script).replace('__PAYLOAD__', payload))
+    page = _render_template(policy, css, script, payload)
     _, html_limit = _limits(data['schema_version'])
     if len(page.encode('utf-8')) > html_limit:
         raise ReviewHtmlSizeLimitError('Engineering review exceeds the report size limit.')
     return page
+
+
+def _render_template(policy: str, css: str, script: str, payload: str, language: str = '') -> str:
+    """Substitute template slots once; source text may literally name a slot."""
+    values = {'__POLICY__': policy, '__CSS__': css, '__APP__': script,
+              '__PAYLOAD__': payload, '__LANGUAGE__': language}
+    return re.sub('|'.join(values), lambda match: values[match.group()], _TEMPLATE)
 
 
 _TEMPLATE = '''<!doctype html>
@@ -378,11 +386,12 @@ _TEMPLATE = '''<!doctype html>
 <p>This report contains source names, code and values. Keep it with your private project files.</p>
 <div id="snapshot-mini"></div></div></aside>
 <div class="workspace"><header class="topbar"><span>PLC migration <span aria-hidden="true">/</span> Phase 1</span>
-<div class="topbar-actions"><span class="topbar-badge">Read-only source evidence</span>
+<div class="topbar-actions"><span class="topbar-badge">Read-only source evidence</span><div id="report-language"></div>
 <button id="theme-toggle" class="theme-toggle" type="button" hidden>Dark mode · Switch to light</button></div></header>
 <main id="main" tabindex="-1"><div id="page-heading"></div>
 <div id="toolbar"></div><div id="content"></div></main>
 <footer>Captured source evidence. Effects, safety behavior and engineering meaning require review.</footer>
 </div></div><noscript><p class="noscript">Enable JavaScript to navigate this offline report. The private JSON artifact in the same run contains the underlying evidence.</p></noscript>
 <script type="application/json" id="review-data">__PAYLOAD__</script>
+__LANGUAGE__
 <script>__APP__</script></body></html>'''

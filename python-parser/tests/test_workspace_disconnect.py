@@ -65,7 +65,7 @@ class WorkspaceDisconnectTests(unittest.TestCase):
                     self.assertEqual(len(stream.attempts), fail_on)
                     self.assertTrue(stream.attempts[0].startswith(b'HTTP/1.0 200 '))
                     self.assertNotIn(b'500', b''.join(stream.attempts))
-                    handler.server.workspace.report.assert_called_once_with()
+                    handler.server.workspace.report.assert_called_once_with(None)
 
     def test_post_response_disconnect_does_not_retry_or_undo_an_applied_change(self) -> None:
         for error_type in DISCONNECTS:

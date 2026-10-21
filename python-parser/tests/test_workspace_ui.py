@@ -142,7 +142,9 @@ class WorkspaceInteractionTests(unittest.TestCase):
         for name in ("openSource", "loadRungs"):
             if name in names:
                 dom = dom.replace(f"const {name}=async()=>{{}};", "")
-        if "loadRungs" in names:
+        if "loadObjects" in names:
+            dom = dom.replace("renderDetail, loadObjects;", "renderDetail;")
+        if "loadRungs" in names or "loadObjects" in names:
             dom += RUNG_LIST_DOM
         code = dom + "\n" + "\n".join(function(name) for name in names)
         code += "\n(async()=>{\n" + checks + "\n})()"
@@ -151,6 +153,65 @@ class WorkspaceInteractionTests(unittest.TestCase):
         result = subprocess.run([NODE, "-"], input=code, capture_output=True, encoding="utf-8", timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("UI_TEST_COMPLETE", result.stdout, "An asynchronous check never completed")
+
+    def test_english_rung_search_results_keep_original_disclosed_and_dirty_detail(self) -> None:
+        translation = (ASSETS / "translation.js").read_text(encoding="utf-8")
+        self.run_js(["loadRungs"], "document.createElement=tag=>node(tag);\n" + translation + r"""
+state.dirty=true; state.source={source:{id:'selected-rung'}};
+const selected=state.source;
+$('rung-search').value='Valve';
+api=async path=>{
+  assert.equal(new URL(path,'http://localhost').searchParams.get('query'),'Valve');
+  return {...rungResult({...rungRow('found',1),comment:'Fermer la vanne',
+    wording:{comment:{status:'translated',text:'Close the valve'}}}),presentation_mode:'english'};
+};
+await loadRungs();
+const root=$('rung-list');
+const original=descendants(root).find(n=>n.className==='translation-original-disclosure');
+assert.ok(original); assert.ok(!original.open);
+assert.ok(contents(original).includes('Fermer la vanne'));
+const english=descendants(root).find(n=>n.className==='translation-english');
+assert.ok(contents(english).includes('Close the valve'));
+assert.ok(!contents(english).includes('Fermer la vanne'));
+assert.equal(state.source,selected); assert.equal(state.dirty,true);
+""")
+
+    def test_english_object_results_translate_prose_but_preserve_instruction_code(self) -> None:
+        translation = (ASSETS / "translation.js").read_text(encoding="utf-8")
+        self.run_js(["loadObjects"], "document.createElement=tag=>node(tag);\n" + translation + r"""
+state.view='objects'; state.objectPage=1; state.dirty=true;
+$('object-search').value='Pump';
+api=async path=>{
+  assert.equal(new URL(path,'http://localhost').searchParams.get('query'),'Pump');
+  return {total:2,presentation_mode:'english',items:[
+    {id:'tag',name:'P101',kind:'tag',path:'Invented / P101',description:'Pompe de transfert',
+      wording:{description:{status:'translated',text:'Transfer pump'}}},
+    {id:'instruction',kind:'instruction',path:'Invented / 1',description:'XIC(Marche)OTE(P101);',
+      description_is_code:true,wording:{description:{status:'translated',text:'Do not substitute code'}}}
+  ]};
+};
+await loadObjects();
+const root=$('object-list');
+assert.ok(contents(root).includes('Transfer pump')); assert.ok(contents(root).includes('P101'));
+assert.ok(contents(root).includes('XIC(Marche)OTE(P101);'));
+assert.ok(!contents(root).includes('Do not substitute code'));
+assert.equal(descendants(root).filter(n=>n.className==='translation-original-disclosure').length,1);
+assert.equal(state.dirty,true);
+""")
+
+    def test_translation_updates_reload_only_active_inventory_without_discarding_form(self) -> None:
+        self.run_js(["translationChanged"], r"""
+const loaded=[]; loadObjects=async()=>{};
+run=async callback=>loaded.push(callback===loadRungs?'rungs':callback===loadObjects?'objects':'unexpected');
+renderDetail=()=>{throw new Error('Translation must not rebuild engineering forms');};
+state.dirty=true; state.source={source:{id:'selected-rung'}};
+const selected=state.source;
+state.view='rungs'; translationChanged();
+state.view='objects'; translationChanged();
+state.view='groups'; translationChanged();
+assert.deepEqual(loaded,['rungs','objects']);
+assert.equal(state.source,selected); assert.equal(state.dirty,true);
+""")
 
     def test_series_nested_parallel_and_empty_bypass_remain_visible(self) -> None:
         self.run_js(["renderStructure"], r"""

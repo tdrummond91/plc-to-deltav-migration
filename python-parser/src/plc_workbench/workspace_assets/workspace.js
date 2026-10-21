@@ -38,7 +38,7 @@
   const link = (text, id, view = "ladder") => {
     const n = node("a", text);
     n.href =
-      "/analysis#view=" +
+      "/analysis?language=" + translations.mode() + "#view=" +
       encodeURIComponent(view) +
       (id ? "&source=" + encodeURIComponent(id) : "");
     n.target = "_blank";
@@ -390,7 +390,11 @@
       );
       body.append(renderRungPreview(r));
       body.append(button("Open rung & connections →", () => run(() => openSource(r.id, "rung-detail")), "text-button rung-open"));
-      if (r.comment) body.append(node("div", r.comment, "source-preview"));
+      if (r.comment) {
+        const prose = node("div", null, "source-preview");
+        window.PLCTranslation.renderProse(prose, r.comment, r.wording?.comment, result.presentation_mode);
+        body.append(prose);
+      }
       const badges = node("div", null, "chips");
       badges.append(
         chip(
@@ -509,8 +513,12 @@
         node("div", o.path, "list-path"),
         chip(o.kind),
       );
-      if (o.description)
-        body.append(node("p", o.description, "source-preview"));
+      if (o.description) {
+        const prose = node(o.description_is_code ? "pre" : "div", null, "source-preview");
+        if (o.description_is_code) prose.textContent = o.description;
+        else window.PLCTranslation.renderProse(prose, o.description, o.wording?.description, result.presentation_mode);
+        body.append(prose);
+      }
       row.append(body);
       $("object-list").append(row);
     });
@@ -1872,14 +1880,18 @@
             node("p", evidence.path),
           );
           const source = evidence.source || {};
-          if (source.comment || source.description)
-            previous.append(
-              node(
-                "div",
-                source.comment || source.description,
-                "source-comment",
-              ),
-            );
+          if (source.comment || source.description) {
+            const prose = node("div", null, "translation-pair");
+            const key = source.comment ? "comment" : "description";
+            previous.append(prose);
+            window.PLCTranslation.renderProse(prose, source[key], null, translations.mode());
+            if (translations.mode() !== "original") {
+              run(async () => {
+                const wording = await api("/api/translation?" + new URLSearchParams({source_id: old.source_id, run_id: old.run_id}));
+                if (prose.isConnected) window.PLCTranslation.renderProse(prose, source[key], wording.fields?.[key], wording.presentation_mode);
+              });
+            }
+          }
           previous.append(
             node(
               "pre",
@@ -1941,13 +1953,19 @@
               radio.addEventListener("change", () => (selected = r.id));
               row.append(
                 field(r.path, radio),
-                node("pre", r.text || r.description || ""),
+                node("pre", r.text || (r.description_is_code ? r.description : "") || ""),
                 link(
                   "Inspect full evidence ↗",
                   r.id,
                   sourceType.value === "objects" ? "objects" : "ladder",
                 ),
               );
+              if (r.comment || (r.description && !r.description_is_code)) {
+                const key = r.comment ? "comment" : "description";
+                const prose = node("div", null, "source-preview");
+                window.PLCTranslation.renderProse(prose, r[key], r.wording?.[key], found.presentation_mode);
+                row.append(prose);
+              }
               results.append(row);
             });
           }),
@@ -2441,6 +2459,13 @@
     if (source && !["rungs", "objects"].includes(view)) return null;
     return { view, source };
   }
+  function translationChanged() {
+    // Refresh only list wording. The selected detail's translation module owns
+    // its prose; rebuilding the detail would destroy unsaved review fields.
+    if (!state.project) return;
+    if (state.view === "rungs") run(loadRungs);
+    if (state.view === "objects") run(loadObjects);
+  }
   async function openLocation(skipCheck = false) {
     const location = requestedLocation();
     if (!location || !switchView(location.view, skipCheck)) return;
@@ -2453,7 +2478,7 @@
   }
   window.addEventListener("hashchange", () => run(() => openLocation()));
   window.PLCReadingLayout.mount(document.querySelector("#view-rungs .workspace-grid"), $("rung-reading-settings"));
-  const translations = window.PLCTranslation.mount($("translation-controls"), api);
+  const translations = window.PLCTranslation.mount($("translation-controls"), api, translationChanged);
   run(async () => {
     await refresh();
     await openLocation(true);

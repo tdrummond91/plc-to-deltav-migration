@@ -9,6 +9,8 @@ from unittest.mock import patch
 from urllib.parse import urlencode
 
 from plc_workbench.workspace_translation import TranslationService
+from plc_workbench.workspace import Workspace
+from test_prepare_english import report_overlay, saved_prose_analysis
 from test_workspace import running_workspace, saved_analysis
 from test_workspace_translation import FakeEngine
 
@@ -21,6 +23,8 @@ class WorkspaceTranslationApiTests(unittest.TestCase):
         cls.runs = Path(cls.fixture.name) / 'runs'
         cls.first = saved_analysis(cls.runs)
         cls.second = saved_analysis(cls.runs, controller='AnotherInventedController')
+        cls.prose = saved_prose_analysis(cls.runs)
+        cls.prose_second = saved_prose_analysis(cls.runs, controller='AnotherInventedTranslation')
 
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
@@ -115,6 +119,95 @@ class WorkspaceTranslationApiTests(unittest.TestCase):
             backup = client.post('/api/backup', {})
             client.post('/api/restore', {'name': Path(backup['path']).name, 'expected_revision': state['revision']})
             self.assertFalse(client.get('/api/translation')['enabled'])
+
+    def test_english_mode_search_and_lists_keep_originals_and_instruction_code(self):
+        with running_workspace(self.project, self.runs) as client:
+            imported = client.post('/api/import', {'path': str(self.prose), 'expected_revision': 0})
+            client.post('/api/translation', {'presentation_mode': 'english', 'prepare': True,
+                                           'run_id': imported['active_run']})
+            self.assertEqual(self.complete(client)['state'], 'complete')
+            rungs = client.get('/api/rungs?' + urlencode({'query': 'English: Arreter'}))
+            self.assertEqual((rungs['total'], rungs['presentation_mode']), (1, 'english'))
+            self.assertEqual(rungs['items'][0]['comment'], 'Arreter la pompe')
+            self.assertEqual(rungs['items'][0]['wording']['comment']['text'], 'English: Arreter la pompe')
+            self.assertEqual(rungs['items'][0]['text'], 'XIC(Input)OTE(Output);')
+            objects = client.get('/api/objects?' + urlencode({'query': 'English: Niveau'}))
+            self.assertEqual(objects['total'], 1)
+            row = objects['items'][0]
+            self.assertEqual(row['description'], 'Niveau bas')
+            self.assertFalse(row['description_is_code'])
+            self.assertEqual(row['wording']['description']['text'], 'English: Niveau bas')
+            instructions = client.get('/api/objects?kind=instruction')['items']
+            self.assertEqual({row['description'] for row in instructions},
+                             {'XIC(Input)', 'OTE(Output)', 'XIO(Input)', 'OTL(Output)'})
+            self.assertTrue(all(row['description_is_code'] and row['wording']['description'] is None for row in instructions))
+            self.assertTrue(all('XIC(' not in text and 'OTE(' not in text for text in self.calls))
+            self.assertEqual(client.get('/api/state')['revision'], imported['revision'])
+            client.post('/api/translation', {'presentation_mode': 'original', 'prepare': False,
+                                           'run_id': imported['active_run']})
+            self.assertTrue(client.get('/api/translation')['enabled'])
+        with running_workspace(self.project, self.runs) as client:
+            status = self.complete(client)
+            self.assertEqual(status['presentation_mode'], 'original')
+            self.assertEqual(status['cached'], status['total'])
+            client.post('/api/translation', {'presentation_mode': 'both', 'run_id': status['run_id']})
+            self.assertEqual(client.get('/api/rungs')['presentation_mode'], 'both')
+
+    def test_original_report_keeps_usable_english_overlay_and_cache_refreshes(self):
+        with running_workspace(self.project, self.runs) as client:
+            imported = client.post('/api/import', {'path': str(self.prose), 'expected_revision': 0})
+            before = client.get('/analysis?language=original')
+            self.assertEqual(report_overlay(before)['translations'], [])
+            client.post('/api/translation', {'presentation_mode': 'original', 'prepare': True,
+                                           'run_id': imported['active_run']})
+            state = self.complete(client)
+            self.assertEqual(state['presentation_mode'], 'original')
+            self.assertGreater(state['write_generation'], 0)
+            after = client.get('/analysis?language=original')
+            self.assertNotEqual(before, after)
+            overlay = report_overlay(after)
+            self.assertEqual(overlay['language'], 'original')
+            english = {row['original']: row['text'] for row in overlay['translations']}
+            self.assertEqual(english['Arreter la pompe'], 'English: Arreter la pompe')
+            self.assertEqual(client.get('/analysis?language=original'), after)
+            self.assertEqual(report_overlay(client.get('/analysis?language=english'))['language'], 'english')
+            self.assertEqual(client.request('/analysis?language=invalid')[0], 400)
+
+    def test_historical_translation_poll_uses_prose_cache_without_source_or_calculation_reload(self):
+        with running_workspace(self.project, self.runs) as client:
+            first = client.post('/api/import', {'path': str(self.prose), 'expected_revision': 0})
+            old_rung = client.get('/api/rungs')['items'][0]
+            old_instruction = client.get('/api/objects?kind=instruction')['items'][0]
+            client.post('/api/translation', {'presentation_mode': 'english', 'prepare': True,
+                                           'run_id': first['active_run']})
+            self.complete(client)
+            second = client.post('/api/import', {'path': str(self.prose_second), 'expected_revision': first['revision']})
+            self.complete(client)
+            store = client.server.workspace.store
+            query = '/api/translation?' + urlencode({'source_id': old_rung['id'], 'run_id': first['active_run']})
+            with patch.object(Workspace, 'source', side_effect=AssertionError('Do not rebuild full source on polling')), patch.object(
+                    Workspace, '_calculation_detail', side_effect=AssertionError('Do not load calculations on polling')), patch.object(
+                    store, 'inventory', wraps=store.inventory) as inventories:
+                first_poll = client.get(query)
+                second_poll = client.get(query)
+                instruction_poll = client.get('/api/translation?' + urlencode({
+                    'source_id': old_instruction['id'], 'run_id': first['active_run']}))
+            self.assertEqual(inventories.call_count, 1)
+            self.assertEqual(first_poll['fields'], second_poll['fields'])
+            self.assertEqual(first_poll['fields']['comment']['text'], 'English: ' + old_rung['comment'])
+            self.assertEqual(first_poll['run_id'], second['active_run'])
+            self.assertEqual(instruction_poll['fields'], {})
+
+    def test_bad_modes_and_stale_preparation_do_not_change_preferences(self):
+        with running_workspace(self.project, self.runs) as client:
+            state = client.post('/api/import', {'path': str(self.prose), 'expected_revision': 0})
+            for mode in ('cloud', None, ['english']):
+                self.assertEqual(client.request('/api/translation', payload={
+                    'presentation_mode': mode, 'run_id': state['active_run']})[0], 400)
+            self.assertEqual(client.request('/api/translation', payload={
+                'presentation_mode': 'english', 'prepare': True, 'run_id': 'stale-run'})[0], 409)
+            self.assertEqual(client.get('/api/translation')['presentation_mode'], 'original')
+            self.assertEqual(self.calls, [])
 
 
 if __name__ == '__main__':

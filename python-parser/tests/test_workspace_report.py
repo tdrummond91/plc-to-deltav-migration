@@ -8,7 +8,7 @@ import unittest
 
 from plc_workbench.project_store import ProjectError, ProjectStore
 from plc_workbench.review_html import render_review_html
-from plc_workbench.workspace_report import refresh_report
+from plc_workbench.workspace_report import read_report_data, refresh_report
 from test_review_html import ParsedPage, review_data
 from test_review_links import _LINK_SETUP
 from test_cpt_access_review_ui import DOM
@@ -32,6 +32,19 @@ class WorkspaceReportTests(unittest.TestCase):
         self.assertIn('hashchange', parsed.scripts[1][1])
         self.assertEqual(original, self.legacy)
 
+    def test_read_saved_payload_is_source_bound_and_ignores_executable_html(self):
+        original = bytes(self.legacy)
+        data = read_report_data(self.legacy, self.data['inventory'])
+        self.assertEqual(data, json.loads(self.payload))
+        self.assertEqual(data['sfc'], json.loads(self.payload)['sfc'])
+        self.assertEqual(self.legacy, original)
+        changed = deepcopy(self.data['inventory'])
+        changed['rungs'][0]['comment'] = 'Different source wording'
+        for html, inventory in ((self.legacy, changed), (self.legacy + self.legacy, self.data['inventory']),
+                                (b'<script id="review-data">{}</script>', self.data['inventory'])):
+            with self.assertRaises(ProjectError):
+                read_report_data(html, inventory)
+
     def test_disagreeing_source_or_multiple_payloads_fail(self):
         changed = deepcopy(self.data['inventory'])
         changed['rungs'][0]['text'] = 'NOP();'
@@ -54,6 +67,8 @@ class WorkspaceReportTests(unittest.TestCase):
                      + json.dumps(data) + '</script>').encode()
         with self.assertRaises(ProjectError):
             refresh_report(malformed, self.data['inventory'])
+        with self.assertRaises(ProjectError):
+            read_report_data(malformed, self.data['inventory'])
 
     def test_current_complete_saved_analysis_imports_without_reanalysis(self):
         from plc_workbench.source_reuse import source_reuse_scope

@@ -8,7 +8,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from plc_workbench.workspace_translation import TranslationService
+from plc_workbench.workspace_translation import TranslationService, WORKER_BATCH_TEXTS
 
 
 class FakeEngine:
@@ -25,6 +25,14 @@ class FakeEngine:
         if self.callback is not None:
             return self.callback(text)
         return {"text": f"English: {text}", "status": "translated"}
+
+
+class BatchEngine(FakeEngine):
+    def translate_many(self, texts):
+        self.calls.append(tuple(texts))
+        if self.callback is not None:
+            return self.callback(texts)
+        return [{"text": f"English: {text}", "status": "translated"} for text in texts]
 
 
 class TranslationServiceTests(unittest.TestCase):
@@ -261,6 +269,108 @@ class TranslationServiceTests(unittest.TestCase):
         with closing(sqlite3.connect(self.cache)) as connection:
             tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         self.assertEqual(tables, {"translation_settings", "english_translations"})
+
+    def test_presentation_mode_is_persisted_separate_from_preparation(self):
+        service = self.service()
+        self.assertEqual(service.status()["presentation_mode"], "original")
+        service.set_enabled(True)
+        self.assertEqual(service.status()["presentation_mode"], "both")
+        service.set_mode("original")
+        self.assertTrue(service.status()["enabled"])
+        reopened = self.service()
+        self.assertEqual(reopened.status()["presentation_mode"], "original")
+        self.assertTrue(reopened.status()["enabled"])
+        service.set_mode("english")
+        self.assertEqual(self.service().status()["presentation_mode"], "english")
+        for invalid in ("French", "", None):
+            with self.assertRaises(ValueError):
+                service.set_mode(invalid)
+
+    def test_existing_enabled_setting_migrates_to_both(self):
+        service = self.service()
+        service._set_setting("enabled", "1")
+        self.assertEqual(self.service().status()["presentation_mode"], "both")
+
+    def test_batched_worker_commits_once_per_chunk_and_signature_survives_restart(self):
+        service = self.service(engine_factory=lambda _: BatchEngine(self.calls))
+        texts = [f"Texte {index}" for index in range(WORKER_BATCH_TEXTS * 2 + 1)]
+        before = service.status()["cache_signature"]
+        with patch.object(service, "_save_many", wraps=service._save_many) as writes:
+            service.start(texts)
+            state = self.complete(service)
+        self.assertEqual([len(batch) for batch in self.calls], [16, 16, 1])
+        self.assertEqual(writes.call_count, 3)
+        self.assertEqual((state["completed"], state["failed"], state["write_generation"]), (33, 0, 3))
+        self.assertNotEqual(before, state["cache_signature"])
+        self.assertEqual(self.service().status()["cache_signature"], state["cache_signature"])
+        self.assertEqual(state["remaining_seconds"], 0)
+        with patch.object(service, "_connect", wraps=service._connect) as connections:
+            entries = service.lookup_many([*texts, texts[0], "Missing", " ", None])
+        self.assertEqual(connections.call_count, 1)
+        self.assertEqual(set(entries), set(texts))
+        service.set_mode("english")
+        self.assertEqual(service.status()["cache_signature"], state["cache_signature"])
+        self.assertEqual(service.start(texts)["write_generation"], 3)
+
+    def test_batch_visibility_change_does_not_cancel_and_estimate_requires_measurement(self):
+        first = threading.Event()
+        second = threading.Event()
+        release_first = threading.Event()
+        release_second = threading.Event()
+        self.addCleanup(release_first.set)
+        self.addCleanup(release_second.set)
+        count = 0
+
+        def translate(texts):
+            nonlocal count
+            count += 1
+            (first if count == 1 else second).set()
+            (release_first if count == 1 else release_second).wait(2)
+            return [{"text": "English", "status": "translated"} for _ in texts]
+
+        service = self.service(engine_factory=lambda _: BatchEngine(self.calls, callback=translate))
+        service.set_enabled(True)
+        service.start([f"Commentaire {index}" for index in range(17)])
+        self.assertTrue(first.wait(1))
+        self.assertIsNone(service.status()["remaining_seconds"])
+        service.set_mode("original")
+        release_first.set()
+        self.assertTrue(second.wait(1))
+        state = service.status()
+        self.assertEqual(state["completed"], 16)
+        self.assertIsNotNone(state["remaining_seconds"])
+        self.assertEqual(state["state"], "running")
+        release_second.set()
+        self.assertEqual(self.complete(service)["completed"], 17)
+
+    def test_cancel_saves_completed_chunk_without_starting_another(self):
+        entered = threading.Event()
+        release = threading.Event()
+        self.addCleanup(release.set)
+
+        def translate(texts):
+            entered.set()
+            release.wait(2)
+            return [{"text": "English", "status": "translated"} for _ in texts]
+
+        service = self.service(engine_factory=lambda _: BatchEngine(self.calls, callback=translate))
+        service.start([f"Commentaire {index}" for index in range(17)])
+        self.assertTrue(entered.wait(1))
+        service.set_enabled(False)
+        release.set()
+        state = self.complete(service)
+        self.assertEqual((state["state"], state["completed"], len(self.calls)), ("cancelled", 16, 1))
+        self.assertIsNotNone(service.lookup("Commentaire 15"))
+        self.assertIsNone(service.lookup("Commentaire 16"))
+        self.assertIsNone(state["remaining_seconds"])
+
+    def test_bad_batch_response_is_safe_and_cached_for_each_text(self):
+        service = self.service(engine_factory=lambda _: BatchEngine(self.calls, callback=lambda _: []))
+        service.start(["Secret invente", "Autre texte"])
+        state = self.complete(service)
+        self.assertEqual((state["completed"], state["failed"]), (2, 2))
+        self.assertNotIn("Secret", str(state))
+        self.assertEqual(service.lookup("Secret invente")["text"], "")
 
 
 if __name__ == "__main__":

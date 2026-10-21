@@ -131,9 +131,65 @@ class TranslationEngineTests(unittest.TestCase):
         self.assertNotIn("SENSITIVE_SOURCE", json.dumps(result))
         self.assertEqual(result["status"], "needs_review")
 
+    def test_many_packs_comments_and_preserves_each_paragraph(self):
+        instance = fake_engine(["Pump running.", "Valve open.", "High pressure."])
+        results = instance.translate_many(["Pompe en marche.\n\nVanne ouverte.", "Pression haute."])
+        self.assertEqual([result["text"] for result in results], ["Pump running.\n\nValve open.", "High pressure."])
+        self.assertEqual(instance._translator.translate_batch.call_count, 1)
+        self.assertEqual(len(instance._translator.translate_batch.call_args.args[0]), 3)
+        self.assertEqual(instance._translator.translate_batch.call_args.kwargs["max_batch_size"], 512)
+
+    def test_many_bounded_to_32_comments_and_keeps_input_order(self):
+        instance = fake_engine([])
+        instance._translator.translate_batch.side_effect = lambda inputs, **_: [
+            SimpleNamespace(hypotheses=[tokens + ["</s>"]]) for tokens in inputs
+        ]
+        sources = [f"P{index} running." for index in range(67)]
+        results = instance.translate_many(iter(sources))
+        self.assertEqual([result["text"] for result in results], sources)
+        self.assertEqual([len(call.args[0]) for call in instance._translator.translate_batch.call_args_list], [32, 32, 3])
+
+    def test_many_withholds_only_failed_comment_and_preserves_blank_input(self):
+        instance = fake_engine(["Start P102.", "High pressure."])
+        results = instance.translate_many(["Start P101.", "mot " * 141, "Pression haute.", " \n "])
+        self.assertEqual([result["status"] for result in results], ["needs_review", "needs_review", "translated", "translated"])
+        self.assertEqual(results[2]["text"], "High pressure.")
+        self.assertEqual(results[3]["text"], " \n ")
+        self.assertEqual(len(instance._translator.translate_batch.call_args.args[0]), 2)
+
+    def test_many_incomplete_decode_does_not_hide_other_comments(self):
+        instance = fake_engine([])
+        instance._translator.translate_batch.return_value = [
+            SimpleNamespace(hypotheses=[["Pump"]]),
+            SimpleNamespace(hypotheses=[["Valve", "open.", "</s>"]]),
+        ]
+        results = instance.translate_many(["Pompe en marche.", "Vanne ouverte."])
+        self.assertEqual(results[0]["status"], "needs_review")
+        self.assertEqual(results[1]["text"], "Valve open.")
+
+    def test_many_bad_batch_length_withholds_without_misaligned_wording(self):
+        results = fake_engine(["Pump running."]).translate_many(["Pompe en marche.", "Vanne ouverte."])
+        self.assertEqual([result["text"] for result in results], ["", ""])
+
+    def test_many_preserves_single_comment_guards(self):
+        sources = ["The pump must not start.", "Start P101 at 150 kPa."]
+        outputs = ["The pump must start.", "Start P101 at 15 kPa."]
+        self.assertEqual(fake_engine(outputs).translate_many(sources), [fake_engine([output]).translate(source) for source, output in zip(sources, outputs)])
+
 
 @unittest.skipUnless(engine.availability()["available"], "Optional offline translation model is not installed")
 class InstalledTranslationTests(unittest.TestCase):
+    def test_real_packed_outputs_match_serial_with_network_forbidden(self):
+        samples = [
+            "La pompe ne doit pas démarrer.",
+            "La pression est trop élevée. Vérifier le capteur.",
+            "Pump P101 en marche; arrêter P101 si la pression dépasse 150 kPa.",
+            "La vanne est ouverte.\n\nLa pompe est disponible.",
+        ]
+        with patch("socket.socket.connect", side_effect=AssertionError("No network")), patch("socket.create_connection", side_effect=AssertionError("No network")):
+            translator = engine.Engine()
+            self.assertEqual(translator.translate_many(samples), [translator.translate(text) for text in samples])
+
     def test_real_model_works_with_network_connections_forbidden(self):
         with patch("socket.socket.connect", side_effect=AssertionError("No network")), patch("socket.create_connection", side_effect=AssertionError("No network")):
             translator = engine.Engine()

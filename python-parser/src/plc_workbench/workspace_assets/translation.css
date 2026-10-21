@@ -1,11 +1,21 @@
 .translation-controls { border: 1px solid var(--border); border-radius: .8rem; padding: .8rem; margin-top: 1rem; font-size: .85rem; }
 .translation-controls > strong { display: block; margin-bottom: .65rem; }
-.translation-controls label { display: flex; align-items: flex-start; gap: .5rem; line-height: 1.5; }
-.translation-controls label input { width: auto; margin-top: .25rem; accent-color: var(--accent); }
+.translation-controls label { display: flex; flex-direction: column; gap: .5rem; line-height: 1.5; }
+.translation-controls select { width: 100%; }
 .translation-controls p { overflow-wrap: anywhere; line-height: 1.5; }
-.translation-controls summary { cursor: pointer; }
+.translation-controls summary, .translation-original-disclosure > summary { cursor: pointer; }
+.translation-controls > button { margin-bottom: .5rem; width: 100%; }
+.translation-report { display: block; margin: .5rem 0 1rem; line-height: 1.5; }
+.translation-coverage, .translation-coverage-details { color: var(--muted); }
 .translation-command { display: block; white-space: normal; overflow-wrap: anywhere; padding: .6rem; background: var(--bg); border-radius: .4rem; }
 .translation-pair { margin-block: .7rem; }
-.translation-pair > strong, .translation-english > strong { display: block; margin-bottom: .35rem; font-size: .8rem; color: var(--muted); }
-.translation-english { margin-top: .65rem; padding: .7rem .85rem; border-left: 2px solid var(--accent); background: var(--surface); }
+.translation-pair > strong, .translation-english > strong, .translation-original-block > strong { display: block; margin-bottom: .35rem; font-size: .8rem; color: var(--muted); }
+.translation-english { margin-block: .4rem; padding: .7rem .85rem; border-left: 2px solid var(--accent); background: var(--surface); }
 .translation-english[hidden] { display: none; }
+.translation-original-disclosure { margin-top: .45rem; color: var(--muted); }
+.translation-original-disclosure .source-comment { color: var(--ink); padding: .5rem 0; }
+.source-preview.translation-prose-root { max-height: none; overflow: visible; }
+.source-preview .translation-english { padding: .35rem .5rem; }
+.source-preview .translation-english > strong { font-size: .72rem; }
+.source-preview .source-comment { font-size: inherit; padding: .25rem .4rem; border-left: 0; background: transparent; }
+.translation-gap { border-left: 2px solid var(--orange); padding-left: .55rem; }

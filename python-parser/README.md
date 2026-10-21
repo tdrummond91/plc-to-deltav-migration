@@ -17,9 +17,12 @@ another analysis. PCSD and FHX are later phases. Use the
 [tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md) for current status.
 
 The editor has adjustable equation text (75% by default), a resizable rung/source
-split, and optional offline English translations beside captured French/mixed
-comments. Run `bash ./setup-translation.sh` once, reopen the editor, and enable
-**Show English alongside original**. The model and exact-text translation cache
+split, and optional offline English views of French/mixed comments and descriptions.
+Run `bash ./setup-translation.sh` once, then choose **English** or **Both languages**
+under **Source language** in the editor. To finish translation before browsing,
+close the editor, run `bash ./prepare-english.sh`, then `bash ./open-workbench.sh`.
+The command also saves a private English report; no parser rerun is needed.
+The model and exact-text translation cache
 stay under `confidential/`; unchanged wording is reused across analyses. See the
 [workspace guide](../public/docs/reviews/ENGINEERING_WORKSPACE.md#reading-layout-and-english-wording)
 for setup, cache/backup behavior and translation limits.

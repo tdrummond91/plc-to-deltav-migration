@@ -65,10 +65,13 @@ bash ./open-workbench.sh
 
 Setup downloads optional Python translation packages and a public French-to-English
 model (about 67 MB). No engineering comments are uploaded. The subsequent
-translation process works offline on the CPU. Select **Show English alongside
-original** under **Comment language** in the sidebar. It prepares all captured
-comments and descriptions in the imported analysis while you continue reviewing.
-Select a rung or source object to see both versions. English is a reading aid:
+translation process works offline on the CPU. Under **Source language**, choose
+**English** or **Both languages** to prepare the imported source while reviewing.
+**Original** changes the display without cancelling preparation. The progress
+count covers unique wording across the whole export, not just the selected rung;
+a selected comment appears when its batch is reached. Elapsed time, estimated
+remaining time and any missing translations are shown in the sidebar.
+English is a reading aid:
 confirm terminology, negation and control meaning against the original,
 especially abbreviations and mixed French/English wording. Text whose translation
 changes checked values/identifiers or cannot be completed is withheld for review.
@@ -78,10 +81,37 @@ Identical text is translated once per model/rule version, including repeated
 comments and later L5X exports. New or changed text is translated on the next
 import while unchanged translations are reused. The usual `run-work-check.sh`
 entry point still works; another parser run is unnecessary just for these
-reading features. The full static source-analysis report keeps original wording.
+reading features. The source-analysis report follows the selected language, with
+its own Original/English/Both control. Reopen the report to include translations
+completed since it was opened. **Comments & descriptions** provides a searchable
+index of captured wording and links back to its source context.
+
+To prepare an English review phase before browsing, close the workspace, then run:
+
+```bash
+bash ./prepare-english.sh
+bash ./open-workbench.sh
+```
+
+This uses the selected saved project; it does not reanalyze the L5X. Completed
+translations survive stopping and restarting. The command selects English and
+saves `review-english.html` plus `source-wording.json` in a new private
+`english-analysis/` folder beside the project. The final `complete.json` records
+the source identity, coverage and any wording gaps. A partial result (exit code 3)
+means some eligible wording still needs review; the report remains usable.
+`--retry` retries missing/withheld translations. There are no Git operations or
+automatic model downloads. Use one workspace/preparation process per project.
+
+Coverage includes supported description/comment fields, localized notes,
+tag-member/bit notes, FBD/SFC text boxes and separately captured, validated SFC
+transition comments. Names, addresses, stored values and executable text stay
+exact. Other comments embedded in structured-text code and unsupported XML
+namespaces remain original; the report states these limits. English mode keeps
+the original available in a collapsed disclosure and explicitly marks missing
+English. It does not create or import a translated L5X.
 
 The model lives in ignored `confidential/translation/fr-en/`. English text and
-its enabled preference live in `<project>.translations.sqlite` beside the local
+its preparation and display preferences live in `<project>.translations.sqlite` beside the local
 project. This is a reproducible cache, separate from source evidence and saved
 engineering decisions. **Back up project** backs up engineering decisions;
 it does not bundle this cache or the model. A restored project starts with

@@ -86,7 +86,7 @@ SentencePiece with the Argos fr-en 1.9 model. The explicit
 model under ignored `confidential/translation/fr-en`. Normal launches never
 download a translation model or transmit comments. Ordinary locked `uv run`
 was verified to retain the installed optional extra. After setup, the sidebar's
-**Show English alongside original** prepares captured comments/descriptions in
+**Source language** control prepares captured comments/descriptions in
 a CPU worker without blocking review. Identical text is reused across imports;
 changed text or model/rules identities get new cache entries. Original text and
 reviewed descriptions remain separate from generated wording.
@@ -97,7 +97,8 @@ This sidecar/model is deliberately not part of an engineering-project backup;
 restored projects start translation disabled and can regenerate the wording.
 Literal value/unit/identifier and obvious sentence-negation changes are withheld.
 Those checks cannot establish translation correctness or control meaning.
-The immutable static analysis HTML still uses original wording.
+The original saved analysis remains immutable; the English reading layer below
+also supports the current static report presentation.
 
 Validation: all 186 workspace regression tests passed, followed by 63 focused
 engine/setup/cache/API/UI/work-check handoff tests after the review fixes (these
@@ -116,6 +117,54 @@ reopen with `bash ./open-workbench.sh`. The established `run-work-check.sh`
 workflow remains available, but no full L5X rerun is required for these features.
 Actual Quebec plant terminology still needs Tyler's review; synthetic checks do
 not substitute for that acceptance.
+
+## Prepared English analysis (2026-10-21)
+
+Tyler selected an English analysis/view option with the original L5X retained.
+`bash ./prepare-english.sh` now prepares the selected existing project before a
+review phase and writes a private English HTML report, wording catalogue and
+completion manifest beside it. Close the workspace first; reopen afterward.
+There are no Git operations, model downloads, parser reruns or translated L5X
+imports. Original/English/Both is a persisted reading preference independent of
+background preparation. Original mode does not cancel an active batch.
+
+`translation_catalog.py` reads the bounded saved XML and validates its snapshot
+against inventory plus inert saved report evidence. It includes supported
+localized/member/bit notes, SFC/FBD text boxes and source-verified SFC transition
+comments, with explicit limitations for other embedded comments and unsupported
+namespaces. The report exposes a searchable source-linked annotation index.
+Canonical evidence JSON, IDs, executable text and reviewed decisions are
+unchanged; derived wording is a separate inert overlay. Report cache keys include
+source run, language and translation generation. Historical wording polls avoid
+reloading the full analysis/calculation maps.
+
+Inference packs multiple comments; the service saves 16-comment chunks, with
+measured elapsed/estimated remaining time. Cache model/rules identities are
+unchanged, so existing translations remain reusable. An invented 64-comment
+installed-model benchmark produced identical results in 4.1 seconds batched
+versus 7.3 seconds serial; this is not a plant workload timing guarantee.
+Tyler's old-version 2,427/6,701 counter was increasing: the old whole-source
+queue placed object descriptions before rung comments, so selecting a rung did
+not prioritize it. Poll failures now replace stale waiting indicators with an
+interruption message and bounded retries, retaining finished English wording.
+
+Exports record known excluded notes or withheld wording as partial (exit 3).
+An active-source change during preparation prevents a completion manifest.
+Interrupted work retains completed cache entries; a new/restored project has a
+separate cache. Source and engineering backups retain their existing semantics.
+
+Validation: 217 workspace tests passed, plus 84 engine/catalog/report/preparation
+checks (one Windows symlink-permission skip). After final polling recovery and
+historical-instruction fixes, 70 focused tests passed with the same skip;
+these test sets overlap. Independent review found no remaining blockers.
+The actual Bash command created a report for an invented project and reused all
+five unique translations on its next run. Chrome verified English list/detail
+wording, Original/Both switching, English search, the source-linked annotation
+index and readable unclipped cards. No application console errors occurred.
+Saved proof: `confidential/reading-preview/english-verified.png`; preview tabs and
+server were closed. Work-PC next step: close the old workspace, manually pull,
+run `bash ./prepare-english.sh`, then `bash ./open-workbench.sh`. Actual plant
+wording, speed and reuse of the work-PC cache still need that local confirmation.
 
 ## Equation presentation follow-up (2026-10-21)
 

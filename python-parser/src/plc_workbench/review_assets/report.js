@@ -70,6 +70,10 @@
     "internal": ["CTL", "DATA"]
   };
   const data = JSON.parse(document.getElementById('review-data').textContent);
+  const language = window.PLCReviewLanguage?.create(data);
+  const proseSearch = value => language ? language.search(value) : value;
+  const prosePreview = (value, fallback='') => language ? language.preview(value, fallback) : value || fallback;
+  const isProseElement = element => ['description','text_box','text_box_text'].includes(element.kind);
   const inv = data.inventory, refs = data.references, sfc = data.sfc;
   const sfcConditions=data.sfc_conditions||null,sequenceConditions=sfcConditions?.transitions||[];
   const bySequenceCondition=new Map(sequenceConditions.map(x=>[x.id,x]));
@@ -356,6 +360,7 @@
   headings.rackbacking=['Rack source addresses','Follow qualified exported rack declarations into captured adapter Slot members. Source correspondence remains separate from physical wiring, runtime values and the original binding model.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
   const labels = {overview:'Overview',guide:'Review guide',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
+  if(language?.enabled){labels.annotations='Comments & descriptions';navCounts.annotations=language.entries.length;headings.annotations=['Comments & descriptions','Read every eligible source note in this snapshot. Translation is a reading layer; source logic and classifications remain unchanged.'];}
   if(executionContext){labels.executioncontext='Execution context';navCounts.executioncontext=executionContext.calls.length;}
   if(signalContext){labels.signalcontext='Signal relationships';navCounts.signalcontext=signalAddresses.length;}
   if(engineeringAssemblies){labels.assemblies='Cross-rung groups';navCounts.assemblies=assemblyGroups.length;}
@@ -392,7 +397,7 @@
     const bad=['error','malformed','ambiguous','alias_cycle'].includes(v);
     return node('span','badge '+(good?'good':bad?'bad':'warn'),human(v));
   }
-  function sourceText(value, prose=false) { return node('pre','source-text'+(prose?' note':''),value ?? 'No text captured.'); }
+  function sourceText(value, prose=false) { return prose && language ? language.prose(value) : node('pre','source-text'+(prose?' note':''),value ?? 'No text captured.'); }
   function link(text, id, cls='') { return button(text,() => openSource(id),'text-link '+cls); }
   function empty(title='No matching records', detail='Try a different search or filter.') {
     const n=node('div','empty'); n.append(node('strong','',title),node('p','',detail)); return n;
@@ -529,11 +534,11 @@
   alarmRows.forEach(r=>searchable(r,[alarmRowName(r),human(r.kind),human(r.qualification),
     short(entityName(r.source_id||r.owner_id)),...(r.gap_codes||[]).map(human),
     short(r.direct_text,400),...Object.entries(r.attributes||{}).slice(0,24).flatMap(([k,v])=>[short(k,80),short(v,160)])]));
-  entities.forEach(e=>searchable(e,[e.name,e.kind,e.description,entityPath(e.parent_id),...Object.values(e.attributes || {})]));
-  rungs.forEach(r=>searchable(r,[r.number,r.text,r.comment,r.parse_status,entityPath(r.parent_id)]));
+  entities.forEach(e=>searchable(e,[e.name,e.kind,proseSearch(e.description),entityPath(e.parent_id),...Object.values(e.attributes || {})]));
+  rungs.forEach(r=>searchable(r,[r.number,r.text,proseSearch(r.comment),r.parse_status,entityPath(r.parent_id)]));
   analyzedRungs.forEach(a=>{
     const r=byRung.get(a.id),candidates=a.candidate_ids.map(id=>byRungCandidate.get(id));
-    searchable(a,[rungName(r),r.number,r.text,r.comment,entityPath(r.parent_id),a.identification,a.structure,a.result_kind,
+    searchable(a,[rungName(r),r.number,r.text,proseSearch(r.comment),entityPath(r.parent_id),a.identification,a.structure,a.result_kind,
       ...a.block_ids.map(id=>byRungBlock.get(id)?.opcode),
       ...candidates.flatMap(c=>[ENGINEERING_FAMILIES[c.category],c.basis,c.reason,...c.missing_evidence])]);
   });
@@ -583,12 +588,12 @@
     ...Object.values(row.raw_attributes||{}).slice(0,10).map(value=>short(value,120)),
     ...(row.raw_arguments||[]).slice(0,4).map(value=>short(value,80))
   ])));
-  const sfcSearch = new Map();elements.forEach(e=>add(sfcSearch,e.routine_id,[e.kind,e.direct_text,...Object.values(e.attributes||{})].join(' ')));
+  const sfcSearch = new Map();elements.forEach(e=>add(sfcSearch,e.routine_id,[e.kind,isProseElement(e)?proseSearch(e.direct_text):e.direct_text,...Object.values(e.attributes||{})].join(' ')));
   (sfc.routines || []).forEach(r=>searchable(r,[entityPath(r.routine_id),...(sfcSearch.get(r.routine_id)||[])]));
   signalAddresses.forEach(a=>searchable(a,[addressName(byAddress.get(a.id)),human(a.profile),human(a.endpoint_kind),entityPath(a.target_id),(a.coil_contexts||[]).some(g=>g.has_set_reset)?'same content set reset OTL OTU':'',...(a.authored_evidence||[]).flatMap(r=>[entityName(r.entity_id),r.field,r.relation,r.qualification,...r.categories,...r.terms]),a.authored_scan_status==='truncated'?'authored scan truncated':'']));
   signalOutputs.forEach(o=>searchable(o,[o.opcode,byOperand.get(o.target_operand_id)?.raw_text,sourceName(o.rung_id),entityPath(o.routine_id),human(o.guard_quality),human(o.target_status),signalPatternLabel(o)]));
   signalReads.forEach(r=>searchable(r,[byOperand.get(r.id)?.raw_text,r.kind,r.status,sourceName(r.rung_id),entityPath(byRung.get(r.rung_id)?.parent_id)]));
-  fileOccurrences.forEach(o=>searchable(o,[o.opcode,human(o.signature_status),human(o.context_status),human(o.expression_status),sourceName(o.rung_id),byRung.get(o.rung_id)?.comment,entityPath(o.routine_id),...o.slot_ids.map(id=>byFileSlot.get(id)?.raw_text)]));
+  fileOccurrences.forEach(o=>searchable(o,[o.opcode,human(o.signature_status),human(o.context_status),human(o.expression_status),sourceName(o.rung_id),proseSearch(byRung.get(o.rung_id)?.comment),entityPath(o.routine_id),...o.slot_ids.map(id=>byFileSlot.get(id)?.raw_text)]));
   assemblyGroups.forEach(g=>searchable(g,[addressName(byAssemblyAddress.get(g.address_id)),...g.providers.map(p=>ASSEMBLY_PROVIDERS[p]),...g.boundary_flags.map(assemblyFlag),g.scan_status,...g.membership_ids.flatMap(id=>{const m=byAssemblyMembership.get(id);return m?[assemblyRelation(m),byOperand.get(m.source_id)?.raw_text,byExpressionUse.get(m.source_id)?.raw_text]:[];})]));
   communicationOccurrences.forEach(o=>searchable(o,[short(byOperand.get(o.control_operand_id)?.raw_text,160),short(entityName(o.owner_id),160),human(o.status),short(sourceName(o.rung_id),200),...o.parameter_ids.flatMap(id=>Object.entries(byCommunicationParameter.get(id)?.attributes||{}).slice(0,24).flatMap(([k,v])=>[short(k,80),short(v,160)]))]));
   function matches(row) { return !state.query || (searchIndex.get(row)||'').includes(state.query.toLocaleLowerCase()); }
@@ -654,7 +659,7 @@
     meta.append(values({'Source size':fmt(data.snapshot.size_bytes)+' bytes','SHA-256':data.snapshot.sha256}));content.append(meta);
     if(debugReport){const debug=panel('Developer diagnostics','Implementation versions for troubleshooting this generated report.');debug.append(values({'Report format':data.report_version,'Inventory parser':inv.parser_version,'Reference analyzer':refs.analyzer_version,'SFC analyzer':sfc.analyzer_version}));content.append(debug);}
   }
-  function objectList(){const rows=entities.filter(e=>matches(e)&&(state.filter==='all'||e.kind===state.filter));content.append(table(['Object','Type','Scope','Description'],rows,e=>[primary(link(e.name || '(unnamed)',e.id),e.attributes?.DataType),human(e.kind),entityPath(e.scope_id),short(e.description || 'No description captured.')],'Source objects',{emptyTitle:'No objects match your search',emptyDetail:'Search by name, scope, description or attribute value.'}));}
+  function objectList(){const rows=entities.filter(e=>matches(e)&&(state.filter==='all'||e.kind===state.filter));content.append(table(['Object','Type','Scope','Description'],rows,e=>[primary(link(e.name || '(unnamed)',e.id),e.attributes?.DataType),human(e.kind),entityPath(e.scope_id),short(prosePreview(e.description, 'No description captured.'))],'Source objects',{emptyTitle:'No objects match your search',emptyDetail:'Search by name, scope, description or attribute value.'}));}
   function accessNotice() {
     return notice('Explicit operand uses only','Reads and writes describe possible uses of supported ladder operand slots. Rung conditions, scan order, implicit status flags, SFC/ST code and unsupported instructions are not modeled. A shared root does not prove that members or array elements overlap. Missing accesses do not establish that a tag is unused or read-only.'+(access.schema_version>=2?' Timer initialization fields are not runtime inputs; their values are not validated. Copy roles identify starting operands and length use, not the copied range or overlap.':'')+(access.schema_version>=3?' Counter initialization fields are also not runtime inputs. MSG covers its control operand only; message payloads are not modeled. GSV/SSV class, instance and attribute selectors are not tag bindings; a blank instance is allowed. SFR records a possible write to an explicit step, or an initial-step selector of 0; SFC membership and wider reset effects are not validated.':'')+(access.schema_version>=4?' CPT expression reads count individual reference leaves separately from operand slots. Repeated references remain separate; a destination write and an expression read of the same root do not establish execution, member overlap or a dependency.':''));
   }
@@ -1521,7 +1526,7 @@
     if(!a)return box;
     const rows=(a.authored_evidence||[]).filter(r=>r.qualification==='qualified'&&r.operand_ids.includes(operandId));
     box.append(values({'Source endpoint':outputEndpoint(a.endpoint_kind),'Wording scan':human(a.authored_scan_status),'Description capture gaps':(a.authored_description_gap_ids||[]).length}));
-    box.append(table(['Source declaration / field','Matched terms','Captured field text'],rows,r=>[primary(sourceCell(r.entity_id),human(r.field)+' · '+human(r.relation)),signalCandidateLabels(r.categories)+' · '+r.terms.join(', '),node('pre','source-text',byEntity.get(r.entity_id)?.[r.field]??'Field text unavailable')],caption,{emptyTitle:'No qualified wording for this source use',emptyDetail:'This endpoint can participate through module-root evidence or a seed on the other endpoint. Reader-only aliases are not attributed to a target writer.'}));
+    box.append(table(['Source declaration / field','Matched terms','Captured field text'],rows,r=>[primary(sourceCell(r.entity_id),human(r.field)+' · '+human(r.relation)),signalCandidateLabels(r.categories)+' · '+r.terms.join(', '),sourceText(byEntity.get(r.entity_id)?.[r.field]??'Field text unavailable',r.field==='description')],caption,{emptyTitle:'No qualified wording for this source use',emptyDetail:'This endpoint can participate through module-root evidence or a seed on the other endpoint. Reader-only aliases are not attributed to a target writer.'}));
     return box;
   }
   function signalCandidateDetail(o){
@@ -1553,7 +1558,7 @@
     if(gaps.length){const g=section('Descriptions unavailable for attribution','These declarations have ambiguous or unsupported description content. No description was selected.');g.append(table(['Declaration'],gaps,id=>[sourceCell(id)],'Signal authored description gaps'));p.append(g);}
     p.append(table(['Source declaration','Relationship','Field','Matched words / categories','Qualification','Source uses'],rows,(r,i)=>[sourceCell(r.entity_id),r.relation==='root_declaration'?'Root declaration context':'Alias declaration context',button(human(r.field),()=>{state.signalAuthoredSelection=JSON.stringify([a.id,operandId,r.entity_id,r.relation,r.field,r.qualification]);render();},'text-link'),primary(r.terms.join(', '),r.categories.map(human).join(' · ')),human(r.qualification),fmt(operandId?1:r.operand_ids.length+r.expression_use_ids.length)],'Signal authored fields',{emptyTitle:'No matching authored fields retained for this selection',emptyDetail:'The catalog checks whole words in declaration names and descriptions. Rung comments and member-specific metadata are outside this address attribution; inspect scan and source-gap notices before interpreting an empty result.'}));
     const selected=rows.find(r=>state.signalAuthoredSelection===JSON.stringify([a.id,operandId,r.entity_id,r.relation,r.field,r.qualification]));
-    if(selected){const e=byEntity.get(selected.entity_id),d=section('Selected authored field','Original text is shown as captured, including negation or other context. Lexical matching does not interpret that context.');d.append(values({'Declaration':entityName(selected.entity_id),'Field':human(selected.field),'Qualification':human(selected.qualification)}),node('pre','source-text',e?.[selected.field]??'No exact field text available'));
+    if(selected){const e=byEntity.get(selected.entity_id),d=section('Selected authored field','Original text is shown as captured, including negation or other context. Lexical matching does not interpret that context.');d.append(values({'Declaration':entityName(selected.entity_id),'Field':human(selected.field),'Qualification':human(selected.qualification)}),sourceText(e?.[selected.field]??'No exact field text available',selected.field==='description'));
       const operands=operandId?selected.operand_ids.filter(id=>id===operandId):selected.operand_ids;
       d.append(accessBindingTable(operands.map(id=>byOperandAccess.get(id)).filter(Boolean),'Authored field operand uses'));
       if(!operandId&&selected.expression_use_ids.length)d.append(expressionUseTable(selected.expression_use_ids.map(id=>byExpressionUse.get(id)).filter(Boolean),'Authored field expression uses'));
@@ -2189,7 +2194,7 @@
       if(a.empty_legs)gaps.push(fmt(a.empty_legs)+' empty branch legs');
       if(a.comment_status!=='present')gaps.push(human(a.comment_status)+' comment');
       if(a.missing_metadata.length)gaps.push('Missing '+a.missing_metadata.join(', '));
-      const comment=a.comment_status==='ambiguous'?'Comment is ambiguous; see source findings.':short(r.comment || 'No comment captured.',160);
+      const comment=a.comment_status==='ambiguous'?'Comment is ambiguous; see source findings.':short(prosePreview(r.comment, 'No comment captured.'),160);
       return [primary(link(rungName(r),r.id),comment),engineeringFamilyBadges(a),primary(badge(engineeringGroupLabel(a)),engineeringShape(a)),primary(engineeringResult(a),gaps.join(' · ') || 'No capture/binding gaps in this view')];
     },'Engineering rung analysis',{emptyTitle:'No rungs match these filters',emptyDetail:'Change the evidence group, function family or structure filter, or clear the search.'}));content.append(selection);
     content.append(notice('Local results and branch shape','An internal Boolean write is not automatically a physical output. Series syntax does not prove a single runtime data path; branch paths are structural. No known local result is a lead to investigate, not proof of dead or unreachable logic.'));
@@ -2289,7 +2294,7 @@
     if(tagConnectionsByOwner.has(e.id))content.append(tagConnectionTable(tagConnectionsByOwner.get(e.id),'Object communication metadata'));
     if(bySfcRoutine.has(e.id))content.append(button('Open SFC structure',()=>openDetail('sfc',e.id)));
     const ownRungs=entityRungs.get(e.id)||[];if(ownRungs.length){const p=section('Routine ladder');p.append(rungList(ownRungs));content.append(p);}
-    const child=entityChildren.get(e.id)||[];if(child.length){const p=section('Child declarations');p.append(table(['Object','Type','Description'],child,x=>[link(x.name || '(unnamed)',x.id),human(x.kind),short(x.description || '')],'Child declarations'));content.append(p);}
+    const child=entityChildren.get(e.id)||[];if(child.length){const p=section('Child declarations');p.append(table(['Object','Type','Description'],child,x=>[link(x.name || '(unnamed)',x.id),human(x.kind),short(prosePreview(x.description))],'Child declarations'));content.append(p);}
     const aliases=entityAliases.get(e.id)||[];if(aliases.length){const p=section('Alias bindings','Declared alias targets and root-resolution results; suffixes have not been validated.');p.append(table(['Alias','Declared target','Binding','Resolved root'],aliases,a=>[sourceCell(a.source_id),node('span','mono',a.raw_target),badge(a.status),sourceCell(a.target_id)],'Alias bindings'));content.append(p);}
     if(byRootAccess.has(e.id))content.append(button('Inspect root access occurrences',()=>openDetail('access',e.id,{accessRole:'all'})));
     if(ownerPids.has(e.id)){const p=section('PID instruction occurrences','These occurrences name this declaration or resolve to it. Storage association may remain unresolved.');p.append(pidTable(ownerPids.get(e.id),'Object PID occurrences'));content.append(p);}
@@ -2369,7 +2374,7 @@
     const summary=panel('Captured transition expression');summary.append(values({'Analysis':sequenceConditionStatus(t),'Reason':t.reason&&t.reason!=='none'?human(t.reason):'No syntax rejection','Error character offset':t.error_offset??'None','Content version':human(t.edit_kind),'Capture metadata gaps':(t.metadata_gaps||[]).map(human).join(' · ')||'None reported','Type validation':'Not implemented','Runtime evaluation':'Not implemented'}));
     const links=node('div','inline-links');links.append(sourceCell(t.transition_id),sourceCell(t.routine_id),sourceCell(t.content_id));if(t.condition_id)links.append(sourceCell(t.condition_id));if(t.st_content_id)links.append(sourceCell(t.st_content_id));summary.append(links);content.append(summary);
     const raw=section('Condition source text','Lines remain in captured XML order. Character spans address this joined text; source links retain each original fragment.');raw.append(sourceText(t.raw_text||'No joined expression is available for this source shape. Follow the original condition or transition links above.'));raw.append(table(['Source line','Captured line number','Text'],t.line_ids.map(id=>byElement.get(id)).filter(Boolean),line=>[sourceCell(line.id),line.attributes?.Number??'Not supplied',sourceText(line.direct_text)],'Transition source lines',{emptyTitle:'No source lines captured',emptyDetail:'Inspect the condition and transition source elements for missing, direct or unsupported text.'}));content.append(raw);
-    const comments=section('Source comments','Comments are authored evidence. They are not treated as executable expressions or confirmed engineering descriptions.');comments.append(table(['Comment kind','Character span','Exact comment'],t.comment_ids.map(id=>bySequenceComment.get(id)).filter(Boolean),c=>[human(c.kind),c.start+'–'+c.end,primary(sourceText(c.raw_text),c.terminated?'':'Unterminated comment')],'Transition expression comments',{emptyTitle:'No expression comments captured',emptyDetail:'Other notes may appear on the original SFC elements.'}));content.append(comments);
+    const comments=section('Source comments','Comments are authored evidence. They are not treated as executable expressions or confirmed engineering descriptions.');comments.append(table(['Comment kind','Character span','Exact comment'],t.comment_ids.map(id=>bySequenceComment.get(id)).filter(Boolean),c=>[human(c.kind),c.start+'–'+c.end,primary(sourceText(c.raw_text,true),c.terminated?'':'Unterminated comment')],'Transition expression comments',{emptyTitle:'No expression comments captured',emptyDetail:'Other notes may appear on the original SFC elements.'}));content.append(comments);
     const nodes=t.node_ids.map(id=>bySequenceNode.get(id)).filter(Boolean),labels=new Map(nodes.map((n,i)=>[n.id,'Node '+(i+1)]));
     const tree=section('Expression grouping','Source operators and child order are preserved. A modeled tree is not proof of Boolean type or a true transition.');
     let chosen=nodes.find(n=>n.id===state.focusSequenceNode)||bySequenceNode.get(t.root_node_id);const detail=node('div');
@@ -2413,12 +2418,23 @@
     for(const [field,title] of [['expression_use_ids','Qualified ladder expression readers'],['unqualified_expression_use_ids','Excluded ladder expression readers']])if(a[field].length){const p=section(title);p.append(expressionUseTable(a[field].map(id=>byExpressionUse.get(id)).filter(Boolean),title));content.append(p);}
   }
   function sequenceAddressDetail(a){setDetailHeading('SEQUENCE EXACT ADDRESS',addressName(a),'Transition references and captured ladder uses');content.append(sequenceContextNotice());sequenceAddressSections(a);}
+  function annotationList(){
+    const entries=language?.entries||[], query=state.query.toLocaleLowerCase();
+    const rows=entries.filter(entry=>[entry.kind,entry.locator,proseSearch(entry.original)].join(' ').toLocaleLowerCase().includes(query));
+    const summary=panel('English reading coverage','Each row retains its original XML location. Repeated wording shares a cached translation; its source occurrences remain separate.');
+    summary.append(values({'Source annotations':entries.length,'Distinct wording':language.coverage.unique_texts??new Set(entries.map(e=>e.original)).size,'English available':entries.filter(e=>language.english(e.original)!==null).length}));
+    for(const limitation of language.limitations)summary.append(node('p','row-note',limitation));
+    content.append(summary,table(['Source / location','Kind','Wording'],rows,entry=>[
+      primary(entry.owner_id&&[byEntity,byRung,byElement].some(map=>map.has(entry.owner_id))?sourceCell(entry.owner_id):'Source annotation',entry.locator),
+      human(entry.kind),sourceText(entry.original,true)
+    ],'Source comments and descriptions',{emptyTitle:'No source annotations match',emptyDetail:'Search either original or English wording, or clear the search.'}));
+  }
   function sfcList(){
     const rows=(sfc.routines||[]).filter(matches);
     content.append(table(['Routine','Scope','Content versions','Captured elements'],rows,r=>[button(entityName(r.routine_id),()=>openDetail('sfc',r.routine_id),'text-link'),entityPath(byEntity.get(r.routine_id)?.parent_id),fmt(r.content_ids.length),fmt(r.content_ids.reduce((n,id)=>n+(contentElements.get(id)||[]).length,0))],'SFC routines'));
   }
   function elementTable(rows,caption='SFC elements'){
-    return table(['Element','Kind','Parent','Source text'],rows,e=>[primary(link(elementName(e),e.id),e.attributes?.ID!==undefined?'XML ID '+e.attributes.ID:''),human(e.kind),e.parent_id?sourceCell(e.parent_id):node('span','muted','Content root'),node('div','snippet',short(e.direct_text,180))],caption);
+    return table(['Element','Kind','Parent','Source text'],rows,e=>[primary(link(elementName(e),e.id),e.attributes?.ID!==undefined?'XML ID '+e.attributes.ID:''),human(e.kind),e.parent_id?sourceCell(e.parent_id):node('span','muted','Content root'),isProseElement(e)&&language?language.prose(e.direct_text,true):node('div','snippet',short(e.direct_text,180))],caption);
   }
   function relationTable(rows,annotation=false){
     return table([annotation?'Annotation source':'Link source',annotation?'Text box':'From element',annotation?'Attached element':'To element','Endpoint status'],rows,l=>{const statuses=node('div');statuses.append(primary(badge(l.from_status),'From endpoint'),primary(badge(l.to_status),'To endpoint'));return[sourceCell(l.element_id),l.from_element_id?sourceCell(l.from_element_id):node('span','muted',human(l.from_status)),l.to_element_id?sourceCell(l.to_element_id):node('span','muted',human(l.to_status)),statuses];},annotation?'Annotation attachments':'Structural links');
@@ -2452,7 +2468,7 @@
     const meta=node('div','detail-meta');meta.append(badge(e.kind),button('Open parent SFC content',()=>openDetail('sfc',e.routine_id,{contentId:e.content_id}),'text-link'));if(e.parent_id)meta.append(sourceCell(e.parent_id));content.append(meta);
     if(bySequenceTransition.has(e.id))content.append(button('Inspect transition expression',()=>openDetail('sequencecondition',bySequenceTransition.get(e.id).id),'text-link'));
     const attrs=panel('Element attributes');attrs.append(values(e.attributes));content.append(attrs);
-    const text=panel('Direct source text','Exact text captured on this element. Child text remains separately addressable below.');text.append(sourceText(e.direct_text));content.append(text);
+    const text=panel('Direct source text','Exact text captured on this element. Child text remains separately addressable below.');text.append(sourceText(e.direct_text,isProseElement(e)));content.append(text);
     const children=elementChildren.get(e.id)||[];if(children.length){const p=section('Child elements');p.append(elementTable(children,'Child SFC elements'));content.append(p);}
     const links=elementLinks.get(e.id)||[];if(links.length){const p=section('Structural links involving this element');p.append(relationTable(links));content.append(p);}
     const notes=elementNotes.get(e.id)||[];if(notes.length){const p=section('Annotation attachments involving this element');p.append(relationTable(notes,true));content.append(p);}
@@ -3213,6 +3229,7 @@
     else if(state.view==='instructioncontext')instructionContextList();
     else if(state.view==='sfrcontext')sfrContextList();
     else if(state.view==='objects')objectList();
+    else if(state.view==='annotations')annotationList();
     else if(state.view==='signalcontext')signalList();
     else if(state.view==='ladder')content.append(rungList());
     else if(state.view==='sfc')sfcList();
@@ -3293,6 +3310,7 @@
       else if(state.view==='rackbacking')rackBackingToolbar();
       else if(state.view==='instructioncontext')toolbarFor('Search instruction names, declarations, index expressions or context status',[['all','All instruction and index context'],['indexed','Indexed source occurrences'],['custom','Custom instruction context']]);
       else if(state.view==='sfrcontext')toolbarFor('Search SFR routines, selector kinds, chart context or rung names');
+      else if(state.view==='annotations')toolbarFor('Search original or English comments, descriptions and XML locations');
       else if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
       else if(state.view==='ladder')toolbarFor('Search rung text, comments or routine names',countsFilter(rungs,'parse_status'));
       else if(state.view==='sfc')toolbarFor('Search SFC routines, elements and source text');
@@ -3317,5 +3335,6 @@
     if(event.key==='Escape'&&state.detail&&!['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)){event.preventDefault();goBack();}
   });
   if(typeof window.addEventListener==='function')window.addEventListener('hashchange',followReviewLink);
+  language?.mount(document.getElementById('report-language'),()=>render());
   if(!followReviewLink())render();
 })();

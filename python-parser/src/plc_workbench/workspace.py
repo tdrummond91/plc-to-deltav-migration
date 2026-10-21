@@ -53,11 +53,13 @@ class Workspace:
         self._rung_for: dict[str, str] = {}
         self._patterns: dict[str, dict | None] = {}
         self._historical_labels: dict[str, str] = {}
-        self._report_cache: tuple[str | None, bytes] = (None, b'')
+        self._report_cache: tuple[Any, bytes] = (None, b'')
         self._calculation_cache: tuple[str | None | object, dict] = (_UNLOADED, {})
         self._connection_cache: tuple[str | None | object, Any] = (_UNLOADED, None)
         self._translation_service: Any = None
         self._translation_run: str | None = None
+        self._translation_catalog_cache: tuple[Any, dict] = (_UNLOADED, {})
+        self._translation_history: tuple[Any, dict] = (_UNLOADED, {})
         self.startup_notice = ''
 
     def close(self) -> None:
@@ -65,50 +67,99 @@ class Workspace:
             self._translation_service.close()
         self.store.close()
 
-    def translation(self, source_id: str = '', run_id: str | None = None) -> dict:
-        """Read local derived wording without writing source or review revisions."""
+    def _translator(self) -> Any:
         from .workspace_translation import TranslationService
-
         if self._translation_service is None:
             self._translation_service = TranslationService(self.project.with_suffix('.translations.sqlite'))
-        service = self._translation_service
+        return self._translation_service
+
+    def annotation_catalog(self) -> dict:
+        """Inventory prose from the saved XML once; never reparse translated XML."""
+        from .translation_catalog import collect_annotations
+        from .workspace_report import read_report_data
+        self._load(self.store.state())
+        if not self._run:
+            raise ProjectError('Import a completed source analysis first.')
+        if self._translation_catalog_cache[0] != self._run:
+            # Advanced condition evidence is embedded in the inert saved report;
+            # it has no separate sfc-conditions.json artifact. Validate it against
+            # the captured inventory before accepting any comment spans.
+            data = read_report_data(self.store.artifact('review.html'), self._inventory)
+            catalog = collect_annotations(self.store.artifact('snapshot.L5X'), self._inventory,
+                                          data['sfc'], data.get('sfc_conditions'))
+            self._translation_catalog_cache = (self._run, catalog)
+        return self._translation_catalog_cache[1]
+
+    def _translation_texts(self) -> list[str]:
+        return [entry['original'] for entry in self.annotation_catalog()['entries']]
+
+    def translation(self, source_id: str = '', run_id: str | None = None) -> dict:
+        """Read local derived wording without writing source or review revisions."""
+        service = self._translator()
         state = self.store.state()
         self._load(state)
         active = self._run
         status = service.status()
         if (status['enabled'] and status['available'] and active
                 and active != self._translation_run and status['state'] != 'running'):
-            # Copy only captured prose. The worker never touches ProjectStore,
-            # expressions, operand values, or mutable reviewed descriptions.
-            texts = [row[key] for row in self._sources.values()
-                     for key in ('comment', 'description')
-                     if isinstance(row.get(key), str) and row[key].strip()]
-            status = service.start(texts)
+            status = service.start(self._translation_texts())
             self._translation_run = active
         result = dict(status, run_id=active, fields={})
+        if self._translation_catalog_cache[0] == active:
+            catalog = self._translation_catalog_cache[1]
+            result['catalog_coverage'] = catalog['coverage']
+            result['limitations'] = catalog['limitations']
         if source_id:
-            source = self.source(source_id, run_id)['source']
-            result['fields'] = {key: service.lookup(source[key]) for key in ('comment', 'description')
-                                if isinstance(source.get(key), str) and source[key].strip()}
+            # Polling prose must not reload historical analysis/calculation maps.
+            sources = self._sources
+            if run_id and run_id != active:
+                if self._translation_history[0] != run_id:
+                    inventory = self.store.inventory(run_id)
+                    rows = inventory.get('entities', []) + inventory.get('rungs', [])
+                    rows.extend(instruction for rung in inventory.get('rungs', [])
+                                for instruction in rung.get('instructions', []))
+                    self._translation_history = (run_id, {row['id']: row for row in rows})
+                sources = self._translation_history[1]
+            if source_id not in sources:
+                raise ProjectError('This source record is not present in the selected analysis.')
+            source = sources[source_id]
+            fields = {key: source[key] for key in ('comment', 'description')
+                      if isinstance(source.get(key), str) and source[key].strip()}
+            entries = service.lookup_many(fields.values())
+            result['fields'] = {key: entries.get(value) for key, value in fields.items()}
         return result
 
     def configure_translation(self, payload: dict) -> dict:
-        if type(payload.get('enabled')) is not bool or type(payload.get('retry', False)) is not bool:
+        modern = 'presentation_mode' in payload
+        if (type(payload.get('retry', False)) is not bool
+                or (modern and (payload['presentation_mode'] not in ('original', 'english', 'both')
+                                or type(payload.get('prepare', False)) is not bool))
+                or (not modern and type(payload.get('enabled')) is not bool)):
             raise ProjectError('Choose whether English translations are enabled.')
         state = self.store.state()
         if payload.get('run_id') != state.get('active_run'):
             raise RevisionConflict('The selected source changed. Reload before starting translations.')
-        self.translation()
-        self._translation_service.set_enabled(payload['enabled'])
-        self._translation_run = None
-        if payload.get('retry') and payload['enabled']:
+        service = self._translator()
+        if modern:
+            if payload.get('prepare'):
+                service.set_enabled(True)
+                self._translation_run = None
+            service.set_mode(payload['presentation_mode'])
+        else:
+            service.set_enabled(payload['enabled'])
+            self._translation_run = None
+        if ((modern and payload.get('prepare')) or payload.get('retry')) and service.status()['enabled']:
             self._load(state)
-            texts = [row[key] for row in self._sources.values() for key in ('comment', 'description')
-                     if isinstance(row.get(key), str) and row[key].strip()]
-            if self._translation_service.status()['state'] != 'running':
-                self._translation_service.start(texts, retry=True)
+            if service.status()['state'] != 'running' and self._run:
+                service.start(self._translation_texts(), retry=payload.get('retry', False))
                 self._translation_run = self._run
         return self.translation()
+
+    def _wording(self, records: list[dict], field: str) -> tuple[str, dict]:
+        service = self._translator()
+        mode = service.status()['presentation_mode']
+        return mode, service.lookup_many(row[field] for row in records
+                                        if isinstance(row.get(field), str) and row[field].strip())
 
     def _load(self, state: dict) -> None:
         active = state.get("active_run")
@@ -239,6 +290,7 @@ class Workspace:
 
     def rungs(self, query: dict) -> dict:
         state = self.state()
+        mode, wording = self._wording(self._rungs, 'comment')
         reviews = state.get("reviews", {})
         memberships: dict[str, list[str]] = defaultdict(list)
         for group in state.get("groups", []):
@@ -260,6 +312,7 @@ class Workspace:
             if query.get("group") and query["group"] not in memberships[identifier]:
                 continue
             if search and search not in " ".join([path, rung.get("text") or "", rung.get("comment") or "",
+                                                  wording.get(rung.get('comment'), {}).get('text', ''),
                                                   " ".join(proposals), " ".join(review.get("fields", {}).values())]).casefold():
                 continue
             rows.append({"id": identifier, "number": rung.get("number"), "path": path,
@@ -268,7 +321,9 @@ class Workspace:
                          "review": review, "groups": memberships[identifier],
                          "rule_proposals": self.rule_proposals(identifier, state)})
         result = self._page(rows, query)
+        result['presentation_mode'] = mode
         for row in result['items']:
+            row['wording'] = {'comment': wording.get(row.get('comment'))}
             source = self._sources[row['id']]
             instructions = source.get('instructions', [])
             preview = instructions[:2]
@@ -335,6 +390,7 @@ class Workspace:
 
     def objects(self, query: dict) -> dict:
         self.state()
+        mode, wording = self._wording(self._objects, 'description')
         search = query.get("query", "").casefold()
         items = []
         sources = self._objects
@@ -346,11 +402,15 @@ class Workspace:
             path = self.path(source["id"])
             if query.get("kind") and query["kind"] != source.get("kind"):
                 continue
-            if search and search not in (path + " " + (source.get("description") or "")).casefold():
+            code = source.get('kind') == 'instruction'
+            entry = None if code else wording.get(source.get('description'))
+            if search and search not in (path + " " + (source.get("description") or "")
+                                        + ' ' + (entry or {}).get('text', '')).casefold():
                 continue
             items.append({"id": source["id"], "kind": source.get("kind"), "name": source.get("name"),
-                          "path": path, "description": source.get("description")})
-        return self._page(items, query)
+                          "path": path, "description": source.get("description"),
+                          'description_is_code': code, 'wording': {'description': entry}})
+        return dict(self._page(items, query), presentation_mode=mode)
 
     def source(self, identifier: str, run_id: str | None = None) -> dict:
         state = self.store.state()
@@ -535,15 +595,26 @@ class Workspace:
                 items.append({"path": str(path), "label": path.name})
         return {"items": items}
 
-    def report(self) -> bytes:
+    def report(self, language: str | None = None) -> bytes:
         from .workspace_report import refresh_report
         state = self.state()
         active = state.get('active_run')
         if not active:
             raise ProjectError('Import a completed source analysis first.')
-        if self._report_cache[0] != active:
-            rendered = refresh_report(self.store.artifact('review.html'), self._inventory)
-            self._report_cache = (active, rendered)
+        service = self._translator()
+        status = service.status()
+        mode = language or status['presentation_mode']
+        if mode not in ('original', 'english', 'both'):
+            raise ProjectError('Choose Original, English or Both for the analysis language.')
+        signature = (active, mode, tuple(status['cache_signature']))
+        if self._report_cache[0] != signature:
+            # Keep local language switching usable even when the report opens
+            # in Original mode. The overlay never replaces captured evidence.
+            catalog = self.annotation_catalog()
+            translations = service.lookup_many(entry['original'] for entry in catalog['entries'])
+            rendered = refresh_report(self.store.artifact('review.html'), self._inventory,
+                                      translations=translations, language=mode, catalog=catalog)
+            self._report_cache = (signature, rendered)
         return self._report_cache[1]
 
     def import_run(self, raw_path: str, expected_revision: int) -> dict:
@@ -598,6 +669,8 @@ class Workspace:
             self._translation_service.close()
         self._translation_service = None
         self._translation_run = None
+        self._translation_catalog_cache = (_UNLOADED, {})
+        self._translation_history = (_UNLOADED, {})
         self.store, self.project = restored, destination
         self._run = _UNLOADED
         self._report_cache = (None, b'')
@@ -727,7 +800,7 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
             elif url.path == "/api/rule-matches":
                 self._json(200, workspace.rule_matches(query.get("source_id", "")))
             elif url.path == "/analysis":
-                self._send(200, workspace.report(), "text/html; charset=utf-8", report=True)
+                self._send(200, workspace.report(query.get('language')), "text/html; charset=utf-8", report=True)
             elif url.path in ("/", "/index.html", "/workspace.js", "/workspace.css",
                               "/rung-flow.js", "/rung-flow.css", "/connections.js", "/connections.css",
                               "/reading-layout.js", "/reading-layout.css", "/translation.js", "/translation.css"):
