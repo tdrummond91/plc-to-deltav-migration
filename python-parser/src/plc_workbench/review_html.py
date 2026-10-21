@@ -345,9 +345,10 @@ def render_review_html(data: dict[str, Any], *, debug: bool = False) -> str:
     asset_dir = Path(__file__).with_name('review_assets')
     try:
         css = (asset_dir / 'report.css').read_text(encoding='utf-8')
+        theme = (asset_dir / 'theme.js').read_text(encoding='utf-8')
         guide = (asset_dir / 'review_guide.js').read_text(encoding='utf-8')
         application = (asset_dir / 'report.js').read_text(encoding='utf-8')
-        script = f"const REVIEW_DEBUG = {'true' if debug else 'false'};\n{guide}\n{application}"
+        script = f"const REVIEW_DEBUG = {'true' if debug else 'false'};\n{theme}\n{guide}\n{application}"
     except (OSError, UnicodeError):
         raise ReviewHtmlError('Engineering review resources are unavailable.') from None
     policy = ("default-src 'none'; "
@@ -377,7 +378,8 @@ _TEMPLATE = '''<!doctype html>
 <p>This report contains source names, code and values. Keep it with your private project files.</p>
 <div id="snapshot-mini"></div></div></aside>
 <div class="workspace"><header class="topbar"><span>PLC migration <span aria-hidden="true">/</span> Phase 1</span>
-<span class="topbar-badge">Read-only source evidence</span></header>
+<div class="topbar-actions"><span class="topbar-badge">Read-only source evidence</span>
+<button id="theme-toggle" class="theme-toggle" type="button" hidden>Dark mode · Switch to light</button></div></header>
 <main id="main" tabindex="-1"><div id="page-heading"></div>
 <div id="toolbar"></div><div id="content"></div></main>
 <footer>Captured source evidence. Effects, safety behavior and engineering meaning require review.</footer>

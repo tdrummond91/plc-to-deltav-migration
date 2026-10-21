@@ -6,7 +6,22 @@ history-cleanup notes. Completed branch names and iteration archive tags are
 retired. The [history map](docs/reviews/HISTORY_CONSOLIDATION.md) records original
 checkpoints, preservation checks and the work-PC synchronization procedure.
 
-Updated 2026-10-19. Start with the
+Updated 2026-10-21. First-time users start with
+[START-HERE.html](../START-HERE.html): a short orientation, invented practice
+report and fixed learning checkpoints. Progress is local to the browser with
+bounded JSON export/import; it is not engineering review state. The start page
+and newly generated reports include a light/dark switch. Existing private HTML
+does not change merely by pulling this presentation update. No work-PC parser
+run is needed to begin learning or use the accepted saved report.
+The [first-use implementation record](docs/reviews/GETTING_STARTED_REVIEW.md)
+contains the progress-storage contract and focused validation evidence.
+
+Tyler's class-library composition constraints are recorded in
+[decision D034](docs/planning/DECISIONS.md) and the
+[future conversion boundary](docs/planning/ARCHITECTURE.md#team-class-library-constraints-confirmed-2026-10-21).
+PID, alarm, equation and timer classifications are source interpretations,
+not one-to-one target class assignments. Mapping and split/merge implementation
+remain later work. For development status, start with the
 [tracker](docs/planning/PRE_TEAM_REVIEW_TRACKER.md), then the
 [readiness assessment](docs/reviews/PHASE_1_READINESS_REVIEW.md).
 
@@ -32,7 +47,7 @@ The cleanup centralizes work-report size/serialization policy under
 report's base rack-binding labels. Its accepted return took 18m 06.389s. See the
 [cleanup record](docs/reviews/CLEANUP_REVIEW.md) for validation and timing detail.
 
-## Next action: synchronize main and review the saved report
+## Next action: complete a short orientation, then inspect one report item
 
 Tyler requested an embedded page explaining what to check and how to answer,
 with normal reviewer output free of development attribution and example

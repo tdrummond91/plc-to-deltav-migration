@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Start here · PLC analysis workbench</title>
+  <link rel="stylesheet" href="public/start-here/start-here.css">
+  <script src="public/start-here/start-here.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#first-look">Skip to the first steps</a>
+<header class="topbar">
+  <a class="brand" href="START-HERE.html"><span class="brand-mark" aria-hidden="true">W</span> PLC analysis workbench</a>
+  <button id="theme-toggle" type="button" disabled>Switch to light</button>
+</header>
+<main>
+  <section class="hero" aria-labelledby="page-title">
+    <div>
+      <p class="eyebrow">START HERE / PHASE 1</p>
+      <h1 id="page-title">One item.<br>One clear picture.</h1>
+      <p class="intro">Get comfortable with what was built, then explore one familiar piece of logic. This page is your starting point; the rest of the documentation can wait.</p>
+      <p class="finish-line"><strong>Today’s finish line:</strong> open a report, find one item and follow its evidence. Aim for 15 minutes, then stop if you like.</p>
+    </div>
+    <aside class="progress-card" aria-label="Your learning progress">
+      <p class="eyebrow">YOUR LEARNING TRAIL</p>
+      <p class="progress-number"><span id="core-count">0</span><span class="muted"> / 4</span></p>
+      <label class="sr-only" for="core-progress">Orientation checkpoints completed</label>
+      <progress id="core-progress" value="0" max="4"></progress>
+      <p>Check off skills when you feel comfortable. These are learning checkpoints, <strong>not engineering approvals</strong>.</p>
+      <a class="button primary" id="next-action" href="#first-look">Start with the big picture <span aria-hidden="true">→</span></a>
+    </aside>
+  </section>
+
+  <section id="first-look" class="section" aria-labelledby="first-title">
+    <div class="section-heading"><p class="eyebrow">01 / GET ORIENTED</p><h2 id="first-title">Three small steps</h2></div>
+    <div class="steps">
+      <article class="step-card">
+        <span class="step-number" aria-hidden="true">01</span><p class="time">2 minutes</p>
+        <h3>Understand what you have</h3>
+        <p>The tool reads an L5X export and builds a searchable, offline report of its source logic: rungs, branches, signals, loops, calculations, sequences and alarms.</p>
+        <p>It shows <strong>captured evidence</strong>, <strong>suggested interpretations</strong> and <strong>open questions</strong>. You review whether those interpretations make sense.</p>
+        <p class="small callout">Current deliverable: a read-only engineering report. Editable corrections, PCSD documents and class-based FHX generation come later.</p>
+      </article>
+      <article class="step-card" id="practice">
+        <span class="step-number" aria-hidden="true">02</span><p class="time">5 minutes</p>
+        <h3>Try a practice report</h3>
+        <p>Use a small, invented example to learn the controls before opening your unit.</p>
+        <ol>
+          <li>Open <strong>Review guide</strong> in the left navigation.</li>
+          <li>Read “What this review is for.”</li>
+          <li>Open <strong>Engineering analysis</strong>, choose one row and follow an evidence link. Use Back to return.</li>
+        </ol>
+        <a class="button" href="public/examples/control-interpretation-review-demo.html" target="_blank" rel="noopener">Open practice report <span class="small">↗</span></a>
+        <p class="small muted">Opens a separate tab. Keep this page open as your checklist.</p>
+      </article>
+      <article class="step-card" id="your-report">
+        <span class="step-number" aria-hidden="true">03</span><p class="time">5–8 minutes</p>
+        <h3>Find one familiar item</h3>
+        <p>On the work PC, open this repository in File Explorer, then browse to:</p>
+        <p class="path"><code>confidential → workspaces → work-check</code></p>
+        <p>Choose the newest completed workspace and double-click <strong>review.html</strong>. If you kept the printed <strong>Private review report:</strong> path, use that instead.</p>
+        <p>Start at <strong>Overview</strong> to check the source identity. In a relevant section, search for one familiar tag or item and open its details.</p>
+        <p class="small callout">Your saved report is ready. You do not need to rerun the parser or read code to start.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section learning" id="learning" aria-labelledby="learning-title">
+    <div class="section-heading"><p class="eyebrow">02 / KEEP YOUR PLACE</p><h2 id="learning-title">What I can now do</h2><p>Mark a skill after trying it. Start with the first two; come back to the others when you are ready.</p></div>
+    <div class="learning-grid">
+      <div class="checkpoints">
+        <label class="checkpoint"><input type="checkbox" data-check="orient"><span><strong>Explain the report’s purpose</strong><small>I know this is Phase 1 source understanding, with later stages for editing, PCSD and FHX.</small></span></label>
+        <label class="checkpoint"><input type="checkbox" data-check="navigate"><span><strong>Find an item and follow its evidence</strong><small>I can open details, follow a source link and return without losing my place.</small></span></label>
+        <label class="checkpoint"><input type="checkbox" data-check="interpret"><span><strong>Separate facts, interpretations and questions</strong><small>I can tell what was captured, what is suggested and what still needs evidence.</small></span></label>
+        <label class="checkpoint"><input type="checkbox" data-check="respond"><span><strong>Write one useful review response</strong><small>I can identify the item, state the issue or checked behavior and explain the evidence.</small></span></label>
+      </div>
+      <aside class="save-card">
+        <h3>Resume where you left off</h3>
+        <p id="storage-status" role="status">Learning progress is saved here when browser storage is available.</p>
+        <p class="small">Progress belongs to this browser and this device. Export it to keep a backup or move it to your other computer. The file contains only these checklist choices.</p>
+        <div class="actions"><button id="export-progress" type="button" disabled>Export progress</button><label class="button file-button">Import progress<input id="import-progress" type="file" accept=".json,application/json" disabled></label></div>
+        <p class="small muted">Import adds completed checks; it keeps checks already marked here.</p>
+        <p id="transfer-status" role="status"></p>
+        <noscript><p>JavaScript is unavailable. You can read this page, but progress cannot be saved or transferred.</p></noscript>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section" id="interpret" aria-labelledby="read-title">
+    <div class="section-heading"><p class="eyebrow">03 / WHEN YOU ARE READY</p><h2 id="read-title">Read one item with three questions</h2></div>
+    <div class="evidence-grid">
+      <article><span class="label fact">SOURCE FACT</span><h3>What is actually present?</h3><p>Look for the instruction, address, comment, connection or branch in the captured source.</p></article>
+      <article><span class="label inference">INTERPRETATION</span><h3>What might it mean?</h3><p>Read the proposed purpose or grouping. A plausible “PID” or “alarm” label is a starting point for review.</p></article>
+      <article><span class="label question">OPEN QUESTION</span><h3>What would settle it?</h3><p>Identify the missing source, wiring, runtime value or engineering decision. “Partial” means there are limits to investigate.</p></article>
+    </div>
+    <p class="small note">An address match does not establish physical wiring or live behavior. A report category does not select a DeltaV class.</p>
+  </section>
+
+  <section class="section response-card" id="respond" aria-labelledby="respond-title">
+    <p class="eyebrow">YOUR FIRST RESPONSE</p><h2 id="respond-title">One item is enough to begin</h2>
+    <p>On an item’s detail page, choose <strong>Prepare review feedback</strong>. Select and copy the template into your separate review notes. Keep the report identity and record ID with your answer.</p>
+    <div class="response-example"><p><strong>Choose:</strong> Checked · Needs correction · Evidence missing · Not applicable</p><p><strong>Then explain:</strong> What did I check or see? What should it say, or what is still unknown? What evidence supports that answer?</p></div>
+    <p class="small">The report does not save or submit review answers. These learning checkboxes do not mark plant logic as reviewed. Keep plant-specific notes and complete reports in the approved work environment.</p>
+  </section>
+
+  <section class="section extras" aria-label="Optional next steps">
+    <details>
+      <summary><span>Learn one subject at a time</span><span class="summary-note" id="topic-count">0 / 7 explored</span></summary>
+      <p>Pick the subject that feels most familiar. Stop after one example. Mark “explored” when you know how to inspect it, rather than when every item is approved.</p>
+      <div class="topic-list">
+        <label><input type="checkbox" data-check="rungs"><span><strong>Rungs and branches</strong><small>Engineering analysis: can I follow the conditions, paths, instructions and destinations?</small></span></label>
+        <label><input type="checkbox" data-check="io"><span><strong>I/O and signals</strong><small>Objects, signal relationships and rack source addresses: what is linked, and what still needs wiring evidence?</small></span></label>
+        <label><input type="checkbox" data-check="loops"><span><strong>PID loops</strong><small>PID evidence: can I locate PV, SP, output and connections without assuming a final class?</small></span></label>
+        <label><input type="checkbox" data-check="calculations"><span><strong>Equations and calculations</strong><small>Calculations: what reads the inputs, what is written and where does branching change the path?</small></span></label>
+        <label><input type="checkbox" data-check="sequences"><span><strong>States, timers and sequences</strong><small>Stateful and sequence views: what enables, resets or transitions the logic, and what remains unknown?</small></span></label>
+        <label><input type="checkbox" data-check="alarms"><span><strong>Alarms and interlocks</strong><small>Alarm source evidence: what indicates an alarm, and what proves its severity or effect?</small></span></label>
+        <label><input type="checkbox" data-check="connections"><span><strong>Calls, communication and unresolved items</strong><small>Execution, communication and unresolved views: can I distinguish a configured reference from proven runtime behavior?</small></span></label>
+      </div>
+    </details>
+    <details>
+      <summary>Where your DeltaV classes fit later</summary>
+      <p>Source behavior and target class allocation are separate decisions. A single source group can map to several classes, and several source fragments can contribute to one target object.</p>
+      <ul>
+        <li>A loop may fit <code>AI_PID_AO</code>, or use <code>AI_PID</code> with further classes before an <code>_AO</code> output.</li>
+        <li>Simple alarms may be built into a class. More complex alarm behavior may need a separate or split implementation.</li>
+        <li>An equation may need a different engineering category or target treatment after review.</li>
+        <li>Multiple or nested timers can exceed a chosen class’s capability. Splitting logic, including the proposed use of a DC for another timer in a state, is a future mapping decision.</li>
+      </ul>
+      <p>These are captured requirements for your team’s class library. The current report does not perform those mappings or certify behavior. Keep source evidence and review decisions linked when splitting or combining target objects.</p>
+    </details>
+    <details>
+      <summary>When you need more help</summary>
+      <ul>
+        <li><strong>Inside a report:</strong> use Review guide for the glossary, subject checklists and response examples.</li>
+        <li><strong>Appearance:</strong> this page and the current practice reports have a light/dark switch. An older saved unit report keeps its original appearance; it is still usable. Newly generated reports include the switch.</li>
+        <li><strong>No private report here:</strong> practice on this computer, then open the saved unit report on the work PC.</li>
+        <li><strong>Later reading:</strong> the <a href="public/docs/reviews/REPORT_REVIEW_GUIDE.md">report reading guide</a> explains the views in more detail. The <a href="public/docs/README.md">documentation index</a> is a reference library, not a required reading list.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+<footer><span>PLC analysis workbench</span><span>Learn the controls. Follow the evidence. Review one item at a time.</span></footer>
+</body>
+</html>

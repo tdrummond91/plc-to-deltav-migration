@@ -9,6 +9,7 @@ plant exports and reports belong in ignored `confidential/`.
 
 | Need | Open |
 |---|---|
+| Start without reading project documentation | [Start page and learning checklist](../START-HERE.html) |
 | Run the work-PC check | [Work-PC instructions](docs/reviews/WORK_MACHINE_REFERENCES_RUN.md) |
 | Read an engineering report | [Report reading guide](docs/reviews/REPORT_REVIEW_GUIDE.md) |
 | Check current readiness | [Tracker](docs/planning/PRE_TEAM_REVIEW_TRACKER.md) and [readiness assessment](docs/reviews/PHASE_1_READINESS_REVIEW.md) |
@@ -27,6 +28,7 @@ review notes. Editable corrections, PCSD and FHX remain later work.
 ## Folder map
 
 - `docs/planning/`: scope, decisions, contracts and the progress tracker.
+- `start-here/`: assets for the root offline orientation page and learning checklist.
 - `docs/reviews/`: current run/reading instructions and dated implementation evidence.
 - `docs/history/`: full prior versions of the long entrypoint documents.
 - `examples/`: invented HTML demonstrations and small JSON examples.

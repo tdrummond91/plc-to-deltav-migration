@@ -5,6 +5,10 @@ DeltaV. The current tool builds a searchable, offline engineering report from
 the source: rungs and branches, I/O, PID evidence, calculations, sequences,
 alarms, communication and related groups, with uncertainty kept visible.
 
+**First time here? Double-click [START-HERE.html](START-HERE.html) in the
+repository folder.** It is an offline, 15-minute orientation with a practice
+report and a small learning checklist. No code or Markdown reading is required.
+
 **Current step:** Phase 1 source analysis, cleanup and the requested review-guide
 refresh have passed. **The saved report is ready for the walkthrough and
 official engineering review; no further parser run is needed.** Editable
@@ -12,18 +16,21 @@ records, persistent corrections, PCSD and FHX generation are later phases.
 
 ## What to do next
 
-On the work PC, use Git Bash in this repository to synchronize the consolidated
-history on `main`:
+Begin with **START-HERE.html**. Read the three first steps, try the practice
+report, then find one familiar item in your saved unit report. Stop after that
+first session if you like. Mark the learning checkpoints as you become
+comfortable; they do not record engineering approval. Export/import the small
+progress file to keep your place across computers.
 
-```bash
-git switch main
-git pull --ff-only
-```
-
-Then open the existing `review.html` saved by completed work check
+On the work PC, use the existing `review.html` saved by completed work check
 `20261019T201714Z-38434b5f`. Start with **Review guide**. This return passed both
 test suites and retained all 29 analysis summary families unchanged. You do not
 need to run the script again to review it.
+
+The start page and newly generated reports have a light/dark switch, defaulting
+to the existing dark theme. The two current practice reports include it. A
+previously saved unit report keeps its original interface and remains usable;
+pulling updated code does not rewrite private HTML files.
 
 ## Run a future check when needed
 
@@ -71,6 +78,7 @@ environment.
 
 | Location | Purpose |
 |---|---|
+| [START-HERE.html](START-HERE.html) | First-use path and your personal learning checklist. |
 | `run-work-check.sh` | The normal work-PC entrypoint. |
 | `confidential/` | Ignored local exports, complete reports and logs; Git does not back these up. |
 | [python-parser/](python-parser/README.md) | Application code, tests and locked Python environment. |

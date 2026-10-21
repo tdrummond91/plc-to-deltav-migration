@@ -8,7 +8,9 @@ records preserve why the implementation works as it does; older status and
 
 | Need | Page |
 |---|---|
-| Start or resume | [Project README](../../README.md) and [current handoff](../CODEX_HANDOFF.md) |
+| First use; learn what to inspect | [Offline start page and learning checklist](../../START-HERE.html) |
+| Understand the start page, progress and themes | [First-use implementation](reviews/GETTING_STARTED_REVIEW.md) |
+| Resume development | [Project README](../../README.md) and [current handoff](../CODEX_HANDOFF.md) |
 | Synchronize main and open the accepted report | [Work-PC instructions](reviews/WORK_MACHINE_REFERENCES_RUN.md) |
 | Read the generated report | [Report reading guide](reviews/REPORT_REVIEW_GUIDE.md) |
 | Check completed gates and review readiness | [Pre-team-review tracker](planning/PRE_TEAM_REVIEW_TRACKER.md) |

@@ -329,6 +329,30 @@ Do not translate raw ladder directly to FHX strings. A later phase needs:
 
 Traceability supports back-reference and reconstruction of decisions. It does not promise that an arbitrary target implementation can be automatically inverted into equivalent original ladder code.
 
+### Team class library constraints (confirmed 2026-10-21)
+
+Tyler's class library may implement a simple loop in `AI_PID_AO`, or use
+`AI_PID` cascading through other classes and ending in an `_AO`. A source PID
+classification therefore does not assign a target class or require one class
+per rung. Simple alarms may already belong to a selected class; complex alarms
+may need to be split into separate implementations. An identified rung equation
+may need a different engineering category or target treatment while its source
+facts remain intact.
+
+Multiple or nested timers may exceed the selected class's capacity. Tyler's
+example requires splitting the implementation and using a DC to add another
+timer to the state. These are constraints and examples from the team's library,
+not universal DeltaV rules or behavior implemented by the current analyzer.
+
+When mapping work begins, use a versioned class capability catalog covering
+supported connections, built-in alarms and timer capacity. Record selected
+classes, connections, splits/merges and the reasons for them separately from
+source evidence. Preserve many-to-many links between source records, engineering
+groups and target instances, so reviewer corrections can be reconciled across
+those changes and future parser runs. Library-specific details and acceptance
+criteria will need confirmation during that phase; no conversion change is
+required for the current source review.
+
 ## Sources checked
 
 - [Rockwell L5X import/export reference](https://literature.rockwellautomation.com/idc/groups/literature/documents/rm/1756-rm014_-en-p.pdf): XML components and language-specific structures.

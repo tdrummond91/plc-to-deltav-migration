@@ -5,6 +5,10 @@ browser; GitHub's source view does not run its navigation. Your actual unit's
 report is the latest `review.html` under the work PC's
 `confidential/workspaces/work-check/`.
 
+For a short first session, open the root [START-HERE.html](../../START-HERE.html)
+and follow its three steps. Its learning checklist is separate from engineering
+review decisions and can be exported/imported between computers.
+
 ## Start with these current demonstrations
 
 | Report | What to try |
@@ -17,6 +21,10 @@ topic checklist, read the response examples and glossary, then open a detail
 page and choose **Prepare review feedback**. Copy its template into separate
 notes; the HTML does not save answers. These demonstrations use normal review
 mode, with developer version and rule diagnostics omitted.
+
+Both current demonstrations include a light/dark switch. The existing dark
+palette remains the default; a preference is saved when browser storage permits.
+Their evidence payloads are unchanged by this presentation update.
 
 Use the [report reading guide](../docs/reviews/REPORT_REVIEW_GUIDE.md) for further
 context. This presentation update leaves the invented evidence model unchanged.
