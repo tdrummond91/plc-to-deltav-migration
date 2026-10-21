@@ -8,6 +8,12 @@ dependencies = [
     "l5x>=1.7",
 ]
 
+[project.optional-dependencies]
+translation = [
+    "ctranslate2==4.8.3",
+    "sentencepiece==0.2.2",
+]
+
 [project.scripts]
 plc = "plc_workbench.cli:main"
 

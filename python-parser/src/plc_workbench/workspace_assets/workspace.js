@@ -145,6 +145,7 @@
   async function refresh() {
     state.project = await api("/api/state");
     renderProject();
+    translations?.refresh();
   }
   async function mutate(
     command,
@@ -715,7 +716,7 @@
       );
     if (s.comment || s.description) {
       const comment = section(root, "Source comment / description");
-      comment.append(node("div", s.comment || s.description, "source-comment"));
+      translations.show(comment, data);
     }
     const summary = node("div", null, "chips");
     [
@@ -1987,7 +1988,7 @@
       [
         "inspect",
         "Inspect one complete rung",
-        "Open Rungs. Select a program and routine, then a rung title. Rung flow connects instructions from left to right, with parallel paths that split and rejoin. Zoom or scroll to follow longer rungs. Equations shows formatted calculations; Branch structure lets you select fragments, and Original text preserves the exact source.",
+        "Open Rungs. Select a program and routine, then a rung title. Drag the divider to give the source pane more width. Equation text starts at 75%; adjust it above the list. Rung flow connects instructions from left to right, with parallel paths that split and rejoin. Equations shows formatted calculations; Original text preserves the exact source. Comment language in the sidebar adds local English wording alongside the original after one-time setup.",
         "Open rungs",
         () => switchView("rungs"),
       ],
@@ -2451,6 +2452,8 @@
       );
   }
   window.addEventListener("hashchange", () => run(() => openLocation()));
+  window.PLCReadingLayout.mount(document.querySelector("#view-rungs .workspace-grid"), $("rung-reading-settings"));
+  const translations = window.PLCTranslation.mount($("translation-controls"), api);
   run(async () => {
     await refresh();
     await openLocation(true);

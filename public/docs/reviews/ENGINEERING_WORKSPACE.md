@@ -46,6 +46,54 @@ For later review sessions that do not need new analysis, the optional command
 `Open-Workbench.cmd` is an alternative to that shortcut. The opener does not
 run tests, analyze the L5X, or perform Git operations.
 
+## Reading layout and English wording
+
+**Equation text** starts at **75%** of its previous size. Choose 50%, 75%, 100%
+or 125% above the rung list. Drag the vertical divider to give either pane more
+width. With the divider focused, Left/Right moves it, Shift makes larger moves,
+and Home/End reaches the limits. Double-click resets the split; **Reset layout**
+also restores 75% text. These reading preferences survive reopening in the same
+browser. Narrow windows stack the panes.
+
+For optional local French-to-English translation, close the workspace and run
+this **once per computer**, from the repository in Git Bash:
+
+```bash
+bash ./setup-translation.sh
+bash ./open-workbench.sh
+```
+
+Setup downloads optional Python translation packages and a public French-to-English
+model (about 67 MB). No engineering comments are uploaded. The subsequent
+translation process works offline on the CPU. Select **Show English alongside
+original** under **Comment language** in the sidebar. It prepares all captured
+comments and descriptions in the imported analysis while you continue reviewing.
+Select a rung or source object to see both versions. English is a reading aid:
+confirm terminology, negation and control meaning against the original,
+especially abbreviations and mixed French/English wording. Text whose translation
+changes checked values/identifiers or cannot be completed is withheld for review.
+These checks do not prove semantic equivalence.
+
+Identical text is translated once per model/rule version, including repeated
+comments and later L5X exports. New or changed text is translated on the next
+import while unchanged translations are reused. The usual `run-work-check.sh`
+entry point still works; another parser run is unnecessary just for these
+reading features. The full static source-analysis report keeps original wording.
+
+The model lives in ignored `confidential/translation/fr-en/`. English text and
+its enabled preference live in `<project>.translations.sqlite` beside the local
+project. This is a reproducible cache, separate from source evidence and saved
+engineering decisions. **Back up project** backs up engineering decisions;
+it does not bundle this cache or the model. A restored project starts with
+translation disabled and can regenerate its English wording. A machine without
+the optional packages still opens and edits the original source normally.
+
+An approved local copy of the pinned model can be installed with
+`bash ./setup-translation.sh --package /path/to/translate-fr_en-1_9.argosmodel`.
+This avoids a model download; Python packages must still be installed or cached
+for an entirely offline setup. Regular analysis and editor launchers never
+download a translation model automatically.
+
 The equation display works offline using the browser's mathematical typesetting.
 It uses the saved CPT expression structure after checking it against the source.
 Supported arithmetic instructions and comparisons also receive mathematical

@@ -73,6 +73,50 @@ work-check CLI require the repository root before selecting the local project.
 These are focused follow-up checks; the broader suites above preceded this wiring
 change. The actual work-PC source and editing walkthrough remain to be checked.
 
+## Reading layout and local English wording (2026-10-21)
+
+The rung/source divider now resizes by pointer or keyboard. Equation-only text
+defaults to 75% of its earlier size, adjustable to 50/75/100/125%; the browser
+retains the split and size. Narrow windows stack the panes. Object layouts,
+original expressions and engineering decisions are unchanged.
+
+Optional French-to-English neural translation uses pinned CTranslate2 and
+SentencePiece with the Argos fr-en 1.9 model. The explicit
+`bash ./setup-translation.sh` command installs packages and a hash-verified public
+model under ignored `confidential/translation/fr-en`. Normal launches never
+download a translation model or transmit comments. Ordinary locked `uv run`
+was verified to retain the installed optional extra. After setup, the sidebar's
+**Show English alongside original** prepares captured comments/descriptions in
+a CPU worker without blocking review. Identical text is reused across imports;
+changed text or model/rules identities get new cache entries. Original text and
+reviewed descriptions remain separate from generated wording.
+
+The derived cache and enabled preference use `<project>.translations.sqlite`
+beside the project, with separate SQLite connections per operation/worker.
+This sidecar/model is deliberately not part of an engineering-project backup;
+restored projects start translation disabled and can regenerate the wording.
+Literal value/unit/identifier and obvious sentence-negation changes are withheld.
+Those checks cannot establish translation correctness or control meaning.
+The immutable static analysis HTML still uses original wording.
+
+Validation: all 186 workspace regression tests passed, followed by 63 focused
+engine/setup/cache/API/UI/work-check handoff tests after the review fixes (these
+sets overlap). The latter includes the added retry regression, actual installed
+model inference with socket connections forbidden, exact cache reuse, missing
+runtime behavior and safe installation. Independent review found no remaining
+blockers. Chrome checked drag/keyboard resizing, 75% sizing and persistence,
+1050px stacking without horizontal overflow, both themes, mixed-language and
+long-equation display, retained unsaved classification and reused translations.
+The invented project stayed at revision 1. No application console errors were
+reported. The disposable preview server was stopped. Saved screenshot:
+`confidential/reading-preview/reading-verified.png` (independently invented data).
+
+Work-PC next step: manual pull, one-time translation setup if desired, then
+reopen with `bash ./open-workbench.sh`. The established `run-work-check.sh`
+workflow remains available, but no full L5X rerun is required for these features.
+Actual Quebec plant terminology still needs Tyler's review; synthetic checks do
+not substitute for that acceptance.
+
 ## Equation presentation follow-up (2026-10-21)
 
 Rung detail now opens with an **Equations** tab above the engineering review.

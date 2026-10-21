@@ -1,0 +1,112 @@
+/* Applied only to the rung inventory/detail pair, never the object workspace. */
+.workspace-grid.rung-reading-layout {
+  grid-template-columns: minmax(0, var(--rung-inventory-width, 33%)) 20px minmax(0, 1fr);
+  gap: 0;
+}
+.rung-pane-divider {
+  position: sticky;
+  top: 1rem;
+  min-height: 280px;
+  height: min(60vh, 550px);
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  border-radius: 6px;
+  outline-offset: -3px;
+}
+.rung-pane-divider::before {
+  content: "";
+  position: absolute;
+  inset: 0 8px;
+  border-radius: 3px;
+  background: var(--border);
+}
+.rung-pane-divider::after {
+  content: "⋮";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  transform: translateY(-50%);
+  color: var(--accent);
+  font-size: 1.4rem;
+  background: var(--bg);
+}
+.rung-pane-divider:hover::before,
+.rung-pane-divider:focus-visible::before,
+.rung-reading-dragging .rung-pane-divider::before {
+  background: var(--accent);
+}
+.rung-pane-divider:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.rung-reading-dragging,
+.rung-reading-dragging * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+.rung-reading-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.9rem;
+  margin-block: 0.7rem 1rem;
+  font-size: 0.82rem;
+}
+.rung-reading-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.rung-reading-controls select {
+  width: auto;
+  padding: 0.35rem 0.5rem;
+}
+.rung-reading-controls button {
+  padding: 0.4rem 0.65rem;
+}
+.rung-reading-hint {
+  color: var(--muted);
+}
+.rung-reading-layout .rung-preview-expression math {
+  font-size: calc(1.05rem * var(--rung-equation-scale, 0.75));
+}
+.rung-reading-layout .equation-display math {
+  font-size: calc(1.3rem * var(--rung-equation-scale, 0.75));
+}
+.rung-reading-layout .rung-flow-card math {
+  font-size: calc(1.15rem * var(--rung-equation-scale, 0.75));
+}
+.rung-reading-layout .flow-instruction .equation-display math {
+  font-size: calc(1.12rem * var(--rung-equation-scale, 0.75));
+}
+.workspace-grid.rung-reading-layout.rung-reading-stacked {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+.rung-reading-stacked > .rung-pane-divider {
+  display: none;
+}
+.rung-reading-stacked > .inventory,
+.rung-reading-stacked > .detail {
+  position: static;
+}
+@media (max-width: 1150px) {
+  .workspace-grid.rung-reading-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .rung-reading-layout > .rung-pane-divider {
+    display: none;
+  }
+}
+@media print {
+  .workspace-grid.rung-reading-layout {
+    display: block;
+  }
+  .rung-pane-divider,
+  .rung-reading-controls {
+    display: none !important;
+  }
+}

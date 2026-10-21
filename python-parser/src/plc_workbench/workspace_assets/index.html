@@ -8,8 +8,12 @@
     <link rel="stylesheet" href="/workspace.css" />
     <link rel="stylesheet" href="/rung-flow.css" />
     <link rel="stylesheet" href="/connections.css" />
+    <link rel="stylesheet" href="/reading-layout.css" />
+    <link rel="stylesheet" href="/translation.css" />
     <script defer src="/rung-flow.js"></script>
     <script defer src="/connections.js"></script>
+    <script defer src="/reading-layout.js"></script>
+    <script defer src="/translation.js"></script>
     <script defer src="/workspace.js"></script>
   </head>
   <body>
@@ -81,6 +85,7 @@
           placeholder="Find a routine…"
         />
         <div id="routine-tree" class="routine-tree"></div>
+        <div id="translation-controls" class="translation-controls"></div>
         <a
           class="analysis-link"
           href="/analysis#view=overview"
@@ -132,8 +137,9 @@
             ><button id="bulk-group" type="button">Add to group</button
             ><button id="clear-selection" type="button">Clear selection</button>
           </div>
+          <div id="rung-reading-settings"></div>
           <div class="workspace-grid">
-            <section class="inventory panel" aria-label="Rung inventory">
+            <section id="rung-inventory" class="inventory panel" aria-label="Rung inventory">
               <div id="rung-results" class="results" aria-live="polite"></div>
               <div id="rung-list"></div>
               <div id="rung-pagination" class="pagination"></div>

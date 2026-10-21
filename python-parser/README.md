@@ -16,6 +16,14 @@ another analysis. PCSD and FHX are later phases. Use the
 [project README](../README.md) for the normal user workflow and the
 [tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md) for current status.
 
+The editor has adjustable equation text (75% by default), a resizable rung/source
+split, and optional offline English translations beside captured French/mixed
+comments. Run `bash ./setup-translation.sh` once, reopen the editor, and enable
+**Show English alongside original**. The model and exact-text translation cache
+stay under `confidential/`; unchanged wording is reused across analyses. See the
+[workspace guide](../public/docs/reviews/ENGINEERING_WORKSPACE.md#reading-layout-and-english-wording)
+for setup, cache/backup behavior and translation limits.
+
 ## Run from the repository root
 
 Python 3.12+ and `uv` are required. Commands use `uv.lock`:

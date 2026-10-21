@@ -1,0 +1,11 @@
+.translation-controls { border: 1px solid var(--border); border-radius: .8rem; padding: .8rem; margin-top: 1rem; font-size: .85rem; }
+.translation-controls > strong { display: block; margin-bottom: .65rem; }
+.translation-controls label { display: flex; align-items: flex-start; gap: .5rem; line-height: 1.5; }
+.translation-controls label input { width: auto; margin-top: .25rem; accent-color: var(--accent); }
+.translation-controls p { overflow-wrap: anywhere; line-height: 1.5; }
+.translation-controls summary { cursor: pointer; }
+.translation-command { display: block; white-space: normal; overflow-wrap: anywhere; padding: .6rem; background: var(--bg); border-radius: .4rem; }
+.translation-pair { margin-block: .7rem; }
+.translation-pair > strong, .translation-english > strong { display: block; margin-bottom: .35rem; font-size: .8rem; color: var(--muted); }
+.translation-english { margin-top: .65rem; padding: .7rem .85rem; border-left: 2px solid var(--accent); background: var(--surface); }
+.translation-english[hidden] { display: none; }

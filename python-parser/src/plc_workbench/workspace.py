@@ -56,10 +56,59 @@ class Workspace:
         self._report_cache: tuple[str | None, bytes] = (None, b'')
         self._calculation_cache: tuple[str | None | object, dict] = (_UNLOADED, {})
         self._connection_cache: tuple[str | None | object, Any] = (_UNLOADED, None)
+        self._translation_service: Any = None
+        self._translation_run: str | None = None
         self.startup_notice = ''
 
     def close(self) -> None:
+        if self._translation_service is not None:
+            self._translation_service.close()
         self.store.close()
+
+    def translation(self, source_id: str = '', run_id: str | None = None) -> dict:
+        """Read local derived wording without writing source or review revisions."""
+        from .workspace_translation import TranslationService
+
+        if self._translation_service is None:
+            self._translation_service = TranslationService(self.project.with_suffix('.translations.sqlite'))
+        service = self._translation_service
+        state = self.store.state()
+        self._load(state)
+        active = self._run
+        status = service.status()
+        if (status['enabled'] and status['available'] and active
+                and active != self._translation_run and status['state'] != 'running'):
+            # Copy only captured prose. The worker never touches ProjectStore,
+            # expressions, operand values, or mutable reviewed descriptions.
+            texts = [row[key] for row in self._sources.values()
+                     for key in ('comment', 'description')
+                     if isinstance(row.get(key), str) and row[key].strip()]
+            status = service.start(texts)
+            self._translation_run = active
+        result = dict(status, run_id=active, fields={})
+        if source_id:
+            source = self.source(source_id, run_id)['source']
+            result['fields'] = {key: service.lookup(source[key]) for key in ('comment', 'description')
+                                if isinstance(source.get(key), str) and source[key].strip()}
+        return result
+
+    def configure_translation(self, payload: dict) -> dict:
+        if type(payload.get('enabled')) is not bool or type(payload.get('retry', False)) is not bool:
+            raise ProjectError('Choose whether English translations are enabled.')
+        state = self.store.state()
+        if payload.get('run_id') != state.get('active_run'):
+            raise RevisionConflict('The selected source changed. Reload before starting translations.')
+        self.translation()
+        self._translation_service.set_enabled(payload['enabled'])
+        self._translation_run = None
+        if payload.get('retry') and payload['enabled']:
+            self._load(state)
+            texts = [row[key] for row in self._sources.values() for key in ('comment', 'description')
+                     if isinstance(row.get(key), str) and row[key].strip()]
+            if self._translation_service.status()['state'] != 'running':
+                self._translation_service.start(texts, retry=True)
+                self._translation_run = self._run
+        return self.translation()
 
     def _load(self, state: dict) -> None:
         active = state.get("active_run")
@@ -545,6 +594,10 @@ class Workspace:
             restored.close()
             raise ProjectError('The restored copy was created, but could not be selected for reopening.') from None
         self.store.close()
+        if self._translation_service is not None:
+            self._translation_service.close()
+        self._translation_service = None
+        self._translation_run = None
         self.store, self.project = restored, destination
         self._run = _UNLOADED
         self._report_cache = (None, b'')
@@ -665,6 +718,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._json(200, workspace.objects(query))
             elif url.path == "/api/source":
                 self._json(200, workspace.source(query.get("id", ""), query.get("run_id")))
+            elif url.path == "/api/translation":
+                self._json(200, workspace.translation(query.get('source_id', ''), query.get('run_id')))
             elif url.path == "/api/runs":
                 self._json(200, workspace.available_runs())
             elif url.path == "/api/backups":
@@ -674,7 +729,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
             elif url.path == "/analysis":
                 self._send(200, workspace.report(), "text/html; charset=utf-8", report=True)
             elif url.path in ("/", "/index.html", "/workspace.js", "/workspace.css",
-                              "/rung-flow.js", "/rung-flow.css", "/connections.js", "/connections.css"):
+                              "/rung-flow.js", "/rung-flow.css", "/connections.js", "/connections.css",
+                              "/reading-layout.js", "/reading-layout.css", "/translation.js", "/translation.css"):
                 name = "index.html" if url.path in ("/", "/index.html") else url.path[1:]
                 data = (ASSETS / name).read_bytes()
                 if name == "index.html":
@@ -715,6 +771,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 result = workspace.state()
             elif route == "/api/import":
                 result = workspace.import_run(payload.get("path", ""), payload.get("expected_revision"))
+            elif route == '/api/translation':
+                result = workspace.configure_translation(payload)
             elif route == "/api/backup":
                 result = workspace.backup()
             elif route == '/api/restore':
