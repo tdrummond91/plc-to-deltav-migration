@@ -97,6 +97,72 @@ themes on invented source. Read-only viewing left the project revision unchanged
 Independent review found no blockers. The saved preview is local and ignored at
 `confidential/equation-preview/equations-verified.png`.
 
+## Connected rung views and signal tracing (2026-10-21)
+
+This supersedes the equation-only presentation above. The previous inventory
+still displayed raw instructions and opened an empty detail pane; it did not
+provide the connected rung-to-rung exploration Tyler requested. Rung inventory
+now previews two typeset instructions with explicit remaining-instruction and
+branch counts. An untouched empty detail pane selects the first result; pending
+manual/deep-link selections, unsaved forms and view changes take precedence.
+
+The default **Rung flow** tab uses connected SVG wires and mathematical HTML
+cards. Nested branches, downstream joins and empty bypasses preserve captured
+topology. Zoom and scrolling expose longer rungs. Malformed, excessive or missing
+structure falls back to the complete original text with an explanation; it is
+never silently flattened. **Equations**, **Branch structure** and **Original
+text** remain available. Local contact/coil notation explains incoming `EN`;
+stateful and unsupported operations retain named calls. Redundant expression
+fences were removed without altering precedence or explicit grouping.
+
+**Explore inputs & outputs** opens the **Connection map**: known writer rungs,
+exact signals, focused rung, written signals and reader rungs. Select a signal
+to expand fan-out, click another rung to refocus, and use **Back in trace** to
+return to the prior signal/page. Routine/direction filters, signal pagination,
+endpoint pagination, zoom and source-detail links are implemented. Signal details
+retain competing writers, same-rung reuse, unknown-role neighbors and known
+neighbors of unknown-role uses. No directed edge is invented through an unknown
+role. Coverage gaps and scope exclusions are explicit.
+
+`workspace_connections.py` validates stored companions once per imported run,
+then serves an in-memory exact-address index. Alias expansion, scoped identities
+and literal member/index suffixes remain distinct. Authentication uses captured
+inventory and bounded derivation of references, access roles and CPT syntax;
+there is no L5X read or full pipeline replay during navigation. Missing, repeated,
+oversized or inconsistent evidence fails to an unavailable panel while source
+records stay accessible. Import and restore invalidate the index and map focus.
+No database schema, reviewed decisions, parser classification or work-machine
+Git synchronization behavior changed.
+
+The work-PC screenshots also showed an aborted report response followed by an
+attempted second response. Response disconnects now close quietly, and request
+body disconnects stop before mutation. Storage failures still report controlled
+errors. The cause of the original Windows connection abort was not established.
+
+Validation: all **143 workspace tests** passed in the final discovery run;
+the **8 work-check workspace handoff tests** also passed. Tests cover real
+synthetic parser topology, physical split/join geometry, exact identities,
+multiple writers, cycles, unknown roles, fan-out/pagination, authenticated
+companions, cached navigation, corrupted evidence, selection races, MathML,
+safe DOM construction and response disconnects. Independent review ended with
+no blocking findings after direction-filter and unknown-neighbor regressions
+were added. These are focused development checks, not a new full work-PC run.
+
+Chrome verification used a separate invented 17-rung export: branch equations,
+12-reader fan-out across two pages, consumer refocus, trace-back restoration,
+scope/direction controls, light/dark themes, return to exact rung and clean
+shutdown. The project stayed at revision 1. No application console errors were
+observed; unrelated extension warnings were present. Local ignored proofs:
+`confidential/connection-preview/rung-flow-verified.png` and
+`confidential/connection-preview/connections-verified.png`.
+
+Work-PC next step: close the current workspace, pull this branch manually, then
+use `bash ./open-workbench.sh` to reopen the saved project. Current completed runs
+already carrying the required companions need no new analysis. The usual
+`bash ./run-work-check.sh` remains the complete test/analyze/open workflow when
+a fresh run is wanted. Actual plant-scale map performance and engineering
+interpretation still require Tyler's local walkthrough.
+
 ## Prior analysis and report history
 
 History cleanup: `main` contains eight consolidated milestones above the prior

@@ -8,6 +8,7 @@ import unittest
 
 from test_calculations import capture
 from test_workspace_ui import DOM, NODE, function
+from test_workspace_rung_flow_ui import FLOW_DOM, SCRIPT as FLOW_SCRIPT
 
 
 MATH_FUNCTIONS = ["mathNode", "mathAtom", "mathFence", "mathExpression", "instructionEquation"]
@@ -33,7 +34,10 @@ def parsed(expression: str = "A + 1", *, text: str | None = None) -> dict:
 class WorkspaceEquationTests(unittest.TestCase):
     def run_js(self, names: list[str], checks: str, payload: object = None) -> None:
         dom = DOM.replace("renderDetail, ", "") if "renderDetail" in names else DOM
-        code = dom + MATH_DOM + "\n" + "\n".join(function(name) for name in names)
+        code = dom + MATH_DOM
+        if "renderRungLogic" in names:
+            code += FLOW_DOM + FLOW_SCRIPT
+        code += "\n" + "\n".join(function(name) for name in names)
         code += "\nconst data=" + json.dumps(payload) + ";\n"
         code += "\n(async()=>{\n" + checks + "\n})().catch(error=>{console.error(error);process.exitCode=1;});"
         result = subprocess.run([NODE, "-"], input=code, capture_output=True, encoding="utf-8", timeout=20)
@@ -141,7 +145,7 @@ for (const item of data) {
     def test_unsupported_instructions_bad_arity_and_cpt_retain_original_arguments(self) -> None:
         self.run_js(MATH_FUNCTIONS, r"""
 for (const [opcode,args] of [
-  ['Unknown_Block',[' A ','1','Output']], ['TON',['Timer','250','0']],
+  ['Unknown_Block',[' A ','1','Output']],
   ['LIM',['Low','Value','High']], ['ADD',['A','D']], ['DIV',['A','','D']],
   ['MOV',['A','B','C']], ['CLR',[]]]) {
   const rendered=instructionEquation({id:'i',opcode,arguments:args},null,new Map());
@@ -158,6 +162,33 @@ for (const item of data) {
   assert.equal(tags(rendered.math,'mfrac').length,0);
 }
 """, [parsed("A + PRIVATE_FUNCTION(B)"), parsed("A /"), parsed(text="CPT(D,A,B);")])
+
+    def test_boolean_conditions_and_stateful_outputs_express_local_enable_semantics(self) -> None:
+        self.run_js(MATH_FUNCTIONS, r"""
+const make=(opcode,args)=>instructionEquation({id:'i',opcode,arguments:args},null,new Map());
+for(const [opcode,expected,label] of [
+  ['XIC','EN∧Device.Ready','true'],['XIO','EN∧¬Device.Ready','false'],
+  ['OTE','Device.Ready←EN','incoming condition'],
+  ['OTL','EN⇒SET(Device.Ready)','Latch'],['OTU','EN⇒RESET(Device.Ready)','Unlatch'],
+]) {
+  const result=make(opcode,['Device.Ready']);
+  assert.equal(exactText(result.math),expected);
+  assert.ok(result.label.includes(label));
+  assert.equal(result.math.attributes['aria-label'],opcode+'(Device.Ready)');
+}
+for(const [opcode,label] of [['TON','On-delay timer'],['TOF','Off-delay timer'],
+  ['RTO','Retentive timer'],['ONS','One-shot storage'],['CTU','Count up']]) {
+  const args=['Stored_State','250','0'],result=make(opcode,args);
+  assert.equal(result.label,label);
+  assert.deepEqual(tags(result.math,'mtext').map(exactText),args);
+  assert.equal(tags(result.math,'mo').some(n=>['←','⇒'].includes(exactText(n))),false);
+}
+for(const opcode of ['XIC','XIO','OTE','OTL','OTU']) {
+  const result=make(opcode,['Bit','Unexpected']);
+  assert.equal(result.label,'Instruction');
+  assert.deepEqual(tags(result.math,'mtext').map(exactText),['Bit','Unexpected']);
+}
+""")
 
     def test_invalid_cyclic_and_foreign_ast_fall_back_without_partial_equation(self) -> None:
         self.run_js(MATH_FUNCTIONS, r"""
@@ -195,7 +226,7 @@ assert.equal(descendants(root).some(n=>'onerror' in n.attributes),false);
     def test_parallel_paths_empty_legs_and_evidence_are_not_combined(self) -> None:
         self.run_js(RUNG_FUNCTIONS, r"""
 const root=node('div');renderRungLogic(root,data.source,data);
-const panel=descendants(root).find(n=>n.attributes.role==='tabpanel');
+const panel=descendants(root).filter(n=>n.attributes.role==='tabpanel')[1];
 const paths=descendants(panel).filter(n=>n.className==='equation-path');
 assert.equal(paths.length,3);
 assert.ok(exactText(paths[0]).includes('Path 1'));
@@ -209,29 +240,33 @@ for(const instruction of data.source.instructions)
   assert.ok(evidence.includes('/analysis#view=ladder&source='+instruction.id));
 """, parsed(text="[ADD(A,B,D),,SUB(B,C,D)]MOV(D,A);"))
 
-    def test_default_equations_original_text_and_accessible_keyboard_tabs(self) -> None:
+    def test_default_connected_flow_original_text_and_accessible_keyboard_tabs(self) -> None:
         self.run_js(RUNG_FUNCTIONS, r"""
 const root=node('div');renderRungLogic(root,data.source,data);
 const tabs=descendants(root).filter(n=>n.attributes.role==='tab');
 const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
-assert.deepEqual(tabs.map(exactText),['Equations','Branch structure','Original text']);
-assert.deepEqual(panels.map(p=>p.hidden),[false,true,true]);
-assert.deepEqual(tabs.map(t=>t.attributes['aria-selected']),['true','false','false']);
-assert.deepEqual(tabs.map(t=>t.tabIndex),[0,-1,-1]);
-for(let i=0;i<3;i++) {
+assert.deepEqual(tabs.map(exactText),['Rung flow','Equations','Branch structure','Original text']);
+assert.deepEqual(panels.map(p=>p.hidden),[false,true,true,true]);
+assert.deepEqual(tabs.map(t=>t.attributes['aria-selected']),['true','false','false','false']);
+assert.deepEqual(tabs.map(t=>t.tabIndex),[0,-1,-1,-1]);
+for(let i=0;i<4;i++) {
   assert.equal(tabs[i].attributes['aria-controls'],panels[i].id);
   assert.equal(panels[i].attributes['aria-labelledby'],tabs[i].id);
 }
-const raw=tags(panels[2],'pre')[0];assert.equal(raw.textContent,data.source.text);
-tabs[2].events.click();assert.deepEqual(panels.map(p=>p.hidden),[true,true,false]);
+assert.equal(css(panels[0],'rung-flow-card').length,data.source.instructions.length);
+assert.equal(tags(panels[0],'mfrac').length,1);
+const raw=tags(panels[3],'pre')[0];assert.equal(raw.textContent,data.source.text);
+tabs[3].events.click();assert.deepEqual(panels.map(p=>p.hidden),[true,true,true,false]);
 let prevented=0;
 const press=(i,key)=>tabs[i].events.keydown({key,preventDefault(){prevented++;}});
-press(2,'ArrowRight');assert.equal(document.activeElement,tabs[0]);
-press(0,'ArrowLeft');assert.equal(document.activeElement,tabs[2]);
-press(2,'Home');assert.equal(document.activeElement,tabs[0]);
-press(0,'End');assert.equal(document.activeElement,tabs[2]);
-press(2,'Enter');assert.equal(prevented,4);
+press(3,'ArrowRight');assert.equal(document.activeElement,tabs[0]);
+press(0,'ArrowLeft');assert.equal(document.activeElement,tabs[3]);
+press(3,'Home');assert.equal(document.activeElement,tabs[0]);
+press(0,'End');assert.equal(document.activeElement,tabs[3]);
+press(3,'Enter');assert.equal(prevented,4);
 assert.equal(raw.textContent,data.source.text);
+const select=tags(panels[0],'button').find(n=>exactText(n)==='Select individual instructions to group');
+select.events.click();assert.deepEqual(panels.map(p=>p.hidden),[true,true,false,true]);
 """, parsed(text="  CPT(D, (A + B) / C);\n"))
 
     def test_missing_structure_and_unavailable_ast_explain_original_source_fallback(self) -> None:
@@ -239,7 +274,7 @@ assert.equal(raw.textContent,data.source.text);
 const source={...data.source,structure:null};const root=node('div');
 renderRungLogic(root,source,{status:'unavailable'});
 const panel=descendants(root).find(n=>n.attributes.role==='tabpanel');
-assert.ok(exactText(panel).includes('could not be verified'));
+assert.ok(exactText(root).includes('could not be verified'));
 assert.ok(exactText(panel).includes('complete parsed structure is unavailable'));
 assert.equal(tags(panel,'math').length,0);
 assert.equal(tags(panel,'pre')[0].textContent,source.text);
@@ -251,13 +286,32 @@ let editorCall;
 globalThis.renderEditor=(root,id,review,revision)=>{editorCall={id,review,revision};root.append(node('button','Save review'));};
 const root=node('div');const review={status:'confirmed'};
 renderDetail({source:data.source,calculations:data,review,revision:9},root);
-assert.equal(tags(root,'mfrac').length,1);
+const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
+assert.equal(tags(panels[0],'mfrac').length,1);
+assert.equal(tags(panels[1],'mfrac').length,1);
 assert.equal(editorCall.id,data.source.id);
 assert.equal(editorCall.review,review);
 assert.equal(editorCall.revision,9);
 assert.ok(exactText(root).includes('Save review'));
 assert.equal(tags(root,'pre').find(n=>n.textContent===data.source.text).textContent,data.source.text);
 """, parsed("A/B"))
+
+    def test_rung_list_preview_typesets_available_expressions_and_explains_remaining_paths(self) -> None:
+        self.run_js([*MATH_FUNCTIONS, "renderRungPreview"], r"""
+const preview={preview:{instructions:data.source.instructions.slice(0,2),
+  instruction_count:data.source.instructions.length,branch_count:2,calculations:data}};
+const root=renderRungPreview(preview);
+assert.equal(tags(root,'math').length,2);
+assert.equal(tags(root,'mfrac').length,1);
+assert.ok(exactText(root).includes('EN∧Ready'));
+assert.ok(exactText(root).includes('1 more instruction'));
+assert.ok(exactText(root).includes('2 parallel branches'));
+assert.ok(exactText(root).includes('open flow to follow paths'));
+assert.equal(exactText(root).includes(data.source.text),false);
+const unavailable=renderRungPreview({});
+assert.equal(tags(unavailable,'math').length,0);
+assert.ok(exactText(unavailable).includes('complete text'));
+""", parsed(text="XIC(Ready)CPT(D,(A+B)/C)OTE(Output);"))
 
 
 if __name__ == "__main__":

@@ -6,6 +6,10 @@
     <meta name="workspace-token" content="__WORKSPACE_TOKEN__" />
     <title>Engineering workspace · PLC Workbench</title>
     <link rel="stylesheet" href="/workspace.css" />
+    <link rel="stylesheet" href="/rung-flow.css" />
+    <link rel="stylesheet" href="/connections.css" />
+    <script defer src="/rung-flow.js"></script>
+    <script defer src="/connections.js"></script>
     <script defer src="/workspace.js"></script>
   </head>
   <body>
@@ -57,6 +61,7 @@
           <button type="button" data-view="objects">
             Tags &amp; source objects
           </button>
+          <button type="button" data-view="connections">Connection map</button>
           <button type="button" data-view="groups">Engineering groups</button>
           <button type="button" data-view="changes">
             Changes &amp; reconciliation
@@ -151,6 +156,16 @@
               </div>
             </section>
           </div>
+        </section>
+        <section id="view-connections" class="view" hidden>
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">FOLLOW INPUTS AND OUTPUTS</span>
+              <h1>Connection map</h1>
+              <p>Follow exact signal uses from upstream rungs through the selected rung to downstream rungs. Select a neighboring rung to continue, or focus one signal to see its fan-out.</p>
+            </div>
+          </div>
+          <div id="connection-map"></div>
         </section>
         <section id="view-objects" class="view" hidden>
           <div class="page-heading">

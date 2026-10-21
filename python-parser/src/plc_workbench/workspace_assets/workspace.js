@@ -21,6 +21,7 @@
     saving: false,
     listSerial: 0,
     detailSerial: 0,
+    connectionRung: null,
   };
   const node = (tag, text, className) => {
     const n = document.createElement(tag);
@@ -259,6 +260,8 @@
   }
   function switchView(view, skipCheck = false) {
     if (!skipCheck && !discard()) return false;
+    if (view === "connections" && state.source?.source?.instructions)
+      state.connectionRung = state.source.source.id;
     if (view !== state.view) {
       // Hidden forms must not outlive the source revision that populated them.
       state.source = null;
@@ -289,6 +292,7 @@
     if (view === "objects") run(loadObjects);
     if (view === "groups") renderGroups();
     if (view === "changes") renderChanges();
+    if (view === "connections") renderConnections();
     return true;
   }
   function renderSelection() {
@@ -311,6 +315,7 @@
   }
   async function loadRungs() {
     const serial = ++state.listSerial;
+    const detailSerial = state.detailSerial;
     const params = new URLSearchParams({
       query: $("rung-search").value,
       routine: state.routine,
@@ -319,7 +324,7 @@
       page: String(state.page),
     });
     const result = await api("/api/rungs?" + params);
-    if (serial !== state.listSerial) return;
+    if (serial !== state.listSerial || state.view !== "rungs") return;
     const root = $("rung-list");
     clear(root);
     const total = Number(result.total || 0),
@@ -381,8 +386,9 @@
           "list-title",
         ),
         node("div", r.path, "list-path"),
-        node("div", r.text ?? "Source text unavailable", "source-preview mono"),
       );
+      body.append(renderRungPreview(r));
+      body.append(button("Open rung & connections →", () => run(() => openSource(r.id, "rung-detail")), "text-button rung-open"));
       if (r.comment) body.append(node("div", r.comment, "source-preview"));
       const badges = node("div", null, "chips");
       badges.append(
@@ -426,6 +432,55 @@
       run(loadRungs);
     });
     renderSelection();
+    // Only fill an untouched empty pane. An explicit/deep-linked selection or
+    // unsaved form always wins over a slower inventory request.
+    if (!state.source && !state.dirty && !state.saving && !$("rung-detail").inert &&
+        detailSerial === state.detailSerial && result.items?.length)
+      await openSource(result.items[0].id, "rung-detail", true);
+  }
+  function renderRungPreview(row) {
+    const root = node("div", null, "rung-preview");
+    const preview = row.preview || {};
+    const occurrences = new Map((preview.calculations?.occurrences || []).map((item) => [item.id, item]));
+    const nodes = new Map((preview.calculations?.nodes || []).map((item) => [item.id, item]));
+    (preview.instructions || []).forEach((inst) => {
+      const card = node("div", null, "rung-preview-expression");
+      card.append(node("span", inst.opcode, "eyebrow"), instructionEquation(inst, occurrences.get(inst.id), nodes).math);
+      root.append(card);
+    });
+    if (!preview.instructions?.length)
+      root.append(node("p", "Source structure needs inspection. Open the rung for its complete text.", "muted"));
+    const extra = Math.max(0, (preview.instruction_count || 0) - (preview.instructions?.length || 0));
+    const context = [];
+    if (extra) context.push(`${extra} more instruction${extra === 1 ? "" : "s"}`);
+    if (preview.branch_count) context.push(`${preview.branch_count} parallel branch${preview.branch_count === 1 ? "" : "es"} · open flow to follow paths`);
+    if (context.length) root.append(node("p", context.join(" · "), "preview-context"));
+    return root;
+  }
+  function openConnections(rungId) {
+    if (!discard()) return;
+    state.connectionRung = rungId;
+    switchView("connections", true);
+  }
+  function renderConnections() {
+    const root = $("connection-map");
+    clear(root);
+    if (!state.connectionRung) {
+      root.append(node("p", "Open a rung, then choose Explore inputs & outputs to start a connection map."),
+        button("Choose a rung", () => switchView("rungs")));
+      return;
+    }
+    root.append(window.PLCConnections.render({
+      rungId: state.connectionRung,
+      load: (parameters) => api("/api/connections?" + new URLSearchParams(parameters)),
+      onFocus: (id) => { state.connectionRung = id; },
+      chooseRung: () => switchView("rungs"),
+      openRung: (id) => {
+        if (!discard()) return;
+        switchView("rungs", true);
+        run(() => openSource(id, "rung-detail", true));
+      },
+    }));
   }
   async function loadObjects() {
     const serial = ++state.listSerial;
@@ -673,7 +728,10 @@
       summary.append(chip("Proposed: " + familyName(category), "proposed")),
     );
     root.append(summary);
-    if (isRung) renderRungLogic(root, s, data.calculations || {});
+    if (isRung) {
+      root.append(button("Explore inputs & outputs →", () => openConnections(s.id), "primary"));
+      renderRungLogic(root, s, data.calculations || {});
+    }
     const editor = section(
       root,
       "Your engineering review",
@@ -798,7 +856,7 @@
   }
   function renderRungLogic(root, source, calculations) {
     const area = section(root, "Rung logic",
-      "Read each instruction in its source position. ← means stores into the destination when enabled. Branches remain separate; data types, rounding and timer state still follow the original instruction.");
+      "Follow the connected path from left to right. Parallel paths split and rejoin where shown. EN is the condition arriving at an instruction; ← stores a value. This shows source structure, not live state or an elapsed-time scale.");
     const tabs = node("div", null, "logic-tabs");
     tabs.setAttribute("role", "tablist");
     tabs.setAttribute("aria-label", "Rung display");
@@ -806,6 +864,7 @@
     const occurrences = new Map((calculations.occurrences || []).map((c) => [c.id, c]));
     const nodes = new Map((calculations.nodes || []).map((n) => [n.id, n]));
     const panels = [], controls = [];
+    const names = ["Rung flow", "Equations", "Branch structure", "Original text"];
     const activate = (index) => {
       panels.forEach((panel, i) => { panel.hidden = i !== index; });
       controls.forEach((control, i) => {
@@ -813,7 +872,7 @@
         control.tabIndex = i === index ? 0 : -1;
       });
     };
-    ["Equations", "Branch structure", "Original text"].forEach((name, index) => {
+    names.forEach((name, index) => {
       const panel = node("div", null, "logic-panel");
       panel.id = `logic-${source.id}-${index}`;
       panel.setAttribute("role", "tabpanel");
@@ -824,9 +883,9 @@
       control.setAttribute("aria-controls", panel.id);
       panel.setAttribute("aria-labelledby", control.id);
       control.addEventListener("keydown", (event) => {
-        const next = event.key === "ArrowRight" ? (index + 1) % 3
-          : event.key === "ArrowLeft" ? (index + 2) % 3
-          : event.key === "Home" ? 0 : event.key === "End" ? 2 : null;
+        const next = event.key === "ArrowRight" ? (index + 1) % names.length
+          : event.key === "ArrowLeft" ? (index + names.length - 1) % names.length
+          : event.key === "Home" ? 0 : event.key === "End" ? names.length - 1 : null;
         if (next !== null) { event.preventDefault(); activate(next); controls[next].focus(); }
       });
       panels.push(panel); controls.push(control); tabs.append(control);
@@ -834,23 +893,36 @@
     area.append(tabs, ...panels);
     activate(0);
     if (calculations.status === "unavailable")
-      panels[0].append(node("p", "Saved expression structure could not be verified. CPT instructions retain their original expressions.", "warning-panel"));
+      area.prepend(node("p", "Saved expression structure could not be verified. CPT instructions retain their original expressions.", "warning-panel"));
     if (source.structure) {
       const positions = new Map(source.instructions.map((i, index) => [i.id, index + 1]));
-      panels[0].append(renderEquationTree(source.structure, byId, occurrences, nodes, positions));
+      panels[0].append(window.PLCRungFlow.render(source, {
+        instruction: (inst) => {
+          const card = node("div", null, "flow-instruction");
+          const equation = instructionEquation(inst, occurrences.get(inst.id), nodes);
+          card.append(node("strong", `${positions.get(inst.id)} · ${inst.opcode}`, "flow-opcode"),
+            node("span", equation.label, "flow-kind"));
+          const display = node("div", null, "equation-display");
+          display.append(equation.math);
+          card.append(display, link("Instruction evidence ↗", inst.id));
+          return card;
+        },
+      }), button("Select individual instructions to group", () => activate(2), "text-button"));
+      panels[1].append(renderEquationTree(source.structure, byId, occurrences, nodes, positions));
       const chosen = new Set();
       const scroll = node("div", null, "structure-scroll");
       scroll.append(renderStructure(source.structure, byId, chosen));
-      panels[1].append(node("p", "Boxes and parallel paths preserve the captured structure. Select individual instructions here to group them."), scroll,
+      panels[2].append(node("p", "Boxes and parallel paths preserve the captured structure. Select individual instructions here to group them."), scroll,
         button("Group checked instructions", () => {
           if (!chosen.size) { notify("Check one or more instruction boxes first."); return; }
           groupPicker([...chosen]);
         }));
     } else {
       panels[0].append(node("p", "A complete parsed structure is unavailable. Inspect the captured source below.", "warning-panel"), node("pre", source.text ?? "Source text unavailable."));
-      panels[1].append(node("p", "No complete branch structure is available. Use Original text."));
+      panels[1].append(node("p", "No complete equation structure is available. Use Original text."));
+      panels[2].append(node("p", "No complete branch structure is available. Use Original text."));
     }
-    panels[2].append(node("pre", source.text ?? "Source text unavailable."));
+    panels[3].append(node("pre", source.text ?? "Source text unavailable."));
   }
   function mathNode(tag, ...children) {
     const element = document.createElementNS("http://www.w3.org/1998/Math/MathML", tag);
@@ -868,7 +940,7 @@
   }
   function mathExpression(root, nodes, instructionId) {
     const seen = new Set();
-    function visit(id, depth = 0) {
+    function visit(id, depth = 0, enclosed = false) {
       const current = nodes.get(id);
       if (!current || current.instruction_id !== instructionId || seen.has(id) || depth > 64 || seen.size >= 512)
         throw new Error("Incomplete expression structure");
@@ -876,7 +948,7 @@
       const children = current.child_ids || [];
       const arity = { literal: 0, reference: 0, group: 1, unary: 1, binary: 2, function: 1 }[current.kind];
       if (arity === undefined || children.length !== arity) throw new Error("Unsupported expression node");
-      const terms = children.map((child) => visit(child, depth + 1));
+      const terms = children.map((child) => visit(child, depth + 1, current.kind === "group"));
       if (current.kind === "reference") return mathAtom(current.raw_text);
       if (current.kind === "literal") return mathNode("mn", current.raw_text);
       if (current.kind === "group") return mathFence(terms[0]);
@@ -901,7 +973,7 @@
         throw new Error("Unsupported binary operator");
       const expression = mathNode("mrow", terms[0], mathNode("mo", ({ "-": "−", "*": "×" })[op] || op), terms[1]);
       // Explicit grouping avoids changing precedence when a subtree is nested.
-      return depth ? mathFence(expression) : expression;
+      return depth && !enclosed ? mathFence(expression) : expression;
     }
     return visit(root);
   }
@@ -935,6 +1007,21 @@
       expression = assign(args[1], mathAtom(args[0])); label = "Move value";
     } else if (opcode === "CLR" && valid(1)) {
       expression = assign(args[0], mathNode("mn", "0")); label = "Clear value";
+    } else if (["XIC", "XIO"].includes(opcode) && valid(1)) {
+      const condition = opcode === "XIC" ? mathAtom(args[0])
+        : mathNode("mrow", mathNode("mo", "¬"), mathAtom(args[0]));
+      expression = mathNode("mrow", mathAtom("EN"), mathNode("mo", "∧"), condition);
+      label = opcode === "XIC" ? "Pass when the bit is true" : "Pass when the bit is false";
+    } else if (opcode === "OTE" && valid(1)) {
+      expression = assign(args[0], mathAtom("EN")); label = "Output follows the incoming condition";
+    } else if (["OTL", "OTU"].includes(opcode) && valid(1)) {
+      expression = mathNode("mrow", mathAtom("EN"), mathNode("mo", "⇒"),
+        mathAtom(opcode === "OTL" ? "SET" : "RESET"), mathFence(mathAtom(args[0])));
+      label = opcode === "OTL" ? "Latch when enabled" : "Unlatch when enabled";
+    } else if (["TON", "TOF", "RTO", "ONS", "OSR", "OSF", "CTU", "CTD"].includes(opcode)) {
+      label = { TON: "On-delay timer", TOF: "Off-delay timer", RTO: "Retentive timer",
+        ONS: "One-shot storage", OSR: "Rising-edge one-shot", OSF: "Falling-edge one-shot",
+        CTU: "Count up", CTD: "Count down" }[opcode];
     }
     const math = mathNode("math", expression || call());
     math.setAttribute("display", "block");
@@ -1900,9 +1987,16 @@
       [
         "inspect",
         "Inspect one complete rung",
-        "Open Rungs. Select a program and routine, then a rung title. Equations shows formatted calculations in source order. Use Branch structure for parallel paths and fragment selection, or Original text to verify the exact source. Every instruction & operand contains the full argument list.",
+        "Open Rungs. Select a program and routine, then a rung title. Rung flow connects instructions from left to right, with parallel paths that split and rejoin. Zoom or scroll to follow longer rungs. Equations shows formatted calculations; Branch structure lets you select fragments, and Original text preserves the exact source.",
         "Open rungs",
         () => switchView("rungs"),
+      ],
+      [
+        "trace",
+        "Follow inputs and outputs",
+        "From a rung, select Explore inputs & outputs. The connection map shows upstream writer rungs and downstream readers through their shared signals. Click a signal to expand its fan-out, or a neighboring rung to keep tracing. Back in trace retraces your steps. Check multiple-writer warnings and coverage notes before interpreting an absent connection.",
+        "Open connection map",
+        () => switchView("connections"),
       ],
       [
         "categorize",
@@ -2012,6 +2106,8 @@
           });
           state.dirty = false;
           state.source = null;
+          state.connectionRung = null;
+          clear($("connection-map"));
           state.selected.clear();
           state.routine = "";
           state.page = 1;
@@ -2192,6 +2288,8 @@
             token = restored.workspace_token;
           state.dirty = false;
           state.source = null;
+          state.connectionRung = null;
+          clear($("connection-map"));
           state.selected.clear();
           state.routine = "";
           state.page = 1;

@@ -17,17 +17,27 @@ the local application and returns to Bash; Ctrl+C also stops the server.
    demonstration. **Choose analysis run** is a manual fallback for an already
    completed run under `confidential/workspaces/work-check`.
 2. Choose a program/routine or search for a known tag. The result count and
-   page controls cover all captured rungs. Open a rung to see **Equations**:
-   calculations use fractions, powers, roots and comparison symbols. The
+   page controls cover all captured rungs. The list previews formatted instructions
+   and opens the first rung automatically when no selection is pending. **Rung flow**
+   connects every displayed instruction from left to right, preserving nested
+   splits, joins and empty bypass paths. Scroll and zoom to follow longer rungs.
+   Calculations use fractions, powers, roots and comparison symbols. The
    arrow `destination ← expression` means storing a value when enabled.
-   **Branch structure** shows connected instruction boxes and fragment selection;
+   **Equations** offers a vertical reading view. **Branch structure** retains fragment selection;
    **Original text** shows the exact captured rung. **Every instruction & operand**
    retains the complete argument list. Parallel paths stay separate in both views.
-3. In **Your engineering review**, select categories, change properties and
+3. Select **Explore inputs & outputs**. The **Connection map** places the focused
+   rung between upstream writers and downstream readers, with exact signals
+   between them. Click a signal to expand its fan-out, then click a neighboring
+   rung to continue the trace. **Back in trace** restores the prior selection.
+   Scope and direction filters narrow the view; signal and connected-rung page
+   controls expose the remaining records. **Open focused rung** returns to its
+   complete source and review form.
+4. In **Your engineering review**, select categories, change properties and
    press **Save review**. A rung can have multiple categories. Use groups to
    associate several rungs, individual instructions or source objects; a
    source record can belong to more than one group.
-4. Reopen the application and verify the saved change. Select **Back up
+5. Reopen the application and verify the saved change. Select **Back up
    project**. **Restore backup** opens a new restored project and keeps the
    previous project and backup intact.
 
@@ -51,6 +61,30 @@ Explicit groups, signed bases and left-associated powers remain distinguishable.
 Bitwise operators retain their names, and tag/address spelling stays literal.
 Arithmetic notation does not replace the controller's data-conversion, rounding
 or enable-condition rules.
+
+Contact and coil notation uses the incoming rung condition, labelled `EN`:
+`XIC` passes when its bit is true, `XIO` when false, and `OTE` stores the incoming
+condition in its output bit. These local illustrations follow the documented
+[XIC](https://www.rockwellautomation.com/en-gb/docs/factorytalk-design-studio/current/contents-ditamap/instructions/instruction-set/bit-instructions/examine-if-closed--xic-.html)
+and [OTE](https://www.rockwellautomation.com/en-be/docs/studio-5000-logix-designer/38-02/contents-ditamap/instruction-set/bit-instructions1/output-energize--ote-11.html)
+behavior during normal instruction execution; they do not simulate prescan,
+task scheduling or retained state.
+
+The connection map reads the saved reference, access, calculation and relationship
+artifacts once per imported run. Navigating the map does not analyze the L5X again
+or alter review decisions. Existing saved runs with these companions work after
+restarting the updated app. A missing or inconsistent companion produces an
+explicit unavailable notice while original rungs remain accessible.
+
+A connection means an explicit read and write share the same captured tag identity
+and exact member/index suffix. It does **not** establish scan timing, which of
+several writes reaches a read, or physical wiring. Multiple writers, same-rung
+reuse, unknown roles and filtered-out neighbors remain visible in signal details.
+Unknown-role uses have no directed edge; their known neighboring readers/writers
+remain navigable in details. Whole-tag/member overlap, implicit timer/PID/AOI
+effects, copied ranges and runtime indices are stated coverage limits. An absent
+line is not proof of unused logic. The timeline-like rung view is source progression,
+not an elapsed-time simulation.
 
 If port 8745 is occupied by an existing workspace, the work-check script keeps
 its completed result and does not automatically import into the running app.

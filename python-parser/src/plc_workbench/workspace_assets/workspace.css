@@ -526,6 +526,19 @@ main {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.rung-preview { display: grid; gap: 0.6rem; margin: 0.7rem 0; }
+.rung-preview-expression { overflow-x: auto; padding: 0.55rem; background: var(--bg); border-radius: 6px; }
+.rung-preview-expression .eyebrow { font-size: 0.65rem; margin-bottom: 0.4rem; }
+.rung-preview-expression math { font: 1.05rem "Cambria Math", "STIX Two Math", math; margin: 0; }
+.rung-preview-expression mtext { white-space: pre; }
+.preview-context { font-size: 0.74rem; color: var(--orange); margin: 0; }
+.rung-open { font-size: 0.78rem; text-align: left; }
+.flow-instruction { display: grid; gap: 0.3rem; }
+.flow-opcode { color: var(--accent); font-size: 0.8rem; }
+.flow-kind { color: var(--muted); font-size: 0.72rem; }
+.flow-instruction .equation-display { min-height: 65px; padding: 0.4rem 0; }
+.flow-instruction .equation-display math { font-size: 1.12rem; }
+.flow-instruction a { font-size: 0.7rem; }
 .chips {
   display: flex;
   gap: 0.35rem;

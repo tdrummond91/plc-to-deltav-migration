@@ -1,0 +1,34 @@
+.connection-toolbar, .connection-pager, .connection-zoom {
+  display: flex; gap: .65rem; align-items: center; flex-wrap: wrap; margin: .8rem 0;
+}
+.connection-toolbar label { display: grid; gap: .2rem; color: var(--muted); font-size: .85rem; }
+.connection-toolbar select { max-width: 270px; }
+.connection-status { overflow-wrap: anywhere; }
+.connection-guide { padding: .8rem 1rem; border-left: 3px solid var(--accent); background: var(--panel); }
+.connection-explanation { max-width: 110ch; }
+.connection-coverage, .connection-signal-detail {
+  border: 1px solid var(--border); border-radius: 8px; padding: .75rem 1rem; margin: .6rem 0; background: var(--surface);
+}
+.connection-coverage summary, .connection-signal-detail summary { cursor: pointer; font-weight: 600; }
+.connection-viewport { height: min(72vh, 820px); min-height: 400px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+.connection-sizer { position: relative; }
+.connection-canvas { position: relative; transform-origin: top left; }
+.connection-canvas > svg { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.connection-column { position: absolute; margin: 0; color: var(--muted); text-align: center; font-size: 1rem; }
+.connection-card { position: absolute; display: flex; flex-direction: column; gap: 5px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); overflow: auto; box-shadow: var(--shadow); text-align: left; }
+.connection-card h3, .connection-card p { margin: 0; }
+.connection-rung { border-left: 3px solid var(--accent); }
+.connection-rung:hover { background: var(--raised); }
+.connection-focus { border: 2px solid var(--magenta); background: var(--surface); }
+.connection-signal { border-color: var(--accent); }
+.connection-signal-name { padding: 2px 0; border: none; background: transparent; font-weight: 700; color: var(--accent); text-align: left; overflow-wrap: anywhere; flex-shrink: 0; }
+.connection-path { overflow-wrap: anywhere; font-size: .79rem; line-height: 1.4; color: var(--muted); }
+.connection-eyebrow { font-size: .68rem; letter-spacing: .1em; color: var(--muted); }
+.connection-count, .connection-card small { font-size: .78rem; }
+.connection-warning { color: var(--orange); font-size: .83rem; }
+.connection-empty { position: absolute; font-size: .84rem; padding: 12px; color: var(--muted); }
+.connection-wire { fill: none; stroke: var(--accent); stroke-width: 1.8; opacity: .7; }
+.connection-wire.output { stroke: var(--magenta); }
+.connection-arrow { fill: var(--muted); }
+.connection-details { margin-top: 1.2rem; }
+.connection-signal-detail > button { display: block; margin: .4rem 0; max-width: 100%; overflow-wrap: anywhere; }

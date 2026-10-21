@@ -55,6 +55,7 @@ class Workspace:
         self._historical_labels: dict[str, str] = {}
         self._report_cache: tuple[str | None, bytes] = (None, b'')
         self._calculation_cache: tuple[str | None | object, dict] = (_UNLOADED, {})
+        self._connection_cache: tuple[str | None | object, Any] = (_UNLOADED, None)
         self.startup_notice = ''
 
     def close(self) -> None:
@@ -217,7 +218,71 @@ class Workspace:
                          "parse_status": rung.get("parse_status"), "proposals": proposals,
                          "review": review, "groups": memberships[identifier],
                          "rule_proposals": self.rule_proposals(identifier, state)})
-        return self._page(rows, query)
+        result = self._page(rows, query)
+        for row in result['items']:
+            source = self._sources[row['id']]
+            instructions = source.get('instructions', [])
+            preview = instructions[:2]
+            pending = [source.get('structure')]
+            branches = 0
+            while pending:
+                current = pending.pop()
+                if isinstance(current, dict):
+                    branches += current.get('kind') == 'branch'
+                    pending.extend(current.get('items', current.get('legs', [])))
+            row['preview'] = {
+                'instructions': preview, 'instruction_count': len(instructions),
+                'branch_count': branches,
+                'calculations': self._calculation_detail([item['id'] for item in preview]),
+            }
+        return result
+
+    def connections(self, query: dict) -> dict:
+        """Return a paged, immutable neighborhood of exact source-address uses."""
+        from .workspace_connections import ConnectionIndex, ConnectionError as EvidenceError, MAX_ARTIFACT_BYTES
+        self.state()
+        if not self._run:
+            return {'available': False, 'notice': 'Import a completed analysis to explore connections.'}
+        if self._connection_cache[0] != self._run:
+            def unique_object(pairs: list[tuple[str, Any]]) -> dict:
+                result = {}
+                for key, value in pairs:
+                    if key in result:
+                        raise ValueError('Repeated evidence field.')
+                    result[key] = value
+                return result
+
+            def companion(name: str) -> dict:
+                raw = self.store.artifact(name, self._run)
+                if len(raw) > MAX_ARTIFACT_BYTES:
+                    raise ValueError('Connection evidence exceeds its limit.')
+                return json.loads(raw, object_pairs_hook=unique_object)
+
+            try:
+                artifacts = [companion(name) for name in (
+                    'references.json', 'access.json', 'relationships.json')]
+                try:
+                    calculations = companion('calculations.json')
+                except ProjectError:
+                    calculations = None  # Older access schemas can expose explicit operands only.
+                index = ConnectionIndex(self._inventory, *artifacts, calculations)
+            except (ProjectError, EvidenceError, ValueError, TypeError, KeyError, RecursionError, OverflowError):
+                index = None
+            self._connection_cache = (self._run, index)
+        index = self._connection_cache[1]
+        if index is None:
+            return {'available': False, 'notice': (
+                'Connection evidence is missing or could not be verified in this saved run. '
+                'Original rungs remain available; this does not mean there are no connections.')}
+        try:
+            page, endpoint_page = int(query.get('page', '1')), int(query.get('endpoint_page', '1'))
+            identifier = query.get('id', '')
+            rung_id = self._rung_for.get(identifier, identifier)
+            return index.view(rung_id, scope=query.get('scope', 'all'),
+                              signal_id=query.get('signal_id', ''), direction=query.get('direction', 'both'),
+                              page=page, endpoint_page=endpoint_page)
+        except (EvidenceError, ValueError, TypeError) as exc:
+            raise ProjectError('Choose a captured rung and valid connection filters.') from exc
 
     def objects(self, query: dict) -> dict:
         self.state()
@@ -484,6 +549,7 @@ class Workspace:
         self._run = _UNLOADED
         self._report_cache = (None, b'')
         self._calculation_cache = (_UNLOADED, {})
+        self._connection_cache = (_UNLOADED, None)
         self._historical_labels = {}
         return self.state()
 
@@ -522,29 +588,33 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
         return
 
     def _send(self, status: int, data: bytes, content_type: str, *, report: bool = False) -> None:
-        self.send_response(status)
-        self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "no-store")
-        self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Referrer-Policy", "no-referrer")
-        self.send_header("X-Frame-Options", "SAMEORIGIN")
-        if report:
-            # Imported HTML is evidence, not trusted application code. Even a
-            # self-consistent altered manifest must not grant it editor access.
-            # Opaque-origin sandbox preserves its self-contained script while
-            # blocking access to the project API, opener and local storage.
-            self.send_header("Content-Security-Policy", "sandbox allow-scripts; default-src 'none'; "
-                             "script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; "
-                             "connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
-        else:
-            self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; "
-                             "connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'")
-        self.end_headers()
         try:
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("X-Frame-Options", "SAMEORIGIN")
+            if report:
+                # Imported HTML is evidence, not trusted application code. Even a
+                # self-consistent altered manifest must not grant it editor access.
+                # Opaque-origin sandbox preserves its self-contained script while
+                # blocking access to the project API, opener and local storage.
+                self.send_header("Content-Security-Policy", "sandbox allow-scripts; default-src 'none'; "
+                                 "script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; "
+                                 "connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
+            else:
+                self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; "
+                                 "connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'")
+            self.end_headers()
             self.wfile.write(data)
-        except (BrokenPipeError, ConnectionResetError):
-            pass
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            # A closed browser/tab can abort either headers or body (including
+            # Windows error 10053). There is no usable connection for a second
+            # error response. Catch only transport failures here: storage errors
+            # must still reach the route's controlled project-error response.
+            self.close_connection = True
 
     def _json(self, status: int, value: Any) -> None:
         self._send(status, _json(value), "application/json; charset=utf-8")
@@ -589,6 +659,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._json(200, workspace.state())
             elif url.path == "/api/rungs":
                 self._json(200, workspace.rungs(query))
+            elif url.path == "/api/connections":
+                self._json(200, workspace.connections(query))
             elif url.path == "/api/objects":
                 self._json(200, workspace.objects(query))
             elif url.path == "/api/source":
@@ -601,12 +673,13 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._json(200, workspace.rule_matches(query.get("source_id", "")))
             elif url.path == "/analysis":
                 self._send(200, workspace.report(), "text/html; charset=utf-8", report=True)
-            elif url.path in ("/", "/index.html", "/workspace.js", "/workspace.css"):
+            elif url.path in ("/", "/index.html", "/workspace.js", "/workspace.css",
+                              "/rung-flow.js", "/rung-flow.css", "/connections.js", "/connections.css"):
                 name = "index.html" if url.path in ("/", "/index.html") else url.path[1:]
                 data = (ASSETS / name).read_bytes()
                 if name == "index.html":
                     data = data.replace(b"__WORKSPACE_TOKEN__", self.server.token.encode("ascii"))
-                content_type = {"index.html": "text/html", "workspace.js": "text/javascript", "workspace.css": "text/css"}[name]
+                content_type = 'text/javascript' if name.endswith('.js') else 'text/css' if name.endswith('.css') else 'text/html'
                 self._send(200, data, content_type + "; charset=utf-8")
             else:
                 self._json(404, {"error": "Page not found."})
@@ -627,7 +700,12 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
             if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
                 self._json(415, {"error": "Changes must use the workspace's JSON form."})
                 return
-            payload = json.loads(self.rfile.read(length))
+            try:
+                request_body = self.rfile.read(length)
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+                self.close_connection = True
+                return
+            payload = json.loads(request_body)
             if not isinstance(payload, dict):
                 raise ProjectError("Expected a workspace operation.")
             route = urlsplit(self.path).path

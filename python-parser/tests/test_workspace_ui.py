@@ -33,7 +33,7 @@ class Page(HTMLParser):
 def function(name: str) -> str:
     """Extract a top-level function from the shipped, formatted asset."""
     match = re.search(
-        rf"^  (?:async )?function {name}\(.*?(?=^  (?:async )?function |^  let |^  \$|^  //|^  run\()",
+        rf"^  (?:async )?function {name}\(.*?(?=^  (?:async )?function |^  let |^  \$|^  //|^  window\.|^  run\()",
         SCRIPT,
         flags=re.MULTILINE | re.DOTALL,
     )
@@ -92,6 +92,23 @@ const Event=function(type){this.type=type;};
 """
 
 
+RUNG_LIST_DOM = r"""
+const listElements=new Map();
+$=id=>{if(!listElements.has(id))listElements.set(id,node('div'));return listElements.get(id);};
+document.querySelectorAll=()=>[];
+state={...state,listSerial:0,page:1,routine:'',saving:false};
+state.project={...state.project,active_run:'synthetic-run',routines:[]};
+const chip=(text,cls='')=>node('span',text,'chip '+cls);
+const categoryName=id=>id;
+const labelOf=item=>item.path||item.name||item.id;
+const renderRungPreview=row=>node('div','Preview '+row.id);
+const renderSelection=()=>{};
+const pagination=()=>{};
+const rungRow=(id,number)=>({id,number,path:'Invented / Routine / '+number,parse_status:'parsed'});
+const rungResult=(...items)=>({items,total:items.length,page:1,page_size:50});
+"""
+
+
 class WorkspacePageTests(unittest.TestCase):
     def test_page_has_one_source_first_entry_and_local_assets(self) -> None:
         page = Page()
@@ -121,11 +138,19 @@ class WorkspacePageTests(unittest.TestCase):
 @unittest.skipUnless(NODE, "Node is optional developer tooling")
 class WorkspaceInteractionTests(unittest.TestCase):
     def run_js(self, names: list[str], checks: str) -> None:
-        dom = DOM.replace("const openSource=async()=>{};", "") if "openSource" in names else DOM
+        dom = DOM
+        for name in ("openSource", "loadRungs"):
+            if name in names:
+                dom = dom.replace(f"const {name}=async()=>{{}};", "")
+        if "loadRungs" in names:
+            dom += RUNG_LIST_DOM
         code = dom + "\n" + "\n".join(function(name) for name in names)
-        code += "\n(async()=>{\n" + checks + "\n})().catch(error=>{console.error(error);process.exitCode=1;});"
+        code += "\n(async()=>{\n" + checks + "\n})()"
+        code += ".then(()=>process.stdout.write('UI_TEST_COMPLETE\\n'))"
+        code += ".catch(error=>{console.error(error);process.exitCode=1;});"
         result = subprocess.run([NODE, "-"], input=code, capture_output=True, encoding="utf-8", timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("UI_TEST_COMPLETE", result.stdout, "An asynchronous check never completed")
 
     def test_series_nested_parallel_and_empty_bypass_remain_visible(self) -> None:
         self.run_js(["renderStructure"], r"""
@@ -294,6 +319,133 @@ for(const hash of ['#main','#view=bad','#view=rungs&source=a&source=b','#view=ru
   window.location.hash=hash;assert.equal(requestedLocation(),null,hash);
 }
 window.location.hash='';assert.deepEqual(requestedLocation(),{view:'rungs',source:''});
+""")
+
+    def test_initial_inventory_opens_first_rung_in_an_untouched_pane(self) -> None:
+        self.run_js(["loadRungs", "openSource"], r"""
+const calls=[],visible=[];
+run=async()=>{};
+api=async url=>{
+  calls.push(url);
+  return url.startsWith('/api/rungs?')?rungResult(rungRow('first',1),rungRow('second',2))
+    :{source:{id:'first'},revision:1};
+};
+renderDetail=(result,panel)=>{visible.push(result.source.id);panel.append(node('div','Visible '+result.source.id));};
+await loadRungs();
+assert.deepEqual(visible,['first']);assert.equal(state.source.source.id,'first');
+assert.equal(calls.filter(url=>url.startsWith('/api/source')).length,1);
+assert.equal($('rung-detail').inert,false);
+assert.ok(contents($('rung-list')).includes('Open rung & connections'));
+""")
+
+    def test_manual_rung_click_wins_over_an_outstanding_inventory_response(self) -> None:
+        self.run_js(["loadRungs", "openSource"], r"""
+state.source={source:{id:'previous'}};
+const items=rungResult(rungRow('first',1),rungRow('chosen',2));
+api=async()=>items;await loadRungs();
+const choice=descendants($('rung-list')).find(n=>n.tagName==='button'&&n.textContent==='Rung 2');
+state.source=null;
+let resolveList,resolveSource;const sourceRequests=[];
+api=url=>url.startsWith('/api/rungs?')?new Promise(done=>resolveList=done)
+  :new Promise(done=>{sourceRequests.push(url);resolveSource=done;});
+let manual,visible='';
+run=async callback=>{if(callback===loadRungs)return;manual=callback();return manual;};
+renderDetail=result=>{visible=result.source.id;};
+const loading=loadRungs();choice.events.click();
+resolveList(items);await loading;
+assert.deepEqual(sourceRequests,['/api/source?id=chosen']);
+resolveSource({source:{id:'chosen'},revision:1});await manual;
+assert.equal(visible,'chosen');assert.equal(state.source.source.id,'chosen');
+""")
+
+    def test_deep_link_selection_wins_when_inventory_returns_first(self) -> None:
+        self.run_js(["loadRungs", "openSource", "switchView", "requestedLocation", "openLocation"], r"""
+window.location={hash:'#view=rungs&source=linked-rung'};
+let resolveList,resolveSource;const requests=[],tasks=[];
+api=url=>{
+  requests.push(url);
+  return url.startsWith('/api/rungs?')?new Promise(done=>resolveList=done)
+    :new Promise(done=>resolveSource=done);
+};
+run=async callback=>{
+  if(callback===loadRungs&&state.source)return;
+  const task=callback();tasks.push(task);return task;
+};
+let visible='';renderDetail=result=>{visible=result.source.id;};
+const opening=openLocation(true);
+resolveList(rungResult(rungRow('first',1)));await tasks[0];
+assert.deepEqual(requests.filter(url=>url.startsWith('/api/source')),['/api/source?id=linked-rung']);
+resolveSource({source:{id:'linked-rung'},revision:1});await opening;
+assert.equal(visible,'linked-rung');assert.equal(state.source.source.id,'linked-rung');
+""")
+
+    def test_inventory_started_during_manual_source_load_does_not_steal_selection(self) -> None:
+        self.run_js(["loadRungs", "openSource"], r"""
+let resolveList,resolveChosen;const sourceRequests=[];
+run=async()=>{};let visible='';renderDetail=result=>{visible=result.source.id;};
+api=url=>{
+  if(url.startsWith('/api/rungs?'))return new Promise(done=>resolveList=done);
+  sourceRequests.push(url);
+  if(url.endsWith('chosen'))return new Promise(done=>resolveChosen=done);
+  return Promise.resolve({source:{id:'first'},revision:1});
+};
+const chosen=openSource('chosen');
+const refreshing=loadRungs();
+resolveList(rungResult(rungRow('first',1),rungRow('chosen',2)));await refreshing;
+assert.deepEqual(sourceRequests,['/api/source?id=chosen']);
+resolveChosen({source:{id:'chosen'},revision:1});await chosen;
+assert.equal(visible,'chosen');assert.equal(state.source.source.id,'chosen');
+""")
+
+    def test_unsaved_form_or_in_progress_save_prevents_filter_auto_selection(self) -> None:
+        self.run_js(["loadRungs", "openSource"], r"""
+run=async()=>{};let rendered=0;renderDetail=()=>rendered++;
+for(const locked of ['dirty','saving']) {
+  state.source=null;state.dirty=false;state.saving=false;
+  const panel=$('rung-detail');panel.replaceChildren(node('textarea','Keep my edits'));
+  let resolve;const sourceRequests=[];
+  api=url=>{
+    if(url.startsWith('/api/source'))sourceRequests.push(url);
+    return new Promise(done=>resolve=done);
+  };
+  $('rung-search').value='new filter';const loading=loadRungs();
+  state[locked]=true;
+  resolve(rungResult(rungRow('filtered',9)));await loading;
+  assert.deepEqual(sourceRequests,[]);assert.equal(rendered,0);
+  assert.ok(contents(panel).includes('Keep my edits'));
+  assert.ok(contents($('rung-list')).includes('Rung 9'));
+}
+""")
+
+    def test_late_inventory_after_view_switch_cannot_reopen_hidden_rung(self) -> None:
+        self.run_js(["loadRungs", "openSource", "switchView"], r"""
+let resolveList;const sourceRequests=[];
+api=url=>{
+  if(url.startsWith('/api/source'))sourceRequests.push(url);
+  return new Promise(done=>resolveList=done);
+};
+loadObjects=async()=>{};
+$('rung-list').append(node('p','Earlier list'));
+const loading=loadRungs();switchView('objects');
+resolveList(rungResult(rungRow('late-rung',1)));await loading;
+assert.equal(state.view,'objects');assert.equal(state.source,null);
+assert.deepEqual(sourceRequests,[]);
+assert.ok(contents($('rung-list')).includes('Earlier list'));
+assert.ok(contents($('rung-detail')).includes('Select a source record'));
+""")
+
+    def test_newest_filter_result_alone_can_choose_an_initial_rung(self) -> None:
+        self.run_js(["loadRungs", "openSource"], r"""
+const pending=[],sourceRequests=[];run=async()=>{};
+api=url=>url.startsWith('/api/rungs?')?new Promise(resolve=>pending.push(resolve))
+  :(sourceRequests.push(url),Promise.resolve({source:{id:'new-result'},revision:1}));
+let visible='';renderDetail=result=>{visible=result.source.id;};
+const old=loadRungs();$('rung-search').value='changed';const current=loadRungs();
+pending[1](rungResult(rungRow('new-result',2)));await current;
+pending[0](rungResult(rungRow('old-result',1)));await old;
+assert.deepEqual(sourceRequests,['/api/source?id=new-result']);assert.equal(visible,'new-result');
+assert.ok(contents($('rung-list')).includes('Rung 2'));
+assert.equal(contents($('rung-list')).includes('Rung 1'),false);
 """)
 
 
