@@ -26,6 +26,8 @@
 .ladder-diagram-slot { fill: var(--muted); }
 .ladder-diagram-coil-letter { fill: var(--source-operator, var(--orange)); font-size: 14px; font-weight: 700; }
 .ladder-diagram-instruction text { pointer-events: none; }
+.ladder-diagram-instruction .source-variable { pointer-events: auto; cursor: help; }
+.ladder-diagram-member-value:focus { outline: 1px solid var(--accent); }
 .ladder-diagram-selected { padding: .7rem; border-left: 3px solid var(--magenta); margin: .7rem 0; background: var(--surface); overflow-wrap: anywhere; font-size: .85rem; }
 .ladder-diagram-selected[hidden], .ladder-diagram-error[hidden] { display: none; }
 .ladder-diagram-selected h4, .ladder-diagram-selected p { margin: .3rem 0; }

@@ -25,26 +25,37 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
 class Element {
-  constructor(tag) { this.tagName=tag.toUpperCase(); this.childNodes=[]; this.dataset={}; this.attributes={}; this.events={}; this._text=''; this.className=''; }
+  constructor(tag) { this.tagName=tag.toUpperCase(); this.childNodes=[]; this.dataset={}; this.style={}; this.attributes={}; this.events={}; this.listeners={}; this._text=''; this.className=''; this.clientWidth=900; }
   set textContent(value) { this._text=String(value); this.childNodes=[]; }
   get textContent() { return this._text+this.childNodes.map(n=>n.textContent).join(''); }
-  append(...nodes) { for(const value of nodes){if(value instanceof Element)this.childNodes.push(value);else {const n=new Element('#text');n.textContent=value;this.childNodes.push(n);}} }
+  append(...nodes) { for(const value of nodes){if(value instanceof Element){value.parentNode=this;this.childNodes.push(value);}else {const n=new Element('#text');n.textContent=value;n.parentNode=this;this.childNodes.push(n);}} }
   replaceChildren(...nodes) { this.childNodes=[];this._text='';this.append(...nodes); }
   setAttribute(key,value) { this.attributes[key]=String(value); }
+  getAttribute(key) { return this.attributes[key]??null; }
+  hasAttribute(key) { return Object.hasOwn(this.attributes,key); }
   removeAttribute(key) { delete this.attributes[key]; }
-  addEventListener(name,callback) { this.events[name]=callback; }
-  click() { assert.notEqual(this.disabled,true); this.events.click?.({}); }
+  addEventListener(name,callback,capture=false) { (this.listeners[name]??=[]).push({callback,capture});this.events[name]=event=>{event={target:this,preventDefault(){},stopImmediatePropagation(){this.stopped=true;},...event};for(const item of [...this.listeners[name]].sort((a,b)=>Number(b.capture)-Number(a.capture))){item.callback(event);if(event.stopped)break;}}; }
+  click() { assert.notEqual(this.disabled,true); this.events.click?.({target:this}); }
   focus() { document.activeElement=this; }
   select() {}
-  querySelectorAll(selector) { return descendants(this).filter(n=>selector[0]==='.'?n.className.split(' ').includes(selector.slice(1)):selector[0]==='['?Object.hasOwn(n.dataset,selector.slice(6,-1)):n.tagName===selector.toUpperCase()); }
+  matches(selector) { return selector.split(',').some(part=>{const s=part.trim();return s[0]==='.'?(this.attributes.class||this.className).split(' ').includes(s.slice(1)):s[0]==='['?this.hasAttribute(s.slice(1,-1))||(s.startsWith('[data-')&&Object.hasOwn(this.dataset,s.slice(6,-1))):this.tagName===s.toUpperCase();}); }
+  querySelectorAll(selector) { return descendants(this).filter(n=>n.matches(selector)); }
   querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
+  closest(selector) { return this.matches(selector)?this:this.parentNode?.closest(selector); }
+  contains(node) { return node===this||descendants(this).includes(node); }
+  remove() { if(this.parentNode)this.parentNode.childNodes=this.parentNode.childNodes.filter(n=>n!==this);this.parentNode=null; }
+  get isConnected() { return page.contains(this); }
+  getBoundingClientRect() { return {left:10,top:10,right:200,bottom:80,width:190,height:70}; }
+  getClientRects() { return this.isConnected?[this.getBoundingClientRect()]:[]; }
+  get classList() { return {add:(...names)=>{this.setAttribute('class',[...(this.attributes.class||this.className).split(' ').filter(Boolean),...names].join(' '));}}; }
 }
 function descendants(root) { return root.childNodes.flatMap(n=>[n,...descendants(n)]); }
 global.Node=Element;
 const page=new Element('body');
 for(const id of ['review-data','page-heading','toolbar','content','main','navigation','snapshot-mini']){const n=new Element('div');n.id=id;page.append(n);}
-global.document={createElement:tag=>new Element(tag),getElementById:id=>descendants(page).find(n=>n.id===id),querySelectorAll:s=>page.querySelectorAll(s),addEventListener:()=>{},activeElement:page};
-global.window={scrollTo:()=>{}};
+global.document={createElement:tag=>new Element(tag),createElementNS:(_,tag)=>new Element(tag),body:page,documentElement:new Element('html'),getElementById:id=>descendants(page).find(n=>n.id===id),querySelectorAll:s=>page.querySelectorAll(s),addEventListener:()=>{},activeElement:page};
+global.window={scrollTo:()=>{},addEventListener:()=>{},innerWidth:1200,innerHeight:800};
+global.MutationObserver=class {observe(){}};
 document.getElementById('review-data').textContent=JSON.stringify(input.data);
 vm.runInThisContext(input.script,{filename:'report.js'});
 const content=document.getElementById('content');

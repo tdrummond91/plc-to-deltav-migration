@@ -28,7 +28,7 @@
 
   // Presentation of known operand roles only. These expressions are gated by
   // their incoming path and never evaluate source values or collapse branches.
-  function blockPresentation(instruction) {
+  function blockPresentation(instruction, memberEvidence = false) {
     const args = instruction.arguments, opcode = instruction.opcode.toUpperCase();
     const valid = count => args.length === count && args.every(value => value.trim());
     const value = (text, limit = 28) => ({kind: 'value', text, limit});
@@ -56,6 +56,18 @@
       return assignment(args[1], [operation(`${{ABS: 'abs', LN: 'ln', SQR: 'sqrt'}[opcode]}(`), value(args[0]), operation(')')]);
     if (opcode === 'CPT' && valid(2)) return assignment(args[0], [value(args[1], 60)], 'Captured expression · when enabled');
     if (['TON', 'TOF', 'RTO', 'CTU', 'CTD'].includes(opcode) && valid(3)) {
+      if (memberEvidence) {
+        const member = (name, suffix, slot) => [label(`${name}: `), {
+          kind: 'member', variable: `${args[0].trim()}.${suffix}`, operand: args[slot],
+          text: args[slot] === '?' ? 'Loading saved value…' : `${shortened(args[slot], 12)} (rung); export…`,
+        }];
+        const presentation = result([field(['CTU', 'CTD'].includes(opcode) ? 'Counter' : 'Timer', 0),
+          member('Preset', 'PRE', 1), member('Accum', 'ACC', 2)], 'Exported settings · hover for source / writers', 'state');
+        // Reserve space before laying out branches; background evidence cannot
+        // move wires or reset the reader's zoom and scroll position.
+        presentation.width = Math.max(presentation.width, 440);
+        return presentation;
+      }
       const settings = [...field('Preset', 1), label(' · '), ...field('Accum', 2)];
       return result([field(['CTU', 'CTD'].includes(opcode) ? 'Counter' : 'Timer', 0),
         ...(widthOf(settings) <= 500 ? [settings] : [field('Preset', 1), field('Accum', 2)])], 'Captured operands · not live values', 'state');
@@ -126,7 +138,7 @@
   function layout(tree, byId, size) {
     if (tree.kind === "instruction") {
       const instruction = byId.get(tree.instruction_id), isBlock = kindOf(instruction) === "block";
-      const presentation = isBlock ? blockPresentation(instruction) : null;
+      const presentation = isBlock ? blockPresentation(instruction, size.memberEvidence) : null;
       const width = presentation?.width || (isBlock ? (size.compact && inlineArguments(instruction)
         ? Math.max(250, (instruction.arguments.join("").length + 10) * 12 + 44) : 250) : 170);
       const height = presentation ? Math.max(size.height, (size.compact ? 72 : 110) + presentation.rows.length * (size.compact ? 18 : 20)) : size.height;
@@ -170,7 +182,7 @@
     root.append(html("p", `${reason} The complete original text is shown instead; no partial ladder is drawn.`));
     const original = originalSource(source); original.open = true; root.append(original); return root;
   }
-  function symbol(card, instruction, position, size, colors) {
+  function symbol(card, instruction, position, size, colors, options) {
     const kind = kindOf(instruction), x = card.width / 2, y = size.anchor;
     const group = svg("g", { class: "ladder-diagram-instruction", transform: `translate(${card.x} ${card.y})`, "data-instruction-id": instruction.id,
       "data-source-position": position, "data-symbol": kind, "data-width": card.width, "data-height": card.height,
@@ -193,6 +205,34 @@
           const text = svg('text', {x: 22, y: (size.compact ? 49 : 72) + index * (size.compact ? 18 : 20), class: 'ladder-diagram-expression'});
           row.forEach(part => {
             if (part.kind === 'value') argumentText(text, part.text, part.limit);
+            else if (part.kind === 'member') {
+              const span = svg('tspan', {class: 'ladder-diagram-member-value', tabindex: '0', role: 'button'}, part.text);
+              colors?.paint(span, part.variable, 'variable');
+              span.setAttribute('data-source-variable', part.variable);
+              span.setAttribute('aria-label', `${part.variable}: ${part.text}`);
+              span.setAttribute('data-export-state', 'loading'); text.append(span);
+              const context = Object.freeze({runId: options.helpContext.runId});
+              const captured = {id: instruction.id, opcode: instruction.opcode, arguments: [...instruction.arguments]};
+              const finish = (data, failed = false) => {
+                if (span.isConnected === false) return;
+                const saved = data?.display_value;
+                const exported = saved && typeof saved.value === 'string'
+                  ? `${saved.value}${saved.units ? ` ${saved.units}` : ''} (export)`
+                  : failed ? 'Hover to load saved value' : 'Saved value unavailable';
+                const full = part.operand === '?' ? exported : `${part.operand} (rung); ${exported}`;
+                let visible = '', pixels = 0;
+                for (const char of full) {
+                  pixels += char.codePointAt(0) > 255 ? 14 : 8;
+                  if (pixels > 300) { visible += '…'; break; }
+                  visible += char;
+                }
+                span.textContent = visible;
+                span.setAttribute('aria-label', `${part.variable}: ${full}. Hover for member meaning and writing instructions.`);
+                span.setAttribute('data-export-state', saved ? 'captured' : 'unavailable');
+              };
+              Promise.resolve().then(() => window.PLCInstructionHelp.loadVariable(captured, part.variable, context))
+                .then(finish, () => finish(null, true));
+            }
             else {
               const span = svg('tspan', {class: part.kind === 'label' ? 'ladder-diagram-slot' : 'ladder-diagram-operation'}, part.text);
               if (part.kind !== 'label') colors?.paint(span, part.text, part.kind);
@@ -267,6 +307,7 @@
         const argumentsList = html("ol"); instruction.arguments.forEach(argument => {
           const row = html("li"), code = html("code");
           if (colors) colors.append(code, argument || '(empty argument)'); else code.textContent = argument || '(empty argument)';
+          window.PLCInstructionHelp?.attach?.(code, instruction, options.helpContext);
           row.append(code); argumentsList.append(row);
         });
         detail.append(instruction.arguments.length ? argumentsList : html("p", "No captured arguments."));
@@ -278,7 +319,7 @@
     }
     const positions = new Map(source.instructions.map((instruction, index) => [instruction.id, index + 1]));
     plan.cards.forEach(card => {
-      const instruction = byId.get(card.id), node = symbol(card, instruction, positions.get(card.id), size, colors);
+      const instruction = byId.get(card.id), node = symbol(card, instruction, positions.get(card.id), size, colors, options);
       node.setAttribute("aria-pressed", "false"); node.addEventListener("click", () => inspect(instruction));
       node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); inspect(instruction); } });
       window.PLCInstructionHelp?.attach?.(node, instruction, options.helpContext);
@@ -309,7 +350,9 @@
 
   function render(source, options = {}) {
     try {
-      const size = dimensions(options.compact === true), byId = validate(source, options), plan = layout(source.structure, byId, size);
+      const size = dimensions(options.compact === true);
+      size.memberEvidence = Boolean(options.helpContext?.runId && window.PLCInstructionHelp?.loadVariable);
+      const byId = validate(source, options), plan = layout(source.structure, byId, size);
       if (plan.width > LIMITS.extent || plan.height > LIMITS.extent) throw new Error("The complete rung exceeds the available drawing extent.");
       return draw(source, byId, plan, options, size);
     } catch (cause) { return fallback(source, cause instanceof Error ? cause.message : "The rung could not be drawn safely."); }

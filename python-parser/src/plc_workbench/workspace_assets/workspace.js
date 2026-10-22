@@ -943,12 +943,12 @@
             " instructions)",
         ),
       );
-      renderInstructions(instructions, s.instructions, data.operands || []);
+      renderInstructions(instructions, s.instructions, data.operands || [], {runId: data.run_id});
       root.append(instructions);
     } else {
       const original = section(root, "Original properties");
       renderValues(original, s.attributes || s);
-      if (s.arguments) renderInstructions(root, [s], data.operands || []);
+      if (s.arguments) renderInstructions(root, [s], data.operands || [], {runId: data.run_id});
     }
     const proposals = node("details", null, "detail-section");
     proposals.append(
@@ -1342,7 +1342,7 @@
       "unknown-node",
     );
   }
-  function renderInstructions(root, instructions, operands) {
+  function renderInstructions(root, instructions, operands, helpContext) {
     const colors = window.PLCSourceColors?.create(instructions);
     const area = section(
       root,
@@ -1356,7 +1356,7 @@
       const opcode = node("strong", index + 1 + ". " + inst.opcode);
       colors?.paint(opcode, inst.opcode, "operator");
       opcode.setAttribute("aria-description", window.PLCRungExplanation?.summary?.(inst) || "Original instruction and arguments");
-      window.PLCInstructionHelp?.attach?.(opcode, inst);
+      window.PLCInstructionHelp?.attach?.(opcode, inst, helpContext);
       header.append(opcode, link("Evidence ↗", inst.id));
       card.append(header);
       const args = node("ol");
@@ -1370,6 +1370,8 @@
         const argument = node("span");
         if (colors) colors.append(argument, value);
         else argument.append(document.createTextNode(value));
+        argument.setAttribute("aria-description", window.PLCRungExplanation?.summary?.(inst) || "Original instruction and arguments");
+        window.PLCInstructionHelp?.attach?.(argument, inst, helpContext);
         row.append(argument);
         if (operand?.id) {
           row.append(

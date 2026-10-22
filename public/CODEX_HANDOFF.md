@@ -1,5 +1,45 @@
 # Current handoff: PLC analysis workbench
 
+## Visual report rungs and saved variable evidence (2026-10-22)
+
+Engineering-review rung details now reuse the Programs & routines ladder
+renderer, including branch geometry, colored operands, operation notation,
+zoom, full original source and instruction help. Hosted `/analysis` refreshes
+the saved report with current trusted assets; it does not replace its evidence
+or require an L5X rerun. Newly generated standalone reports include offline
+drawings and instruction examples. Saved variable lookups and separate help
+windows are available through the running workspace.
+
+Timer/counter blocks can display unambiguous exported PRE/ACC values even when
+the instruction contains question marks. Hover or focus a variable for its
+declared scope, member meaning, stored representations and possible write
+sites. Ctrl-click keeps the same saved-run evidence in a separate window.
+Exact member assignments, whole-control uses and possible overlaps remain
+distinct. Exported settings are not live values or guaranteed startup state.
+Unknown custom members retain their captured values without inferred meanings.
+
+`workspace_variables.py` authenticates saved inventory, references, access and
+tag-data evidence before building a bounded per-run index. No analysis artifact
+or review record is rewritten. Case-insensitive member joins preserve original
+spelling and withhold ambiguous values. A synthetic 4,606-rung / 6,000-owner
+profile took 7.1 seconds for the first authenticated lookup and 0.011 seconds
+for a cached member; this is a local measurement, not a work-PC guarantee.
+
+Manually pull, stop the existing workspace and reopen it. Existing saved
+analysis companions supply the member information; a parser rerun is needed
+only if the required companions are absent, or to produce a new standalone
+report file.
+
+Validation: 117 combined rendering, member/API and report tests passed. Follow-up
+HTTP/CSP, disconnect and offline-help regressions passed after browser checks
+exposed the old opaque-origin report header. Independent reviews covered the
+backend, shared UI and trusted report boundary. Chrome verified exported
+PRE/ACC values, local/global shadowing, an unknown custom member, exact versus
+whole-control writers, and report Ctrl-click help windows using invented data.
+The refreshed report uses only the installed scripts and their CSP hashes;
+raw imported HTML retains its restrictive sandbox. Standalone reports remain
+offline, and no parser source facts or review decisions are modified.
+
 ## Equality comparison notation (2026-10-22)
 
 EQU now uses == in the shared ladder drawing, equation renderer (including rung

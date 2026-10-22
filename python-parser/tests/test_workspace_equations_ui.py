@@ -383,9 +383,9 @@ assert.ok(tags(rendered.math,'mtext').every(n=>n.namespaceURI==='http://www.w3.o
 
     def test_help_attaches_to_instruction_content_without_native_titles_or_review_control_targets(self) -> None:
         self.run_js([*RUNG_FUNCTIONS, "renderInstructions", "renderRungPreview"], r"""
-const attached=[];window.PLCInstructionHelp={attach:(anchor,instruction)=>attached.push({anchor,instruction}),close:()=>{}};
+const attached=[];window.PLCInstructionHelp={attach:(anchor,instruction,context)=>attached.push({anchor,instruction,context}),close:()=>{}};
 const root=node('div');renderRungLogic(root,data.source,data,{sourceQualified:true});
-const list=node('div');renderInstructions(list,data.source.instructions,[]);
+const list=node('div'),context={runId:'saved-list-run'};renderInstructions(list,data.source.instructions,[],context);
 const preview=renderRungPreview({preview:{instructions:data.source.instructions,calculations:data}});
 const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
 const math=tags(panels[2],'math');
@@ -395,7 +395,9 @@ for(let index=0;index<data.source.instructions.length;index++) {
   assert.equal(math[index].attributes['aria-description'],help);
   assert.equal(math[index].attributes['aria-label'],instruction.opcode+'('+instruction.arguments.join(', ')+')');
   const targets=attached.filter(item=>item.instruction===instruction).map(item=>item.anchor);
-  assert.equal(targets.length,6,'Flow, equation heading/formula, branch expression, list header, and preview all get help');
+  assert.equal(targets.length,6+instruction.arguments.length,'Flow, equations, branch, list header/arguments and preview get help');
+  const listTargets=attached.filter(item=>item.instruction===instruction&&item.context===context);
+  assert.equal(listTargets.length,1+instruction.arguments.length,'Each argument keeps its explicit saved-run identity');
   targets.forEach(anchor=>{
     assert.equal(anchor.attributes['aria-description'],help);
     assert.equal([anchor,...descendants(anchor)].some(n=>['a','input','label','button'].includes(n.tagName)),false,

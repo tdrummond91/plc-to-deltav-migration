@@ -70,6 +70,13 @@
     "internal": ["CTL", "DATA"]
   };
   const data = JSON.parse(document.getElementById('review-data').textContent);
+  // This context comes from the trusted renderer, never imported report HTML.
+  const ladderContext = typeof REVIEW_LADDER === 'object' ? REVIEW_LADDER : {};
+  const qualifiedRungs = new Set(ladderContext.qualifiedRungs || []);
+  const hostedHelp = ladderContext.runId && typeof WORKSPACE_REVIEW !== 'undefined'
+    && WORKSPACE_REVIEW === true && ['http:','https:'].includes(window.location?.protocol);
+  const helpContext = Object.freeze(hostedHelp ? {runId:ladderContext.runId} : {});
+  window.PLCInstructionHelp?.configure({getContext:()=>helpContext});
   const language = window.PLCReviewLanguage?.create(data);
   const proseSearch = value => language ? language.search(value) : value;
   const prosePreview = (value, fallback='') => language ? language.preview(value, fallback) : value || fallback;
@@ -2326,7 +2333,16 @@
     if(byExecutionInstruction.has(state.focusInstruction))content.append(button('Inspect execution context',()=>openDetail('executioncontext',byExecutionInstruction.get(state.focusInstruction))));
     if(byCustomCall.has(state.focusInstruction))content.append(customCallLink(byCustomCall.get(state.focusInstruction)));
     if(byFileOperation.has(state.focusInstruction))content.append(fileOperationLink(state.focusInstruction));
-    const text=panel('Rung text','Exact captured ladder source. No execution behavior is inferred.');text.append(sourceText(r.text));content.append(text);
+    const ladder=panel('Rung diagram','Captured contacts, coils and blocks keep their original series and parallel paths. Select a block for its full arguments; hover or focus for help. Zoom and Fit width change the view.');
+    ladder.className+=' report-rung-diagram';
+    if(window.PLCLadderDiagram)ladder.append(window.PLCLadderDiagram.render(r,{
+      sourceQualified:qualifiedRungs.has(r.id),compact:true,helpContext,
+    }));
+    else ladder.append(sourceText(r.text));
+    const diagramHelp=node('details','report-ladder-help');diagramHelp.append(node('summary','','How to read this drawing'),
+      node('p','','Symbols and paths describe captured source, not live power flow. Variable colors distinguish exact names within this rung and repeat after six names; they do not indicate input/output roles. Operators are orange. Unknown blocks retain their captured arguments.'),
+      node('p','',helpContext.runId?'Ctrl-click a block or variable to open its help in a separate window. Captured export values are not live values.':'Instruction explanations and invented examples are included offline. Saved variable values and separate help windows are available when this report is opened through the workspace.'));
+    ladder.append(diagramHelp);content.append(ladder);
     if(r.comment !== null){const p=panel('Rung comment');p.append(sourceText(r.comment,true));content.append(p);}
     if(byRungAnalysis.has(r.id))engineeringRungDetail(r,byRungAnalysis.get(r.id));
     if(fileOperationsByRung.has(r.id)){const p=section('File and array operations on this rung','Open an occurrence for its documented slots, starting addresses and range limitations.');p.append(fileOperationTable(fileOperationsByRung.get(r.id),'Rung file operations'));content.append(p);}
@@ -2339,7 +2355,7 @@
     if(rungCalculations.has(r.id)){const p=section('Calculations on this rung');p.append(calculationTable(rungCalculations.get(r.id),'Rung calculation occurrences'));content.append(p);}
     if(calculationPaths){const paths=calculationPathOccurrences.filter(c=>c.rung_id===r.id);if(paths.length){const p=section('Calculation inputs and destinations on this rung');p.append(calculationPathTable(paths,'Rung calculation blocks'));content.append(p);}}
     const ops=section(access?.schema_version>=3?'Original reference bindings':'Operand bindings','Root resolution is source evidence only. A binding does not validate a member, array bound, data type or instruction effect.'+(access?.schema_version>=3?' These rows retain the original reference analysis; additional instruction access bindings appear separately below.':''));
-    if((rungOperands.get(r.id)||[]).some(o=>byOperandAccess.get(o.id)?.reason==='timer_pseudo_operand'))ops.append(node('p','row-note','Timer preset and accumulator fields describe initialization, not separate runtime reads. A question mark supplies no value here. Timer values, units and configuration are not validated.'));
+    if((rungOperands.get(r.id)||[]).some(o=>byOperandAccess.get(o.id)?.reason==='timer_pseudo_operand'))ops.append(node('p','row-note','Preset and accumulator operands are captured instruction fields, not separate runtime reads. A question mark supplies no value in this operand list. Captured PRE and ACC structure-member values are shown separately in timer or variable evidence where available; they are export records, not guaranteed startup settings or live values.'));
     ops.append(table(['Operand','Instruction / argument','Binding','Declared / resolved root',...(access?['Operand role']:[])],rungOperands.get(r.id)||[],o=>[node('span','mono',o.raw_text || '(blank)'),(byInstruction.get(o.instruction_id)?.instruction.opcode||'Instruction')+' · '+(o.argument_index+1),primary(badge(o.status),o.reason?human(o.reason):''),bindingRoots(o,o.reason),...(access?[accessCell(o)]:[])],'Rung operand bindings'));content.append(ops);
     if(rungAccessBindings.has(r.id)){
       const extra=section('Instruction access bindings','These bindings use supported instruction operand roles. Selector text is not a tag reference, even if a declaration has the same name. The original reference findings are preserved above.');
@@ -3244,6 +3260,7 @@
     else if(state.view==='alarmevidence')alarmList();
   }
   function render(focus=false){
+    window.PLCInstructionHelp?.close();
     heading.replaceChildren();toolbar.replaceChildren();content.replaceChildren();
     document.querySelectorAll('.nav-button').forEach(b=>{if(b.dataset.view===state.view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
     if(state.detail){

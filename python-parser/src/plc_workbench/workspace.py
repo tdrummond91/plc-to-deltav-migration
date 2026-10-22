@@ -36,6 +36,19 @@ def _json(data: Any) -> bytes:
     return json.dumps(data, ensure_ascii=False, allow_nan=False, separators=(",", ":")).encode("utf-8")
 
 
+def _refreshed_report_policy(data: bytes) -> str:
+    """Use the trusted renderer's hashed policy, never imported HTML policy."""
+    match = re.search(rb'<meta http-equiv="Content-Security-Policy" content="([^"]+)">', data[:4096])
+    policy = match.group(1).decode('ascii') if match else ''
+    digest = r"'sha256-[A-Za-z0-9+/]{43}='"
+    if re.fullmatch(r"default-src 'none'; script-src " + digest + r"; style-src " + digest
+            + r"; connect-src 'self'; img-src 'none'; font-src 'none'; object-src 'none'; "
+              r"frame-src 'none'; base-uri 'none'; form-action 'none'", policy) is None:
+        raise ProjectError('The refreshed report is missing its trusted display policy.')
+    return ("sandbox allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox; "
+            + policy + "; frame-ancestors 'none'")
+
+
 class Workspace:
     """Browser projection; the store remains the only writable authority."""
 
@@ -59,6 +72,7 @@ class Workspace:
         self._connection_cache: tuple[str | None | object, Any] = (_UNLOADED, None)
         self._ladder_map_cache: tuple[Any, Any] = (_UNLOADED, None)
         self._map_qualification_cache: tuple[Any, Any] = (_UNLOADED, None)
+        self._variable_cache: dict[str, Any] = {}
         self._translation_service: Any = None
         self._translation_run: str | None = None
         self._translation_catalog_cache: tuple[Any, dict] = (_UNLOADED, {})
@@ -630,6 +644,59 @@ class Workspace:
                 self.store.artifact('snapshot.L5X', self._run), self._inventory))
         return self._map_qualification_cache[1]
 
+    def variable(self, query: dict) -> dict:
+        """Inspect one immutable run without switching the active workspace."""
+        from .workspace_variables import (
+            MAX_ARTIFACT_BYTES, VariableError, VariableIndex, unavailable, validate_query,
+        )
+        run_id, instruction_id, variable = (query.get(key) for key in ('run_id', 'instruction_id', 'variable'))
+        try:
+            validate_query(run_id, instruction_id, variable)
+        except VariableError as exc:
+            raise ProjectError(str(exc)) from None
+        state = self.store.state()
+        # Validate the requested run even when an unavailable index is cached.
+        # Historical calls never mutate _run, loaded source lists, or selection.
+        self.store._run(run_id)
+        if run_id not in self._variable_cache:
+            inventory = self.store.inventory(run_id)
+            def companion(name: str, *, optional: bool = False) -> dict | None:
+                try:
+                    raw = self.store.artifact(name, run_id)
+                except ProjectError:
+                    if optional:
+                        return None
+                    raise
+                if len(raw) > MAX_ARTIFACT_BYTES:
+                    raise ValueError('Variable companion exceeds its limit.')
+                def unique(pairs: list[tuple[str, Any]]) -> dict:
+                    result = {}
+                    for key, value in pairs:
+                        if key in result:
+                            raise ValueError('Repeated evidence field.')
+                        result[key] = value
+                    return result
+                return json.loads(raw, object_pairs_hook=unique)
+            try:
+                index = VariableIndex(self.store.artifact('snapshot.L5X', run_id), inventory,
+                    companion('references.json'), companion('access.json', optional=True),
+                    companion('tag-data.json', optional=True), companion('calculations.json', optional=True))
+            except (ProjectError, VariableError, ValueError, TypeError, KeyError, RecursionError, OverflowError):
+                index = None
+            # Two immutable indexes cover active and historical popup use without
+            # retaining every imported project snapshot in memory.
+            while len(self._variable_cache) >= 2:
+                self._variable_cache.pop(next(iter(self._variable_cache)))
+            self._variable_cache[run_id] = index
+        index = self._variable_cache[run_id]
+        try:
+            result = (index.view(instruction_id, variable) if index is not None else
+                      unavailable('Saved variable evidence is missing or could not be verified. Original source remains available.'))
+        except VariableError as exc:
+            raise ProjectError(str(exc)) from None
+        return {**result, 'run_id': run_id, 'instruction_id': instruction_id, 'variable': variable,
+                'historical': run_id != state.get('active_run')}
+
     def _map_connection_index(self) -> Any:
         index = self._connection_index()
         if index is not None:
@@ -933,7 +1000,8 @@ class Workspace:
             catalog = self.annotation_catalog()
             translations = service.lookup_many(entry['original'] for entry in catalog['entries'])
             rendered = refresh_report(self.store.artifact('review.html'), self._inventory,
-                                      translations=translations, language=mode, catalog=catalog)
+                                      translations=translations, language=mode, catalog=catalog,
+                                      run_id=self._run, rung_qualification=self._map_qualification()[1])
             self._report_cache = (signature, rendered)
         return self._report_cache[1]
 
@@ -999,6 +1067,7 @@ class Workspace:
         self._connection_cache = (_UNLOADED, None)
         self._ladder_map_cache = (_UNLOADED, None)
         self._map_qualification_cache = (_UNLOADED, None)
+        self._variable_cache = {}
         self._historical_labels = {}
         return self.state()
 
@@ -1036,7 +1105,11 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
         # Paths and query text may contain private engineering names.
         return
 
-    def _send(self, status: int, data: bytes, content_type: str, *, report: bool = False) -> None:
+    def _send(self, status: int, data: bytes, content_type: str, *, report: bool = False,
+              trusted_report: bool = False) -> None:
+        # Only /analysis supplies this flag after refresh_report has discarded
+        # imported executable HTML and generated this installation's scripts.
+        trusted_policy = _refreshed_report_policy(data) if trusted_report else None
         try:
             self.send_response(status)
             self.send_header("Content-Type", content_type)
@@ -1045,7 +1118,9 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("X-Frame-Options", "SAMEORIGIN")
-            if report:
+            if trusted_policy is not None:
+                self.send_header('Content-Security-Policy', trusted_policy)
+            elif report:
                 # Imported HTML is evidence, not trusted application code. Even a
                 # self-consistent altered manifest must not grant it editor access.
                 # Opaque-origin sandbox preserves its self-contained script while
@@ -1112,6 +1187,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._json(200, workspace.routine_ladder(query))
             elif url.path == "/api/connections":
                 self._json(200, workspace.connections(query))
+            elif url.path == '/api/variable':
+                self._json(200, workspace.variable(query))
             elif url.path == '/api/ladder-map':
                 self._json(200, workspace.ladder_map(query))
             elif url.path == '/api/ladder-map/links':
@@ -1133,10 +1210,12 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
             elif url.path == "/api/rule-matches":
                 self._json(200, workspace.rule_matches(query.get("source_id", "")))
             elif url.path == "/analysis":
-                self._send(200, workspace.report(query.get('language')), "text/html; charset=utf-8", report=True)
+                self._send(200, workspace.report(query.get('language')), "text/html; charset=utf-8",
+                           report=True, trusted_report=True)
             elif url.path in ("/", "/index.html", "/workspace.js", "/workspace.css",
                               "/source-colors.js", "/source-colors.css",
                               "/instruction-help.html", "/instruction-help.js", "/instruction-help.css", "/instruction-help-content.js",
+                              "/variable-help-content.js",
                               "/rung-flow.js", "/rung-flow.css", "/rung-explanation.js", "/rung-explanation.css",
                               "/routine-browser.js", "/routine-browser.css", "/ladder-diagram.js", "/ladder-diagram.css",
                               "/connections.js", "/connections.css",

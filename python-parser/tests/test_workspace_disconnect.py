@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import io
 import json
+import base64
+import hashlib
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 
+from plc_workbench.project_store import ProjectError
 from plc_workbench.workspace import WorkspaceHandler
 
 
@@ -36,7 +39,12 @@ class WorkspaceDisconnectTests(unittest.TestCase):
         # serializer and BaseHTTPRequestHandler response-header implementation.
         handler = object.__new__(WorkspaceHandler)
         workspace = Mock()
-        workspace.report.return_value = b'<html>Invented report</html>'
+        digest = base64.b64encode(hashlib.sha256(b'').digest()).decode('ascii')
+        policy = (f"default-src 'none'; script-src 'sha256-{digest}'; style-src 'sha256-{digest}'; "
+                  "connect-src 'self'; img-src 'none'; font-src 'none'; object-src 'none'; "
+                  "frame-src 'none'; base-uri 'none'; form-action 'none'")
+        workspace.report.return_value = (f'<html><meta http-equiv="Content-Security-Policy" '
+                                         f'content="{policy}">Invented report</html>').encode()
         workspace.state.return_value = {'revision': 2}
         workspace.mutate.return_value = {'revision': 2}
         handler.server = SimpleNamespace(workspace=workspace, token='synthetic-session',
@@ -54,6 +62,23 @@ class WorkspaceDisconnectTests(unittest.TestCase):
         handler.rfile = io.BytesIO(body)
         handler.wfile = stream if stream is not None else ResponseStream()
         return handler
+
+    def test_raw_report_mode_remains_opaque_and_blocks_connections(self) -> None:
+        handler = self.handler('/raw-not-a-route')
+        handler._send(200, b'<html><script>untrusted()</script></html>', 'text/html', report=True)
+        headers = handler.wfile.attempts[0].decode()
+        self.assertIn("sandbox allow-scripts;", headers)
+        self.assertIn("connect-src 'none'", headers)
+        self.assertNotIn('allow-same-origin', headers)
+        self.assertNotIn('allow-popups', headers)
+
+    def test_trusted_report_mode_rejects_missing_or_unsafe_policy_before_headers(self) -> None:
+        handler = self.handler('/analysis')
+        for data in (b'<html>Untrusted</html>',
+                     b'<meta http-equiv="Content-Security-Policy" content="script-src *; connect-src *">'):
+            with self.subTest(data=data), self.assertRaises(ProjectError):
+                handler._send(200, data, 'text/html', report=True, trusted_report=True)
+            self.assertEqual(handler.wfile.attempts, [])
 
     def test_report_disconnect_during_headers_or_body_never_writes_a_second_response(self) -> None:
         for error_type in DISCONNECTS:

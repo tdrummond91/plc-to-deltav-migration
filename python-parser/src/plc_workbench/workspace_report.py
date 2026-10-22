@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from html.parser import HTMLParser
 import json
-from pathlib import Path
 
 from .project_store import ProjectError
-from .review_html import _encode_payload, _hash, _limits, _presentation_data, _render_template
+from .review_html import (_encode_payload, _hash, _limits, _presentation_data,
+                          _render_template, _review_assets)
 
 
 class _Payload(HTMLParser):
@@ -73,7 +73,8 @@ def read_report_data(original: bytes, inventory: dict) -> dict:
 
 
 def refresh_report(original: bytes, inventory: dict, *, translations: dict | None = None,
-                   language: str = 'original', catalog: dict | None = None) -> bytes:
+                   language: str = 'original', catalog: dict | None = None,
+                   run_id: str | None = None, rung_qualification: dict | None = None) -> bytes:
     """Return a source-bound, current read-only view of saved evidence."""
     try:
         data = read_report_data(original, inventory)
@@ -81,15 +82,13 @@ def refresh_report(original: bytes, inventory: dict, *, translations: dict | Non
             raise ProjectError('The report language must be original, English or both.')
         payload = _encode_payload(_presentation_data(data))
         overlay = _language_overlay(data, translations, language, catalog)
-        assets = Path(__file__).with_name('review_assets')
-        css = (assets / 'report.css').read_text(encoding='utf-8')
-        script = 'const REVIEW_DEBUG = false; const WORKSPACE_REVIEW = true;\n' + '\n'.join(
-            (assets / name).read_text(encoding='utf-8')
-            for name in ('theme.js', 'review_guide.js', 'language.js', 'report.js')
-        )
+        css, script = _review_assets(data, workspace=True, run_id=run_id,
+                                     rung_qualification=rung_qualification)
+        connections = "'self'" if run_id is not None else "'none'"
         policy = ("default-src 'none'; "
                   f"script-src 'sha256-{_hash(script)}'; style-src 'sha256-{_hash(css)}'; "
-                  "connect-src 'none'; img-src 'none'; base-uri 'none'; form-action 'none'")
+                  f"connect-src {connections}; img-src 'none'; font-src 'none'; object-src 'none'; "
+                  "frame-src 'none'; base-uri 'none'; form-action 'none'")
         rendered = _render_template(policy, css, script, payload, overlay).encode('utf-8')
         if len(rendered) > _limits(data['schema_version'])[1]:
             raise ProjectError('The refreshed evidence report exceeds its display size limit.')

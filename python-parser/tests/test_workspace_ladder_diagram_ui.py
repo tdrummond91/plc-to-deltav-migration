@@ -216,6 +216,46 @@ assert.ok(calculation.join('').includes('…'));assert.ok(cls(root,'source-varia
 geometry(root,58);await cards(root)[0].fire('click');args.forEach(arg=>assert.ok(cls(root,'ladder-diagram-selected')[0].textContent.includes(arg)));
 """)
 
+    def test_timer_member_values_keep_source_and_geometry_and_capture_run_context(self) -> None:
+        self.run_js(r"""
+const pending=[],context={runId:'saved-run'},attached=[];
+window.PLCInstructionHelp={attach:(...args)=>attached.push(args),loadVariable:(inst,variable,ctx)=>{
+ const wait=deferred();pending.push({inst,variable,ctx,wait});return wait.promise;
+}};
+const timer=instruction('timer','TON',['Delay','?','0']),data=source(seq(ins('timer')),[timer]),before=JSON.stringify(data);
+const root=render(data,{compact:true,helpContext:context}),fields=cls(root,'ladder-diagram-member-value');
+assert.equal(fields.length,2);assert.equal(fields[0].attributes['data-source-variable'],'Delay.PRE');
+assert.equal(fields[1].attributes['data-source-variable'],'Delay.ACC');
+const dimensionsBefore=JSON.stringify(boxes(root));button(root,'Zoom in').fire('click');
+const zoomBefore=cls(root,'ladder-diagram-canvas')[0].attributes.width;
+context.runId='later-run';await tick();
+assert.deepEqual(pending.map(item=>item.variable),['Delay.PRE','Delay.ACC']);
+assert.ok(pending.every(item=>item.ctx.runId==='saved-run'&&item.inst.id==='timer'));
+pending[0].wait.resolve({display_value:{value:'5000',units:'ms'}});
+pending[1].wait.resolve({display_value:{value:'120',units:'ms'}});await tick();
+assert.equal(fields[0].textContent,'5000 ms (export)');
+assert.equal(fields[1].textContent,'0 (rung); 120 ms (export)');
+assert.equal(fields[0].attributes['data-export-state'],'captured');
+assert.equal(JSON.stringify(data),before);assert.equal(JSON.stringify(boxes(root)),dimensionsBefore);
+assert.equal(cls(root,'ladder-diagram-canvas')[0].attributes.width,zoomBefore);geometry(root,58);
+""")
+
+    def test_timer_member_unavailable_and_detached_results_do_not_invent_values(self) -> None:
+        self.run_js(r"""
+const jobs=[];window.PLCInstructionHelp={loadVariable:()=>{const d=deferred();jobs.push(d);return d.promise;}};
+const timer=instruction('timer','RTO',['Delay','?','?']),data=source(seq(ins('timer')),[timer]);
+const root=render(data,{helpContext:{runId:'saved-run'}}),fields=cls(root,'ladder-diagram-member-value');
+await tick();jobs[0].resolve({display_value:null,captured_values:[{value:'5000'},{value:'6000'}]});jobs[1].reject(new Error('Unavailable'));
+await tick();assert.equal(fields[0].textContent,'Saved value unavailable');
+assert.equal(fields[1].textContent,'Hover to load saved value');
+assert.ok(fields.every(field=>field.attributes['data-export-state']==='unavailable'));
+const removed=render(data,{helpContext:{runId:'saved-run'}}),removedFields=cls(removed,'ladder-diagram-member-value');
+removedFields.forEach(field=>field.isConnected=false);await tick();
+jobs[2].resolve({display_value:{value:'999'}});jobs[3].resolve({display_value:{value:'888'}});await tick();
+assert.ok(removedFields.every(field=>field.attributes['data-export-state']==='loading'));
+assert.equal(cls(render(data),'ladder-diagram-member-value').length,0,'No lookup without a captured run');
+""")
+
     def test_unknown_wrong_arity_and_blank_operands_never_gain_equation_roles(self) -> None:
         self.run_js(r"""
 const rows=[instruction('unknown','CustomBlock',['A','B']),instruction('neq','NEQ',['A','B','C']),instruction('blank','ADD',['A',' ','D']),instruction('pid','PID',['A','B']),instruction('reset','RES',['A','B'])];

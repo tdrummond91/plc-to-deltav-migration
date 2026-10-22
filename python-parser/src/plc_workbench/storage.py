@@ -274,7 +274,7 @@ def save_run(
                                                 include_residual_diagnostics=include_residual_diagnostics,
                                                 include_rack_backing_context=include_rack_backing_context)
                 review_html = render_review_html(
-                    review_data, **({"debug": True} if review_debug else {})
+                    review_data, source=snapshot.data, **({"debug": True} if review_debug else {})
                 ).encode("utf-8")
             except (ReviewSizeLimitError, ReviewHtmlSizeLimitError) as exc:
                 raise StorageError("Private engineering review exceeds its report size limit.", code='review_size_limit') from exc

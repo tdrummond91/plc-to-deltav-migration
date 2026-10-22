@@ -78,6 +78,34 @@ For later review sessions that do not need new analysis, the optional command
 `Open-Workbench.cmd` is an alternative to that shortcut. The opener does not
 run tests, analyze the L5X, or perform Git operations.
 
+### Reading rungs and saved variable settings
+
+Open a rung in **Full source analysis / Engineering review** to see the same
+ladder drawing as **Programs & routines**. Zoom, Fit width, colored variables,
+branch paths and block help work the same way. **Original rung text (complete)**
+keeps the captured source available below the drawing. Reports opened through
+the workspace use the current drawing tools even when their analysis is older.
+
+Timer and counter blocks show exported preset and accumulator values when
+the saved tag data establishes them. For example, `5000 ms (export)` is a value
+stored in the L5X, not a live timer reading or a promise about startup state.
+The original instruction can still contain `?`. Missing or ambiguous values
+are labeled rather than replaced with zero.
+
+Hover over a variable such as `Delay.PRE`, or focus it and press **F1**. Its help
+shows the declaration and program/controller scope, the member's meaning when
+known, stored values, and rungs that can write it. An explicit `MOV` to `.PRE`
+is distinguished from a whole-timer instruction whose effect on that member
+has not been established. **Ctrl-click** opens an independent help window;
+write-site links open the captured writing instruction from the same analysis.
+Custom members retain their source information even when their meaning is
+unknown. No current value or execution order is inferred.
+
+The first variable lookup prepares a local evidence index and can take a few
+seconds; later lookups reuse it. Standalone HTML files retain their drawings
+and instruction examples offline. Open the report through the workspace for
+saved variable lookups and separate help windows.
+
 Click outside **Project tools** or press Escape to close it. Dialogs also close
 when you click their shaded backdrop or press Escape. Unsaved dialog edits still
 require a discard confirmation; a save in progress must finish first. Clicking

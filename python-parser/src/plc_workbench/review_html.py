@@ -338,21 +338,69 @@ def _hash(value: str) -> str:
     return base64.b64encode(hashlib.sha256(value.encode('utf-8')).digest()).decode('ascii')
 
 
-def render_review_html(data: dict[str, Any], *, debug: bool = False) -> str:
+def _review_assets(data: dict, *, debug: bool = False, workspace: bool = False,
+                   run_id: str | None = None, rung_qualification: dict | None = None) -> tuple[str, str]:
+    """Bundle the same trusted ladder renderer used by the editable workspace.
+
+    Presentation identity stays outside the canonical evidence payload. Only the
+    hosting workspace supplies a saved-run identity; standalone reports cannot
+    request source values or open backend help windows.
+    """
+    if run_id is not None and (not workspace or type(run_id) is not str
+                              or not re.fullmatch(r'[^\x00-\x20\x7f]{1,240}', run_id)):
+        raise ReviewHtmlError('The saved analysis identity is invalid.')
+    qualification = rung_qualification if rung_qualification is not None else {}
+    rungs = data['inventory'].get('rungs', [])
+    if (type(rungs) is not list or any(type(row) is not dict or type(row.get('id')) is not str
+                                     or not re.fullmatch(r'[^\x00-\x20\x7f]{1,240}', row['id'])
+                                     for row in rungs)):
+        raise ReviewHtmlError('The ladder source identities are invalid.')
+    rung_ids = {row['id'] for row in rungs}
+    if len(rung_ids) != len(rungs):
+        raise ReviewHtmlError('The ladder source identities are invalid.')
+    if (type(qualification) is not dict or any(type(key) is not str or key not in rung_ids
+                                             or type(value) is not bool
+                                             for key, value in qualification.items())):
+        raise ReviewHtmlError('The ladder source qualification is invalid.')
+    context = json.dumps({'runId': run_id, 'qualifiedRungs': sorted(
+        key for key, value in qualification.items() if value)}, ensure_ascii=True,
+        separators=(',', ':')).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
+    assets = Path(__file__).with_name('review_assets')
+    shared = Path(__file__).with_name('workspace_assets')
+    try:
+        css = '\n'.join((shared / name).read_text(encoding='utf-8') for name in (
+            'source-colors.css', 'ladder-diagram.css', 'instruction-help.css'))
+        css += '\n' + (assets / 'report.css').read_text(encoding='utf-8')
+        scripts = [f"const REVIEW_DEBUG = {'true' if debug else 'false'};",
+                   f"const REVIEW_LADDER = Object.freeze({context});"]
+        if workspace:
+            scripts.append('const WORKSPACE_REVIEW = true;')
+        scripts.extend((shared / name).read_text(encoding='utf-8') for name in (
+            'source-colors.js', 'rung-explanation.js', 'instruction-help-content.js',
+            'variable-help-content.js', 'instruction-help.js', 'ladder-diagram.js'))
+        scripts.extend((assets / name).read_text(encoding='utf-8') for name in (
+            'theme.js', 'review_guide.js', 'language.js', 'report.js'))
+        return css, '\n'.join(scripts)
+    except (OSError, UnicodeError):
+        raise ReviewHtmlError('Engineering review resources are unavailable.') from None
+
+
+def render_review_html(data: dict[str, Any], *, debug: bool = False,
+                       source: bytes | None = None) -> str:
     """Render private evidence, with implementation metadata only on request."""
     if type(debug) is not bool:
         raise ReviewHtmlError('Engineering review display mode is not supported.')
     payload = _payload(data, debug=debug)
-    asset_dir = Path(__file__).with_name('review_assets')
-    try:
-        css = (asset_dir / 'report.css').read_text(encoding='utf-8')
-        theme = (asset_dir / 'theme.js').read_text(encoding='utf-8')
-        guide = (asset_dir / 'review_guide.js').read_text(encoding='utf-8')
-        language = (asset_dir / 'language.js').read_text(encoding='utf-8')
-        application = (asset_dir / 'report.js').read_text(encoding='utf-8')
-        script = f"const REVIEW_DEBUG = {'true' if debug else 'false'};\n{theme}\n{guide}\n{language}\n{application}"
-    except (OSError, UnicodeError):
-        raise ReviewHtmlError('Engineering review resources are unavailable.') from None
+    qualification = None
+    if source is not None:
+        from .workspace_classification import _qualify_source
+        try:
+            if type(source) is not bytes:
+                raise ValueError
+            qualification = _qualify_source(source, data['inventory'])[1]
+        except (ValueError, TypeError, KeyError):
+            raise ReviewHtmlError('The ladder source does not match the review snapshot.') from None
+    css, script = _review_assets(data, debug=debug, rung_qualification=qualification)
     policy = ("default-src 'none'; "
               f"script-src 'sha256-{_hash(script)}'; style-src 'sha256-{_hash(css)}'; "
               "connect-src 'none'; img-src 'none'; font-src 'none'; object-src 'none'; "

@@ -170,13 +170,17 @@ class ReviewHtmlTests(unittest.TestCase):
         self.assertFalse(any(tag in {'link', 'iframe', 'object', 'form'} for tag, _ in parsed.starts))
         self.assertEqual([attrs['href'] for _, attrs in parsed.starts if 'href' in attrs], ['#main'])
 
-    def test_application_has_no_source_markup_or_network_execution_sink(self) -> None:
+    def test_application_has_no_source_markup_sink_and_offline_help_has_no_run(self) -> None:
         parsed = ParsedPage(render_review_html(review_data()))
         script = parsed.scripts[1][1]
         for forbidden in ('innerHTML', 'outerHTML', 'insertAdjacentHTML', 'document.write',
-                          'eval(', 'new Function', 'fetch(', 'XMLHttpRequest', 'WebSocket',
-                          'sendBeacon', 'location.href', 'window.open'):
+                          'eval(', 'new Function', 'XMLHttpRequest', 'WebSocket',
+                          'sendBeacon', 'location.href'):
             self.assertNotIn(forbidden, script)
+        # The shared help controller also serves hosted reports. Its guarded
+        # backend paths are unavailable in standalone reports; runtime tests
+        # additionally assert no request or popup when interacting offline.
+        self.assertIn('"runId":null', script)
         self.assertIn('textContent', script)
         self.assertIn('PAGE_SIZE = 50', script)
         self.assertIn('aria-label', script)

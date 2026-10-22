@@ -11,15 +11,75 @@
   };
   const validId = value => typeof value === 'string' && value.length > 0 && value.length <= 240
     && !/[\x00-\x20\x7f]/.test(value);
+  const validVariable = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 4096 && !/[\x00-\x1f\x7f]/.test(value);
+  const variableCache = new Map(), variableJobs = new Map(), variableQueue = [];
+  let variableRequests = 0;
+  const messageFor = error => error?.name === 'AbortError'
+    ? 'The workspace took too long to respond. Check that it is running, then retry.'
+    : error?.message || 'Saved variable evidence could not be loaded.';
+  async function readJson(url) {
+    const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(url, {cache: 'no-store', credentials: 'same-origin', signal: controller.signal});
+      if (!response.ok) throw new Error('The saved evidence could not be loaded. Check that this project and analysis are still available.');
+      return await response.json();
+    } finally { clearTimeout(timeout); }
+  }
+  function freezeEvidence(value, depth = 0) {
+    if (depth > 20) throw new Error('Saved variable evidence exceeds its display limits.');
+    if (value && typeof value === 'object') {
+      Object.values(value).forEach(child => freezeEvidence(child, depth + 1)); Object.freeze(value);
+    }
+    return value;
+  }
+  function drainVariableQueue() {
+    while (variableRequests < 4 && variableQueue.length) {
+      const job = variableQueue.shift(); variableRequests++;
+      (async () => {
+        try {
+          const params = new URLSearchParams({run_id: job.runId, instruction_id: job.instructionId, variable: job.variable});
+          const data = await readJson(`/api/variable?${params}`);
+          if (!data || data.run_id !== job.runId || data.instruction_id !== job.instructionId || data.variable !== job.variable)
+            throw new Error('This evidence does not match the requested variable and saved analysis. Reopen help from the source.');
+          if (JSON.stringify(data).length > 1024 * 1024 || typeof data.available !== 'boolean'
+              || ['captured_values', 'writers', 'limitations', 'representations'].some(key => data[key] !== undefined && (!Array.isArray(data[key]) || data[key].length > 256)))
+            throw new Error('Saved variable evidence exceeds its display limits.');
+          freezeEvidence(data);
+          variableCache.set(job.key, data);
+          while (variableCache.size > 96) variableCache.delete(variableCache.keys().next().value);
+          job.resolve(data);
+        } catch (error) { job.reject(error); }
+        finally { variableJobs.delete(job.key); variableRequests--; drainVariableQueue(); }
+      })();
+    }
+  }
+  function loadVariable(instruction, variable, context = contextFor()) {
+    const runId = context?.runId, instructionId = instruction?.id;
+    if (!validId(runId) || !validId(instructionId) || !validVariable(variable))
+      return Promise.reject(new Error('Variable help needs its captured instruction, address and saved analysis.'));
+    const key = JSON.stringify([runId, instructionId, variable]);
+    if (variableCache.has(key)) {
+      const data = variableCache.get(key); variableCache.delete(key); variableCache.set(key, data); return Promise.resolve(data);
+    }
+    if (variableJobs.has(key)) return variableJobs.get(key).promise;
+    if (variableJobs.size >= 96) return Promise.reject(new Error('Variable details are busy. Wait for the current requests, then retry.'));
+    const job = {key, runId, instructionId, variable};
+    job.promise = new Promise((resolve, reject) => { job.resolve = resolve; job.reject = reject; });
+    variableJobs.set(key, job); variableQueue.push(job); drainVariableQueue(); return job.promise;
+  }
   function contextFor(context) {
     const value = context || getContext() || {};
     return Object.freeze({runId: value.runId});
   }
-  function helpUrl(instruction, context) {
+  function helpUrl(instruction, context, variable = null) {
     if (!validId(instruction?.id) || !validId(context?.runId)) return null;
     const url = new URL('/instruction-help.html', window.location.origin);
     url.searchParams.set('id', instruction.id);
     url.searchParams.set('run_id', context.runId);
+    if (variable !== null) {
+      if (!validVariable(variable)) return null;
+      url.searchParams.set('variable', variable);
+    }
     url.searchParams.set('theme', document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
     return url.href;
   }
@@ -61,6 +121,26 @@
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => close(), 350);
   }
+  function renderVariable(record, body) {
+    if (!validId(record.context?.runId)) {
+      body.replaceChildren(el('h2', record.variable), el('p',
+        'Saved variable values and write sites are available when you open this report through the workspace.',
+        'instruction-help-status'));
+      return;
+    }
+    body.replaceChildren(el('p', `Loading saved evidence for ${record.variable}…`, 'instruction-help-status'));
+    const expectedPanel = panel;
+    loadVariable(record.instruction, record.variable, record.context).then(data => {
+      if (active !== record || panel !== expectedPanel || !body.isConnected) return;
+      if (!window.PLCVariableHelpContent) throw new Error('Variable help assets are unavailable. Refresh this workspace page.');
+      body.replaceChildren(window.PLCVariableHelpContent.render(data)); place();
+    }).catch(error => {
+      if (active !== record || panel !== expectedPanel || !body.isConnected) return;
+      const status = el('p', messageFor(error)); status.setAttribute('role', 'status');
+      const retry = el('button', 'Retry variable help'); retry.type = 'button';
+      retry.addEventListener('click', () => renderVariable(record, body)); body.replaceChildren(status, retry); place();
+    });
+  }
   function show(record, focus = false) {
     clearTimeout(showTimer); clearTimeout(hideTimer); pending = null;
     if (!record.anchor.isConnected || !record.anchor.getClientRects().length) return;
@@ -68,19 +148,20 @@
       close(); active = record;
       panel = el('section', undefined, 'instruction-help-panel');
       panel.id = 'instruction-hover-help'; panel.setAttribute('role', 'dialog');
-      panel.setAttribute('aria-modal', 'false'); panel.setAttribute('aria-label', 'Instruction help');
+      const subject = record.variable ? 'Variable help' : 'Instruction help';
+      panel.setAttribute('aria-modal', 'false'); panel.setAttribute('aria-label', subject);
       const bar = el('div', undefined, 'instruction-help-toolbar');
-      bar.append(el('span', 'Instruction help · Read only', 'eyebrow'));
+      bar.append(el('span', `${subject} · Read only`, 'eyebrow'));
       const openButton = el('button', 'Open help window ↗'); openButton.type = 'button';
-      openButton.addEventListener('click', () => open(record.instruction, record.context));
-      openButton.disabled = !helpUrl(record.instruction, record.context);
+      openButton.addEventListener('click', () => open(record.instruction, record.context, record.variable));
+      openButton.disabled = !helpUrl(record.instruction, record.context, record.variable);
       const closeButton = el('button', '×'); closeButton.type = 'button';
-      closeButton.setAttribute('aria-label', 'Close instruction help');
+      closeButton.setAttribute('aria-label', record.variable ? 'Close variable help' : 'Close instruction help');
       closeButton.addEventListener('click', () => close(panel?.contains(document.activeElement)));
       bar.append(openButton, closeButton);
       const body = el('div', undefined, 'instruction-help-body');
-      body.append(window.PLCInstructionHelpContent.render(record.instruction));
-      panel.append(bar, body, el('p', 'Ctrl-click a block (⌘-click on Mac) to keep its help in a separate window. F1 opens this panel from the keyboard; Ctrl+Enter opens a window.', 'instruction-help-hint'));
+      if (!record.variable) body.append(window.PLCInstructionHelpContent.render(record.instruction));
+      panel.append(bar, body, el('p', 'Hover a variable for its saved values and writers, or a block for operation help. Ctrl-click (⌘-click on Mac) keeps that help in a separate window. F1 opens the focused item; Ctrl+Enter opens a window.', 'instruction-help-hint'));
       panel.addEventListener('pointerenter', () => clearTimeout(hideTimer));
       panel.addEventListener('pointerleave', event => {
         if (!record.anchor.contains(event.relatedTarget) && !panel.contains(document.activeElement)) deferClose();
@@ -93,12 +174,13 @@
       // layer; a body-level panel would be inert behind that dialog.
       (record.anchor.closest('dialog[open]') || document.body).append(panel);
       record.anchor.setAttribute('aria-expanded', 'true');
+      if (record.variable) renderVariable(record, body);
     }
     place();
     if (focus && panel) panel.querySelector('button:not(:disabled)')?.focus({preventScroll: true});
   }
-  function open(instruction, context = contextFor()) {
-    const url = helpUrl(instruction, context);
+  function open(instruction, context = contextFor(), variable = null) {
+    const url = helpUrl(instruction, context, variable);
     if (!url) return false;
     // _blank deliberately creates an independent window each time, even for the same block.
     const popup = window.open(url, '_blank', 'popup,width=620,height=780,resizable=yes,scrollbars=yes');
@@ -119,6 +201,23 @@
       arguments: Object.freeze([...instruction.arguments])});
     const record = {anchor, instruction: captured, context: contextFor(context)};
     attached.set(anchor, record);
+    const members = new WeakMap();
+    const subjectFor = target => {
+      const token = target?.closest?.('[data-source-variable]');
+      if (!token || !anchor.contains(token)) return record;
+      const variable = token.getAttribute('data-source-variable');
+      if (!validVariable(variable)) return record;
+      if (!members.has(token)) {
+        members.set(token, {anchor: token, instruction: captured, context: record.context, variable});
+        if (!token.hasAttribute('tabindex')) token.setAttribute('tabindex', '0');
+        token.setAttribute('aria-haspopup', 'dialog'); token.setAttribute('aria-expanded', 'false');
+        token.setAttribute('aria-controls', 'instruction-hover-help');
+        token.setAttribute('aria-keyshortcuts', 'F1 Control+Enter Meta+Enter');
+        token.classList.add('has-variable-help');
+      }
+      return members.get(token);
+    };
+    anchor.querySelectorAll('[data-source-variable]').forEach(subjectFor);
     anchor.removeAttribute('title');
     anchor.querySelectorAll('title, [title]').forEach(node => {
       if (node.tagName.toLowerCase() === 'title') node.remove(); else node.removeAttribute('title');
@@ -128,32 +227,45 @@
     anchor.setAttribute('aria-controls', 'instruction-hover-help');
     anchor.setAttribute('aria-keyshortcuts', 'F1 Control+Enter Meta+Enter');
     anchor.classList.add('has-instruction-help');
-    anchor.addEventListener('pointerenter', () => {
-      clearTimeout(hideTimer); clearTimeout(showTimer); pending = record;
-      showTimer = setTimeout(() => { if (pending === record) show(record); }, 240);
+    const schedule = selected => {
+      clearTimeout(hideTimer);
+      if (active === selected) { clearTimeout(showTimer); pending = null; return; }
+      if (pending === selected) return;
+      clearTimeout(showTimer); pending = selected;
+      showTimer = setTimeout(() => { if (pending === selected) show(selected); }, 240);
+    };
+    // pointerenter does not bubble from SVG tspans. Delegated pointerover keeps
+    // member help ahead of its surrounding instruction, using the full token.
+    anchor.addEventListener('pointerenter', event => {
+      if (!pending || !anchor.contains(pending.anchor)) schedule(subjectFor(event.target));
+    });
+    anchor.addEventListener('pointerover', event => schedule(subjectFor(event.target)));
+    anchor.addEventListener('pointerout', event => {
+      if (anchor.contains(event.relatedTarget)) schedule(subjectFor(event.relatedTarget));
     });
     anchor.addEventListener('pointerleave', event => {
-      if (pending === record) { clearTimeout(showTimer); pending = null; }
-      if (active === record && !panel?.contains(event.relatedTarget) && !anchor.contains(document.activeElement)) deferClose();
+      if (pending && anchor.contains(pending.anchor)) { clearTimeout(showTimer); pending = null; }
+      if (active && anchor.contains(active.anchor) && !panel?.contains(event.relatedTarget) && !active.anchor.contains(document.activeElement)) deferClose();
     });
     anchor.addEventListener('pointerdown', () => {
       // Focus follows pointerdown, before click. Do not insert a panel under an
       // in-progress click; the completed Ctrl-click opens help synchronously.
       pointerPressed = record; clearTimeout(showTimer); pending = null;
     }, true);
-    anchor.addEventListener('focusin', () => { if (!suppressFocus && pointerPressed !== record) show(record); });
+    anchor.addEventListener('focusin', event => { if (!suppressFocus && pointerPressed !== record) show(subjectFor(event.target)); });
     anchor.addEventListener('focusout', event => {
-      if (active === record && !panel?.contains(event.relatedTarget) && !anchor.contains(event.relatedTarget)) deferClose();
+      if (active && anchor.contains(active.anchor) && !panel?.contains(event.relatedTarget) && !anchor.contains(event.relatedTarget)) deferClose();
     });
     anchor.addEventListener('click', event => {
       if (!event.ctrlKey && !event.metaKey) return;
-      event.preventDefault(); event.stopImmediatePropagation(); show(record); open(captured, record.context);
+      event.preventDefault(); event.stopImmediatePropagation();
+      const selected = subjectFor(event.target); show(selected); open(captured, selected.context, selected.variable);
     }, true);
     anchor.addEventListener('keydown', event => {
       if (event.key === 'F1' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) {
         event.preventDefault(); event.stopImmediatePropagation();
-        show(record, event.key === 'F1');
-        if (event.key === 'Enter') open(captured, record.context);
+        const selected = subjectFor(event.target); show(selected, event.key === 'F1');
+        if (event.key === 'Enter') open(captured, selected.context, selected.variable);
       }
     }, true);
   }
@@ -182,18 +294,23 @@
   async function loadWindow(root) {
     const query = new URLSearchParams(window.location.search);
     document.documentElement.dataset.theme = query.get('theme') === 'light' ? 'light' : 'dark';
-    const id = query.get('id'), runId = query.get('run_id');
-    const status = el('p', 'Opening saved instruction…'); status.setAttribute('role', 'status'); root.replaceChildren(status);
+    const id = query.get('id'), runId = query.get('run_id'), variable = query.get('variable');
+    const status = el('p', variable === null ? 'Opening saved instruction…' : 'Opening saved variable evidence…'); status.setAttribute('role', 'status'); root.replaceChildren(status);
     try {
       if (!validId(id) || !validId(runId)) throw new Error('This help link is missing its instruction or saved analysis. Open help from a block in the workspace.');
+      if (variable !== null) {
+        const data = await loadVariable({id}, variable, {runId});
+        if (!window.PLCVariableHelpContent) throw new Error('Variable help assets are unavailable. Refresh this page.');
+        document.title = `${variable} · Variable help · PLC Workbench`;
+        root.setAttribute('aria-label', 'Saved variable help');
+        const heading = document.getElementById('instruction-help-window-title');
+        if (heading) heading.textContent = 'PLC Workbench · Variable help';
+        root.replaceChildren(el('p', `Saved analysis: ${runId}${data.historical ? ' · Earlier analysis' : ''}`, 'instruction-help-provenance'),
+          window.PLCVariableHelpContent.render(data));
+        return;
+      }
       const params = new URLSearchParams({id, run_id: runId});
-      const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 15000);
-      let data;
-      try {
-        const response = await fetch(`/api/source?${params}`, {cache: 'no-store', credentials: 'same-origin', signal: controller.signal});
-        if (!response.ok) throw new Error('The saved instruction could not be loaded. Check that this project and analysis are still available.');
-        data = await response.json();
-      } finally { clearTimeout(timeout); }
+      const data = await readJson(`/api/source?${params}`);
       if (data.run_id !== runId || data.kind !== 'instruction' || data.source?.id !== id
           || !window.PLCInstructionHelpContent.valid(data.source))
         throw new Error('This saved record does not match the requested instruction. Reopen help from the workspace.');
@@ -202,13 +319,11 @@
       const source = el('p', `Saved analysis: ${runId}${data.historical ? ' · Earlier analysis' : ''}`, 'instruction-help-provenance');
       root.replaceChildren(path, source, window.PLCInstructionHelpContent.render(data.source));
     } catch (error) {
-      status.textContent = error.name === 'AbortError'
-        ? 'The workspace took too long to respond. Check that it is running, then retry.'
-        : error.message || 'Instruction help could not be loaded.';
+      status.textContent = messageFor(error);
       const retry = el('button', 'Retry'); retry.type = 'button'; retry.addEventListener('click', () => loadWindow(root)); root.append(retry);
     }
   }
-  window.PLCInstructionHelp = Object.freeze({attach, close, open,
+  window.PLCInstructionHelp = Object.freeze({attach, close, open, loadVariable,
     configure(options = {}) { close(); getContext = typeof options.getContext === 'function' ? options.getContext : () => ({}); }});
   const root = document.getElementById('instruction-help-window');
   if (root) loadWindow(root);

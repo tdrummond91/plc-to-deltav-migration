@@ -350,7 +350,7 @@ class WorkspaceIntegrationTests(unittest.TestCase):
             self.assertIn(original['id'], state['reviews'])
             self.assertEqual(state['reviews'][current_id]['fields'], {'purpose': 'Keep this earlier evidence'})
 
-    def test_report_is_sandboxed_without_editor_or_same_origin_access(self) -> None:
+    def test_refreshed_report_has_hashed_same_origin_read_and_popup_policy(self) -> None:
         with running_workspace(self.project, self.runs) as client:
             self.import_run(client)
             status, report = client.request('/analysis')
@@ -358,15 +358,18 @@ class WorkspaceIntegrationTests(unittest.TestCase):
             self.assertIn(b'InventedWorkspace', report)
             directives = {parts[0]: parts[1:] for item in client.last_headers['content-security-policy'].split(';')
                           if (parts := item.strip().split())}
-            self.assertEqual(directives['sandbox'], ['allow-scripts'])
-            self.assertNotIn('allow-same-origin', directives['sandbox'])
-            self.assertEqual(directives['connect-src'], ["'none'"])
+            self.assertEqual(directives['sandbox'], ['allow-scripts', 'allow-same-origin',
+                                                   'allow-popups', 'allow-popups-to-escape-sandbox'])
+            self.assertEqual(directives['connect-src'], ["'self'"])
+            self.assertTrue(directives['script-src'][0].startswith("'sha256-"))
+            self.assertTrue(directives['style-src'][0].startswith("'sha256-"))
+            self.assertNotIn("'unsafe-inline'", directives['script-src'])
             self.assertEqual(directives['default-src'], ["'none'"])
             self.assertEqual(directives['form-action'], ["'none'"])
             self.assertEqual(directives['frame-ancestors'], ["'none'"])
             self.assertEqual(client.last_headers['cache-control'], 'no-store')
             self.assertEqual(client.last_headers['referrer-policy'], 'no-referrer')
-            # A sandboxed report has opaque Origin:null and cannot read the API.
+            # Opaque or foreign callers still cannot read the local API.
             self.assertEqual(client.request('/api/state', headers={'Origin': 'null'})[0], 403)
             client.get('/api/state')
             self.assertIn("connect-src 'self'", client.last_headers['content-security-policy'])
