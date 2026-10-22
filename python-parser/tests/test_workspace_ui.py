@@ -547,8 +547,11 @@ const visits=[];navigateWorkspace=view=>visits.push(view);
 renderHome();assert.ok(contents($('home-source')).includes('Invented.L5X'));
 const links=descendants($('home-pages')).filter(n=>n.tagName==='a');
 assert.equal(links.length,6);
+assert.deepEqual($('home-pages').children,links);
 links.forEach(link=>link.events.click({preventDefault(){}}));
 assert.deepEqual(visits,['routines','rungs','map','connections','groups','objects']);
+links[0].events.click({ctrlKey:true,preventDefault(){throw new Error('Keep native new-tab navigation');}});
+assert.equal(visits.length,6);
 assert.ok(contents($('home-pages')).includes('AI, AO, DI, DO, DC, AC, PID'));
 """)
 

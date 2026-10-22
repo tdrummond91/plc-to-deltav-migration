@@ -1,5 +1,9 @@
 # Current handoff: PLC analysis workbench
 
+Home cards are now full-card native links, with no separate bottom link. Clicking
+the heading, description or card space opens its page; Tab/Enter and modified
+clicks retain normal link behavior. Hover and keyboard focus identify the card.
+
 ## Header language shortcuts and consistent page order (2026-10-22)
 
 Compact FR/EN flags now sit immediately to the right of the PLC Workbench brand,

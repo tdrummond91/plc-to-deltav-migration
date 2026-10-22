@@ -62,12 +62,12 @@
 .project-tools-body > .reviewer-label { display: grid; }
 .project-tools-body > .reviewer-label input { width: 100%; }
 .home-pages { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 1rem; margin: 1.25rem 0; }
-.home-page-card { display: flex; flex-direction: column; border-top: 2px solid var(--accent); padding: 1.15rem; }
+.home-page-card { display: flex; flex-direction: column; border-top: 2px solid var(--accent); padding: 1.15rem; color: var(--ink); text-decoration: none; }
+.home-page-card:hover { background: var(--raised); box-shadow: 0 0 0 1px var(--accent); }
 .home-page-card:nth-child(3n + 2) { border-top-color: var(--magenta); }
 .home-page-card:nth-child(3n) { border-top-color: var(--orange); }
 .home-page-card h2 { font-size: 1.15rem; }
 .home-page-card p { font-size: .92rem; }
-.home-page-link { margin-top: auto; font-weight: 650; }
 .home-source, .home-reference { margin: 1rem 0; padding: 1.15rem; }
 .home-source { border-left: 3px solid var(--accent); }
 .heading-actions { display: flex; flex-wrap: wrap; gap: .6rem; }

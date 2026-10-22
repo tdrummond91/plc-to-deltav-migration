@@ -322,13 +322,15 @@
     ];
     root.replaceChildren();
     pages.forEach(([view,title,description,filters]) => {
-      const card = node('article', null, 'home-page-card panel');
-      const route = node('a', 'Open ' + title, 'home-page-link'); route.href = '#view=' + view;
-      route.addEventListener('click', event => {
+      const card = node('a', null, 'home-page-card panel');
+      card.href = '#view=' + view;
+      const heading = node('h2', title); heading.id = 'home-page-' + view;
+      card.setAttribute('aria-labelledby', heading.id);
+      card.addEventListener('click', event => {
         if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button) return;
         event.preventDefault(); navigateWorkspace(view);
       });
-      card.append(node('h2', title), node('p', description), node('p', filters, 'muted'), route);
+      card.append(heading, node('p', description), node('p', filters, 'muted'));
       root.append(card);
     });
   }
