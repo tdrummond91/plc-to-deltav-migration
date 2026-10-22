@@ -3,7 +3,8 @@
 ## Header language shortcuts and consistent page order (2026-10-22)
 
 Compact FR/EN flags now sit immediately to the right of the PLC Workbench brand,
-vertically centered on the same line. Project tools retains its language controls
+vertically centered on the same line. EN uses the Canadian flag in both locations,
+as requested. Project tools retains its language controls
 and bilingual option. Both sets share one translation controller and request
 guard; they disable together during changes and mirror the saved setting. Both
 header flags are highlighted in bilingual mode. No additional polling, preference

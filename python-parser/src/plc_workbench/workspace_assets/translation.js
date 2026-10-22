@@ -26,11 +26,11 @@
       shape('rect', {width: 10, height: 20, fill: '#002654'});
       shape('rect', {x: 20, width: 10, height: 20, fill: '#ed2939'});
     } else {
-      shape('rect', {width: 30, height: 20, fill: '#012169'});
-      shape('path', {d: 'M0 0L30 20M30 0L0 20', stroke: '#fff', 'stroke-width': 5});
-      shape('path', {d: 'M0 0L30 20M30 0L0 20', stroke: '#c8102e', 'stroke-width': 2});
-      shape('path', {d: 'M15 0V20M0 10H30', stroke: '#fff', 'stroke-width': 7});
-      shape('path', {d: 'M15 0V20M0 10H30', stroke: '#c8102e', 'stroke-width': 4});
+      svg.setAttribute('viewBox', '0 0 40 20');
+      shape('rect', {width: 40, height: 20, fill: '#fff'});
+      shape('rect', {width: 10, height: 20, fill: '#d80621'});
+      shape('rect', {x: 30, width: 10, height: 20, fill: '#d80621'});
+      shape('path', {d: 'M20 3L21.2 5.5L22.2 5L21.7 8.6L24.1 6.8L24.4 8.2L26.5 7.8L25.8 10.2L26.8 10.8L22.1 14.6L22.5 16L20.4 15.6V18H19.6V15.6L17.5 16L17.9 14.6L13.2 10.8L14.2 10.2L13.5 7.8L15.6 8.2L15.9 6.8L18.3 8.6L17.8 5L18.8 5.5Z', fill: '#d80621'});
     }
     return svg;
   }
