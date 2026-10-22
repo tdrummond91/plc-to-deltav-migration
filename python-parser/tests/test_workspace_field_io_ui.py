@@ -57,12 +57,13 @@ const pick=async(index=0)=>{const check=byClass(root,'field-io-module-check')[in
 
 
 class FieldIOPageTests(unittest.TestCase):
-    def test_local_assets_and_dedicated_page(self) -> None:
+    def test_signal_page_replaces_cards_while_legacy_module_browser_stays_read_only(self) -> None:
         page = Page()
         self.assertIn('view-field-io', page.parents['field-io-browser'])
         scripts = [attrs.get('src') for tag, attrs in page.elements if tag == 'script']
-        self.assertLess(scripts.index('/field-io.js'), scripts.index('/workspace.js'))
-        self.assertIn('/field-io.css', [attrs.get('href') for tag, attrs in page.elements if tag == 'link'])
+        self.assertLess(scripts.index('/field-signals.js'), scripts.index('/workspace.js'))
+        self.assertIn('/field-signals.css', [attrs.get('href') for tag, attrs in page.elements if tag == 'link'])
+        self.assertNotIn('/field-io.js', scripts)
         self.assertNotIn('innerHTML', SCRIPT)
         self.assertNotIn('/api/mutate', SCRIPT)
 

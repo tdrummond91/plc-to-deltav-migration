@@ -1,5 +1,50 @@
 # Data contracts, traceability, and checkpoints
 
+## Editable field signals and packages (2026-10-22)
+
+Project SQLite schema 2 adds a `signals(id, record)` table. The schema-1 upgrade
+is an atomic additive transaction: existing rows, source artifacts, history and
+review revision are preserved. This additive local upgrade is the implemented
+exception to the copy-first proposal below. Backup restore always copies the
+selected database from a read-only SQLite connection before opening/migrating
+the restored copy, so the selected backup is never rewritten.
+
+Each signal has a durable UUID, target name, reviewed description/type and a
+separate captured binding: run, snapshot, backing root, exact static member,
+canonical field-address ID and evidence signature. Names are never identity
+keys. The workspace authenticates bindings against the current channel
+projection; the store separately checks structural identity, collisions and
+expected revision. Ordinary edits cannot change bindings. Explicit
+`signal_rebind` retains prior bindings, the UUID and package references, and
+requires revalidation. Same-source parser reruns can reconfirm unchanged
+channel signatures; changed source/signature requires explicit correspondence.
+
+Engineering groups add `signal_ids` and `member_roles` (scaling, alarm, reference,
+logic) alongside canonical source `member_ids`. Derived field-address hashes
+are not source-member IDs. Omitting these new fields in older group editors
+preserves their existing values; explicit selections/removals are revisioned.
+Signals participate in undo, history and complete SQLite backups. Source,
+parsed evidence, editable naming, package membership and target allocation
+remain distinct. This does not emit a DeltaV module or assert equivalence.
+
+`/api/field-signals` serves only the active run, 24 signal rows per page and 12
+uses/rungs per detail page. Exact aliases deduplicate to one channel identity.
+Only captured channel members appear; rated capacity does not expand into
+wired points. Four independently documented member layouts retain their
+qualified types; other supported member shapes remain unknown candidates with
+catalog/direction hints. Controller/network, root, configuration, known status
+and output-echo addresses are excluded. Source and saved-name/package search
+share the same paging; each response carries the revision of its source data.
+Rows include compact package summaries and binding-history counts rather than
+repeating complete editable records. The final response cap remains 2 MiB.
+
+Related logic is a source-qualified one-hop shared-address suggestion, never
+an automatic package decision: at most 32 seed rungs, 128 bridges, 64 rungs per
+bridge and 256 related candidates, with visible cutoff flags. Scope/alias
+qualification prevents same-spelled unrelated tags from joining. Full parser
+and saved-run contracts, source files and manual Git transport are unchanged.
+
+
 ## Qualified rack assemblies contract (2026-10-19)
 
 `engineering_assemblies_schema_version=3` requires the full rack correspondence

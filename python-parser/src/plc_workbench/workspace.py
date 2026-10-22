@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter, defaultdict
+from contextlib import closing
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import hashlib
@@ -74,6 +75,7 @@ class Workspace:
         self._map_qualification_cache: tuple[Any, Any] = (_UNLOADED, None)
         self._variable_cache: dict[str, Any] = {}
         self._field_io_cache: dict[str, Any] = {}
+        self._field_signal_cache: tuple[Any, Any] = (_UNLOADED, None)
         self._translation_service: Any = None
         self._translation_run: str | None = None
         self._translation_catalog_cache: tuple[Any, dict] = (_UNLOADED, {})
@@ -187,6 +189,7 @@ class Workspace:
             active = active.get("id")
         if active == self._run:
             return
+        self._field_signal_cache = (_UNLOADED, None)
         self._run = _UNLOADED
         self._inventory = self.store.inventory(active) if active else {}
         self._rungs = self._inventory.get("rungs", [])
@@ -338,6 +341,8 @@ class Workspace:
                                          allow_nan=False).encode('utf-8')).hexdigest()
 
     def mutate(self, command: dict, expected_revision: int, author: str = 'Reviewer') -> dict:
+        if isinstance(command, dict) and command.get('op') in {'signal', 'signal_rebind'}:
+            command = self._validate_signal_command(command, expected_revision)
         if isinstance(command, dict) and command.get('op') == 'group' and command.get('id'):
             existing = next((group for group in self.store.state()['groups']
                              if group['id'] == command['id']), None)
@@ -682,6 +687,8 @@ class Workspace:
                 expired = next(iter(self._variable_cache))
                 self._variable_cache.pop(expired)
                 self._field_io_cache.pop(expired, None)
+                if self._field_signal_cache[0] == expired:
+                    self._field_signal_cache = (_UNLOADED, None)
             self._variable_cache[run_id] = index
         return self._variable_cache[run_id]
 
@@ -747,6 +754,110 @@ class Workspace:
         except FieldIOError as exc:
             raise ProjectError(str(exc)) from None
         return {**result, 'run_id': run_id, 'historical': run_id != state.get('active_run')}
+
+    def _field_signal_index(self, run_id: str, state: dict) -> Any:
+        """Only the active authenticated source can receive migration decisions."""
+        from .workspace_field_io import FieldIOError, FieldIOIndex
+        from .workspace_field_signals import FieldSignalError, FieldSignalIndex
+        if run_id != state.get('active_run'):
+            raise RevisionConflict('The source analysis changed. Reload the field signals.')
+        self._load(state)
+        if self._field_signal_cache[0] != run_id:
+            evidence = self._variable_index(run_id)
+            if run_id not in self._field_io_cache:
+                try:
+                    self._field_io_cache[run_id] = FieldIOIndex(evidence) if evidence else None
+                except FieldIOError:
+                    self._field_io_cache[run_id] = None
+            field = self._field_io_cache[run_id]
+            try:
+                index = FieldSignalIndex(field, self._map_connection_index()) if field else None
+            except FieldSignalError:
+                index = None
+            self._field_signal_cache = (run_id, index)
+        return self._field_signal_cache[1]
+
+    def _validate_signal_command(self, command: dict, expected_revision: int) -> dict:
+        """Reject fabricated addresses and stale signatures before store mutation."""
+        from .workspace_field_signals import FieldSignalError
+        state = self.store.state()
+        if expected_revision != state['revision']:
+            raise RevisionConflict('The project changed. Reload before saving signal edits.')
+        supplied = command.get('binding')
+        existing = next((row for row in state['signals'] if row['id'] == command.get('id')), None)
+        validate = command.get('op') == 'signal_rebind' or not command.get('id') or 'binding' in command
+        if not validate and not command.get('confirm'):
+            return command  # Renaming retained records does not change source correspondence.
+        binding = supplied if validate else existing.get('binding') if existing else None
+        if type(binding) is not dict or not state.get('active_run'):
+            raise ProjectError('Select a captured field signal before saving its mapping.')
+        index = self._field_signal_index(state['active_run'], state)
+        if index is None:
+            raise ProjectError('Field signal evidence is unavailable. Reload the analysis before saving a mapping.')
+        try:
+            canonical = index.anchor(binding.get('address_id'))
+        except FieldSignalError:
+            raise ProjectError('This field address is not present in the active analysis. Use explicit correspondence.') from None
+        if validate:
+            canonical['run_id'] = state['active_run']
+            matches = binding == canonical
+        else:
+            # A same-snapshot rerun can confirm unchanged channel evidence even
+            # when its earlier captured run ID differs. Never match by name.
+            matches = {key: value for key, value in binding.items() if key != 'run_id'} == canonical
+        if not matches:
+            raise ProjectError('The signal source evidence changed. Reload and explicitly reconnect its saved record.')
+        return command
+
+    def field_signals(self, query: dict) -> dict:
+        """Flat channel rows plus separate durable names and explicit packages."""
+        from .workspace_field_io import _preview
+        from .workspace_field_signals import MAX_RESPONSE_BYTES, FieldSignalError, unavailable, validate_query
+        try:
+            selected = validate_query(query)
+            state = self.store.state()
+            run_id = selected['run_id']
+            index = self._field_signal_index(run_id, state)
+            saved = {row['binding']['address_id']: {
+                         **{key: value for key, value in row.items() if key != 'binding_history'},
+                         'binding_history_count': len(row['binding_history'])} for row in state['signals']
+                     if row['active'] and index is not None and row['binding']['snapshot_id'] == index.snapshot_id}
+            packages: dict[str, list[dict]] = defaultdict(list)
+            for group in state['groups']:
+                for identifier in group.get('signal_ids', []):
+                    packages[identifier].append({'id': group['id'], 'name': group['name'],
+                        'member_count': len(group['member_ids']), 'signal_count': len(group['signal_ids']),
+                        'needs_revalidation': group.get('needs_revalidation', False)})
+            extra_search = {address: ' '.join([row['target_name'], row['description'],
+                *(group['name'] for group in packages[row['id']])]) for address, row in saved.items()}
+            result = index.view(selected, extra_search=extra_search) if index else unavailable()
+            visible = list(result['signals']['items'])
+            if result['selected_signal']:
+                visible.append(result['selected_signal'])
+            for row in visible:
+                row['binding']['run_id'] = run_id
+                record = saved.get(row['id'])
+                row['saved_signal'] = record
+                row['packages'] = packages[record['id']] if record else []
+                if record and record['binding']['evidence_signature'] != row['binding']['evidence_signature']:
+                    record.update(needs_revalidation=True,
+                        revalidation_reasons=sorted(set(record['revalidation_reasons'] + ['signal_evidence_changed'])))
+            notes = [note for row in visible for note in row.get('source_annotations', [])]
+            originals = {note['id']: index.field_io.annotation_texts[note['id']] for note in notes} if index else {}
+            descriptions = {row['id']: index.signals[row['id']]['description'] for row in visible}
+            mode, wording = self._wording([{'text': value} for value in [*originals.values(), *descriptions.values()]], 'text')
+            for note in notes:
+                entry = wording.get(originals[note['id']])
+                note['wording'] = _preview(entry) if type(entry) is dict else None
+            for row in visible:
+                entry = wording.get(descriptions[row['id']])
+                row['wording'] = {'description': _preview(entry) if type(entry) is dict else None}
+            result.update(run_id=run_id, revision=state['revision'], presentation_mode=mode, historical=False)
+            if len(_json(result)) > MAX_RESPONSE_BYTES:
+                raise FieldSignalError('The selected signal package exceeds the display limit. Reduce its membership before reopening it.')
+            return result
+        except FieldSignalError as exc:
+            raise ProjectError(str(exc)) from None
 
     def _map_connection_index(self) -> Any:
         index = self._connection_index()
@@ -1087,8 +1198,16 @@ class Workspace:
             raise ProjectError('That backup is no longer available.')
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
         destination = self.project.parent / f'restored-{stamp}.sqlite'
-        with ProjectStore(backup) as saved:
-            saved.backup(destination)
+        # Opening ProjectStore may migrate its schema. Copy from a read-only
+        # connection first so restoring can never rewrite the selected backup.
+        try:
+            with destination.open('xb'):
+                pass
+            with closing(sqlite3.connect(backup.resolve().as_uri() + '?mode=ro', uri=True)) as saved, \
+                 closing(sqlite3.connect(destination)) as copy:
+                saved.backup(copy)
+        except (OSError, sqlite3.Error):
+            raise ProjectError('The saved backup could not be copied into a restored project.') from None
         restored = ProjectStore(destination)
         # A tiny local pointer makes the next normal launch reopen this restored
         # project. Both the original database and the selected backup survive.
@@ -1120,6 +1239,7 @@ class Workspace:
         self._map_qualification_cache = (_UNLOADED, None)
         self._variable_cache = {}
         self._field_io_cache = {}
+        self._field_signal_cache = (_UNLOADED, None)
         self._historical_labels = {}
         return self.state()
 
@@ -1243,6 +1363,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._json(200, workspace.variable(query))
             elif url.path == '/api/field-io':
                 self._json(200, workspace.field_io(query))
+            elif url.path == '/api/field-signals':
+                self._json(200, workspace.field_signals(query))
             elif url.path == '/api/ladder-map':
                 self._json(200, workspace.ladder_map(query))
             elif url.path == '/api/ladder-map/links':
@@ -1271,6 +1393,7 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                               "/instruction-help.html", "/instruction-help.js", "/instruction-help.css", "/instruction-help-content.js",
                               "/variable-help-content.js",
                               "/field-io.js", "/field-io.css",
+                              "/field-signals.js", "/field-signals.css",
                               "/rung-flow.js", "/rung-flow.css", "/rung-explanation.js", "/rung-explanation.css",
                               "/routine-browser.js", "/routine-browser.css", "/ladder-diagram.js", "/ladder-diagram.css",
                               "/connections.js", "/connections.css",

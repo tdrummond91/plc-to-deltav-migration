@@ -41,9 +41,9 @@ continue until you stop the workspace, so other review windows remain usable.
    status. Use **Review categories in workspace** in that panel to edit the
    selected rung. Matching structure does not establish matching behavior or
    automatically apply a category to every occurrence.
-   Open **Field I/O**, the second Home card, to start from the captured hardware
-   instead: filter DI, DO, AI or AO cards, then open a card's channel addresses
-   and rung links. The detailed workflow is below.
+   Open **Field I/O**, the second Home card, to work with individual DI, DO, AI
+   and AO signals. Name a signal for DeltaV and package its related logic across
+   rungs or routines. The detailed workflow is below.
    Open **Classification & groups** for the automatic functional overview.
    Choose **Function** to find DC, AC, PID, alarms, timers, counters, structured
    objects, or I/O candidates. Expand **Evidence, parameters & source links**
@@ -92,52 +92,58 @@ run tests, analyze the L5X, or perform Git operations.
 
 ### Start from field I/O
 
-Choose **Field I/O** on Home or in the Page menu. The DI, DO, AI and AO buttons
-show module-card counts across the complete saved source and filter the list.
-Mixed cards appear in each supported category, so those filter counts overlap.
-The total counts each module once. **Controller / network** separates recognized
-infrastructure from field cards. **Unclassified** retains unfamiliar modules and
-explains which catalog or source evidence is missing. Search by original module description, catalog,
-address or alias. The header's FR / EN option controls displayed descriptions.
+Choose **Field I/O** on Home or in the Page menu. Each line is one captured
+field-channel address, with its original alias, source description, DeltaV name
+and package status. Aliases for the same exact channel share one record;
+channels on the same card can have different names and packages. Filter DI,
+DO, AI or AO and search original wording, an alias/address, a saved DeltaV name,
+or a package name. FR / EN controls the displayed source wording.
 
-Open a module card to see its controller, parent/rack, captured slot and catalog.
-Documented field-point addresses appear first. Channel comments and descriptions
-from matching aliases appear beside their address, with language and source-owner
-links. Distinct comments remain separate. Expand **Source aliases** for the full
-alias list, and **Captured rung uses** to follow its readers and
-writers into the source. Other captured addresses, including status, feedback
-and configuration, remain in a collapsed section. Pages keep every captured
-address and rung use reachable without loading the whole export at once.
+1. Select a signal. Enter its **DeltaV name**, reviewed description and field
+   type, then save. The original L5X name, address and description stay intact.
+2. Choose an existing package or create one, then include this signal. A package
+   is an engineering group that keeps field signals and selected source logic
+   together for later target-module design.
+3. Review **Rungs using this signal** and **Related logic candidates**. Open a rung's
+   source/connection view to inspect it, then tick only the members you want.
+   Assign a package role such as scaling, alarm, reference or logic. Suggestions
+   start unchecked; existing memberships stay selected until you remove them.
+4. Save the package. **Classification & groups** shows its signal names and
+   linked source records. One signal or rung can belong to several packages.
 
-Module type, documented capacity and captured field addresses are separate:
-a 16-point card does not prove that 16 devices are wired to it. Output-card
-feedback does not become a DI or AI merely because it is input data to the
-controller. The page does not infer field devices from BOOL/REAL types. Analog
-mode and terminal assignments still require the configuration and wiring
-information. An unresolved address remains available for inspection.
+The information button on each row opens controller/module/rack/slot context
+without giving hardware its own card. Hover or focus it for a quick look;
+click to pin, and use Escape, Close or an outside click to dismiss it. Source
+links open the captured hardware or complete annotations separately.
 
-To section the hardware, tick **Select whole module** on one or more cards and
-choose **Add whole modules to group**. Create a group or choose an existing one;
-edit its categorization later in **Classification & groups**. This saves whole
-module declarations, not individual channel selections. Source evidence remains
-read-only and saved engineering groups retain their normal history and backups.
+**Source-mapped** means the exact catalog, direction and captured member profile
+support that channel interpretation. **Candidate** means its source member is
+captured but the physical mapping still needs review. A card's advertised
+capacity never creates invented wired signals. Known controller/network,
+configuration, status and output-echo records are excluded from the signal list.
+A missing field channel therefore remains a recognition gap, not proof it is
+absent from the plant. The hardware popup retains catalog documentation.
 
-The offline catalog library recognizes 223 exact Rockwell 1756 and selected
-1794 declarations, including HART/isolated analogue, mixed analogue, controller
-and communication products. **Catalog function** gives the manufacturer's
-product function; **Source comments and descriptions** preserve the authored
-plant wording. A vendor glossary cannot supply a missing plant description.
-The linked publication supports each catalog's description and capacity.
-Unclassified module records mean recognition is incomplete: zero recognized
-analogue cards does not establish that the export contains no analogue I/O.
-Documented member-to-channel mapping currently covers 1756-IB16, 1756-OB16E,
-1756-IF8 and 1756-OF8 when the saved direction and data profile support it.
-Other modules and addresses remain listed without a guessed point mapping.
-Catalog and member-layout evidence follows the linked Rockwell references.
+Related-rung suggestions follow a bounded, one-step shared-address connection
+from a direct field use; this can reach another routine. They do not prove
+execution order or that every member belongs in the target module. Use the
+connection map and source review when the suggestion list reports a limit.
+Patterns remain useful for comparing logic structures; a repeated pattern
+alone does not identify the physical signal or approve a package.
 
-After a manual pull, stop and reopen the workspace to use these pages with
-the existing saved analysis. A new L5X run is needed only if the required saved
-source companions are absent; the page reports that condition explicitly.
+Names and packages are saved in the private project database, with revision
+history, undo and backups. Unsaved signal drafts remain while moving between
+pages; save them before closing the browser. A stale-window save retains the
+draft and asks you to review the latest saved version before retrying.
+A changed source export retains earlier records and flags correspondence:
+select the replacement channel, expand **Needs correspondence**, explicitly
+reconnect the retained signal, then confirm its mapping. This keeps its durable
+identity, DeltaV name and package memberships rather than guessing by name/slot.
+
+After a manual pull, stop and reopen the workspace to use this page with the
+existing saved analysis. No new L5X run is required when its saved companions
+are present. This stores the migration package; allocating DeltaV classes and
+emitting PCSD/FHX remain later steps.
 
 ### Reading rungs and saved variable settings
 

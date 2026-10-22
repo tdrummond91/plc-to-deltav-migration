@@ -1,5 +1,53 @@
 # Current handoff: PLC analysis workbench
 
+## Individual field signals and editable DeltaV packages (2026-10-22)
+
+Field I/O now starts with individual captured channel rows: type, alias/address,
+source wording, DeltaV name and package status. Hardware is an information
+popover with module/controller source links. The old module-card API remains
+read-only for compatibility; the workspace loads the new signal assets.
+
+`workspace_field_signals.py` projects exact captured channel addresses, dedupes
+aliases and keeps unsupported member mappings as explicit candidates. It never
+creates wired points from catalog capacity. It suggests bounded, source-qualified
+one-hop related rungs through shared addresses, including another routine.
+Suggestions do not automatically become accepted package members or establish
+execution/dataflow, alarm consequence or a DeltaV class allocation.
+
+Schema 2 adds durable editable signal IDs and explicit source bindings. Signal
+names/descriptions/types and group `signal_ids`/`member_roles` are separate from
+immutable source evidence. Users can keep a signal with chosen scaling, alarm,
+reference and logic rungs in one package, including several packages per signal.
+Legacy group edits preserve new memberships unless explicitly changed. Imports,
+undo, backups and source correspondence preserve names and package references;
+changed exports require explicit reconnect/revalidation rather than name/slot
+matching. Schema-1 upgrades are additive and transactional. Backup restoration
+copies from a read-only SQLite connection before migration.
+
+The browser retains drafts across row/page navigation, binds saves to the
+revision that supplied the form data, and offers an explicit latest-version
+review after a conflict. It rejects rebasing onto a differently bound signal.
+Same-snapshot reruns can confirm unchanged evidence without a redundant rebind.
+Rows return compact package summaries/history counts so membership/history is
+not duplicated throughout the channel directory. Whole-source report/parsing,
+confidentiality policy and manual work-machine Git transport are unchanged.
+
+All 626 workspace and project-store tests passed. Independent store/projection
+and API/UI reviews are clear. Review found and
+fixed stale-response revisions, large repeated record payloads, and source
+correspondence/conflict edge cases. Chrome verified an invented AI name save,
+a package containing scaling plus an alarm rung in another routine, persisted
+names/membership/roles after server restart, group-to-signal navigation,
+hardware details and dismissal, and a narrow 680px split-screen layout.
+Ignored preview/proof files are under `confidential/field-signal-preview/`.
+No work-machine physical I/O totals are claimed from these invented tests.
+
+After a manual pull, stop and reopen with `bash ./open-workbench.sh`, then
+choose **Field I/O**. Existing saved source companions suffice; no new analysis
+run is required for this UI/data-model change. The normal work-check entry point
+still works. PCSD/FHX emission and target-class allocation remain later work.
+
+
 ## Restore I/O wording and complete the routine drawing paths (2026-10-22)
 
 The report's Routine ladder, Ladder directory and operand-reuse lists still

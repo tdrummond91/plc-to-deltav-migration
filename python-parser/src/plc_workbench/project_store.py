@@ -25,11 +25,16 @@ MAX_RUN_BYTES = 1024 * 1024 * 1024
 MAX_MANIFEST_BYTES = 2 * 1024 * 1024
 MAX_ARTIFACTS = 256
 MAX_MEMBERS = 100_000
+MAX_SIGNALS = 100_000
+MAX_SIGNAL_BINDINGS = 1_000
 _SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
 _APPLICATION_ID = 0x504C4357  # ASCII PLCW; distinguishes this file from other SQLite applications.
-_EDIT_TABLES = ("categories", "groups", "reviews", "rules")
+_EDIT_TABLES = ("categories", "groups", "reviews", "rules", "signals")
 MIGRATION_STATUSES = frozenset({'unreviewed', 'retain', 'replace', 'exclude', 'investigate'})
+SIGNAL_FIELD_TYPES = frozenset({'di', 'do', 'ai', 'ao', 'unknown'})
+MEMBER_ROLES = frozenset({'scaling', 'alarm', 'reference', 'logic'})
+_SIGNAL_BINDING_KEYS = frozenset({'run_id', 'snapshot_id', 'root_id', 'suffix', 'address_id', 'evidence_signature'})
 _TABLE_COLUMNS = {
     "project": {"singleton", "revision", "active_run"},
     "runs": {"id", "snapshot_id", "fingerprint", "proposal_digest", "manifest", "imported_utc"},
@@ -431,15 +436,17 @@ class ProjectStore:
     def _initialize(self) -> None:
         version = self.connection.execute("PRAGMA user_version").fetchone()[0]
         application = self.connection.execute("PRAGMA application_id").fetchone()[0]
-        if version not in (0, _SCHEMA_VERSION):
+        if version not in (0, 1, _SCHEMA_VERSION):
             raise ProjectError("This project uses an unsupported database schema.")
         existing = self.connection.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         if version == 0 and (existing or application not in (0, _APPLICATION_ID)):
             raise ProjectError("The selected file is not an engineering project database.")
         if version:
-            if application != _APPLICATION_ID or {row[0] for row in existing} != set(_TABLE_COLUMNS):
+            expected_tables = {table: columns for table, columns in _TABLE_COLUMNS.items()
+                               if version != 1 or table != 'signals'}
+            if application != _APPLICATION_ID or {row[0] for row in existing} != set(expected_tables):
                 raise ProjectError("The selected file is not a recognized engineering project database.")
-            for table, columns in _TABLE_COLUMNS.items():
+            for table, columns in expected_tables.items():
                 actual = self.connection.execute(f"PRAGMA table_info({table})").fetchall()
                 if {row[1] for row in actual} != columns:
                     raise ProjectError("The project database schema is incomplete or unsupported.")
@@ -447,6 +454,13 @@ class ProjectStore:
             if (len(head) != 1 or head[0][0] != 1 or type(head[0][1]) is not int
                     or head[0][1] < 0):
                 raise ProjectError("The project database has an invalid revision record.")
+            if version == 1:
+                # Add engineering records without rewriting evidence, decisions,
+                # revision numbers or old history patches. Restore migrates a
+                # working copy, never the original backup.
+                with self._transaction():
+                    self.connection.execute('CREATE TABLE signals (id TEXT PRIMARY KEY, record TEXT NOT NULL)')
+                    self.connection.execute(f'PRAGMA user_version={_SCHEMA_VERSION}')
             return
         with self._transaction():
             self.connection.execute(
@@ -587,14 +601,23 @@ class ProjectStore:
     def state(self) -> dict[str, Any]:
         head = self._head()
         active_ids = self._active_ids() if head["active_run"] else set()
+        active_snapshot = self._run()['snapshot_id'] if head['active_run'] else None
         reviews = self._records("reviews")
         for identifier, review in reviews.items():
             review["active"] = identifier in active_ids
+        signals = self._records('signals')
+        for signal in signals.values():
+            signal['active'] = (signal['binding']['snapshot_id'] == active_snapshot
+                                and signal['binding']['root_id'] in active_ids)
         groups = list(self._records("groups").values())
         for group in groups:
+            group.setdefault('signal_ids', [])
+            group.setdefault('member_roles', {})
             group["unresolved_member_ids"] = [identifier for identifier in group["member_ids"]
                                               if identifier not in active_ids
                                               and not reviews.get(identifier, {}).get("correspondence_to")]
+            group['unresolved_signal_ids'] = [identifier for identifier in group['signal_ids']
+                                               if not signals.get(identifier, {}).get('active', False)]
         runs = []
         for row in self.connection.execute("SELECT * FROM runs ORDER BY imported_utc,id"):
             manifest = json.loads(row["manifest"])
@@ -612,6 +635,7 @@ class ProjectStore:
             "active_run": head["active_run"], "runs": runs,
             "categories": list(self._records("categories").values()),
             "groups": groups, "reviews": reviews,
+            "signals": list(signals.values()),
             "rules": list(self._records("rules").values()), "history": history,
         }
 
@@ -661,6 +685,17 @@ class ProjectStore:
                         revalidation_reasons=sorted(set(review.get("revalidation_reasons", []) + [reason])),
                     )
                     self._put("reviews", source_id, review)
+            for signal_id, original in before['signals'].items():
+                reason = None
+                if (original['binding']['snapshot_id'] != snapshot_id
+                        or original['binding']['root_id'] not in active_ids):
+                    reason = 'source_changed_requires_correspondence'
+                elif original['proposal_digest'] != proposal_digest:
+                    reason = 'parser_evidence_changed'
+                if reason:
+                    self._put('signals', signal_id, dict(original, needs_revalidation=True,
+                        revision=revision, revalidation_reasons=sorted(set(
+                            original.get('revalidation_reasons', []) + [reason]))))
             # Keep human group decisions, but do not let a prior exclusion hide
             # newly changed source/proposals without another look.
             for group_id, original in before['groups'].items():
@@ -700,8 +735,14 @@ class ProjectStore:
             raise ProjectError("A workspace change requires its current project revision.")
         author = _text(author, "Reviewer", 120)
         operation = command.get("op")
-        if operation not in ("review", "category", "group", "undo", "rebind", "rule"):
+        if operation not in ("review", "category", "group", "undo", "rebind", "rule", "signal", "signal_rebind"):
             raise ProjectError("This workspace change is not supported.")
+        # Resolve structural anchors before the write transaction. The workspace
+        # independently verifies the selected address/signature against its
+        # authenticated field projection; neither path trusts browser labels.
+        binding = None
+        if operation == 'signal_rebind' or operation == 'signal' and 'id' not in command:
+            binding = self._signal_binding(command.get('binding'))
         with self._transaction():
             self._expect(expected_revision)
             before = self._editable()
@@ -715,6 +756,10 @@ class ProjectStore:
                 self._rebind(command)
             elif operation == "rule":
                 self._rule(command)
+            elif operation == 'signal':
+                self._signal(command, binding)
+            elif operation == 'signal_rebind':
+                self._signal_rebind(command, binding)
             else:
                 self._undo()
             self._record_history(operation, command, before, author)
@@ -777,6 +822,107 @@ class ProjectStore:
             raise ProjectError("A category with that name already exists.")
         self._put("categories", identifier, {"id": identifier, "name": name})
 
+    def _signal_binding(self, supplied: Any) -> dict[str, str]:
+        """Check a source-qualified selection's immutable structural anchor.
+
+        Field classification and selection provenance are checked by the
+        workspace projection before mutation. This independent store boundary
+        rejects another run/root, dynamic suffixes and invented address hashes.
+        """
+        from .references import _ADDRESS
+        if not isinstance(supplied, dict) or set(supplied) != _SIGNAL_BINDING_KEYS:
+            raise ProjectError('A signal requires its complete captured address binding.')
+        binding = {}
+        for key in _SIGNAL_BINDING_KEYS:
+            value = _text(supplied[key], 'Signal source binding', 4096 if key == 'suffix' else 256)
+            if value != supplied[key]:
+                raise ProjectError('Signal source binding text must retain its exact identity.')
+            binding[key] = value
+        run = self._run(binding['run_id'])
+        if (run['id'] != self._head()['active_run'] or binding['snapshot_id'] != run['snapshot_id']):
+            raise ProjectError('Select a signal from the active source analysis.')
+        inventory = self.inventory(run['id'])
+        root = next((row for row in inventory['entities'] if row['id'] == binding['root_id']), None)
+        if root is None or root['kind'] not in {'module_input_tag', 'module_output_tag', 'module_config_tag'}:
+            raise ProjectError('A field signal must retain a captured module backing declaration.')
+        suffix = binding['suffix']
+        if not suffix.startswith(('.', '[')) or _ADDRESS.fullmatch('A' + suffix) is None:
+            raise ProjectError('A field signal requires an exact static member address.')
+        normalized = re.sub(r'\.[A-Za-z_][A-Za-z0-9_]*', lambda match: match.group().lower(), suffix)
+        expected = 'field_address_' + hashlib.sha256((root['id'] + '\0' + normalized).encode()).hexdigest()
+        if binding['address_id'] != expected or not re.fullmatch(r'[0-9a-f]{64}', binding['evidence_signature']):
+            raise ProjectError('Signal address identity or evidence signature is invalid.')
+        return binding
+
+    def _signal_collision(self, identifier: str, binding: dict[str, str]) -> None:
+        for other_id, signal in self._records('signals').items():
+            other = signal['binding']
+            if (other_id != identifier and other['snapshot_id'] == binding['snapshot_id']
+                    and other['address_id'] == binding['address_id']):
+                raise ProjectError('This captured signal already has an engineering record; edit that record instead.')
+
+    def _signal(self, command: dict[str, Any], binding: dict[str, str] | None) -> None:
+        allowed = {'op', 'id', 'binding', 'target_name', 'description', 'field_type', 'confirm'}
+        if set(command) - allowed:
+            raise ProjectError('This signal change contains unsupported fields.')
+        existing = self._records('signals')
+        identifier = _text(command['id'], 'Signal identifier', 256) if 'id' in command else f'signal-{uuid4().hex}'
+        old = existing.get(identifier)
+        if 'id' in command and old is None:
+            raise ProjectError('The engineering signal no longer exists. Reload before editing it.')
+        if old is not None and 'binding' in command:
+            raise ProjectError('Use explicit signal correspondence to change a source binding.')
+        if old is None and (binding is None or len(existing) >= MAX_SIGNALS):
+            raise ProjectError('The signal selection is missing or the project signal limit was reached.')
+        if old is not None and not {'target_name', 'description', 'field_type', 'confirm'}.intersection(command):
+            raise ProjectError('Choose at least one signal property to change.')
+        if 'confirm' in command and type(command['confirm']) is not bool:
+            raise ProjectError('Signal confirmation must be an explicit true or false value.')
+        record = dict(old) if old else {
+            'id': identifier, 'binding': binding, 'binding_history': [], 'target_name': '',
+            'description': '', 'field_type': 'unknown', 'proposal_digest': self._run()['proposal_digest'],
+            'needs_revalidation': False, 'revalidation_reasons': [],
+        }
+        for key, limit in (('target_name', 160), ('description', 4000)):
+            if key in command:
+                record[key] = _text(command[key], 'Signal ' + key.replace('_', ' '), limit, empty=True)
+        if 'field_type' in command:
+            value = command['field_type']
+            if not isinstance(value, str) or value not in SIGNAL_FIELD_TYPES:
+                raise ProjectError('Choose an available reviewed signal field type.')
+            record['field_type'] = value
+        self._signal_collision(identifier, record['binding'])
+        if command.get('confirm'):
+            run = self._run()
+            if (record['binding']['snapshot_id'] != run['snapshot_id']
+                    or record['binding']['root_id'] not in self._active_ids()):
+                raise ProjectError('Reconnect this signal to the current source before confirming it.')
+            # The workspace also requires the current projected signature to
+            # match. A same-snapshot rerun can then reaffirm changed analysis.
+            record.update(needs_revalidation=False, revalidation_reasons=[], proposal_digest=run['proposal_digest'])
+        record['revision'] = self._head()['revision'] + 1
+        self._put('signals', identifier, record)
+
+    def _signal_rebind(self, command: dict[str, Any], binding: dict[str, str] | None) -> None:
+        if set(command) != {'op', 'id', 'binding'} or binding is None:
+            raise ProjectError('Signal correspondence requires an existing signal and a complete new binding.')
+        identifier = _text(command['id'], 'Signal identifier', 256)
+        original = self._records('signals').get(identifier)
+        if original is None:
+            raise ProjectError('Choose a retained engineering signal for correspondence.')
+        if original['binding'] == binding:
+            raise ProjectError('The signal is already bound to this exact source evidence.')
+        self._signal_collision(identifier, binding)
+        history = list(original['binding_history'])
+        if len(history) >= MAX_SIGNAL_BINDINGS:
+            raise ProjectError('The signal correspondence history limit was reached.')
+        revision = self._head()['revision'] + 1
+        history.append({'binding': original['binding'], 'proposal_digest': original['proposal_digest'],
+                        'revision': original['revision'], 'replaced_revision': revision})
+        self._put('signals', identifier, dict(original, binding=binding, binding_history=history,
+            proposal_digest=self._run()['proposal_digest'], revision=revision, needs_revalidation=True,
+            revalidation_reasons=['explicit_correspondence_requires_review']))
+
     def _group(self, command: dict[str, Any]) -> None:
         from .workspace_classification import CATEGORY_DEFINITIONS
         existing = self._records("groups")
@@ -792,6 +938,18 @@ class ProjectStore:
         # be invented by submitting an arbitrary source identifier.
         if any(member not in active_ids and member not in previous for member in members):
             raise ProjectError("Group members must belong to this run or the group's retained evidence.")
+        signal_ids = _ids(command.get('signal_ids', old.get('signal_ids', [])), 'Engineering signals')
+        known_signals = self._records('signals')
+        if any(signal_id not in known_signals for signal_id in signal_ids):
+            raise ProjectError('Group signals must be retained engineering signal records.')
+        supplied_roles = command.get('member_roles')
+        if 'member_roles' in command:
+            if (not isinstance(supplied_roles, dict) or not set(supplied_roles).issubset(set(members))
+                    or any(not isinstance(role, str) or role not in MEMBER_ROLES for role in supplied_roles.values())):
+                raise ProjectError('Member roles must assign scaling, alarm, reference or logic to existing source members.')
+            roles = dict(supplied_roles)
+        else:
+            roles = {member: role for member, role in old.get('member_roles', {}).items() if member in members}
         functions = _ids(command.get('function_categories', old.get('function_categories', [])), 'Function categories')
         if not set(functions).issubset({row['id'] for row in CATEGORY_DEFINITIONS}):
             raise ProjectError('Choose one of the available engineering function categories.')
@@ -808,6 +966,7 @@ class ProjectStore:
             proposal = supplied
         record = {
             "id": identifier, "name": name, "member_ids": members,
+            'signal_ids': signal_ids, 'member_roles': roles,
             'function_categories': functions, 'migration_status': migration, 'migration_note': note,
             "revision": self._head()["revision"] + 1,
         }
@@ -851,6 +1010,9 @@ class ProjectStore:
         for group in self._records("groups").values():
             if from_id in group["member_ids"] and to_id not in group["member_ids"]:
                 group["member_ids"].append(to_id)
+                roles = group.get('member_roles', {})
+                if from_id in roles and to_id not in roles:
+                    group['member_roles'] = {**roles, to_id: roles[from_id]}
                 group["revision"] = self._head()["revision"] + 1
                 self._put("groups", group["id"], group)
 

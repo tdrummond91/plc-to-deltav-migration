@@ -328,7 +328,7 @@
       node('p', 'Choose or change the source under Project tools → Choose analysis run.'));
     const pages = [
       ['patterns','Patterns','Compare rungs grouped by instruction and branch structure, then open each occurrence to inspect its source. Save categorization in Rungs or Classification & groups.','Repeated and single-occurrence structures · Opens in a new window · Uses the selected source language'],
-      ['field-io','Field I/O','Browse captured I/O modules by controller, slot and catalog. Inspect field-address evidence, aliases and linked rungs; add whole modules to engineering groups.','DI · DO · AI · AO · unresolved types · captured data direction · search'],
+      ['field-io','Field I/O','Name individual field signals for DeltaV and package their scaling, alarms and references across rungs. Hover over a signal for its hardware connection.','DI · DO · AI · AO · DeltaV names · related logic · packages'],
       ['analysis','Full source analysis','Browse the complete saved evidence report: inventory, logic patterns, references, calculations, alarms and unresolved findings.','Opens in a new window · Uses the selected source language'],
       ['routines','Programs & routines','Expand a routine to see its captured ladder with contacts, coils, instruction blocks and parallel branches.','Program or AOI · routine type · name/path search'],
       ['rungs','Rungs','Read one rung from its inputs through conditions and actions to outputs. Inspect the original source, then save categories and properties.','Function family · reviewed category · review status · source search'],
@@ -366,7 +366,7 @@
     const access = {
       home: ['Read only', 'Page directory and current source summary.'],
       patterns: ['Read only', 'Source structure groups do not establish equivalent behavior. Save categorization in Rungs or Classification & groups.'],
-      'field-io': ['Read & write', 'Inspect captured module and address evidence; add whole module declarations to engineering groups. Source and channel data remain read-only.'],
+      'field-io': ['Read & write', 'Name individual field signals for DeltaV and package selected scaling, alarms and references. Original source evidence stays read-only.'],
       analysis: ['Read only', 'Saved source evidence and analysis; review decisions are edited in the workspace.'],
       routines: ['Read only', 'Captured ladders and declarations. Open rung review to edit decisions.'],
       rungs: ['Read & write', 'Save categories, properties, review status and group membership beside the original source.'],
@@ -1832,8 +1832,21 @@
       const card = node("article", null, "card");
       card.append(
         node("h2", g.name),
-        node("p", (g.member_ids || []).length + " linked source records"),
+        node("p", (g.signal_ids || []).length + " field signals · " + (g.member_ids || []).length + " linked source records"),
       );
+      if (g.signal_ids?.length) {
+        const signalList = node("details"), entries = node("div", null, "members");
+        signalList.append(node("summary", "Field signals and DeltaV names"), entries);
+        g.signal_ids.forEach(id => {
+          const signal = (state.project.signals || []).find(item => item.id === id);
+          const label = signal?.target_name || signal?.description || "Unnamed field signal";
+          entries.append(button(label + (signal?.active ? "" : " · needs correspondence"), () => run(async () => {
+            if (!navigateWorkspace("field-io")) return;
+            if (signal?.active) await fieldIOBrowser.openSignal(signal.binding.address_id);
+          })));
+        });
+        card.append(signalList);
+      }
       const labels = new Map((state.project.classification_categories || []).map(c => [c.id, c.label || c.name || c.id]));
       const classifications = node("div", null, "classification-chips");
       (g.function_categories || []).forEach(id => classifications.append(chip(labels.get(id) || id)));
@@ -1860,7 +1873,8 @@
         const start = memberPage * 50, end = Math.min(start + 50, sourceMembers.length);
         sourceMembers.slice(start, end).forEach(m => {
           const id = typeof m === "string" ? m : m.id;
-          members.append(button(typeof m === "string" ? m : m.path || m.label || id, () => run(async () => {
+          const label = typeof m === "string" ? m : m.path || m.label || id;
+          members.append(button((g.member_roles?.[id] ? g.member_roles[id] + " · " : "") + label, () => run(async () => {
             if (!discard()) return;
             const view = typeof m !== "string" && m.kind === "rung" ? "rungs" : "objects";
             switchView(view, true);
@@ -2736,6 +2750,7 @@
     theme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"),
   );
   $("stop").addEventListener("click", () => {
+    if (fieldIOBrowser.hasUnsavedChanges() && !window.confirm("Unsaved field-signal edits will be lost when this page closes. Stop the workspace anyway?")) return;
     if (!discard()) return;
     modal(
       "Close the local workspace",
@@ -2768,7 +2783,7 @@
     theme("dark");
   }
   window.addEventListener("beforeunload", (event) => {
-    if (state.dirty || modalDirty || state.saving) {
+    if (state.dirty || modalDirty || state.saving || fieldIOBrowser.hasUnsavedChanges()) {
       event.preventDefault();
       event.returnValue = "";
     }
@@ -2878,9 +2893,9 @@
     review: (routineId, sourceId) => run(() => openRoutineRungs(routineId, sourceId)),
     inspect: instruction => popupWorkspace(instruction.id, 'source'),
   });
-  const fieldIOBrowser = window.PLCFieldIO.mount($('field-io-browser'), {
+  const fieldIOBrowser = window.PLCFieldSignals.mount($('field-io-browser'), {
     api, getState: () => state.project,
-    addToGroup: ids => groupPicker(ids),
+    mutate, openConnections,
     openSource: (id, kind) => run(async () => {
       if (!discard()) return;
       const view = kind === 'rung' ? 'rungs' : 'objects';
