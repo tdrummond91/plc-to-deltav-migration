@@ -123,26 +123,41 @@
     root.append(html("p", `${reason} The complete original text is shown instead; no partial ladder is drawn.`));
     const original = originalSource(source); original.open = true; root.append(original); return root;
   }
-  function symbol(card, instruction, position, size) {
+  function symbol(card, instruction, position, size, colors) {
     const kind = kindOf(instruction), x = card.width / 2, y = size.anchor;
     const group = svg("g", { class: "ladder-diagram-instruction", transform: `translate(${card.x} ${card.y})`, "data-instruction-id": instruction.id,
       "data-source-position": position, "data-symbol": kind, "data-width": card.width, "data-height": card.height,
       role: "button", tabindex: "0", "aria-label": `Instruction ${position}: ${instructionText(instruction)}. Open captured arguments and source details.` });
-    group.append(svg("title", {}, instructionText(instruction)), svg("rect", { x: 0, y: 0, width: card.width, height: card.height, rx: 5, class: "ladder-diagram-hit-area" }));
+    const summary = window.PLCRungExplanation?.summary?.(instruction);
+    group.append(svg("title", {}, summary ? `${summary}\n\nCaptured source: ${instructionText(instruction)}` : instructionText(instruction)), svg("rect", { x: 0, y: 0, width: card.width, height: card.height, rx: 5, class: "ladder-diagram-hit-area" }));
+    if (summary) group.setAttribute('aria-description', summary);
+    const argumentText = (parent, argument, limit) => {
+      if (colors) colors.append(parent, argument, {namespace: NS, tag: 'tspan', limit});
+      else parent.append(svg('tspan', {}, limit ? shortened(argument, limit) : argument));
+    };
     const line = (x1, y1, x2, y2, cls = "ladder-diagram-symbol-wire") => group.append(svg("line", { x1, y1, x2, y2, class: cls }));
     if (kind === "block") {
       line(0, y, 10, y); line(card.width - 10, y, card.width, y);
       group.append(svg("rect", { x: 10, y: size.compact ? 12 : 29, width: card.width - 20, height: size.compact ? 80 : 100, rx: 3, class: "ladder-diagram-block" }),
         svg("text", { x: 22, y: size.compact ? 30 : 49, class: "ladder-diagram-opcode" }, shortened(instruction.opcode, 29)));
       if (size.compact && inlineArguments(instruction)) {
-        group.append(svg("text", { x: 22, y: 58, class: "ladder-diagram-argument ladder-diagram-arguments-inline" },
-          instruction.arguments.map((argument, index) => `${index + 1}: ${argument || "(empty argument)"}`).join(" · ")));
-      } else instruction.arguments.slice(0, 2).forEach((argument, index) => group.append(svg("text", { x: 22, y: (size.compact ? 49 : 72) + index * (size.compact ? 18 : 20), class: "ladder-diagram-argument" }, `${index + 1}: ${shortened(argument || "(empty argument)", 29)}`)));
+        const text = svg("text", { x: 22, y: 58, class: "ladder-diagram-argument ladder-diagram-arguments-inline" });
+        instruction.arguments.forEach((argument, index) => {
+          text.append(svg('tspan', {class:'ladder-diagram-slot'}, `${index ? ' · ' : ''}${index + 1}: `));
+          argumentText(text, argument);
+        });
+        group.append(text);
+      } else instruction.arguments.slice(0, 2).forEach((argument, index) => {
+        const text = svg("text", { x: 22, y: (size.compact ? 49 : 72) + index * (size.compact ? 18 : 20), class: "ladder-diagram-argument" });
+        text.append(svg('tspan', {class:'ladder-diagram-slot'}, `${index + 1}: `));
+        argumentText(text, argument || '(empty argument)', 29); group.append(text);
+      });
       const note = instruction.arguments.length > 2 ? `+ ${instruction.arguments.length - 2} more arguments; select to read` : instruction.arguments.length === 0 ? "No captured arguments" : "Select for complete arguments";
       if (!size.compact || !inlineArguments(instruction)) group.append(svg("text", { x: 22, y: size.compact ? 85 : 115, class: "ladder-diagram-small" }, note));
     } else {
       const argument = instruction.arguments[0];
-      group.append(svg("text", { x, y: size.compact ? 22 : 29, "text-anchor": "middle", class: "ladder-diagram-operand" }, shortened(argument, 22)));
+      const operand = svg("text", { x, y: size.compact ? 22 : 29, "text-anchor": "middle", class: "ladder-diagram-operand" });
+      argumentText(operand, argument, 22); group.append(operand);
       if (argument.length > 22) group.append(svg("text", { x, y: size.compact ? 35 : 45, "text-anchor": "middle", class: "ladder-diagram-small" }, "Select for complete address"));
       if (kind === "contact" || kind === "negated-contact") {
         line(0, y, x - 12, y); line(x + 12, y, card.width, y);
@@ -160,6 +175,7 @@
   }
 
   function draw(source, byId, plan, options, size) {
+    const colors = window.PLCSourceColors?.create(source.instructions);
     const root = html("section", undefined, `ladder-diagram${size.compact ? " is-compact" : ""}`); root.setAttribute("aria-label", "Source ladder drawing");
     if (!size.compact) root.append(html("p", `${plan.cards.length} captured instructions · all captured paths · neutral symbols, no live states`, "ladder-diagram-guide"));
     const controls = html("div", undefined, "ladder-diagram-controls");
@@ -182,8 +198,15 @@
         const accepted = options.onInstruction ? await options.onInstruction(instruction) : true;
         if (accepted === false || request !== selectionRequest) return;
         nodes.forEach((node, id) => { node.setAttribute("class", `ladder-diagram-instruction${id === instruction.id ? " is-selected" : ""}`); node.setAttribute("aria-pressed", String(id === instruction.id)); });
-        detail.hidden = false; detail.replaceChildren(html("h4", instruction.opcode), html("p", "Captured arguments in source order:"));
-        const argumentsList = html("ol"); instruction.arguments.forEach(argument => { const row = html("li"); row.append(html("code", argument || "(empty argument)")); argumentsList.append(row); });
+        detail.hidden = false; detail.replaceChildren(html("h4", instruction.opcode));
+        const summary = window.PLCRungExplanation?.summary?.(instruction);
+        if (summary) detail.append(html('p', summary));
+        detail.append(html("p", "Captured arguments in source order:"));
+        const argumentsList = html("ol"); instruction.arguments.forEach(argument => {
+          const row = html("li"), code = html("code");
+          if (colors) colors.append(code, argument || '(empty argument)'); else code.textContent = argument || '(empty argument)';
+          row.append(code); argumentsList.append(row);
+        });
         detail.append(instruction.arguments.length ? argumentsList : html("p", "No captured arguments."));
         if (kindOf(instruction) === "block") detail.append(html("p", "Generic block presentation preserves the opcode and arguments. It does not infer the block's effects or rewrite an invalid operand count."));
       } catch (cause) {
@@ -193,7 +216,7 @@
     }
     const positions = new Map(source.instructions.map((instruction, index) => [instruction.id, index + 1]));
     plan.cards.forEach(card => {
-      const instruction = byId.get(card.id), node = symbol(card, instruction, positions.get(card.id), size);
+      const instruction = byId.get(card.id), node = symbol(card, instruction, positions.get(card.id), size, colors);
       node.setAttribute("aria-pressed", "false"); node.addEventListener("click", () => inspect(instruction));
       node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); inspect(instruction); } });
       nodes.set(card.id, node); world.append(node);

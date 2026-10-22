@@ -281,6 +281,42 @@ toggle.fire('click');assert.equal(content.dataset.expanded,'false');assert.equal
 assert.equal(commentText(comment),original);
 """, translation=True)
 
+    def test_absent_and_whitespace_comments_are_explicit_beside_rung_number(self):
+        self.run_js(r"""
+const comments=[undefined,null,'',' \n\t  '];
+respond=async url=>payload(url,{items:comments.map((comment,i)=>({...rung(i),number:String(i),comment,
+  wording:{comment:{status:'translated',text:'Stale wording must not stand in for absent source'}}})),presentation_mode:'english'});
+const controller=mount();open(cls('routine-directory-entry')[0]);await flush();
+cls('routine-rung-heading').forEach((heading,i)=>{
+  assert.equal(heading.children[0].textContent,'Rung '+i);
+  const comment=heading.querySelectorAll('.routine-rung-comment')[0];
+  assert.equal(comment.hidden,false);assert.equal(commentText(comment),'— No comment');
+  assert.equal(comment.querySelectorAll('.routine-comment-toggle')[0].hidden,true);
+  assert.equal(comment.querySelectorAll('.translation-caption').length,0);
+});
+const before=cls('routine-rung-comment');controller.wordingChanged();await flush();
+cls('routine-rung-comment').forEach((comment,i)=>{assert.equal(comment,before[i]);assert.equal(commentText(comment),'— No comment');});
+assert.equal(diagrams.length,4);assert.equal(cls('routine-rung-no-comment').length,4);
+""", translation=True)
+
+    def test_nonblank_original_stays_visible_when_english_is_pending_failed_or_blank(self):
+        self.run_js(r"""
+const original='Description inventee\n  Avec espace et commentaire original.';
+let mode='original',wording=null;
+respond=async url=>payload(url,{items:[{...rung(0),comment:original,wording:{comment:wording}}],presentation_mode:mode});
+const controller=mount();open(cls('routine-directory-entry')[0]);await flush();
+const comment=cls('routine-rung-comment')[0],diagram=cls('test-ladder-diagram')[0];
+assert.equal(commentText(comment),original);assert.equal(comment.hidden,false);
+mode='english';
+for(const entry of [null,{status:'pending'},{status:'failed',failed:true},{status:'translated',text:'   '}]){
+  wording=entry;controller.wordingChanged();await flush();
+  assert.equal(commentText(comment),original);assert.equal(comment.hidden,false);
+  assert.equal(cls('routine-rung-no-comment').length,0);
+  assert.equal(cls('routine-rung-comment')[0],comment);assert.equal(cls('test-ladder-diagram')[0],diagram);
+}
+assert.equal(diagrams.length,1);
+""", translation=True)
+
     def test_wrapped_comment_disclosure_rechecks_after_width_change_and_keyboard_focus(self):
         self.run_js(r"""
 respond=async url=>payload(url,{items:[{...rung(0),comment:'x'.repeat(150)}]});

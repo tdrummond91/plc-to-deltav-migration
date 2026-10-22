@@ -1,5 +1,36 @@
 # Current handoff: PLC analysis workbench
 
+## Rung variable colors, comments and operation help (2026-10-22)
+
+Variable names now have distinct reading colors across routine ladder drawings,
+Rungs previews, equations, flow, branch selection and complete argument lists.
+The palette is assigned by exact spelling in source argument order within each
+rung; repeated names retain their color, and the six colors repeat when needed.
+Operators/opcodes and contact/coil symbols use orange; constants stay neutral.
+Colors do not establish bindings, input/output roles, alarm rank or live state.
+Indexed addresses remain opaque labels and shortened labels retain full identity.
+Shared source-colors.js/css are local assets served through the workspace allowlist.
+
+Blocks/expressions expose bounded operation summaries on hover. SVG symbols also
+have accessible descriptions and show the summary with selected arguments.
+Summaries reuse the existing explanation rules; unsupported/custom instructions,
+wrong arities and malformed records remain explicit. No new execution semantics
+or source edits are introduced.
+
+The routine API still supplies original comments separately from translation.
+There was no observed path stripping nonblank comments, but empty comments were
+hidden and whitespace-only comments looked blank. Those cases now say
+Rung N — No comment. Original comments remain visible when English is missing;
+long comments retain their expandable preview.
+
+Validation: 124 focused tests passed across the renderer, exact text/highlighter,
+both theme contrast palettes, equation/hover semantics, routine comments/API and
+workspace UI. Independent review caught and resolved opcode CSS specificity and
+a whitespace-only argument preview edge. Chrome checks used six invented rungs
+to inspect actual SVG/MathML colors, comment/no-comment headers, raw expression
+fallbacks and unknown-block help in dark and light themes. Save/stop, manually
+pull and reopen with `bash ./open-workbench.sh`; no L5X reanalysis is needed.
+
 ## Compact comments and partial English (2026-10-22)
 
 Programs & routines now previews long comments in about three lines, with Show

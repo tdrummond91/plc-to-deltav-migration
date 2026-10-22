@@ -13,13 +13,15 @@
 .ladder-diagram-hit-area { fill: transparent; stroke: transparent; }
 .ladder-diagram-instruction:hover .ladder-diagram-hit-area, .ladder-diagram-instruction:focus .ladder-diagram-hit-area { fill: var(--surface); stroke: var(--accent); stroke-dasharray: 4 3; }
 .ladder-diagram-instruction.is-selected .ladder-diagram-hit-area { stroke: var(--magenta); stroke-width: 2; }
-.ladder-diagram-symbol-wire, .ladder-diagram-contact, .ladder-diagram-negation, .ladder-diagram-coil { stroke: var(--ink); stroke-width: 2; fill: none; }
+.ladder-diagram-symbol-wire { stroke: var(--muted); stroke-width: 2; fill: none; }
+.ladder-diagram-contact, .ladder-diagram-negation, .ladder-diagram-coil { stroke: var(--source-operator, var(--orange)); stroke-width: 2; fill: none; }
 .ladder-diagram-contact { stroke-width: 2.5; }
 .ladder-diagram-block { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
-.ladder-diagram-opcode { fill: var(--ink); font-size: 13px; font-weight: 650; }
+.ladder-diagram-opcode { fill: var(--source-operator, var(--orange)); font-size: 13px; font-weight: 650; }
 .ladder-diagram-operand, .ladder-diagram-argument { fill: var(--ink); font-size: 12px; }
 .ladder-diagram-small, .ladder-diagram-source-order { fill: var(--muted); font-size: 10px; }
-.ladder-diagram-coil-letter { fill: var(--ink); font-size: 14px; font-weight: 700; }
+.ladder-diagram-slot { fill: var(--muted); }
+.ladder-diagram-coil-letter { fill: var(--source-operator, var(--orange)); font-size: 14px; font-weight: 700; }
 .ladder-diagram-instruction text { pointer-events: none; }
 .ladder-diagram-selected { padding: .7rem; border-left: 3px solid var(--magenta); margin: .7rem 0; background: var(--surface); overflow-wrap: anywhere; font-size: .85rem; }
 .ladder-diagram-selected[hidden], .ladder-diagram-error[hidden] { display: none; }

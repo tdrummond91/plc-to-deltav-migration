@@ -11,15 +11,18 @@ from test_workspace_ui import ASSETS, NODE
 
 
 SCRIPT = (ASSETS / "ladder-diagram.js").read_text(encoding="utf-8")
+COLOR_SCRIPT = (ASSETS / "source-colors.js").read_text(encoding="utf-8")
+EXPLANATION_SCRIPT = (ASSETS / "rung-explanation.js").read_text(encoding="utf-8")
 DOM = r"""
 const assert=require('node:assert/strict');
 class Element{
  constructor(tag){this.tagName=tag;this.children=[];this.events={};this.attributes={};this.style={};this.className='';this._text='';this.hidden=false;this.disabled=false;this.clientWidth=700;}
  set textContent(text){this._text=String(text);this.children=[];}
- get textContent(){return this._text+this.children.map(child=>child.textContent).join(' ');}
+ get textContent(){return this._text+this.children.map(child=>child.textContent).join('');}
  append(...children){children.forEach(child=>{child.parent=this;this.children.push(child);});}
  replaceChildren(...children){this.children=[];this._text='';this.append(...children);}
  setAttribute(name,value){this.attributes[name]=String(value);}
+ getAttribute(name){return this.attributes[name]??null;}
  addEventListener(name,fn){this.events[name]=fn;}
  fire(name,values={}){if(name==='click'&&this.disabled)return;return this.events[name]?.({type:name,target:this,preventDefault(){},...values});}
 }
@@ -55,11 +58,41 @@ async function tick(){for(let n=0;n<8;n++)await Promise.resolve();}
 @unittest.skipUnless(NODE, "Node is optional developer tooling")
 class LadderDiagramUiTests(unittest.TestCase):
     def run_js(self, checks: str, data: object = None) -> None:
-        code = DOM + SCRIPT + "\nconst data=" + json.dumps(data) + ";\n(async()=>{\n" + checks
+        code = DOM + COLOR_SCRIPT + EXPLANATION_SCRIPT + SCRIPT + "\nconst data=" + json.dumps(data) + ";\n(async()=>{\n" + checks
         code += "\n})().then(()=>process.stdout.write('DIAGRAM_OK\\n')).catch(error=>{console.error(error);process.exitCode=1;});"
         result = subprocess.run([NODE, "-"], input=code, capture_output=True, encoding="utf-8", timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("DIAGRAM_OK", result.stdout)
+
+    def test_variables_keep_colors_between_blocks_and_selected_full_arguments(self) -> None:
+        self.run_js(r"""
+const rows=[instruction('a','GEQ',['Pressure','Limit']),instruction('b','ADD',['Pressure','Bias','Output']),instruction('c','OTE',['Output'])];
+const root=render(source(seq(...rows.map(row=>ins(row.id))),rows),{compact:true});
+const variables=cls(root,'source-variable'),forName=name=>variables.filter(n=>n.attributes['data-source-variable']===name);
+assert.equal(forName('Pressure').length,2);
+assert.equal(forName('Pressure')[0].attributes.class,forName('Pressure')[1].attributes.class);
+assert.notEqual(forName('Pressure')[0].attributes.class,forName('Limit')[0].attributes.class);
+assert.equal(cls(root,'ladder-diagram-arguments-inline')[0].textContent,'1: Pressure · 2: Limit');
+await cards(root)[1].fire('click');
+const selected=cls(root,'ladder-diagram-selected')[0];
+assert.deepEqual(all(selected).filter(n=>n.tagName==='code').map(n=>n.textContent),['Pressure','Bias','Output']);
+assert.equal(cls(selected,'source-variable')[0].attributes.class,forName('Pressure')[0].attributes.class);
+assert.ok(all(cards(root)[0]).find(n=>n.tagName==='title').textContent.includes('greater than or equal to'));
+assert.ok(selected.textContent.includes('write the result to Output'));
+""")
+
+    def test_shortened_operand_keeps_full_identity_and_hover_summary(self) -> None:
+        self.run_js(r"""
+const a='Invented_Long_Address_Alpha',b='Invented_Long_Address_Bravo';
+const rows=[instruction('a','XIC',[a]),instruction('b','XIC',[b])],root=render(source(seq(ins('a'),ins('b')),rows),{compact:true});
+const values=cls(root,'source-variable');
+assert.equal(values[0].attributes['data-source-variable'],a);assert.equal(values[1].attributes['data-source-variable'],b);
+assert.notEqual(values[0].attributes.class,values[1].attributes.class);
+assert.ok(cls(root,'ladder-diagram-operand')[0].textContent.endsWith('…'));
+assert.ok(cards(root)[0].attributes['aria-description'].includes(a));
+await cards(root)[0].fire('keydown',{key:'Enter'});
+assert.ok(cls(root,'ladder-diagram-selected')[0].textContent.includes(a));
+""")
 
     def test_compact_nested_geometry_keeps_every_path_without_repeated_metadata(self) -> None:
         _, inventory, _, _ = capture('A+B', text='XIC(Enable)[GEQ(A,B),XIO(Inhibit)[TON(Timer,100,0),]]OTE(Output);')
@@ -105,7 +138,7 @@ assert.equal(cls(cards(root)[1],'ladder-diagram-arguments-inline').length,0);
 const stacked=cls(cards(root)[1],'ladder-diagram-argument');assert.equal(stacked.length,2);assert.notEqual(stacked[0].attributes.y,stacked[1].attributes.y);
 await cards(root)[1].fire('click');const selected=cls(root,'ladder-diagram-selected')[0];
 rows[1].arguments.forEach(value=>assert.ok(selected.textContent.includes(value)));
-assert.ok(all(cards(root)[1]).some(node=>node.tagName==='title'&&node.textContent==='GEQ('+rows[1].arguments.join(',')+')'));
+assert.ok(all(cards(root)[1]).some(node=>node.tagName==='title'&&node.textContent.endsWith('Captured source: GEQ('+rows[1].arguments.join(',')+')')));
 assert.ok(root.textContent.includes(data.text));
 """)
 
@@ -139,7 +172,7 @@ const root=render(source(seq(...rows.map(row=>ins(row.id))),rows));geometry(root
 assert.deepEqual(cards(root).map(node=>node.attributes['data-symbol']),['contact','negated-contact','coil','latch-coil','unlatch-coil']);
 assert.equal(cls(root,'ladder-diagram-negation').length,1);assert.equal(cls(root,'ladder-diagram-contact').length,4);assert.equal(cls(root,'ladder-diagram-coil').length,6);
 assert.deepEqual(cls(root,'ladder-diagram-coil-letter').map(node=>node.textContent),['L','U']);
-for(const row of rows)assert.ok(all(root).some(node=>node.tagName==='title'&&node.textContent===row.opcode+'('+row.arguments[0]+')'));
+for(const row of rows)assert.ok(all(root).some(node=>node.tagName==='title'&&node.textContent.endsWith('Captured source: '+row.opcode+'('+row.arguments[0]+')')));
 """)
 
     def test_unknown_and_arity_invalid_opcodes_keep_generic_blocks_and_complete_arguments(self) -> None:

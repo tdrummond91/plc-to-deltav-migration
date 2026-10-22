@@ -1,0 +1,40 @@
+:root {
+  --source-var-0: #64e1cf;
+  --source-var-1: #f19ccc;
+  --source-var-2: #c3b0ff;
+  --source-var-3: #b5db79;
+  --source-var-4: #f3d779;
+  --source-var-5: #a9dce7;
+  --source-operator: #f5b37b;
+  --source-literal: #ecf3f7;
+}
+:root[data-theme="light"] {
+  --source-var-0: #006f66;
+  --source-var-1: #993e75;
+  --source-var-2: #6842a3;
+  --source-var-3: #46691d;
+  --source-var-4: #705600;
+  --source-var-5: #276473;
+  --source-operator: #95430e;
+  --source-literal: #18262e;
+}
+.source-var-0 { color: var(--source-var-0); }
+.source-var-1 { color: var(--source-var-1); }
+.source-var-2 { color: var(--source-var-2); }
+.source-var-3 { color: var(--source-var-3); }
+.source-var-4 { color: var(--source-var-4); }
+.source-var-5 { color: var(--source-var-5); }
+.source-operator, .source-token.source-operator { color: var(--source-operator); }
+.source-literal { color: var(--source-literal); }
+.source-plain { color: var(--muted); }
+svg .source-token { fill: currentColor; }
+.source-variable { font-weight: 600; }
+math .source-operator { font-weight: 600; }
+@media print {
+  :root { --source-operator: #111; --source-literal: #111; }
+  .source-token, .source-operator, .source-literal, .source-token.source-operator { color: #111; }
+}
+@media (forced-colors: active) {
+  :root { --source-operator: CanvasText; --source-literal: CanvasText; }
+  .source-token, .source-operator, .source-literal, .source-token.source-operator { color: CanvasText; }
+}

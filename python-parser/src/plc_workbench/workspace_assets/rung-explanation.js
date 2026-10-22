@@ -105,6 +105,28 @@
       text: `The meaning and input/output effects of ${instruction.opcode} are not explained by this view. Keep its arguments and source position for review.` };
   }
 
+  // A pure, bounded instruction tooltip shared by source renderers. It explains
+  // this captured instruction only, never upstream paths or live controller state.
+  function summary(instruction) {
+    if (!instruction || typeof instruction.opcode !== 'string' || !instruction.opcode.trim()
+        || instruction.opcode.length > 80 || !Array.isArray(instruction.arguments)
+        || instruction.arguments.length > 32 || Array.from(instruction.arguments).some(argument =>
+          typeof argument !== 'string' || argument.length > LIMITS.argument)
+        || instruction.arguments.reduce((length, argument) => length + argument.length, 0) > LIMITS.text)
+      return 'Instruction details unavailable: the captured record is incomplete or exceeds the summary limits.';
+    const shortened = instruction.arguments.some(argument => argument.length > 120);
+    const captured = {opcode: instruction.opcode, arguments: instruction.arguments.map(argument =>
+      !argument.trim() ? '' : argument.length > 120 ? `${argument.slice(0, 117)}...` : argument)};
+    const info = facts(captured);
+    if (info.kind === 'unknown')
+      return `${captured.opcode} · Unknown instruction effects. ${info.text} No input/output roles are inferred.`;
+    const pieces = [`${captured.opcode} · ${info.label}. ${info.text}`];
+    if (info.reads.length) pieces.push(`Inputs / values: ${info.reads.map(slot => captured.arguments[slot]).join(', ')}.`);
+    if (info.writes.length) pieces.push(`Outputs / stored state: ${info.writes.map(slot => captured.arguments[slot]).join(', ')}.`);
+    if (shortened) pieces.push('Argument previews shortened; inspect the complete captured arguments.');
+    return pieces.join(' ');
+  }
+
   // Preserve parentheses when combining known condition-only paths. Stateful or
   // opaque actions deliberately stop simplification of subsequent conditions.
   function join(parts, operator) {
@@ -211,5 +233,5 @@
       el("p", "Names and comments do not establish alarm purpose, shutdown behavior, priority, physical I/O, or DeltaV class mapping. Stored state, other writers, execution conditions, and unsupported blocks need separate review.", "rung-explanation-boundary"));
     return root;
   }
-  window.PLCRungExplanation = Object.freeze({ render });
+  window.PLCRungExplanation = Object.freeze({ render, summary });
 })();

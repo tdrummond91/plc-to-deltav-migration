@@ -106,6 +106,18 @@ comment survives a language change while that rung page stays open. The main
 header stays at the top while scrolling, with a distinct lower border.
 Short two-argument blocks show both numbered operands on one line. Long previews
 stay stacked, with complete values available by selecting the symbol.
+Variable names use distinct colors, with repeated exact names retaining their
+color within a rung. Operators, instruction names and ladder symbols use orange;
+constants have a neutral foreground. The six variable colors repeat for larger
+rungs and do not represent live state or input/output roles. The same convention
+applies to the Rungs equation, flow, branch and instruction displays in both themes.
+Hover over a block or expression for its supported operation summary, including
+inputs and outputs where known. Selecting a ladder symbol also shows the summary
+with its full arguments; keyboard users can focus and select it. Unknown/custom
+instructions explicitly retain unresolved effects.
+If no nonblank comment was captured, its header says **Rung N — No comment**.
+Existing comments stay beside the rung number, including original wording when
+English is unavailable; long comments still have **Show full comment**.
 Zoom and scroll to inspect a long rung. Select a symbol for its complete arguments and a
 source inspector; **Open rung review** opens that exact rung in the main review
 page. Unknown instructions remain labeled blocks rather than guessed symbols.

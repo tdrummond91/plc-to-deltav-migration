@@ -614,11 +614,16 @@
   function renderRungPreview(row) {
     const root = node("div", null, "rung-preview");
     const preview = row.preview || {};
+    const colors = window.PLCSourceColors?.create(preview.instructions || []);
     const occurrences = new Map((preview.calculations?.occurrences || []).map((item) => [item.id, item]));
     const nodes = new Map((preview.calculations?.nodes || []).map((item) => [item.id, item]));
     (preview.instructions || []).forEach((inst) => {
       const card = node("div", null, "rung-preview-expression");
-      card.append(node("span", inst.opcode, "eyebrow"), instructionEquation(inst, occurrences.get(inst.id), nodes).math);
+      const opcode = node("span", inst.opcode, "eyebrow");
+      colors?.paint(opcode, inst.opcode, "operator");
+      const equation = instructionEquation(inst, occurrences.get(inst.id), nodes, colors);
+      card.title = equation.help;
+      card.append(opcode, equation.math);
       root.append(card);
     });
     if (!preview.instructions?.length)
@@ -1042,6 +1047,7 @@
     tabs.setAttribute("role", "tablist");
     tabs.setAttribute("aria-label", "Rung display");
     const byId = new Map(source.instructions.map((i) => [i.id, i]));
+    const colors = window.PLCSourceColors?.create(source.instructions);
     const occurrences = new Map((calculations.occurrences || []).map((c) => [c.id, c]));
     const nodes = new Map((calculations.nodes || []).map((n) => [n.id, n]));
     const panels = [], controls = [];
@@ -1081,11 +1087,12 @@
       panels[1].append(window.PLCRungFlow.render(source, {
         instruction: (inst) => {
           const card = node("div", null, "flow-instruction");
-          const equation = instructionEquation(inst, occurrences.get(inst.id), nodes);
-          card.title = equation.label;
+          const equation = instructionEquation(inst, occurrences.get(inst.id), nodes, colors);
+          card.title = equation.help;
           if (state.view === 'map') ladderMap.attachHover?.(card, inst.id, equation.label);
-          card.append(node("strong", `${positions.get(inst.id)} · ${inst.opcode}`, "flow-opcode"),
-            node("span", equation.label, "flow-kind"));
+          const opcode = node("strong", `${positions.get(inst.id)} · ${inst.opcode}`, "flow-opcode");
+          colors?.paint(opcode, inst.opcode, "operator");
+          card.append(opcode, node("span", equation.label, "flow-kind"));
           const display = node("div", null, "equation-display");
           display.append(equation.math);
           card.append(display, link("Instruction evidence ↗", inst.id));
@@ -1093,10 +1100,10 @@
         },
         onInstruction: inst => popupWorkspace(inst.id, 'source'),
       }), button("Select individual instructions to group", () => activate(3), "text-button"));
-      panels[2].append(renderEquationTree(source.structure, byId, occurrences, nodes, positions));
+      panels[2].append(renderEquationTree(source.structure, byId, occurrences, nodes, positions, 0, colors));
       const chosen = new Set();
       const scroll = node("div", null, "structure-scroll");
-      scroll.append(renderStructure(source.structure, byId, chosen));
+      scroll.append(renderStructure(source.structure, byId, chosen, 0, colors));
       panels[3].append(node("p", "Boxes and parallel paths preserve the captured structure. Select individual instructions here to group them."), scroll,
         button("Group checked instructions", () => {
           if (!chosen.size) { notify("Check one or more instruction boxes first."); return; }
@@ -1111,19 +1118,23 @@
   }
   function mathNode(tag, ...children) {
     const element = document.createElementNS("http://www.w3.org/1998/Math/MathML", tag);
+    if (["mfrac", "msqrt"].includes(tag) || (tag === "mo" && !["(", ")", ",", "[", "]"].includes(children[0])))
+      element.setAttribute("class", "source-operator");
+    if (tag === "mn") element.setAttribute("class", "source-literal");
     children.forEach((child) => element.append(typeof child === "string" ? document.createTextNode(child) : child));
     return element;
   }
-  function mathAtom(text) {
+  function mathAtom(text, colors, kind) {
     // Keep full source names, including underscores and array indices, literal.
     const element = mathNode("mi", String(text));
     element.setAttribute("mathvariant", "normal");
+    colors?.paint(element, String(text), kind);
     return element;
   }
   function mathFence(child, left = "(", right = ")") {
     return mathNode("mrow", mathNode("mo", left), child, mathNode("mo", right));
   }
-  function mathExpression(root, nodes, instructionId) {
+  function mathExpression(root, nodes, instructionId, colors) {
     const seen = new Set();
     function visit(id, depth = 0, enclosed = false) {
       const current = nodes.get(id);
@@ -1134,7 +1145,7 @@
       const arity = { literal: 0, reference: 0, group: 1, unary: 1, binary: 2, function: 1 }[current.kind];
       if (arity === undefined || children.length !== arity) throw new Error("Unsupported expression node");
       const terms = children.map((child) => visit(child, depth + 1, current.kind === "group"));
-      if (current.kind === "reference") return mathAtom(current.raw_text);
+      if (current.kind === "reference") return mathAtom(current.raw_text, colors);
       if (current.kind === "literal") return mathNode("mn", current.raw_text);
       if (current.kind === "group") return mathFence(terms[0]);
       const op = current.operator;
@@ -1145,7 +1156,7 @@
       if (current.kind === "function") {
         if (["SQR", "SQRT"].includes(op)) return mathNode("msqrt", terms[0]);
         if (op === "ABS") return mathFence(terms[0], "|", "|");
-        return mathNode("mrow", mathAtom(op), mathFence(terms[0]));
+        return mathNode("mrow", mathAtom(op, colors, "operator"), mathFence(terms[0]));
       }
       if (op === "/") return mathNode("mfrac", ...terms);
       if (op === "**") {
@@ -1162,38 +1173,46 @@
     }
     return visit(root);
   }
-  function instructionEquation(inst, occurrence, nodes) {
+  function instructionEquation(inst, occurrence, nodes, colors = window.PLCSourceColors?.create([inst])) {
     const args = inst.arguments || [], opcode = inst.opcode.toUpperCase();
-    const assign = (destination, expression) => mathNode("mrow", mathAtom(destination), mathNode("mo", "←"), expression);
-    const call = () => mathNode("mrow", mathAtom(inst.opcode), mathFence(mathNode("mrow", ...args.flatMap((arg, i) =>
-      [...(i ? [mathNode("mo", ",")] : []), mathNode("mtext", arg)]))));
+    const atom = (text, kind) => mathAtom(text, colors, kind);
+    const assign = (destination, expression) => mathNode("mrow", atom(destination), mathNode("mo", "←"), expression);
+    const argument = (text) => {
+      const value = mathNode("mrow");
+      value.setAttribute("class", "equation-source-argument");
+      if (colors) colors.append(value, text, {tag: "mtext", namespace: "http://www.w3.org/1998/Math/MathML"});
+      else value.append(mathNode("mtext", text));
+      return value;
+    };
+    const call = () => mathNode("mrow", atom(inst.opcode, "operator"), mathFence(mathNode("mrow", ...args.flatMap((arg, i) =>
+      [...(i ? [mathNode("mo", ",")] : []), argument(arg)]))));
     let expression, label = "Instruction", fallback = false;
     const valid = (count) => args.length === count && args.every((arg) => typeof arg === "string" && arg.trim());
     if (opcode === "CPT") {
       if (valid(2) && occurrence?.syntax_status === "parsed") {
-        try { expression = assign(args[0], mathExpression(occurrence.root_node_id, nodes, inst.id)); }
+        try { expression = assign(args[0], mathExpression(occurrence.root_node_id, nodes, inst.id, colors)); }
         catch { fallback = true; }
       } else fallback = true;
       label = fallback ? "Original expression · typesetting unavailable" : "Calculation";
     } else if (["ADD", "SUB", "MUL", "DIV"].includes(opcode) && valid(3)) {
-      const left = mathAtom(args[0]), right = mathAtom(args[1]);
+      const left = atom(args[0]), right = atom(args[1]);
       expression = assign(args[2], opcode === "DIV" ? mathNode("mfrac", left, right)
         : mathNode("mrow", left, mathNode("mo", { ADD: "+", SUB: "−", MUL: "×" }[opcode]), right));
       label = "Calculation";
     } else if (["ABS", "LN", "SQR", "SQRT"].includes(opcode) && valid(2)) {
-      const value = mathAtom(args[0]);
+      const value = atom(args[0]);
       expression = assign(args[1], opcode === "ABS" ? mathFence(value, "|", "|")
-        : opcode === "LN" ? mathNode("mrow", mathAtom("LN"), mathFence(value)) : mathNode("msqrt", value));
+        : opcode === "LN" ? mathNode("mrow", atom("LN", "operator"), mathFence(value)) : mathNode("msqrt", value));
       label = "Calculation";
     } else if (["EQU", "NEQ", "LES", "LEQ", "GRT", "GEQ"].includes(opcode) && valid(2)) {
-      expression = mathNode("mrow", mathAtom(args[0]), mathNode("mo", { EQU: "=", NEQ: "≠", LES: "<", LEQ: "≤", GRT: ">", GEQ: "≥" }[opcode]), mathAtom(args[1]));
+      expression = mathNode("mrow", atom(args[0]), mathNode("mo", { EQU: "=", NEQ: "≠", LES: "<", LEQ: "≤", GRT: ">", GEQ: "≥" }[opcode]), atom(args[1]));
       label = "Comparison";
     } else if (opcode === "MOV" && valid(2)) {
-      expression = assign(args[1], mathAtom(args[0])); label = "Move value";
+      expression = assign(args[1], atom(args[0])); label = "Move value";
     } else if (opcode === "CLR" && valid(1)) {
       expression = assign(args[0], mathNode("mn", "0")); label = "Clear value";
     } else if (["XIC", "XIO"].includes(opcode) && valid(1)) {
-      const condition = mathNode("mrow", mathAtom(args[0]),
+      const condition = mathNode("mrow", atom(args[0]),
         mathNode("mtext", opcode === "XIC" ? " is TRUE" : " is FALSE"));
       expression = mathNode("mrow", mathNode("mtext", "Incoming condition AND "), mathFence(condition));
       label = opcode === "XIC" ? "Pass when the bit is true" : "Pass when the bit is false";
@@ -1201,7 +1220,7 @@
       expression = assign(args[0], mathNode("mtext", "Incoming condition")); label = "Output follows the incoming condition";
     } else if (["OTL", "OTU"].includes(opcode) && valid(1)) {
       expression = mathNode("mrow", mathNode("mtext", "IF incoming condition is TRUE, "),
-        mathAtom(opcode === "OTL" ? "SET" : "RESET"), mathFence(mathAtom(args[0])));
+        atom(opcode === "OTL" ? "SET" : "RESET", "operator"), mathFence(atom(args[0])));
       label = opcode === "OTL" ? "Latch when enabled" : "Unlatch when enabled";
     } else if (["TON", "TOF", "RTO", "ONS", "OSR", "OSF", "CTU", "CTD"].includes(opcode)) {
       label = { TON: "On-delay timer", TOF: "Off-delay timer", RTO: "Retentive timer",
@@ -1211,14 +1230,16 @@
     const math = mathNode("math", expression || call());
     math.setAttribute("display", "block");
     math.setAttribute("aria-label", `${inst.opcode}(${args.join(", ")})`);
-    return { math, label, fallback };
+    const help = window.PLCRungExplanation?.summary?.(inst) || label;
+    math.setAttribute("title", help);
+    return { math, label, fallback, help };
   }
-  function renderEquationTree(tree, byId, occurrences, nodes, positions, depth = 0) {
+  function renderEquationTree(tree, byId, occurrences, nodes, positions, depth = 0, colors = window.PLCSourceColors?.create([...byId.values()])) {
     if (!tree || depth > 140) return node("p", "Structure display limit reached. Use Original text.", "warning-panel");
     if (tree.kind === "sequence") {
       const sequence = node("div", null, "equation-sequence");
       if (!tree.items?.length) sequence.append(node("p", "Empty branch path", "empty-leg"));
-      (tree.items || []).forEach((item) => sequence.append(renderEquationTree(item, byId, occurrences, nodes, positions, depth + 1)));
+      (tree.items || []).forEach((item) => sequence.append(renderEquationTree(item, byId, occurrences, nodes, positions, depth + 1, colors)));
       return sequence;
     }
     if (tree.kind === "branch") {
@@ -1226,7 +1247,7 @@
       branch.append(node("span", "PARALLEL PATHS", "equation-branch-label"));
       (tree.legs || []).forEach((leg, index) => {
         const path = node("div", null, "equation-path");
-        path.append(node("strong", "Path " + (index + 1)), renderEquationTree(leg, byId, occurrences, nodes, positions, depth + 1));
+        path.append(node("strong", "Path " + (index + 1)), renderEquationTree(leg, byId, occurrences, nodes, positions, depth + 1, colors));
         branch.append(path);
       });
       return branch;
@@ -1234,14 +1255,17 @@
     const inst = tree.kind === "instruction" && byId.get(tree.instruction_id);
     if (!inst) return node("p", "Instruction structure unavailable. Use Original text.", "warning-panel");
     const row = node("div", null, "equation-row"), heading = node("div", null, "equation-heading");
-    const rendered = instructionEquation(inst, occurrences.get(inst.id), nodes);
-    heading.append(node("strong", `${positions.get(inst.id)} · ${inst.opcode}`), node("span", rendered.label), link("Evidence ↗", inst.id));
+    const rendered = instructionEquation(inst, occurrences.get(inst.id), nodes, colors);
+    row.title = rendered.help;
+    const opcode = node("strong", `${positions.get(inst.id)} · ${inst.opcode}`);
+    colors?.paint(opcode, inst.opcode, "operator");
+    heading.append(opcode, node("span", rendered.label), link("Evidence ↗", inst.id));
     const display = node("div", null, "equation-display");
     display.append(rendered.math);
     row.append(heading, display);
     return row;
   }
-  function renderStructure(tree, byId, chosen, depth = 0) {
+  function renderStructure(tree, byId, chosen, depth = 0, colors = window.PLCSourceColors?.create([...byId.values()])) {
     if (depth > 140)
       return node(
         "div",
@@ -1254,7 +1278,7 @@
         sequence.append(node("span", "Empty branch path", "empty-leg"));
       else
         tree.items.forEach((item) =>
-          sequence.append(renderStructure(item, byId, chosen, depth + 1)),
+          sequence.append(renderStructure(item, byId, chosen, depth + 1, colors)),
         );
       return sequence;
     }
@@ -1262,7 +1286,7 @@
       const branch = node("div", null, "branch");
       branch.setAttribute("aria-label", "Parallel source branch");
       (tree.legs || []).forEach((leg) =>
-        branch.append(renderStructure(leg, byId, chosen, depth + 1)),
+        branch.append(renderStructure(leg, byId, chosen, depth + 1, colors)),
       );
       return branch;
     }
@@ -1275,10 +1299,16 @@
           "unknown-node",
         );
       const box = node("div", null, "instruction-box");
-      box.append(node("strong", inst.opcode));
-      (inst.arguments || []).forEach((arg, index) =>
-        box.append(node("span", index + 1 + ": " + arg, "argument mono")),
-      );
+      box.title = window.PLCRungExplanation?.summary?.(inst) || "Original instruction and arguments";
+      const opcode = node("strong", inst.opcode);
+      colors?.paint(opcode, inst.opcode, "operator");
+      box.append(opcode);
+      (inst.arguments || []).forEach((arg, index) => {
+        const value = node("span", index + 1 + ": ", "argument mono");
+        if (colors) colors.append(value, arg);
+        else value.append(document.createTextNode(arg));
+        box.append(value);
+      });
       const check = node("input");
       check.type = "checkbox";
       check.addEventListener("change", () =>
@@ -1295,6 +1325,7 @@
     );
   }
   function renderInstructions(root, instructions, operands) {
+    const colors = window.PLCSourceColors?.create(instructions);
     const area = section(
       root,
       "Every instruction & operand",
@@ -1304,10 +1335,10 @@
     instructions.forEach((inst, index) => {
       const card = node("div", null, "instruction-row");
       const header = node("header");
-      header.append(
-        node("strong", index + 1 + ". " + inst.opcode),
-        link("Evidence ↗", inst.id),
-      );
+      header.title = window.PLCRungExplanation?.summary?.(inst) || "Original instruction and arguments";
+      const opcode = node("strong", index + 1 + ". " + inst.opcode);
+      colors?.paint(opcode, inst.opcode, "operator");
+      header.append(opcode, link("Evidence ↗", inst.id));
       card.append(header);
       const args = node("ol");
       (inst.arguments || []).forEach((value, position) => {
@@ -1317,7 +1348,10 @@
             o.instruction_id === inst.id &&
             (o.position === position || o.argument_index === position),
         );
-        row.append(node("span", value));
+        const argument = node("span");
+        if (colors) colors.append(argument, value);
+        else argument.append(document.createTextNode(value));
+        row.append(argument);
         if (operand?.id) {
           row.append(
             document.createTextNode(" · "),
@@ -2271,6 +2305,8 @@
     const root = $("guide-content");
     clear(root);
     root.className = "guide";
+    section(root, "Reading colors and operation hints",
+      "Colors distinguish variable names, operations and literal values. The same exact variable spelling keeps its color within a rung. Six variable colors repeat, so a shared color does not establish that different names are the same signal. Colors do not indicate live values, input/output roles, alarm severity or execution state. Hover an operation for its instruction explanation; unsupported blocks keep their effects unresolved.");
     const steps = [
       [
         "source",

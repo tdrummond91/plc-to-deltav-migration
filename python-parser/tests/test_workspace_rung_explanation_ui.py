@@ -148,6 +148,74 @@ assert.ok(contents(unsafe).includes('<img src=x onerror=alert(1)>'));
 assert.equal(all(unsafe).some(item=>item.tagName==='img'),false);
 """, source('XIC(A)OTE(B);'))
 
+    def test_pure_instruction_summaries_name_comparison_calculation_and_boolean_effects(self):
+        self.run_js(r"""
+document.createElement=()=>{throw new Error('A summary must not need DOM construction');};
+const summaries=data.map(instruction=>window.PLCRungExplanation.summary(instruction));
+assert.ok(summaries[0].includes('GEQ'));assert.ok(summaries[0].includes('Pressure is greater than or equal to 90'));
+assert.ok(summaries[0].includes('Inputs / values: Pressure, 90'));
+assert.ok(summaries[1].includes('ValveClosed is FALSE'));
+assert.ok(summaries[2].includes('Warning follows this instruction\'s incoming path result: TRUE or FALSE'));
+assert.ok(summaries[2].includes('Outputs / stored state: Warning'));
+assert.equal(summaries[2].includes('shutdown'),false);
+assert.ok(summaries[3].includes('subtract Offset from Input'));assert.ok(summaries[3].includes('write the result to Output'));
+assert.ok(summaries[4].includes('evaluate the captured expression ((A+B)/C)'));
+summaries.forEach(text=>assert.ok(text.length<=1200));
+""", [{'opcode': 'GEQ', 'arguments': ['Pressure', '90']},
+       {'opcode': 'XIO', 'arguments': ['ValveClosed']},
+       {'opcode': 'OTE', 'arguments': ['Warning']},
+       {'opcode': 'SUB', 'arguments': ['Input', 'Offset', 'Output']},
+       {'opcode': 'CPT', 'arguments': ['Result', '(A+B)/C']}])
+
+    def test_instruction_summaries_keep_stateful_and_unknown_effects_explicit(self):
+        self.run_js(r"""
+const summary=window.PLCRungExplanation.summary;
+const latch=summary({opcode:'OTL',arguments:['Hold']});
+assert.ok(latch.includes('leaves the stored bit unchanged'));
+const timer=summary({opcode:'TON',arguments:['Timer','100','0']});
+assert.ok(timer.includes('uses stored state Timer'));assert.ok(timer.includes('execution history'));
+assert.ok(timer.includes('not evaluated here'));
+const pid=summary({opcode:'PID',arguments:['Loop','PV','Tieback','CV','InHold','HoldValue','Master']});
+assert.ok(pid.includes('require separate review'));assert.equal(pid.includes('Outputs / stored state:'),false);
+for(const instruction of [{opcode:'Custom_Block',arguments:['First','Last']},{opcode:'OTE',arguments:['First','Last']}]){
+  const text=summary(instruction);assert.ok(text.includes('Unknown instruction effects'));
+  assert.ok(text.includes('No input/output roles are inferred'));
+  assert.equal(text.includes('Inputs / values:'),false);assert.equal(text.includes('Outputs / stored state:'),false);
+}
+""", None)
+
+    def test_instruction_summary_rejects_malformed_records_and_bounds_previews_without_mutation(self):
+        self.run_js(r"""
+const summary=window.PLCRungExplanation.summary;
+for(const instruction of [null,{},'XIC(A)',{opcode:' ',arguments:[]},{opcode:'x'.repeat(81),arguments:[]},
+ {opcode:'XIC',arguments:'A'},{opcode:'XIC',arguments:[null]},{opcode:'XIC',arguments:new Array(1)},
+ {opcode:'XIC',arguments:['x'.repeat(4097)]},{opcode:'XIC',arguments:Array(33).fill('A')},
+ {opcode:'Custom',arguments:Array(32).fill('x'.repeat(4096))}]){
+  const text=summary(instruction);assert.ok(text.includes('Instruction details unavailable'));assert.ok(text.length<200);
+}
+const instruction={opcode:'CPT',arguments:['Output','x'.repeat(4096)],id:'synthetic'};
+const before=JSON.stringify(instruction),text=summary(instruction);
+assert.equal(JSON.stringify(instruction),before);assert.ok(text.length<=1200);
+assert.ok(text.includes('Argument previews shortened'));assert.ok(text.includes('...'));
+assert.equal(summary({opcode:'XIC',arguments:['<script>literal source</script>']}).includes('<script>literal source</script>'),true);
+""", None)
+
+    def test_summary_shortening_does_not_turn_blank_operands_into_known_effects(self):
+        self.run_js(r"""
+const summary=window.PLCRungExplanation.summary;
+for(const opcode of ['XIC','OTE']){
+  for(const argument of [' '.repeat(121),' \t\n'.repeat(300)]){
+    const instruction={opcode,arguments:[argument]},before=JSON.stringify(instruction);
+    const text=summary(instruction);
+    assert.ok(text.includes('Unknown instruction effects'));
+    assert.ok(text.includes('No input/output roles are inferred'));
+    assert.equal(text.includes('Inputs / values:'),false);
+    assert.equal(text.includes('Outputs / stored state:'),false);
+    assert.equal(JSON.stringify(instruction),before);
+  }
+}
+""", None)
+
 
 if __name__ == '__main__':
     unittest.main()

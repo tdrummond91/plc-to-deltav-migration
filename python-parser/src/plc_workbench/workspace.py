@@ -1135,6 +1135,7 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
             elif url.path == "/analysis":
                 self._send(200, workspace.report(query.get('language')), "text/html; charset=utf-8", report=True)
             elif url.path in ("/", "/index.html", "/workspace.js", "/workspace.css",
+                              "/source-colors.js", "/source-colors.css",
                               "/rung-flow.js", "/rung-flow.css", "/rung-explanation.js", "/rung-explanation.css",
                               "/routine-browser.js", "/routine-browser.css", "/ladder-diagram.js", "/ladder-diagram.css",
                               "/connections.js", "/connections.css",

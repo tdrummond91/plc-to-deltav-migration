@@ -7,7 +7,7 @@ import subprocess
 import unittest
 
 from test_calculations import capture
-from test_workspace_ui import DOM, NODE, function
+from test_workspace_ui import ASSETS, DOM, NODE, function
 from test_workspace_rung_flow_ui import FLOW_DOM, SCRIPT as FLOW_SCRIPT
 from test_workspace_rung_explanation_ui import SCRIPT as EXPLANATION_SCRIPT
 
@@ -15,10 +15,15 @@ from test_workspace_rung_explanation_ui import SCRIPT as EXPLANATION_SCRIPT
 MATH_FUNCTIONS = ["mathNode", "mathAtom", "mathFence", "mathExpression", "instructionEquation"]
 RUNG_FUNCTIONS = [*MATH_FUNCTIONS, "renderEquationTree", "renderStructure", "renderRungLogic"]
 MATH_DOM = r"""
+document.createElement=tag=>node(tag);
 document.createElementNS=(namespace,tag)=>{const result=node(tag);result.namespaceURI=namespace;return result;};
+Element.prototype.getAttribute=function(name){return name==='class'?this.attributes[name]??this.className:this.attributes[name]??null;};
 Element.prototype.focus=function(){document.activeElement=this;};
 const exactText=root=>root.textContent+root.children.map(exactText).join('');
 const tags=(root,tag)=>[root,...descendants(root)].filter(n=>n.tagName===tag);
+const hasClass=(element,name)=>(element.attributes.class||element.className||'').split(' ').includes(name);
+const argumentTexts=root=>tags(root,'mrow').filter(n=>hasClass(n,'equation-source-argument')).map(exactText);
+const variableColors=(root,text)=>[root,...descendants(root)].filter(n=>hasClass(n,'source-variable')&&exactText(n)===text).map(n=>n.attributes.class.match(/\bsource-var-\d\b/)[0]);
 const nodeMap=data=>new Map(data.nodes.map(n=>[n.id,n]));
 const equation=data=>instructionEquation(data.source.instructions[0],data.occurrences[0],nodeMap(data));
 """
@@ -36,8 +41,10 @@ class WorkspaceEquationTests(unittest.TestCase):
     def run_js(self, names: list[str], checks: str, payload: object = None) -> None:
         dom = DOM.replace("renderDetail, ", "") if "renderDetail" in names else DOM
         code = dom + MATH_DOM
+        code += (ASSETS / "source-colors.js").read_text(encoding="utf-8")
+        code += EXPLANATION_SCRIPT
         if "renderRungLogic" in names:
-            code += FLOW_DOM + FLOW_SCRIPT + EXPLANATION_SCRIPT
+            code += FLOW_DOM + FLOW_SCRIPT
         code += "\n" + "\n".join(function(name) for name in names)
         code += "\nconst data=" + json.dumps(payload) + ";\n"
         code += "\n(async()=>{\n" + checks + "\n})().catch(error=>{console.error(error);process.exitCode=1;});"
@@ -151,7 +158,7 @@ for (const [opcode,args] of [
   ['MOV',['A','B','C']], ['CLR',[]]]) {
   const rendered=instructionEquation({id:'i',opcode,arguments:args},null,new Map());
   assert.equal(rendered.label,'Instruction');
-  assert.deepEqual(tags(rendered.math,'mtext').map(exactText),args);
+  assert.deepEqual(argumentTexts(rendered.math),args);
   assert.equal(tags(rendered.math,'mo').some(n=>exactText(n)==='←'),false);
   assert.equal(rendered.math.attributes['aria-label'],opcode+'('+args.join(', ')+')');
 }
@@ -159,7 +166,7 @@ for (const item of data) {
   const rendered=equation(item);
   assert.equal(rendered.fallback,true);
   assert.ok(rendered.label.includes('Original expression'));
-  assert.deepEqual(tags(rendered.math,'mtext').map(exactText),item.source.instructions[0].arguments);
+  assert.deepEqual(argumentTexts(rendered.math),item.source.instructions[0].arguments);
   assert.equal(tags(rendered.math,'mfrac').length,0);
 }
 """, [parsed("A + PRIVATE_FUNCTION(B)"), parsed("A /"), parsed(text="CPT(D,A,B);")])
@@ -181,13 +188,13 @@ for(const [opcode,label] of [['TON','On-delay timer'],['TOF','Off-delay timer'],
   ['RTO','Retentive timer'],['ONS','One-shot storage'],['CTU','Count up']]) {
   const args=['Stored_State','250','0'],result=make(opcode,args);
   assert.equal(result.label,label);
-  assert.deepEqual(tags(result.math,'mtext').map(exactText),args);
+  assert.deepEqual(argumentTexts(result.math),args);
   assert.equal(tags(result.math,'mo').some(n=>['←','⇒'].includes(exactText(n))),false);
 }
 for(const opcode of ['XIC','XIO','OTE','OTL','OTU']) {
   const result=make(opcode,['Bit','Unexpected']);
   assert.equal(result.label,'Instruction');
-  assert.deepEqual(tags(result.math,'mtext').map(exactText),['Bit','Unexpected']);
+  assert.deepEqual(argumentTexts(result.math),['Bit','Unexpected']);
 }
 """)
 
@@ -205,7 +212,7 @@ for (const mutate of mutations) {
   const damaged=JSON.parse(JSON.stringify(data));mutate(damaged);
   const rendered=equation(damaged);
   assert.equal(rendered.fallback,true);
-  assert.deepEqual(tags(rendered.math,'mtext').map(exactText),damaged.source.instructions[0].arguments);
+  assert.deepEqual(argumentTexts(rendered.math),damaged.source.instructions[0].arguments);
   assert.equal(tags(rendered.math,'mo').some(n=>exactText(n)==='←'),false);
   assert.equal(tags(rendered.math,'mfrac').length,0);
 }
@@ -218,7 +225,7 @@ instructions:[{id:'i',opcode:'Unknown',arguments:['<img src=x onerror=alert(1)>'
 structure:{kind:'sequence',items:[{kind:'instruction',instruction_id:'i'}]}};
 const root=node('div');renderRungLogic(root,source,{},{sourceQualified:true});
 const math=tags(root,'math')[0];
-assert.deepEqual(tags(math,'mtext').map(exactText),source.instructions[0].arguments);
+assert.deepEqual(argumentTexts(math),source.instructions[0].arguments);
 assert.equal(tags(root,'pre').find(n=>n.textContent===source.text).textContent,source.text);
 assert.equal(tags(root,'script').length+tags(root,'img').length,0);
 assert.equal(descendants(root).some(n=>'onerror' in n.attributes),false);
@@ -319,6 +326,95 @@ const unavailable=renderRungPreview({});
 assert.equal(tags(unavailable,'math').length,0);
 assert.ok(exactText(unavailable).includes('complete text'));
 """, parsed(text="XIC(Ready)CPT(D,(A+B)/C)OTE(Output);"))
+
+    def test_variable_identity_colors_are_shared_across_equations_flow_branches_and_list(self) -> None:
+        self.run_js([*RUNG_FUNCTIONS, "renderInstructions", "renderRungPreview"], r"""
+const root=node('div');renderRungLogic(root,data.source,data,{sourceQualified:true});
+const list=node('div');renderInstructions(list,data.source.instructions,[]);
+const preview=renderRungPreview({preview:{instructions:data.source.instructions,calculations:data}});
+const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
+for(const text of ['Flow.PV','Sum','Result','Device.Ready']) {
+  const colors=[...variableColors(panels[1],text),...variableColors(panels[2],text),
+    ...variableColors(panels[3],text),...variableColors(list,text),...variableColors(preview,text)];
+  assert.ok(colors.length>=5,text+' appears in each source view');
+  assert.equal(new Set(colors).size,1,text+' retains one presentation color');
+}
+assert.notEqual(variableColors(panels[2],'Flow.PV')[0],variableColors(panels[2],'Sum')[0]);
+const fraction=tags(panels[2],'mfrac')[0];
+assert.ok(hasClass(fraction,'source-operator'));
+for(const operand of ['Sum','Flow.PV']) assert.ok(variableColors(fraction,operand).length);
+assert.ok(tags(panels[2],'mo').filter(n=>['←','+'].includes(exactText(n))).every(n=>hasClass(n,'source-operator')));
+assert.ok(tags(panels[2],'mo').filter(n=>['(',')',','].includes(exactText(n))).every(n=>!hasClass(n,'source-operator')));
+assert.ok([root,...descendants(root)].some(n=>exactText(n)==='2.5'&&hasClass(n,'source-literal')));
+assert.ok(tags(panels[2],'mi').some(n=>exactText(n)==='SET'&&hasClass(n,'source-operator')&&!hasClass(n,'source-variable')));
+assert.equal(tags(panels[4],'pre')[0].textContent,data.source.text);
+assert.equal(tags(panels[3],'input').length,data.source.instructions.length);
+""", parsed(text="ADD(Flow.PV,2.5,Sum)[CPT(Result,(Sum+Flow.PV)/3),MOV(Result,Flow.PV)]XIC(Device.Ready)OTL(Device.Ready);"))
+
+    def test_functions_literals_and_indexed_source_keep_exact_math_text(self) -> None:
+        self.run_js(MATH_FUNCTIONS, r"""
+const first=equation(data[0]),indexed=equation(data[1]);
+assert.ok(tags(first.math,'msqrt').every(n=>hasClass(n,'source-operator')));
+assert.ok(tags(first.math,'mi').some(n=>exactText(n)==='LN'&&hasClass(n,'source-operator')&&!hasClass(n,'source-variable')));
+assert.ok(tags(first.math,'mn').some(n=>exactText(n)==='2'&&hasClass(n,'source-literal')));
+assert.equal(variableColors(first.math,'Flow.PV').length,1);
+const reference=tags(indexed.math,'mi').find(n=>exactText(n)==='Arr[Index + 1]');
+assert.ok(reference&&hasClass(reference,'source-variable'));
+assert.equal(tags(indexed.math,'mi').some(n=>exactText(n)==='Index'),false);
+assert.equal(indexed.math.attributes['aria-label'],'CPT(D, Arr[Index + 1] + 16#FF)');
+assert.ok(tags(indexed.math,'mn').some(n=>exactText(n)==='16#FF'&&hasClass(n,'source-literal')));
+""", [parsed("SQRT(Flow.PV)+LN(Count)+2"), parsed("Arr[Index + 1] + 16#FF")])
+
+    def test_fallback_argument_colors_preserve_all_text_and_do_not_create_markup(self) -> None:
+        self.run_js(MATH_FUNCTIONS, r"""
+const instruction={id:'invented',opcode:'Custom_Block',arguments:[' Flow.PV + 2 ','Flow.PV','"<b>source only</b>"']};
+const rendered=instructionEquation(instruction,null,new Map());
+assert.equal(exactText(rendered.math),'Custom_Block( Flow.PV + 2 ,Flow.PV,"<b>source only</b>")');
+assert.deepEqual(argumentTexts(rendered.math),instruction.arguments);
+assert.ok(tags(rendered.math,'mi').some(n=>exactText(n)==='Custom_Block'&&hasClass(n,'source-operator')));
+assert.equal(new Set(variableColors(rendered.math,'Flow.PV')).size,1);
+assert.equal(variableColors(rendered.math,'Flow.PV').length,2);
+assert.ok(tags(rendered.math,'mtext').some(n=>exactText(n)==='+'&&hasClass(n,'source-operator')));
+assert.ok(tags(rendered.math,'mtext').some(n=>exactText(n)==='2'&&hasClass(n,'source-literal')));
+assert.equal(tags(rendered.math,'b').length,0);
+assert.equal(rendered.math.attributes['aria-label'],'Custom_Block('+instruction.arguments.join(', ')+')');
+assert.ok(tags(rendered.math,'mtext').every(n=>n.namespaceURI==='http://www.w3.org/1998/Math/MathML'));
+""")
+
+    def test_operation_explanations_reach_each_hover_surface_without_changing_source_labels(self) -> None:
+        self.run_js([*RUNG_FUNCTIONS, "renderInstructions", "renderRungPreview"], r"""
+const root=node('div');renderRungLogic(root,data.source,data,{sourceQualified:true});
+const list=node('div');renderInstructions(list,data.source.instructions,[]);
+const preview=renderRungPreview({preview:{instructions:data.source.instructions,calculations:data}});
+const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
+const math=tags(panels[2],'math');
+for(let index=0;index<data.source.instructions.length;index++) {
+  const instruction=data.source.instructions[index],help=window.PLCRungExplanation.summary(instruction);
+  assert.ok(help.length>instruction.opcode.length);
+  assert.equal(math[index].attributes.title,help);
+  assert.equal(math[index].attributes['aria-label'],instruction.opcode+'('+instruction.arguments.join(', ')+')');
+  for(const [panel,cls] of [[panels[1],'flow-instruction'],[panels[2],'equation-row'],[panels[3],'instruction-box'],[preview,'rung-preview-expression']])
+    assert.equal([panel,...descendants(panel)].filter(n=>hasClass(n,cls))[index].title,help);
+  assert.equal(tags(list,'header')[index].title,help);
+}
+const unknown=data.source.instructions[1];
+assert.ok(/unresolved|unsupported|not inferred|unknown|not recognized/i.test(window.PLCRungExplanation.summary(unknown)));
+assert.equal(tags(panels[4],'pre')[0].textContent,data.source.text);
+""", parsed(text="GEQ(Measured,Limit)Custom_Block(Measured,Output)OTE(Output);"))
+
+    def test_shared_reading_guide_explains_colors_without_adding_review_decisions(self) -> None:
+        self.run_js(["renderGuide"], r"""
+const root=node('div');$=id=>{assert.equal(id,'guide-content');return root;};
+globalThis.localStorage={getItem:()=>null};
+globalThis.importDialog=()=>{};globalThis.categoryManager=()=>{};
+globalThis.switchView=()=>{};
+renderGuide();
+assert.ok(exactText(root).includes('Six variable colors repeat'));
+assert.ok(exactText(root).includes('Colors do not indicate live values, input/output roles, alarm severity or execution state'));
+assert.ok(exactText(root).includes('unsupported blocks keep their effects unresolved'));
+assert.equal(tags(root,'input').length,8);
+assert.equal(commands.length,0);
+""")
 
 
 if __name__ == "__main__":
