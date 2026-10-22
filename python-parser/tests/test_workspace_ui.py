@@ -49,6 +49,12 @@ class Element {
     this.tagName=tag; this.textContent=String(text??''); this.className='';
     this.children=[];this.events={};this.attributes={};this.dataset={};this.checked=false;
     this.value='';this.disabled=false;this.hidden=false;
+    this.classList={
+      contains:cls=>this.className.split(' ').includes(cls),
+      toggle:(cls,on)=>{const tokens=new Set(this.className.split(' ').filter(Boolean));const add=on??!tokens.has(cls);if(add)tokens.add(cls);else tokens.delete(cls);this.className=[...tokens].join(' ');return add;},
+      remove:(...names)=>{names.forEach(name=>this.classList.toggle(name,false));},
+      add:(...names)=>{names.forEach(name=>this.classList.toggle(name,true));},
+    };
   }
   append(...children) {for(const child of children){child.parent=this;this.children.push(child);}}
   prepend(...children) {children.forEach(child=>child.parent=this);this.children.unshift(...children);}
@@ -58,6 +64,7 @@ class Element {
   removeAttribute(name){delete this.attributes[name];}
   remove(){if(this.parent)this.parent.children=this.parent.children.filter(n=>n!==this);}
   get childNodes(){return this.children;}
+  get firstChild(){return this.children[0]||null;}
   querySelectorAll(selector){return descendants(this).filter(n=>selector.split(',').map(s=>s.trim()).some(s=>s==='.field-row'?n.className==='field-row':s==='input:checked'?n.tagName==='input'&&n.checked:n.tagName===s));}
   querySelector(selector){return this.querySelectorAll(selector)[0]||null;}
   closest(tag){return this.tagName===tag?this:this.parent?.closest(tag);}
@@ -73,7 +80,7 @@ const link=(text,id,view='ladder')=>{const n=node('a',text);n.href='/analysis#vi
 const input=(value='',placeholder='')=>{const n=node('input');n.value=value;n.placeholder=placeholder;return n;};
 const select=(choices,value='')=>{const n=node('select');n.value=value;return n;};
 const section=(root,title,description)=>{const n=node('section');n.append(node('h3',title));if(description)n.append(node('p',description));root.append(n);return n;};
-const document={createTextNode:text=>node('#text',text)};
+const document={createTextNode:text=>node('#text',text),body:node('body')};
 let $, api, window={innerWidth:1600}, renderDetail, loadObjects;
 let selectedCategories=['category-pid'];
 const categoryPicker=()=>({element:node('div'),values:()=>selectedCategories});
@@ -129,8 +136,8 @@ class WorkspacePageTests(unittest.TestCase):
         self.assertIn('credentials: "same-origin"', SCRIPT)
 
     def test_source_values_are_not_stored_as_browser_review_data(self) -> None:
-        keys = re.findall(r'localStorage\.setItem\(\s*"([^"]+)"', SCRIPT)
-        self.assertCountEqual(keys, ["plc-workspace-guide-v1", "plc-workspace-theme-v1", "plc-workspace-reviewer-v1"])
+        keys = re.findall(r'''localStorage\.setItem\(\s*["']([^"']+)["']''', SCRIPT)
+        self.assertCountEqual(keys, ["plc-workspace-guide-v1", "plc-workspace-theme-v1", "plc-workspace-reviewer-v1", "plc-workspace-navigation-v1"])
         self.assertIn("No demonstration data is loaded", SCRIPT)
         self.assertIn("__WORKSPACE_TOKEN__", (ASSETS / "index.html").read_text(encoding="utf-8"))
 
@@ -380,13 +387,13 @@ window.location.hash='#view=objects&source=tag_abc';assert.equal(requestedLocati
 for(const hash of ['#main','#view=bad','#view=rungs&source=a&source=b','#view=rungs&extra=x','#view=groups&source=a','#view=rungs&source=%00','#view=rungs&source='+ 'a'.repeat(257),'#view=rungs&source='+ 'a'.repeat(2049)]){
   window.location.hash=hash;assert.equal(requestedLocation(),null,hash);
 }
-window.location.hash='';assert.deepEqual(requestedLocation(),{view:'rungs',source:''});
+window.location.hash='';assert.deepEqual(requestedLocation(),{view:'home',source:''});
 window.location.hash='#view=map&source=rung_abc';assert.deepEqual(requestedLocation(),{view:'map',source:'rung_abc'});
 window.location.hash='#view=connections&source=rung_abc';assert.equal(requestedLocation().view,'connections');
 """)
 
     def test_popouts_use_same_origin_source_ids_and_detach_opener(self) -> None:
-        self.run_js(['popupWorkspace'], r"""
+        self.run_js(['popupWorkspace', 'hidePoppedSource'], r"""
 const opened={opener:'parent'},calls=[];
 window.open=(...args)=>{calls.push(args);return opened;};
 popupWorkspace('rung_abc','source');
@@ -404,6 +411,95 @@ popupWorkspace('x'.repeat(257),'source');popupWorkspace('rung_abc','https://unre
 let fetched=0;discard=()=>false;api=async()=>{fetched++;};
 state.dirty=true;state.source={source:{id:'rung-current'}};
 await refreshProjectWindow();assert.equal(fetched,0);assert.equal(state.source.source.id,'rung-current');
+""")
+
+    def test_source_popout_collapses_only_the_matching_pane_and_preserves_form(self) -> None:
+        self.run_js(['popupWorkspace', 'hidePoppedSource', 'setSourcePaneHidden'], r"""
+const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
+const selected={source:{id:'rung_current'}};state.source=selected;
+window.open=()=>({});
+popupWorkspace('instruction_other','source');
+assert.equal($('rungs-layout').classList.contains('source-collapsed'),false);
+popupWorkspace('rung_current','source');
+assert.equal($('rungs-layout').classList.contains('source-collapsed'),true);
+assert.equal($('rungs-inspector-toggle').textContent,'Show source');
+assert.equal($('rungs-inspector-toggle').attributes['aria-expanded'],'false');
+assert.equal(state.source,selected);
+state.dirty=true;setSourcePaneHidden('rungs',false);
+assert.equal(state.dirty,true);assert.equal(state.source,selected);
+assert.equal($('rungs-source-note').hidden,true);
+assert.equal($('rungs-inspector-toggle').textContent,'Hide source');
+popupWorkspace('rung_current','source');
+assert.ok(notice.includes('Save the current review'));
+assert.equal($('rungs-layout').classList.contains('source-collapsed'),false);
+state.dirty=false;window.open=()=>null;popupWorkspace('rung_current','source');
+assert.equal($('rungs-layout').classList.contains('source-collapsed'),false);
+assert.ok(contents($('notice')).includes('Open selected view in a new tab'));
+""")
+
+    def test_menu_and_navigation_restore_regular_layout_without_losing_declined_edits(self) -> None:
+        self.run_js(['setNavigation', 'navigateWorkspace'], r"""
+const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
+const preferences=[];localStorage={setItem:(key,value)=>preferences.push([key,JSON.parse(value)])};
+document.body.classList.add('workspace-popout','source-popout');
+setNavigation(false);assert.equal($('project-navigation').hidden,true);
+setNavigation(true);assert.equal($('project-navigation').hidden,false);
+assert.equal($('navigation-toggle').attributes['aria-expanded'],'true');
+assert.deepEqual(preferences.at(-1),['plc-workspace-navigation-v1',{open:true}]);
+const routes=[];window.history={replaceState:(...args)=>routes.push(args[2])};
+switchView=()=>false;assert.equal(navigateWorkspace('home'),false);
+assert.equal(routes.length,0);assert.equal(document.body.classList.contains('source-popout'),true);
+switchView=view=>{state.view=view;return true;};
+assert.equal(navigateWorkspace('home'),true);
+assert.equal(document.body.classList.contains('source-popout'),false);
+assert.equal(document.body.classList.contains('workspace-popout'),false);
+assert.equal(routes[0],'/#view=home');
+""")
+
+    def test_home_has_working_page_directory_and_existing_source_summary(self) -> None:
+        self.run_js(['renderHome'], r"""
+const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
+importDialog=()=>{};state.project={active_run:'invented',revision:3,source:{name:'Invented.L5X',rung_count:9,instruction_count:20}};
+const visits=[];navigateWorkspace=view=>visits.push(view);
+renderHome();assert.ok(contents($('home-source')).includes('Invented.L5X'));
+const links=descendants($('home-pages')).filter(n=>n.tagName==='a');
+assert.equal(links.length,7);
+links.forEach(link=>link.events.click({preventDefault(){}}));
+assert.deepEqual(visits,['rungs','map','connections','groups','objects','changes','guide']);
+assert.ok(contents($('home-pages')).includes('AI, AO, DI, DO, DC, AC, PID'));
+""")
+
+    def test_family_filter_keeps_choice_and_existing_inventory_constraints(self) -> None:
+        self.run_js(['loadRungs'], r"""
+state.source={source:{id:'keep'}};state.routine='routine-a';
+$('rung-family-filter').value='calculation';$('category-filter').value='reviewed';
+$('status-filter').value='confirmed';$('rung-search').value='pressure';
+api=async path=>{
+  const query=new URL(path,'http://localhost').searchParams;
+  assert.equal(query.get('family'),'calculation');assert.equal(query.get('routine'),'routine-a');
+  assert.equal(query.get('category'),'reviewed');assert.equal(query.get('status'),'confirmed');
+  assert.equal(query.get('query'),'pressure');
+  return {...rungResult(),families:[{id:'calculation',label:'Calculations',count:3}]};
+};
+await loadRungs();assert.equal($('rung-family-filter').value,'calculation');
+assert.ok(contents($('rung-family-filter')).includes('Calculations'));
+assert.equal(state.source.source.id,'keep');
+""")
+
+    def test_changed_analysis_clears_unavailable_family_before_showing_results(self) -> None:
+        self.run_js(['loadRungs'], r"""
+state.source={source:{id:'keep'}};state.dirty=true;state.page=5;
+$('rung-family-filter').value='calculation';const queries=[];
+api=async path=>{
+  const query=new URL(path,'http://localhost').searchParams;queries.push(query);
+  return {...rungResult(...(query.get('family')?[]:[rungRow('new-source',2)])),
+    families:[{id:'boolean_condition',label:'Boolean conditions',count:1}]};
+};
+await loadRungs();assert.equal(queries.length,2);
+assert.equal(queries[0].get('family'),'calculation');assert.equal(queries[1].get('family'),'');
+assert.equal(queries[1].get('page'),'1');assert.equal($('rung-family-filter').value,'');
+assert.ok(contents($('rung-list')).includes('Rung 2'));
+assert.equal(state.dirty,true);assert.equal(state.source.source.id,'keep');
 """)
 
     def test_refresh_preserves_edits_or_navigation_started_while_request_pending(self) -> None:

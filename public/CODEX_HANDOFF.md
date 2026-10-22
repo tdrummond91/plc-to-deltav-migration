@@ -1,5 +1,50 @@
 # Current handoff: PLC analysis workbench
 
+## Workspace navigation and readable logic (2026-10-22)
+
+The default entry is now **Home / page guide**, with actual page links, filter
+explanations and the existing checkable review guide. **Menu** collapses the
+sidebar; **Home** and **Page** stay available. Reviewer name, refresh, theme and
+backups live under **Project tools**. A successful popout hides only its matching
+clean source pane; **Show source** restores the retained inspector. Drafts must
+be saved before moving their source, and blocked popups do not collapse it.
+Explicit navigation out of a source-only window clears that layout and URL mode.
+Popouts remain independent selections sharing saved project revisions.
+
+**Logic summary** precedes the existing flow/equation/source tabs. It lists
+captured operands, follows nested branch-local conditions/actions and describes
+supported output writes in plain language. Boolean contact equations use TRUE
+and FALSE instead of the negation glyph. Derived output conditions include the
+rung-entry gate. Stateful/unknown blocks stop Boolean simplification; unsupported
+or oversized structures fall back to complete original text. Instruction meaning
+requires source qualification from the cached snapshot check. No live state,
+alarm consequence, priority or DeltaV class allocation is inferred.
+
+Rungs and Ladder map share qualified function-family filtering. Missing family
+choices after a different import/restore/refresh are cleared before rendering
+results. These are instruction families, separate from engineering function
+groups and reviewed categories. Map Help, captured-description and signal-name
+toggles explain the display. Pinned panels have local Unpin/Close controls;
+Escape, pan, zoom, filters and view changes cancel pending previews. A delayed
+response cannot reopen a dismissed panel.
+
+**Stop workspace** explicitly stops the local server. Chrome's X continues to
+close only its window; other windows and background translation can keep using
+the server. Ctrl+C in the launcher terminal is the other stop method. No
+automatic Git or new background process was added.
+
+Validation: 196 distinct focused workspace, explanation/equation, map, connection,
+family-filter and reading-layout tests passed across the targeted runs. Initial
+test selection included two nonexistent module names; the intended suites were
+then run successfully. Independent review caught and verified the family-reset
+and rung-entry wording corrections. Chrome checks used the existing invented
+nine-rung project: branch/alarm summaries, Home links, menu, popout collapse and
+restore, map descriptions/help, pinned Close/Escape, and 800px/480px layouts.
+No proprietary source was opened. Saved review data and the analysis are unchanged.
+
+Work-PC use: save and stop the older workspace, manually pull this branch, then
+run `bash ./open-workbench.sh`. No full work-check/translation rerun is needed.
+
 ## Whole-ladder visual map (2026-10-21)
 
 **Ladder map** adds complete rung discovery, viewport-limited SVG rendering,

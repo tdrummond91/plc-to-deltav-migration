@@ -23,12 +23,23 @@
   const labeled = (text, control) => { const label = el("label", text); label.append(control); return label; };
   const clip = (text, n) => String(text || "").length > n ? String(text).slice(0, n - 1) + "…" : String(text || "");
   const rungName = item => `Rung ${item.number === "" || item.number == null ? "(unnumbered)" : item.number}`;
+  const commentLines = value => {
+    let remaining = String(value || "").replace(/\s+/g, " ").trim() || "No rung comment captured.";
+    const lines = [];
+    while (remaining && lines.length < 3) {
+      if (remaining.length <= 36) { lines.push(remaining); break; }
+      if (lines.length === 2) { lines.push(clip(remaining, 36)); break; }
+      const space = remaining.lastIndexOf(" ", 36), end = space >= 12 ? space : 36;
+      lines.push(remaining.slice(0, end)); remaining = remaining.slice(end).trimStart();
+    }
+    return lines;
+  };
   const ids = values => (Array.isArray(values) ? values : []).map(value => typeof value === "string" ? value : value.id || value.rung_id).filter(Boolean);
   let serial = 0;
 
   function mount(root, options) {
     const prefix = `ladder-map-${++serial}`;
-    let destroyed = false, generation = 0, linkGeneration = 0, detailGeneration = 0, selectionGeneration = 0;
+    let destroyed = false, active = true, generation = 0, linkGeneration = 0, detailGeneration = 0, selectionGeneration = 0;
     let runId = "", items = [], byId = new Map(), positions = new Map(), total = 0, selected = "";
     let columns = 1, listPage = 1, signalPage = 1, signalPages = 1, queryTimer, linkTimer, hoverTimer, frame;
     let transform = { x: 24, y: 24, scale: 1 }, drag = null, lastDragged = "", visible = [], signals = [];
@@ -82,12 +93,29 @@
     });
     pin.setAttribute("aria-pressed", "false");
     pin.disabled = true;
-    const closeInformation = btn("Close information", () => { setPinned(false); detailBox.hidden = true; detailSourceId = ""; detailLoading = false; pin.disabled = closeInformation.disabled = true; detailGeneration++; });
+    const closeInformation = btn("Close information", dismissInformation);
     closeInformation.disabled = true;
     detailControls.append(pin, closeInformation); viewControls.append(detailControls);
+    const localDetailControls = el("div", undefined, "ladder-map-detail-local-controls"); localDetailControls.hidden = true;
+    localDetailControls.append(btn("Unpin panel", () => setPinned(false)), btn("Close panel", dismissInformation));
     const detailHint = el("p", "Pin information to follow its links. This preview lets clicks reach the map beneath it.", "ladder-map-detail-hint");
-    const detailBody = el("div", undefined, "ladder-map-detail-body"); detailBox.append(detailHint, detailBody);
+    const detailBody = el("div", undefined, "ladder-map-detail-body"); detailBox.append(localDetailControls, detailHint, detailBody);
     stage.append(canvas, detailBox);
+    const viewSettings = el("div", undefined, "ladder-map-view-settings");
+    const descriptionToggle = el("input", undefined, "ladder-map-description-toggle"); descriptionToggle.type = "checkbox";
+    const signalNamesToggle = el("input", undefined, "ladder-map-signal-names-toggle"); signalNamesToggle.type = "checkbox";
+    viewSettings.append(labeled("Show rung descriptions (captured comments)", descriptionToggle), labeled("Show signal names", signalNamesToggle));
+    const help = el("details", undefined, "ladder-map-help");
+    help.append(el("summary", "Map help — what you are seeing and how to use it"));
+    [
+      ["Start here", "Select a count tile to zoom into its rungs, or search for a tag, instruction or comment. Select a rung card to open its complete source, branches and equations in the inspector. The rung list below the map provides the same navigation without dragging."],
+      ["Cards, signals and colors", "Each card is one captured rung. An orange point is an exact-address signal whose source association could be verified. Teal arrows run from a recorded writer to the signal; magenta arrows run from the signal to a recorded reader. Orange dashed lines mean the read/write role is unknown. A magenta card border marks your selected rung. These colors describe connection roles, not reviewed migration categories."],
+      ["What the lines can tell you", "The layout starts in source order, not execution order. Lines show possible address uses, not live flow, energized Boolean states or proof that one rung executes before another. Missing lines do not prove a signal is unused. Check the coverage notice for unparsed, unresolved or unsupported evidence."],
+      ["Filters and classification", "Instruction families describe the blocks found in the source, such as Boolean instructions, PID or timers. They are different from your reviewed AI, AO, DI, DO, DC, AC and migration categories in Classification & groups. A signal drilldown clears the other filters to show its verified users across routines; the Clear signal filter button returns to the full index."],
+      ["Move around and read descriptions", "Drag the background to pan. Drag a rung to move its card in this view only. Use the wheel, Zoom in/out or +/− keys to zoom; Fit all and Home frame the matching rungs. Reset layout clears your card positions. Show rung descriptions displays a short captured comment on each individual card, or says No rung comment captured. Inspect the source for the full text. Show signal names adds short labels beside the orange points; hover or focus a point for its full name."],
+      ["Information panels", "Hover or keyboard-focus a rung or instruction for a passive preview. Pin information makes its block and declaration links usable. A pinned panel has its own Unpin panel and Close panel buttons at the top; Escape also closes it. Panning, zooming, changing filters or leaving the map dismisses the panel. Closing cancels queued previews, and late responses cannot reopen it."],
+      ["Large maps and multiple monitors", "The index includes every captured rung; detailed diagrams load when you select one. Zoomed-out count tiles and at most 80 individual cards keep the view responsive. At most 320 connection lines are drawn. The signal list pages through the available signals, with counts of connections outside the view; selecting a signal shows its verified users. Pop out map, selected source or connections opens a separate browser window you can move to another monitor. Resizing a split changes space, not the saved source."],
+    ].forEach(([title, text]) => help.append(el("h3", title), el("p", text)));
     const viewNote = el("p", undefined, "ladder-map-view-note");
     const legend = el("p", "Source-order layout, not execution order. Solid links show recorded writers/readers of the same address; dashed links have an unknown direction. These are possible connections, not live flow. Zoomed-out tiles summarize rungs; select a tile to zoom in. Dragging changes this view only.", "ladder-map-legend");
     const listToggle = el("details", undefined, "ladder-map-list-section");
@@ -110,7 +138,7 @@
     signalNav.append(prevSignals, nextSignals); signalSection.append(signalStatus, signalNav, signalList);
     toolbar.append(labeled("Search all captured rungs", search), labeled("Routine", routine), labeled("Function family", family), labeled("Connections", direction));
     root.className += " ladder-map";
-    root.replaceChildren(toolbar, filterNote, status, coverageStatus, error, viewControls, stage, viewNote, legend, signalSection, listToggle);
+    root.replaceChildren(toolbar, filterNote, status, coverageStatus, error, viewControls, viewSettings, help, stage, viewNote, legend, signalSection, listToggle);
 
     function renderCoverage() {
       const parts = [];
@@ -130,10 +158,23 @@
     function setPinned(value) {
       pinned = value; pin.textContent = pinned ? "Unpin information" : "Pin information";
       pin.setAttribute("aria-pressed", String(pinned));
+      localDetailControls.hidden = !pinned;
       detailBox.className = `ladder-map-detail${pinned ? " is-pinned" : ""}`;
       detailHint.textContent = pinned ? "Pinned information. Follow its links, or unpin to click through to the map." : "Pin information to follow its links. This preview lets clicks reach the map beneath it.";
       detailBody.querySelectorAll("button").forEach(button => { button.disabled = !pinned; });
     }
+    function dismissInformation() {
+      clearTimeout(hoverTimer); hoverTimer = null; detailGeneration++;
+      setPinned(false); detailBox.hidden = true; detailSourceId = ""; detailLoading = false;
+      pin.disabled = closeInformation.disabled = true;
+    }
+    function deactivate() {
+      active = false; dismissInformation(); selectionGeneration++; linkGeneration++;
+      if (queryTimer) { filters.query = search.value.trim(); listPage = 1; fitted = false; }
+      clearTimeout(queryTimer); queryTimer = null; clearTimeout(linkTimer); linksKey = ""; drag = null;
+      if (frame) { cancelAnimationFrame(frame); frame = null; }
+    }
+    function cardHeight() { return descriptionToggle.checked ? 158 : CARD_H; }
 
     function isCurrent(token) { return !destroyed && generation === token && options.getState()?.active_run === runId; }
     function dimensions() { const rect = canvas.getBoundingClientRect(); return { width: Math.max(320, rect.width || 900), height: Math.max(240, rect.height || 600) }; }
@@ -145,18 +186,20 @@
       (values || []).forEach(entry => { const option = el("option", `${entry.label || entry.id} (${entry.count ?? 0})`); option.value = entry.id; control.append(option); });
       control.value = value;
     }
-    function changeFilter(name, value) { filters[name] = value; listPage = 1; signalPage = 1; fitted = false; return refresh(); }
-    function drawSoon() { if (destroyed || frame) return; frame = requestAnimationFrame(() => { frame = null; draw(); }); }
+    function changeFilter(name, value) { dismissInformation(); filters[name] = value; listPage = 1; signalPage = 1; fitted = false; return refresh(); }
+    function drawSoon() { if (destroyed || !active || frame) return; frame = requestAnimationFrame(() => { frame = null; draw(); }); }
     function fit() {
+      dismissInformation();
       const size = dimensions(); let maxX = Math.max(CARD_W, columns * STEP_X - (STEP_X - CARD_W));
-      let maxY = Math.max(CARD_H, Math.ceil(Math.max(total, 1) / columns) * STEP_Y - (STEP_Y - CARD_H));
+      let maxY = Math.max(cardHeight(), Math.ceil(Math.max(total, 1) / columns) * STEP_Y - (STEP_Y - cardHeight()));
       let minX = 0, minY = 0;
-      positions.forEach((point, id) => { if (!byId.has(id)) return; minX = Math.min(minX, point.x); minY = Math.min(minY, point.y); maxX = Math.max(maxX, point.x + CARD_W); maxY = Math.max(maxY, point.y + CARD_H); });
+      positions.forEach((point, id) => { if (!byId.has(id)) return; minX = Math.min(minX, point.x); minY = Math.min(minY, point.y); maxX = Math.max(maxX, point.x + CARD_W); maxY = Math.max(maxY, point.y + cardHeight()); });
       const scale = Math.max(0.005, Math.min(1.2, (size.width - 48) / (maxX - minX), (size.height - 48) / (maxY - minY)));
       transform = { scale, x: (size.width - (maxX - minX) * scale) / 2 - minX * scale, y: (size.height - (maxY - minY) * scale) / 2 - minY * scale };
       fitted = true; drawSoon();
     }
     function zoomAt(factor, point) {
+      dismissInformation();
       const size = dimensions(), focus = point || { x: size.width / 2, y: size.height / 2 };
       const scale = Math.max(0.005, Math.min(3, transform.scale * factor)), ratio = scale / transform.scale;
       transform = { scale, x: focus.x - (focus.x - transform.x) * ratio, y: focus.y - (focus.y - transform.y) * ratio };
@@ -168,19 +211,20 @@
       node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(item.id); } });
       node.addEventListener("pointerdown", event => {
         if (event.button !== 0) return; event.stopPropagation(); const point = localPoint(event);
+        dismissInformation();
         drag = { kind: "node", id: item.id, start: point, point: position(item), moved: false };
         canvas.setPointerCapture?.(event.pointerId);
       });
       attachHover(node, item.id);
     }
     function draw() {
-      if (destroyed) return;
+      if (destroyed || !active) return;
       const size = dimensions(), scale = transform.scale;
       canvas.setAttribute("viewBox", `0 0 ${size.width} ${size.height}`);
       world.setAttribute("transform", `translate(${transform.x} ${transform.y}) scale(${scale})`);
       zoomStatus.textContent = `${Math.round(scale * 100)}%`;
       nodeLayer.replaceChildren();
-      const inView = items.filter(item => { const p = position(item); return p.x * scale + transform.x < size.width + 40 && (p.x + CARD_W) * scale + transform.x > -40 && p.y * scale + transform.y < size.height + 40 && (p.y + CARD_H) * scale + transform.y > -40; });
+      const inView = items.filter(item => { const p = position(item); return p.x * scale + transform.x < size.width + 40 && (p.x + CARD_W) * scale + transform.x > -40 && p.y * scale + transform.y < size.height + 40 && (p.y + cardHeight()) * scale + transform.y > -40; });
       const clustered = scale < 0.38 || inView.length > MAX_NODES;
       visible = clustered ? [] : inView;
       if (clustered) {
@@ -195,7 +239,7 @@
           const [cellX, cellY] = key.split(":").map(Number);
           const tile = { x: (cellX * 90 + 9 - transform.x) / scale, y: (cellY * 64 + 10 - transform.y) / scale };
           node.append(svg("rect", { x: tile.x, y: tile.y, width, height, rx: 6 / scale }), svg("text", { x: tile.x + width / 2, y: tile.y + height / 2, "font-size": 13 / scale, "text-anchor": "middle", "dominant-baseline": "middle" }, `${bucket.length} ${bucket.length === 1 ? "rung" : "rungs"}`));
-          const expand = () => { const zoom = Math.min(3, Math.max(0.5, scale * 2.5)); transform = { scale: zoom, x: size.width / 2 - (first.x + CARD_W / 2) * zoom, y: size.height / 2 - (first.y + CARD_H / 2) * zoom }; drawSoon(); };
+          const expand = () => { dismissInformation(); const zoom = Math.min(3, Math.max(0.5, scale * 2.5)); transform = { scale: zoom, x: size.width / 2 - (first.x + CARD_W / 2) * zoom, y: size.height / 2 - (first.y + cardHeight() / 2) * zoom }; drawSoon(); };
           node.addEventListener("pointerdown", event => event.stopPropagation());
           node.addEventListener("click", expand); node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); expand(); } }); nodeLayer.append(node);
         });
@@ -204,20 +248,21 @@
         visible.forEach(item => {
           const p = position(item), active = item.id === selected;
           const node = svg("g", { class: `ladder-map-node${active ? " is-selected" : ""}`, role: "button", tabindex: "0", "aria-label": `${rungName(item)}. ${item.routine_label || item.path}. ${(item.opcodes || []).join(", ")}`, "aria-pressed": String(active), "data-rung-id": item.id });
-          node.append(svg("rect", { x: p.x, y: p.y, width: CARD_W, height: CARD_H, rx: 9 }));
+          node.append(svg("rect", { x: p.x, y: p.y, width: CARD_W, height: cardHeight(), rx: 9 }));
           [[rungName(item), 22, "ladder-map-node-title"], [clip(item.routine_label || item.path, 34), 43, "ladder-map-node-routine"], [clip((item.opcodes || []).join(" · "), 38), 65, "ladder-map-node-opcodes"], [`${item.instruction_count} blocks · ${item.branch_count} branches${item.parse_status === "partial" ? " · partial" : ""}`, 87, "ladder-map-node-meta"]].forEach(([text, dy, cls]) => node.append(svg("text", { x: p.x + 12, y: p.y + dy, class: cls }, text)));
+          if (descriptionToggle.checked) commentLines(item.comment_preview).forEach((line, index) => node.append(svg("text", { x: p.x + 12, y: p.y + 108 + index * 15, class: "ladder-map-node-comment" }, line)));
           bindNode(node, item); nodeLayer.append(node);
         });
         viewNote.textContent = `${visible.length} individual rungs in view of ${total.toLocaleString()} matches. Select a rung to inspect its complete branches, equations and source. Hover or focus for block information.`;
       }
       drawLinks(); queueLinks();
     }
-    function center(item) { const size = dimensions(), p = position(item), scale = Math.max(0.8, transform.scale); transform = { scale, x: size.width / 2 - (p.x + CARD_W / 2) * scale, y: size.height / 2 - (p.y + CARD_H / 2) * scale }; drawSoon(); }
+    function center(item) { const size = dimensions(), p = position(item), scale = Math.max(0.8, transform.scale); transform = { scale, x: size.width / 2 - (p.x + CARD_W / 2) * scale, y: size.height / 2 - (p.y + cardHeight() / 2) * scale }; drawSoon(); }
     async function select(id, reposition = false) {
       const token = ++selectionGeneration, current = generation;
       try {
         const accepted = await options.inspect(id);
-        if (accepted === false || token !== selectionGeneration || !isCurrent(current)) return false;
+        if (accepted === false || !active || token !== selectionGeneration || !isCurrent(current)) return false;
         selected = id; popSource.disabled = popConnections.disabled = inspectConnections.disabled = false;
         if (reposition && byId.has(id)) center(byId.get(id)); else drawSoon();
         options.onSelection?.(id); queueDetail(id, true); renderList(); return true;
@@ -260,11 +305,11 @@
         if (!endpoints.length) return;
         const points = endpoints.map(id => position(byId.get(id)));
         const p = { x: points.reduce((sum, point) => sum + point.x + CARD_W, 0) / points.length + 55,
-          y: points.reduce((sum, point) => sum + point.y + CARD_H / 2, 0) / points.length + (signalIndex % 5 - 2) * 18 };
+          y: points.reduce((sum, point) => sum + point.y + cardHeight() / 2, 0) / points.length + (signalIndex % 5 - 2) * 18 };
         [["writers", "writer"], ["readers", "reader"], ["unknown", "unknown"]].forEach(([field, cls]) => {
           ids(signal[field]).filter(id => current.has(id)).forEach(id => {
             available++; if (drawn >= MAX_EDGES) return; drawn++;
-            const target = position(byId.get(id)), from = cls === "reader" ? p : { x: target.x + CARD_W, y: target.y + CARD_H / 2 }, to = cls === "reader" ? { x: target.x, y: target.y + CARD_H / 2 } : p;
+            const target = position(byId.get(id)), from = cls === "reader" ? p : { x: target.x + CARD_W, y: target.y + cardHeight() / 2 }, to = cls === "reader" ? { x: target.x, y: target.y + cardHeight() / 2 } : p;
             const attrs = { d: `M ${from.x} ${from.y} C ${(from.x + to.x) / 2} ${from.y}, ${(from.x + to.x) / 2} ${to.y}, ${to.x} ${to.y}`, class: `ladder-map-edge ${cls}` };
             if (cls !== "unknown") attrs["marker-end"] = `url(#${prefix}-arrow)`;
             edgeLayer.append(svg("path", attrs));
@@ -272,6 +317,7 @@
         });
         const node = svg("g", { class: "ladder-map-signal", role: "button", tabindex: "0", "aria-label": `Show all rungs connected to ${signal.label || signal.id}` });
         node.append(svg("circle", { cx: p.x, cy: p.y, r: 6 }), svg("title", {}, signal.label || signal.id));
+        if (signalNamesToggle.checked) node.append(svg("text", { x: p.x + 11, y: p.y + 4, class: "ladder-map-signal-label" }, clip(signal.label || signal.id, 40)));
         node.addEventListener("pointerdown", event => event.stopPropagation());
         node.addEventListener("click", () => filterSignal(signal));
         node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); filterSignal(signal); } }); signalLayer.append(node);
@@ -279,6 +325,7 @@
       if (available > drawn) viewNote.textContent += ` Drawing ${drawn} of ${available} visible address links to keep the map responsive; the signal list below exposes every returned signal and its full rung filter.`;
     }
     function queueLinks(force = false) {
+      if (!active || destroyed) return;
       const currentVisible = `${runId}|${visible.map(item => item.id).sort().join(",")}|${direction.value}`;
       if (currentVisible !== visibleKey) { signalPage = 1; visibleKey = currentVisible; }
       const key = `${runId}|${visible.map(item => item.id).sort().join(",")}|${direction.value}|${signalPage}`;
@@ -318,16 +365,20 @@
       }).finally(() => pending.delete(key)); pending.set(key, promise); return promise;
     }
     function queueDetail(id, immediate = false) {
-      if (destroyed) return;
+      if (destroyed || !active || (!immediate && drag)) return;
       clearTimeout(hoverTimer); if (pinned && !immediate) return;
-      const token = ++detailGeneration, current = generation;
+      const current = generation;
       const show = async () => {
+        hoverTimer = null;
+        if (!active || !isCurrent(current)) return;
+        const token = ++detailGeneration;
         detailSourceId = id; detailLoading = true;
         detailBox.hidden = false; pin.disabled = closeInformation.disabled = false;
         detailBody.replaceChildren(el("p", "Loading captured block information…"));
         try {
           const response = await detail(id);
-          if (!isCurrent(current) || token !== detailGeneration || response.run_id !== runId) return;
+          if (!active || !isCurrent(current) || token !== detailGeneration) return;
+          if (response.run_id !== runId) throw new Error("The analysis changed while loading this information. Refresh the workspace before trying again.");
           detailLoading = false;
           renderDetail(response, id);
         } catch (cause) { if (isCurrent(current) && token === detailGeneration) { detailLoading = false; detailBody.replaceChildren(el("p", cause.message || String(cause)), btn("Retry information", () => queueDetail(id, true))); setPinned(pinned); } }
@@ -338,8 +389,10 @@
       if (fallbackText) node.setAttribute("title", fallbackText);
       node.addEventListener("mouseenter", () => queueDetail(id));
       node.addEventListener("focus", () => queueDetail(id));
-      node.addEventListener("mouseleave", () => { clearTimeout(hoverTimer); if (!pinned) detailGeneration++; });
-      node.addEventListener("blur", () => { clearTimeout(hoverTimer); if (!pinned) detailGeneration++; });
+      // Cancel only a hover that has not started. A visible loading preview
+      // must finish even after the pointer leaves for the Pin button.
+      node.addEventListener("mouseleave", () => clearTimeout(hoverTimer));
+      node.addEventListener("blur", () => clearTimeout(hoverTimer));
     }
     function renderDetail(response, id) {
       const item = response.rung || response, known = byId.get(id);
@@ -401,6 +454,7 @@
       } catch (cause) { if (isCurrent(token)) { loadedKey = ""; status.textContent = `${items.length.toLocaleString()} of ${total.toLocaleString()} matching rungs indexed. Loading stopped.`; showError(cause, refresh); } }
     }
     function refresh() {
+      active = true;
       const nextRun = options.getState()?.active_run || "";
       if (nextRun !== runId) {
         cache.clear(); positions.clear(); selected = ""; fitted = false;
@@ -415,7 +469,7 @@
       const token = ++generation; linkGeneration++; detailGeneration++; selectionGeneration++;
       clearTimeout(queryTimer); clearTimeout(linkTimer); clearTimeout(hoverTimer); linksKey = "";
       runId = nextRun; items = []; byId = new Map(); total = 0; signals = []; visible = []; signalPage = 1;
-      setPinned(false); detailBox.hidden = true; detailSourceId = ""; detailLoading = false; pin.disabled = closeInformation.disabled = true;
+      dismissInformation();
       error.hidden = true; nodeLayer.replaceChildren(); edgeLayer.replaceChildren(); signalLayer.replaceChildren(); signalList.replaceChildren();
       renderCoverage();
       if (!filters.signal_id) filterNote.replaceChildren();
@@ -428,12 +482,14 @@
       if (!byId.has(id)) { showError(new Error("This source is not a captured rung in the active analysis."), refresh); return false; }
       return select(id, true);
     }
-    search.addEventListener("input", () => { clearTimeout(queryTimer); queryTimer = setTimeout(() => changeFilter("query", search.value.trim()), 300); });
-    search.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); clearTimeout(queryTimer); changeFilter("query", search.value.trim()); } });
+    search.addEventListener("input", () => { clearTimeout(queryTimer); queryTimer = setTimeout(() => { queryTimer = null; changeFilter("query", search.value.trim()); }, 300); });
+    search.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); clearTimeout(queryTimer); queryTimer = null; changeFilter("query", search.value.trim()); } });
     routine.addEventListener("change", () => changeFilter("routine", routine.value)); family.addEventListener("change", () => changeFilter("family", family.value));
-    direction.addEventListener("change", () => { signalPage = 1; queueLinks(true); });
+    direction.addEventListener("change", () => { dismissInformation(); signalPage = 1; queueLinks(true); });
+    descriptionToggle.addEventListener("change", () => { dismissInformation(); drawSoon(); });
+    signalNamesToggle.addEventListener("change", () => { dismissInformation(); drawLinks(); });
     canvas.addEventListener("wheel", event => { event.preventDefault(); zoomAt(Math.exp(-Math.max(-120, Math.min(120, event.deltaY)) * 0.003), localPoint(event)); }, { passive: false });
-    canvas.addEventListener("pointerdown", event => { if (event.button !== 0) return; drag = { kind: "pan", start: localPoint(event), transform: { ...transform }, moved: false }; canvas.setPointerCapture?.(event.pointerId); });
+    canvas.addEventListener("pointerdown", event => { if (event.button !== 0) return; dismissInformation(); drag = { kind: "pan", start: localPoint(event), transform: { ...transform }, moved: false }; canvas.setPointerCapture?.(event.pointerId); });
     canvas.addEventListener("pointermove", event => {
       if (!drag) return; const point = localPoint(event), dx = point.x - drag.start.x, dy = point.y - drag.start.y;
       if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
@@ -449,13 +505,15 @@
     canvas.addEventListener("keydown", event => {
       if (event.target !== canvas) return;
       const delta = { ArrowLeft: [60, 0], ArrowRight: [-60, 0], ArrowUp: [0, 60], ArrowDown: [0, -60] }[event.key];
-      if (delta) { event.preventDefault(); transform.x += delta[0]; transform.y += delta[1]; drawSoon(); }
+      if (delta) { event.preventDefault(); dismissInformation(); transform.x += delta[0]; transform.y += delta[1]; drawSoon(); }
       else if (event.key === "+" || event.key === "=") { event.preventDefault(); zoomAt(1.4); }
       else if (event.key === "-") { event.preventDefault(); zoomAt(1 / 1.4); }
       else if (event.key === "Home") { event.preventDefault(); fit(); }
     });
+    const closeOnEscape = event => { if (event.key === "Escape" && active && (!detailBox.hidden || hoverTimer)) { event.preventDefault(); dismissInformation(); } };
+    document.addEventListener("keydown", closeOnEscape);
     if (typeof ResizeObserver !== "undefined") { resizeObserver = new ResizeObserver(drawSoon); resizeObserver.observe(stage); }
-    return { refresh, focus, attachHover, setRoutine: id => changeFilter("routine", id), destroy() { destroyed = true; generation++; linkGeneration++; detailGeneration++; clearTimeout(queryTimer); clearTimeout(linkTimer); clearTimeout(hoverTimer); if (frame) cancelAnimationFrame(frame); resizeObserver?.disconnect(); cache.clear(); pending.clear(); root.replaceChildren(); } };
+    return { refresh, focus, attachHover, deactivate, setRoutine: id => changeFilter("routine", id), destroy() { deactivate(); destroyed = true; generation++; linkGeneration++; detailGeneration++; document.removeEventListener("keydown", closeOnEscape); resizeObserver?.disconnect(); cache.clear(); pending.clear(); root.replaceChildren(); } };
   }
   window.PLCLadderMap = { mount };
 })();

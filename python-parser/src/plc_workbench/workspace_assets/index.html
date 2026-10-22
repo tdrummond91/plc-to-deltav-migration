@@ -12,24 +12,37 @@
     <link rel="stylesheet" href="/translation.css" />
     <link rel="stylesheet" href="/classification.css" />
     <link rel="stylesheet" href="/ladder-map.css" />
+    <link rel="stylesheet" href="/rung-explanation.css" />
     <script defer src="/rung-flow.js"></script>
     <script defer src="/connections.js"></script>
     <script defer src="/reading-layout.js"></script>
     <script defer src="/translation.js"></script>
     <script defer src="/classification.js"></script>
     <script defer src="/ladder-map.js"></script>
+    <script defer src="/rung-explanation.js"></script>
     <script defer src="/workspace.js"></script>
   </head>
   <body>
     <a class="skip" href="#main">Skip to workspace</a>
     <header class="topbar">
       <div class="brand">
+        <button id="navigation-toggle" type="button" aria-controls="project-navigation" aria-expanded="false">Menu</button>
         <span class="brand-mark" aria-hidden="true">▥</span>
         <div>
           <strong>PLC Workbench</strong><span>Engineering workspace</span>
         </div>
       </div>
+      <nav class="page-switcher" aria-label="Quick navigation">
+        <button id="workspace-home" type="button">Home</button>
+        <label>Page<select id="page-select">
+          <option value="home">Home / page guide</option><option value="rungs">Rungs</option>
+          <option value="objects">Tags &amp; source objects</option><option value="map">Ladder map</option>
+          <option value="connections">Connection map</option><option value="groups">Classification &amp; groups</option>
+          <option value="changes">Changes &amp; reconciliation</option><option value="guide">How to review</option>
+        </select></label>
+      </nav>
       <div class="top-actions">
+        <details class="project-tools"><summary>Project tools</summary><div class="project-tools-body">
         <label class="reviewer-label"
           >Reviewer<input
             id="reviewer-name"
@@ -43,8 +56,10 @@
         ><button id="backup" type="button">Back up project</button
         ><button id="restore" type="button">Restore backup</button
         ><button id="theme" type="button" aria-label="Switch to light theme">
-          Light theme</button
-        ><button id="stop" type="button">Close workspace</button>
+          Light theme</button>
+        <p class="muted">Closing a browser window leaves the local server running. Stop workspace ends all review windows and returns to Bash.</p>
+        </div></details>
+        <button id="stop" type="button" title="Stop the local server for all review windows">Stop workspace</button>
       </div>
     </header>
     <div
@@ -55,7 +70,7 @@
       hidden
     ></div>
     <div class="app-shell">
-      <aside class="sidebar" aria-label="Project navigation">
+      <aside id="project-navigation" class="sidebar" aria-label="Project navigation">
         <div class="source-card">
           <span class="eyebrow">YOUR SOURCE</span
           ><strong id="source-name">Opening project…</strong
@@ -64,7 +79,8 @@
           ><button id="import" type="button">Choose analysis run</button>
         </div>
         <nav id="navigation" class="navigation" aria-label="Workspace sections">
-          <button type="button" data-view="rungs" aria-current="page">
+          <button type="button" data-view="home" aria-current="page">Home / page guide</button>
+          <button type="button" data-view="rungs">
             Rungs <span id="rung-badge"></span>
           </button>
           <button type="button" data-view="objects">
@@ -105,7 +121,20 @@
         </p>
       </aside>
       <main id="main" tabindex="-1">
-        <section id="view-rungs" class="view">
+        <section id="view-home" class="view" aria-label="Workspace home">
+          <div class="page-heading"><div><span class="eyebrow">START HERE</span><h1>Your analysis workspace</h1>
+          <p>Choose a task below. Each page uses the same saved source and project; your review decisions stay separate from the original logic.</p></div></div>
+          <div id="home-source" class="home-source panel"></div>
+          <div id="home-pages" class="home-pages"></div>
+          <section class="panel home-reference"><h2>Which filter should I use?</h2>
+          <p><strong>Function family</strong> on Rungs and Ladder map describes captured instructions: Boolean conditions/results, calculations, PID, timers, and other families. A mixed rung can match several families.</p>
+          <p><strong>Function</strong> on Classification &amp; groups organizes proposed engineering functions such as AI, AO, DI, DO, DC and AC. It can combine several source records. These proposals are not approved DeltaV class assignments.</p>
+          <p><strong>Reviewed category</strong> and review status are your saved decisions. Filtering by a family never changes them. Tags uses object types; Connection map uses direction, routine scope and exact signals.</p></section>
+          <section class="panel home-reference"><h2>Arrange your workspace</h2>
+          <p>Use Menu for routines, language and project navigation. Close Menu to reclaim the width; Home and the Page selector stay available. Drag a source divider, or hide its pane. Pop out a saved source to free its original pane; Show source restores it. Separate windows have independent selections. Save, then use Project tools → Refresh saved data in the other window.</p>
+          <p><strong>To finish:</strong> save your edits, then use Stop workspace in the main window or Ctrl+C in its Bash terminal. Chrome’s X closes that window only; the local server and any translation work continue.</p></section>
+        </section>
+        <section id="view-rungs" class="view" hidden>
           <div class="page-heading">
             <div>
               <span class="eyebrow">VERIFY AGAINST THE SOURCE</span>
@@ -115,7 +144,7 @@
                 the parser's proposal.
               </p>
             </div>
-            <button id="categories" type="button">Manage categories</button>
+            <div class="heading-actions"><button id="rungs-inspector-toggle" type="button" aria-controls="rung-detail" aria-expanded="true">Hide source</button><button id="categories" type="button">Manage categories</button></div>
           </div>
           <div class="filters">
             <label class="search-label"
@@ -123,7 +152,7 @@
                 id="rung-search"
                 type="search"
                 placeholder="Tag, instruction, comment, or rung text…" /></label
-            ><label
+            ><label>Function family<select id="rung-family-filter"><option value="">All function families</option></select></label><label
               >Reviewed category<select id="category-filter">
                 <option value="">All categories</option>
               </select></label
@@ -144,7 +173,8 @@
             ><button id="clear-selection" type="button">Clear selection</button>
           </div>
           <div id="rung-reading-settings"></div>
-          <div class="workspace-grid">
+          <p id="rungs-source-note" class="source-pane-note" hidden>Source pane hidden. Use Show source to restore it; saved source windows have independent selections.</p>
+          <div id="rungs-layout" class="workspace-grid">
             <section id="rung-inventory" class="inventory panel" aria-label="Rung inventory">
               <div id="rung-results" class="results" aria-live="polite"></div>
               <div id="rung-list"></div>
@@ -179,6 +209,7 @@
             <button id="map-inspector-toggle" type="button" aria-pressed="false">Map only</button>
           </div>
           <div id="map-reading-settings"></div>
+          <p id="map-source-note" class="source-pane-note" hidden>Source pane hidden. Use Show source to restore it; saved source windows have independent selections.</p>
           <div id="map-layout" class="workspace-grid ladder-map-layout">
             <section id="ladder-map" aria-label="Visual ladder overview"></section>
             <section id="map-detail" class="detail panel" aria-label="Selected map source">
@@ -206,6 +237,7 @@
                 their original evidence.
               </p>
             </div>
+            <button id="objects-inspector-toggle" type="button" aria-controls="object-detail" aria-expanded="true">Hide source</button>
           </div>
           <div class="filters">
             <label class="search-label"
@@ -217,7 +249,8 @@
               >Object type<input id="object-kind" placeholder="All types"
             /></label>
           </div>
-          <div class="workspace-grid">
+          <p id="objects-source-note" class="source-pane-note" hidden>Source pane hidden. Use Show source to restore it; saved source windows have independent selections.</p>
+          <div id="objects-layout" class="workspace-grid">
             <section class="inventory panel">
               <div id="object-results" class="results" aria-live="polite"></div>
               <div id="object-list"></div>

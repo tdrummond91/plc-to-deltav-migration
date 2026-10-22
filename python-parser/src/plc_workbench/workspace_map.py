@@ -46,6 +46,14 @@ def page_number(query: dict) -> int:
     return page
 
 
+def family_filter(query: dict) -> str:
+    """One validated source-family filter for map and ordinary rung browsing."""
+    family = query_text(query, 'family', 80)
+    if family and family not in FAMILY_LABELS:
+        raise ProjectError('Choose a supported block family.')
+    return family
+
+
 def _short(value: Any, limit: int) -> str:
     return str(value if value is not None else '')[:limit]
 
@@ -105,6 +113,12 @@ class LadderMapIndex:
         self.routines = [{'id': identifier, 'label': self.path(identifier)[:MAX_PATH] or '(Unassigned routine)',
                           'count': count} for identifier, count in routines.items()]
         self.families = Counter(family for row in self.rows for family in row['families'])
+        self.rows_by_id = {row['id']: row for row in self.rows}
+
+    def family_choices(self) -> list[dict]:
+        """Whole-analysis rung counts; a mixed rung can belong to several families."""
+        return [{'id': identifier, 'label': FAMILY_LABELS[identifier], 'count': count}
+                for identifier, count in sorted(self.families.items())]
 
     def path(self, identifier: str | None) -> str:
         if not identifier:
@@ -152,13 +166,11 @@ class LadderMapIndex:
 
     def view(self, query: dict, *, signal_rungs: frozenset[str] | None = None) -> dict:
         routine = query_text(query, 'routine')
-        family = query_text(query, 'family', 80)
+        family = family_filter(query)
         search = query_text(query, 'query', MAX_QUERY).casefold()
         page = page_number(query)
         if routine and routine not in {row['id'] for row in self.routines}:
             raise ProjectError('Choose a routine from the selected analysis.')
-        if family and family not in FAMILY_LABELS:
-            raise ProjectError('Choose a supported block family.')
         items = [row for row in self.rows
                  if (not routine or row['routine_id'] == routine)
                  and (not family or family in row['families'])
@@ -169,8 +181,7 @@ class LadderMapIndex:
         return {'items': items[(page - 1) * PAGE_SIZE:page * PAGE_SIZE], 'total': len(items),
                 'page': page, 'pages': pages, 'page_size': PAGE_SIZE,
                 'routines': self.routines,
-                'families': [{'id': identifier, 'label': FAMILY_LABELS[identifier], 'count': count}
-                             for identifier, count in sorted(self.families.items())]}
+                'families': self.family_choices()}
 
     def detail(self, identifier: str, *, entity_ok: dict, rung_ok: dict) -> dict:
         if not identifier or len(identifier) > MAX_ID or identifier not in self.sources:

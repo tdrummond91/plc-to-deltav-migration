@@ -10,7 +10,7 @@
   };
   const state = {
     project: null,
-    view: "rungs",
+    view: "home",
     page: 1,
     objectPage: 1,
     routine: "",
@@ -205,6 +205,7 @@
     if (state.view === "map") ladderMap.refresh();
     renderChanges();
     renderGuide();
+    renderHome();
   }
   function renderRoutines() {
     const root = $("routine-tree");
@@ -269,6 +270,7 @@
   }
   function switchView(view, skipCheck = false) {
     if (!skipCheck && !discard()) return false;
+    if (state.view === 'map' && view !== 'map') ladderMap.deactivate?.();
     if (view === "connections" && state.source?.source?.instructions)
       state.connectionRung = state.source.source.id;
     if (view !== state.view) {
@@ -291,6 +293,7 @@
       });
     }
     state.view = view;
+    if ($('page-select')) $('page-select').value = view;
     document
       .querySelectorAll(".view")
       .forEach((n) => (n.hidden = n.id !== "view-" + view));
@@ -310,11 +313,74 @@
     return true;
   }
 
+  function setNavigation(open, persist = true) {
+    document.body.classList.toggle('navigation-collapsed', !open);
+    $('project-navigation').hidden = !open;
+    $('navigation-toggle').setAttribute('aria-expanded', String(open));
+    $('navigation-toggle').textContent = open ? 'Close menu' : 'Menu';
+    if (persist) try { localStorage.setItem('plc-workspace-navigation-v1', JSON.stringify({open})); } catch (_) {}
+  }
+  function navigateWorkspace(view) {
+    if (!switchView(view)) { $('page-select').value = state.view; return false; }
+    // A source-only window can return to normal browsing through Home or Page.
+    document.body.classList.remove('source-popout', 'workspace-popout');
+    window.history.replaceState(null, '', '/#view=' + encodeURIComponent(view));
+    return true;
+  }
+  function setSourcePaneHidden(view, hidden) {
+    const grid = $(view + '-layout');
+    const toggle = $(view + '-inspector-toggle');
+    if (!grid || !toggle) return;
+    grid.classList.toggle('source-collapsed', hidden);
+    if (view === 'map') grid.classList.toggle('map-only', hidden);
+    toggle.textContent = hidden ? 'Show source' : 'Hide source';
+    toggle.setAttribute('aria-expanded', String(!hidden));
+    if (view === 'map') toggle.setAttribute('aria-pressed', String(hidden));
+    const note = $(view + '-source-note');
+    if (note) note.hidden = !hidden;
+  }
+  function hidePoppedSource(id) {
+    if (state.source?.source?.id !== id || document.body.classList.contains('source-popout')) return;
+    if (['map', 'rungs', 'objects'].includes(state.view)) setSourcePaneHidden(state.view, true);
+  }
+  function renderHome() {
+    const root = $('home-pages'), source = $('home-source');
+    if (!root || !source) return;
+    const p = state.project, s = p?.source || {};
+    source.replaceChildren(node('h2', p?.active_run ? s.name || 'Imported source' : 'Choose your source'),
+      node('p', p?.active_run ? `${Number(s.rung_count || 0).toLocaleString()} captured rungs · ${Number(s.instruction_count || 0).toLocaleString()} instructions · project revision ${p.revision}` : 'Open a completed analysis to begin. Your existing saved project can be reopened without analyzing the L5X again.'),
+      button('Choose analysis run', importDialog));
+    const pages = [
+      ['rungs','Rungs','Read one rung from its inputs through conditions and actions to outputs. Inspect the original source, then save categories and properties.','Function family · reviewed category · review status · source search'],
+      ['map','Ladder map','See how captured rungs share signals. Search, drag, zoom and inspect complete branches beside the map.','Function family · routine · signals · source search'],
+      ['connections','Connection map','Trace upstream writers and downstream readers around one selected rung. Follow a signal across routines.','Direction · routine scope · exact signal'],
+      ['groups','Classification & groups','Review proposed AI, AO, DI, DO, DC, AC, PID and other engineering functions. Adopt and edit their memberships and migration decisions.','Function · migration decision · text search'],
+      ['objects','Tags & source objects','Look up exported tag declarations, modules, routines, descriptions and user-defined objects.','Object type · name/path/description search'],
+      ['changes','Changes & reconciliation','See saved review history, undo a change, and reconnect earlier decisions when a new export changes the source.','Project history · changed-source correspondence'],
+      ['guide','How to review','Follow a short, checkable first session: inspect source, follow signals, save a decision and verify it.','Guided steps · local progress checklist'],
+    ];
+    root.replaceChildren();
+    pages.forEach(([view,title,description,filters]) => {
+      const card = node('article', null, 'home-page-card panel');
+      const route = node('a', 'Open ' + title, 'home-page-link'); route.href = '#view=' + view;
+      route.addEventListener('click', event => {
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button) return;
+        event.preventDefault(); navigateWorkspace(view);
+      });
+      card.append(node('h2', title), node('p', description), node('p', filters, 'muted'), route);
+      root.append(card);
+    });
+  }
+
   function popupWorkspace(id = '', view = 'map') {
     if (!['map', 'source', 'connections'].includes(view)) return;
     if (typeof id !== 'string' || id.length > 256 || /[\x00-\x1f\x7f]/.test(id)) return;
     if (view !== 'map' && !id) {
       notify('Select a source record first.');
+      return;
+    }
+    if (view === 'source' && state.source?.source?.id === id && (state.dirty || state.saving)) {
+      notify('Save the current review before moving this source to another window. The new window reads saved data.');
       return;
     }
     const target = view === 'source' ? (/^(rung|instruction)_/.test(id) ? 'rungs' : 'objects') : view;
@@ -325,6 +391,7 @@
     const opened = window.open(url, '_blank', 'popup,width=1400,height=900');
     if (opened) {
       opened.opener = null;
+      if (view === 'source') hidePoppedSource(id);
     } else {
       notify('The browser blocked the window. Open this view in a new tab instead.');
       const fallback = node('a', 'Open selected view in a new tab');
@@ -392,11 +459,25 @@
       query: $("rung-search").value,
       routine: state.routine,
       category: $("category-filter").value,
+      family: $('rung-family-filter').value,
       status: $("status-filter").value,
       page: String(state.page),
     });
     const result = await api("/api/rungs?" + params);
     if (serial !== state.listSerial || state.view !== "rungs") return;
+    const familyFilter = $('rung-family-filter'), familyValue = familyFilter.value;
+    // A different analysis may not contain the former family. Clear and reload
+    // before displaying results so the visible choice always matches the query.
+    if (familyValue && Array.isArray(result.families)
+        && !result.families.some(family => family.id === familyValue)) {
+      familyFilter.value = '';
+      state.page = 1;
+      return loadRungs();
+    }
+    familyFilter.replaceChildren(node('option', 'All function families'));
+    familyFilter.firstChild.value = '';
+    (result.families || []).forEach(family => { const option = node('option', `${family.label} (${family.count})`); option.value = family.id; familyFilter.append(option); });
+    familyFilter.value = familyValue;
     const root = $("rung-list");
     clear(root);
     const total = Number(result.total || 0),
@@ -812,7 +893,9 @@
     if (isRung) {
       root.append(button("Explore inputs & outputs →", () => openConnections(s.id), "primary"));
       root.append(button('Pop out connections', () => popupWorkspace(s.id, 'connections')));
-      renderRungLogic(root, s, data.calculations || {});
+      renderRungLogic(root, s, data.calculations || {}, {
+        operands: data.operands || [], sourceQualified: data.source_qualified === true,
+      });
     }
     const editor = section(
       root,
@@ -936,9 +1019,9 @@
       });
     root.append(list);
   }
-  function renderRungLogic(root, source, calculations) {
+  function renderRungLogic(root, source, calculations, explanationOptions = {}) {
     const area = section(root, "Rung logic",
-      "Follow the connected path from left to right. Parallel paths split and rejoin where shown. EN is the condition arriving at an instruction; ← stores a value. This shows source structure, not live state or an elapsed-time scale.");
+      "Start with Logic summary for inputs, conditions and outputs. Rung flow shows the connected paths; Equations and Original text provide the detail. These views describe captured logic, not live values or confirmed equipment consequences.");
     const tabs = node("div", null, "logic-tabs");
     tabs.setAttribute("role", "tablist");
     tabs.setAttribute("aria-label", "Rung display");
@@ -946,7 +1029,7 @@
     const occurrences = new Map((calculations.occurrences || []).map((c) => [c.id, c]));
     const nodes = new Map((calculations.nodes || []).map((n) => [n.id, n]));
     const panels = [], controls = [];
-    const names = ["Rung flow", "Equations", "Branch structure", "Original text"];
+    const names = ["Logic summary", "Rung flow", "Equations", "Branch structure", "Original text"];
     const activate = (index) => {
       panels.forEach((panel, i) => { panel.hidden = i !== index; });
       controls.forEach((control, i) => {
@@ -974,11 +1057,12 @@
     });
     area.append(tabs, ...panels);
     activate(0);
+    panels[0].append(window.PLCRungExplanation.render(source, {...explanationOptions, calculations}));
     if (calculations.status === "unavailable")
       area.prepend(node("p", "Saved expression structure could not be verified. CPT instructions retain their original expressions.", "warning-panel"));
     if (source.structure) {
       const positions = new Map(source.instructions.map((i, index) => [i.id, index + 1]));
-      panels[0].append(window.PLCRungFlow.render(source, {
+      panels[1].append(window.PLCRungFlow.render(source, {
         instruction: (inst) => {
           const card = node("div", null, "flow-instruction");
           const equation = instructionEquation(inst, occurrences.get(inst.id), nodes);
@@ -992,22 +1076,22 @@
           return card;
         },
         onInstruction: inst => popupWorkspace(inst.id, 'source'),
-      }), button("Select individual instructions to group", () => activate(2), "text-button"));
-      panels[1].append(renderEquationTree(source.structure, byId, occurrences, nodes, positions));
+      }), button("Select individual instructions to group", () => activate(3), "text-button"));
+      panels[2].append(renderEquationTree(source.structure, byId, occurrences, nodes, positions));
       const chosen = new Set();
       const scroll = node("div", null, "structure-scroll");
       scroll.append(renderStructure(source.structure, byId, chosen));
-      panels[2].append(node("p", "Boxes and parallel paths preserve the captured structure. Select individual instructions here to group them."), scroll,
+      panels[3].append(node("p", "Boxes and parallel paths preserve the captured structure. Select individual instructions here to group them."), scroll,
         button("Group checked instructions", () => {
           if (!chosen.size) { notify("Check one or more instruction boxes first."); return; }
           groupPicker([...chosen]);
         }));
     } else {
-      panels[0].append(node("p", "A complete parsed structure is unavailable. Inspect the captured source below.", "warning-panel"), node("pre", source.text ?? "Source text unavailable."));
-      panels[1].append(node("p", "No complete equation structure is available. Use Original text."));
-      panels[2].append(node("p", "No complete branch structure is available. Use Original text."));
+      panels[1].append(node("p", "A complete parsed structure is unavailable. Inspect the captured source below.", "warning-panel"), node("pre", source.text ?? "Source text unavailable."));
+      panels[2].append(node("p", "No complete equation structure is available. Use Original text."));
+      panels[3].append(node("p", "No complete branch structure is available. Use Original text."));
     }
-    panels[3].append(node("pre", source.text ?? "Source text unavailable."));
+    panels[4].append(node("pre", source.text ?? "Source text unavailable."));
   }
   function mathNode(tag, ...children) {
     const element = document.createElementNS("http://www.w3.org/1998/Math/MathML", tag);
@@ -1093,14 +1177,14 @@
     } else if (opcode === "CLR" && valid(1)) {
       expression = assign(args[0], mathNode("mn", "0")); label = "Clear value";
     } else if (["XIC", "XIO"].includes(opcode) && valid(1)) {
-      const condition = opcode === "XIC" ? mathAtom(args[0])
-        : mathNode("mrow", mathNode("mo", "¬"), mathAtom(args[0]));
-      expression = mathNode("mrow", mathAtom("EN"), mathNode("mo", "∧"), condition);
+      const condition = mathNode("mrow", mathAtom(args[0]),
+        mathNode("mtext", opcode === "XIC" ? " is TRUE" : " is FALSE"));
+      expression = mathNode("mrow", mathNode("mtext", "Incoming condition AND "), mathFence(condition));
       label = opcode === "XIC" ? "Pass when the bit is true" : "Pass when the bit is false";
     } else if (opcode === "OTE" && valid(1)) {
-      expression = assign(args[0], mathAtom("EN")); label = "Output follows the incoming condition";
+      expression = assign(args[0], mathNode("mtext", "Incoming condition")); label = "Output follows the incoming condition";
     } else if (["OTL", "OTU"].includes(opcode) && valid(1)) {
-      expression = mathNode("mrow", mathAtom("EN"), mathNode("mo", "⇒"),
+      expression = mathNode("mrow", mathNode("mtext", "IF incoming condition is TRUE, "),
         mathAtom(opcode === "OTL" ? "SET" : "RESET"), mathFence(mathAtom(args[0])));
       label = opcode === "OTL" ? "Latch when enabled" : "Unlatch when enabled";
     } else if (["TON", "TOF", "RTO", "ONS", "OSR", "OSF", "CTU", "CTD"].includes(opcode)) {
@@ -2245,6 +2329,7 @@
           state.objectPage = 1;
           [
             "rung-search",
+            "rung-family-filter",
             "category-filter",
             "status-filter",
             "object-search",
@@ -2310,8 +2395,14 @@
   document
     .querySelectorAll("#navigation button")
     .forEach((n) =>
-      n.addEventListener("click", () => switchView(n.dataset.view)),
+      n.addEventListener("click", () => navigateWorkspace(n.dataset.view)),
     );
+  $('workspace-home').addEventListener('click', () => navigateWorkspace('home'));
+  $('page-select').addEventListener('change', () => navigateWorkspace($('page-select').value));
+  $('navigation-toggle').addEventListener('click', () => setNavigation($('project-navigation').hidden));
+  let navigationOpen = false;
+  try { navigationOpen = JSON.parse(localStorage.getItem('plc-workspace-navigation-v1') || '{}').open === true; } catch (_) {}
+  setNavigation(navigationOpen, false);
   $("rung-search").addEventListener(
     "input",
     debounce(() => {
@@ -2319,7 +2410,7 @@
       run(loadRungs);
     }),
   );
-  ["category-filter", "status-filter"].forEach((id) =>
+  ["category-filter", "status-filter", "rung-family-filter"].forEach((id) =>
     $(id).addEventListener("change", () => {
       state.page = 1;
       run(loadRungs);
@@ -2341,6 +2432,7 @@
   $("clear-filters").addEventListener("click", () => {
     $("rung-search").value = "";
     $("category-filter").value = "";
+    $('rung-family-filter').value = '';
     $("status-filter").value = "";
     state.routine = "";
     state.page = 1;
@@ -2432,6 +2524,7 @@
           state.objectPage = 1;
           [
             "rung-search",
+            "rung-family-filter",
             "category-filter",
             "status-filter",
             "object-search",
@@ -2526,7 +2619,7 @@
           "Workspace closed. Your saved project is safe. Run the workspace launcher to reopen it.",
         );
       },
-      "Close workspace",
+      "Stop workspace",
     );
   });
   try {
@@ -2556,7 +2649,7 @@
   );
   function requestedLocation() {
     const fragment = window.location.hash.slice(1);
-    if (!fragment) return { view: "rungs", source: "" };
+    if (!fragment) return { view: "home", source: "" };
     if (fragment.length > 2048) return null;
     const parameters = new URLSearchParams(fragment);
     if (
@@ -2568,7 +2661,7 @@
     const view = parameters.get("view");
     const source = parameters.get("source") || "";
     if (
-      !["rungs", "objects", "map", "connections", "groups", "changes", "guide"].includes(view) ||
+      !["home", "rungs", "objects", "map", "connections", "groups", "changes", "guide"].includes(view) ||
       source.length > 256 ||
       /[\x00-\x1f\x7f]/.test(source)
     )
@@ -2608,14 +2701,14 @@
     storageKey: 'plc-workspace-map-layout-v1', defaultRatio: 0.6,
     leftLabel: 'Ladder map', rightLabel: 'selected source', minLeft: 380,
   });
-  $('map-inspector-toggle').addEventListener('click', () => {
-    const mapOnly = $('map-layout').classList.toggle('map-only');
-    $('map-inspector-toggle').setAttribute('aria-pressed', String(mapOnly));
-    $('map-inspector-toggle').textContent = mapOnly ? 'Map + inspector' : 'Map only';
+  ['map', 'rungs', 'objects'].forEach(view => {
+    $(view + '-inspector-toggle').addEventListener('click', () => setSourcePaneHidden(view, !$(view + '-layout').classList.contains('source-collapsed')));
+    setSourcePaneHidden(view, false);
   });
   $('refresh-project').addEventListener('click', () => run(refreshProjectWindow));
   const panelMode = new URLSearchParams(window.location.search).get('panel');
   if (panelMode === 'source' || panelMode === 'workspace') {
+    setNavigation(false, false);
     document.body.classList.add('workspace-popout');
     if (panelMode === 'source') document.body.classList.add('source-popout');
     $('stop').hidden = true;

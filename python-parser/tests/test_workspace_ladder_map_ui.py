@@ -25,7 +25,7 @@ class Element {
   releasePointerCapture() { this.pointer=null; }
   fire(name, values={}) { if(name==='click'&&this.disabled)return;return this.events[name]?.({type:name,target:this,button:0,pointerId:1,clientX:200,clientY:200,stopPropagation(){},preventDefault(){},...values}); }
 }
-const document={createElement:tag=>new Element(tag),createElementNS:(_,tag)=>new Element(tag)};
+const document={events:{},createElement:tag=>new Element(tag),createElementNS:(_,tag)=>new Element(tag),addEventListener(name,fn){this.events[name]=fn;},removeEventListener(name,fn){if(this.events[name]===fn)delete this.events[name];},fire(name,event){return this.events[name]?.({preventDefault(){},...event});}};
 const window={};
 const root=new Element('section');
 const all=node=>[node,...node.children.flatMap(all)];
@@ -277,4 +277,82 @@ assert.equal(calls.filter(path=>path.includes('/links')).length,before);
 assert.ok(cls('ladder-map-coverage')[0].textContent.includes('Connection map unavailable'));
 assert.ok(cls('ladder-map-coverage')[0].textContent.includes('Saved access evidence did not qualify.'));
 assert.ok(!cls('ladder-map-coverage')[0].textContent.includes('17 unresolved'));assert.equal(cls('ladder-map-list-row').length,2);
+""")
+
+    def test_close_cancels_queued_preview_and_late_results_do_not_reopen_it(self) -> None:
+        self.run_js(r"""
+count=2;const base=respond,waiting=deferred();let wait=false;
+respond=async url=>wait&&url.pathname.endsWith('/detail')?waiting.promise:base(url);
+const controller=window.PLCLadderMap.mount(root,options);await controller.refresh();await controller.focus('rung-0');await flush();
+const node=cls('ladder-map-node').find(node=>node.attributes['data-rung-id']==='rung-1');
+const before=calls.filter(path=>path.includes('/detail')).length;node.fire('mouseenter');button('Close information').fire('click');await flush();
+assert.equal(calls.filter(path=>path.includes('/detail')).length,before);assert.ok(cls('ladder-map-detail')[0].hidden);
+wait=true;node.fire('mouseenter');const callbacks=[...timers.values()];timers.clear();const pendingDisplays=callbacks.map(fn=>fn());
+button('Pin information').fire('click');assert.equal(cls('ladder-map-detail-local-controls')[0].hidden,false);
+button('Close panel').fire('click');waiting.resolve({run_id:'run-1',id:'rung-1',title:'Late response',blocks:[]});await Promise.all(pendingDisplays);await flush();
+assert.ok(cls('ladder-map-detail')[0].hidden);assert.ok(!cls('ladder-map-detail')[0].className.includes('is-pinned'));assert.ok(button('Pin information').disabled);
+""")
+
+    def test_mouseleave_and_cancelled_second_hover_cannot_freeze_loading_preview(self) -> None:
+        self.run_js(r"""
+count=2;const base=respond,waiting=deferred();respond=async url=>url.pathname.endsWith('/detail')?waiting.promise:base(url);
+const controller=window.PLCLadderMap.mount(root,options);await controller.refresh();await flush();
+const nodes=cls('ladder-map-node');nodes[0].fire('mouseenter');const callbacks=[...timers.values()];timers.clear();const pendingDisplays=callbacks.map(fn=>fn());
+nodes[0].fire('mouseleave');nodes[1].fire('mouseenter');nodes[1].fire('mouseleave');
+waiting.resolve({run_id:'run-1',id:'rung-0',title:'First preview finished',blocks:[]});await Promise.all(pendingDisplays);await flush();
+assert.equal(calls.filter(path=>path.includes('/detail')).length,1);assert.ok(cls('ladder-map-detail-body')[0].textContent.includes('First preview finished'));assert.ok(!cls('ladder-map-detail-body')[0].textContent.includes('Loading captured'));
+""")
+
+    def test_local_unpin_escape_pan_and_deactivation_dismiss_without_losing_index(self) -> None:
+        self.run_js(r"""
+count=2;const controller=window.PLCLadderMap.mount(root,options);await controller.refresh();await controller.focus('rung-0');await flush();
+button('Pin information').fire('click');assert.ok(all(cls('ladder-map-detail')[0]).includes(button('Close panel')));button('Unpin panel').fire('click');
+assert.equal(cls('ladder-map-detail-local-controls')[0].hidden,true);assert.ok(!cls('ladder-map-detail')[0].className.includes('is-pinned'));
+button('Pin information').fire('click');document.fire('keydown',{key:'Escape'});assert.ok(cls('ladder-map-detail')[0].hidden);
+await controller.focus('rung-0');await flush();button('Pin information').fire('click');cls('ladder-map-canvas')[0].fire('pointerdown');assert.ok(cls('ladder-map-detail')[0].hidden);cls('ladder-map-canvas')[0].fire('pointerup');
+const node=cls('ladder-map-node')[0];node.fire('mouseenter');controller.deactivate();await flush();assert.ok(cls('ladder-map-detail')[0].hidden);
+node.fire('mouseenter');await flush();assert.ok(cls('ladder-map-detail')[0].hidden);
+const indexed=calls.filter(path=>path.startsWith('/api/ladder-map?')).length;await controller.refresh();await flush();assert.equal(calls.filter(path=>path.startsWith('/api/ladder-map?')).length,indexed);
+node.fire('mouseenter');await flush();assert.equal(cls('ladder-map-detail')[0].hidden,false);
+controller.destroy();assert.equal(document.events.keydown,undefined);
+""")
+
+    def test_deactivate_ignores_loading_details_and_escape_cancels_unopened_hover(self) -> None:
+        self.run_js(r"""
+count=2;const base=respond,waiting=deferred();respond=async url=>url.pathname.endsWith('/detail')?waiting.promise:base(url);
+const controller=window.PLCLadderMap.mount(root,options);await controller.refresh();await flush();
+const node=cls('ladder-map-node')[0];node.fire('mouseenter');document.fire('keydown',{key:'Escape'});await flush();assert.equal(calls.filter(path=>path.includes('/detail')).length,0);
+node.fire('mouseenter');const callbacks=[...timers.values()];timers.clear();const displays=callbacks.map(fn=>fn());controller.deactivate();
+waiting.resolve({run_id:'run-1',id:'rung-0',title:'While hidden',blocks:[]});await Promise.all(displays);await flush();assert.ok(cls('ladder-map-detail')[0].hidden);
+""")
+
+    def test_description_and_signal_name_toggles_use_captured_text_with_bounded_cards(self) -> None:
+        self.run_js(r"""
+count=2;const base=respond;respond=async url=>{
+ if(url.pathname==='/api/ladder-map')return index(url,{items:[{...rung(0),comment_preview:'<script>Une description mixte avec un très long commentaire réel qui ne doit jamais devenir du HTML et qui continue après la troisième ligne.'},{...rung(1),comment_preview:''}]});
+ if(url.pathname.endsWith('/links'))return {run_id:'run-1',signals:[{id:'flag',label:'Captured_Flag',writers:['rung-0'],readers:['rung-1'],unknown:[]}],total:1,pages:1};
+ return base(url);
+};
+const controller=window.PLCLadderMap.mount(root,options);await controller.refresh();await flush();assert.equal(cls('ladder-map-node-comment').length,0);assert.equal(cls('ladder-map-signal-label').length,0);
+const before=calls.length,descriptions=cls('ladder-map-description-toggle')[0],names=cls('ladder-map-signal-names-toggle')[0];
+descriptions.checked=true;descriptions.fire('change');names.checked=true;names.fire('change');await flush();
+assert.ok(cls('ladder-map-node-comment').length<=6);assert.ok(cls('ladder-map-node').some(node=>node.textContent.includes('No rung comment captured.')));
+assert.ok(cls('ladder-map-node-comment').some(node=>node.textContent.includes('<script>')));assert.ok(all(root).every(node=>node.tagName!=='script'));assert.equal(cls('ladder-map-signal-label')[0].textContent,'Captured_Flag');
+assert.equal(calls.length,before);descriptions.checked=false;descriptions.fire('change');names.checked=false;names.fire('change');await flush();assert.equal(cls('ladder-map-node-comment').length,0);assert.equal(cls('ladder-map-signal-label').length,0);
+const help=cls('ladder-map-help')[0];for(const phrase of ['not execution order','Teal arrows','Orange dashed lines','reviewed AI','Escape','80 individual cards','320 connection lines','No rung comment'])assert.ok(root.textContent.toLowerCase().includes(phrase.toLowerCase())||help.textContent.toLowerCase().includes(phrase.toLowerCase()),phrase);
+""")
+
+    def test_leaving_during_search_preserves_query_without_reactivating_hidden_map(self) -> None:
+        self.run_js(r"""
+count=2;const controller=window.PLCLadderMap.mount(root,options);await controller.refresh();await flush();
+const before=calls.length,search=cls('ladder-map-search')[0];search.value='late search';search.fire('input');controller.deactivate();await flush();
+assert.equal(calls.length,before);assert.ok(cls('ladder-map-detail')[0].hidden);
+await controller.refresh();await flush();assert.ok(calls.some(path=>path.startsWith('/api/ladder-map?')&&path.includes('query=late+search')));assert.equal(cls('ladder-map-list-row').length,1);
+""")
+
+    def test_changed_run_detail_ends_loading_with_recovery_message(self) -> None:
+        self.run_js(r"""
+count=2;const base=respond;respond=async url=>url.pathname.endsWith('/detail')?{run_id:'different-run',title:'Stale source',blocks:[]}:base(url);
+const controller=window.PLCLadderMap.mount(root,options);await controller.refresh();await controller.focus('rung-0');await flush();
+const body=cls('ladder-map-detail-body')[0];assert.ok(body.textContent.includes('analysis changed'));assert.ok(!body.textContent.includes('Loading captured'));assert.ok(button('Retry information'));
 """)

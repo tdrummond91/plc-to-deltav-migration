@@ -1,0 +1,28 @@
+.rung-explanation { color: var(--ink); font-size: .95rem; line-height: 1.6; }
+.rung-explanation-guide, .rung-explanation-boundary { color: var(--muted); }
+.rung-explanation > section { margin-block: 1.25rem; }
+.rung-explanation h4 { margin: 0 0 .65rem; font-size: 1.04rem; color: var(--accent, #31d7c9); }
+.rung-explanation h5 { margin: .35rem 0 .65rem; font-size: .92rem; }
+.rung-explanation table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.rung-explanation th, .rung-explanation td { padding: .55rem .65rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.rung-explanation th { font-weight: 600; color: var(--muted); }
+.rung-explanation th:nth-child(2) { width: 23%; }
+.rung-explanation-sequence { margin: .65rem 0; padding-left: 1.2rem; list-style: none; border-left: 2px solid var(--border); }
+.rung-explanation-sequence > li { margin-bottom: .7rem; }
+.rung-explanation-step { padding: .8rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: .65rem; overflow-wrap: anywhere; }
+.rung-explanation-step p { margin: .4rem 0; }
+.rung-explanation-condition { color: var(--muted); font-size: .87rem; }
+.rung-explanation-step details { margin-top: .55rem; font-size: .85rem; }
+.rung-explanation pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rung-explanation-branch { border: 1px solid var(--accent, #31d7c9); border-radius: .7rem; padding: .8rem; }
+.rung-explanation-path { border-top: 1px solid var(--border); margin-top: .7rem; padding-top: .5rem; }
+.rung-explanation-join, .rung-explanation-empty { color: var(--muted); font-size: .88rem; }
+.rung-explanation-unknown { border-left: 3px solid var(--orange, #e99152); }
+.rung-explanation-state { border-left: 3px solid var(--magenta, #cd71cc); }
+.rung-explanation-boundary { border-top: 1px solid var(--border); padding-top: .8rem; font-size: .82rem; }
+@media (max-width: 650px) {
+  .rung-explanation { font-size: .9rem; }
+  .rung-explanation-sequence { padding-left: .45rem; }
+  .rung-explanation-step { padding: .65rem; }
+  .rung-explanation th, .rung-explanation td { padding: .45rem .3rem; }
+}

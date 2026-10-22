@@ -416,7 +416,12 @@ class Workspace:
                 "page": page, "page_size": PAGE_SIZE}
 
     def rungs(self, query: dict) -> dict:
+        from .workspace_map import family_filter
         state = self.state()
+        family = family_filter(query)
+        # Share the map's source qualification and saved block evidence. Review
+        # categories remain independent: changing them cannot relabel a block.
+        metadata = self._ladder_map({})[0] if self._run else None
         mode, wording = self._wording(self._rungs, 'comment')
         reviews = state.get("reviews", {})
         memberships: dict[str, list[str]] = defaultdict(list)
@@ -427,6 +432,9 @@ class Workspace:
         search = query.get("query", "").casefold()
         for rung in self._rungs:
             identifier = rung["id"]
+            source_family = metadata.rows_by_id[identifier] if metadata is not None else {}
+            if family and family not in source_family.get('families', []):
+                continue
             review = reviews.get(identifier, {})
             proposals = sorted({c["category"] for c in self._proposals[identifier]})
             path = self.path(identifier)
@@ -446,9 +454,12 @@ class Workspace:
                          "text": rung.get("text"), "comment": rung.get("comment"),
                          "parse_status": rung.get("parse_status"), "proposals": proposals,
                          "review": review, "groups": memberships[identifier],
+                         "families": source_family.get('families', []),
+                         "source_qualified": source_family.get('source_qualified', False),
                          "rule_proposals": self.rule_proposals(identifier, state)})
         result = self._page(rows, query)
         result['presentation_mode'] = mode
+        result['families'] = metadata.family_choices() if metadata is not None else []
         for row in result['items']:
             row['wording'] = {'comment': wording.get(row.get('comment'))}
             source = self._sources[row['id']]
@@ -651,6 +662,10 @@ class Workspace:
         source = self._sources[identifier]
         rung_id = self._rung_for.get(identifier)
         kind = "rung" if "instructions" in source else "instruction" if "opcode" in source else source.get("kind", "object")
+        source_qualified = False
+        if kind in {"rung", "instruction"}:
+            _, qualified_rungs, _ = self._map_qualification()
+            source_qualified = qualified_rungs.get(rung_id or identifier, False)
         related = []
         parent = rung_id if kind == "instruction" else source.get("parent_id")
         if parent and parent != identifier and parent in self._sources:
@@ -665,6 +680,7 @@ class Workspace:
                 for target in targets:
                     related.append({"id": target, "label": self.path(target)})
         return {"source": source, "path": self.path(identifier), "kind": kind,
+                "source_qualified": source_qualified,
                 "proposals": self._proposals.get(rung_id or identifier, []),
                 "review": state.get("reviews", {}).get(identifier, {}), "operands": operands,
                 "calculations": self._calculation_detail(instruction_ids if rung_id else []),
@@ -1033,7 +1049,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
             elif url.path == "/analysis":
                 self._send(200, workspace.report(query.get('language')), "text/html; charset=utf-8", report=True)
             elif url.path in ("/", "/index.html", "/workspace.js", "/workspace.css",
-                              "/rung-flow.js", "/rung-flow.css", "/connections.js", "/connections.css",
+                              "/rung-flow.js", "/rung-flow.css", "/rung-explanation.js", "/rung-explanation.css",
+                              "/connections.js", "/connections.css",
                               "/reading-layout.js", "/reading-layout.css", "/translation.js", "/translation.css",
                               '/classification.js', '/classification.css', '/ladder-map.js', '/ladder-map.css'):
                 name = "index.html" if url.path in ("/", "/index.html") else url.path[1:]
@@ -1170,9 +1187,9 @@ def main(argv: list[str] | None = None) -> int:
                     with_workspace.startup_notice = startup_notice
                 print(f"Engineering workspace: {server.origin}", flush=True)
                 if args.import_run is None:
-                    print("Open Import analysis to choose your saved run. Stop with Close workspace or Ctrl+C.", flush=True)
+                    print("Open Choose analysis run to select your saved run. Stop with Stop workspace or Ctrl+C.", flush=True)
                 else:
-                    print("Your analysis is loaded. Stop with Close workspace or Ctrl+C.", flush=True)
+                    print("Your analysis is loaded. Stop with Stop workspace or Ctrl+C.", flush=True)
                 if startup_notice:
                     print(startup_notice, flush=True)
                 if not args.no_browser:

@@ -7,15 +7,21 @@ updates the editable project from that exact completed run and opens the
 application at <http://127.0.0.1:8745>.
 
 Git pull and push remain manual. There is no background listener.
-Keep the command's terminal open while reviewing. **Close workspace** stops
+Keep the command's terminal open while reviewing. **Stop workspace** stops
 the local application and returns to Bash; Ctrl+C also stops the server.
+Chrome's X closes only that window. The shared server and background translation
+continue until you stop the workspace, so other review windows remain usable.
 
 ## First session
 
-1. When the work check opens the workspace, verify the source name and total
+1. Start on **Home / page guide**. Verify the source name and total
    rung count in the automatically loaded result. There is no default
    demonstration. **Choose analysis run** is a manual fallback for an already
-   completed run under `confidential/workspaces/work-check`.
+   completed run under `confidential/workspaces/work-check`. Each Home card
+   explains a page and links to it. **Home** and the **Page** selector remain
+   available with the sidebar closed. **Menu** reveals routines, source language
+   and navigation; close it to reclaim width. **Project tools** holds reviewer
+   name, refresh, theme and backups. **How to review** includes a checkable guide.
 2. Open **Classification & groups** for the automatic functional overview.
    Choose **Function** to find DC, AC, PID, alarms, timers, counters, structured
    objects, or I/O candidates. Expand **Evidence, parameters & source links**
@@ -23,7 +29,15 @@ the local application and returns to Bash; Ctrl+C also stops the server.
    You can browse every proposal before saving any groups.
 3. Choose a program/routine or search for a known tag. The result count and
    page controls cover all captured rungs. The list previews formatted instructions
-   and opens the first rung automatically when no selection is pending. **Rung flow**
+   and opens the first rung automatically when no selection is pending.
+   **Logic summary** is the default: read **Inputs & constants**, follow the
+   numbered **Logic paths**, and check **Outputs & stored state**. Conditions
+   use plain TRUE/FALSE wording. Parallel branches keep their own conditions
+   and actions. For a simple comparison feeding an output, the summary states
+   the comparison and when that instruction writes TRUE or FALSE. It does not
+   infer shutdown consequences, priority, or live values. Stateful and unknown
+   blocks remain explicit; unsupported or oversized structures retain the full
+   original text instead of a partial summary. **Rung flow**
    connects every displayed instruction from left to right, preserving nested
    splits, joins and empty bypass paths. Scroll and zoom to follow longer rungs.
    Calculations use fractions, powers, roots and comparison symbols. The
@@ -42,8 +56,8 @@ the local application and returns to Bash; Ctrl+C also stops the server.
    press **Save review**. A rung can have multiple categories. Use groups to
    associate several rungs, individual instructions or source objects; a
    source record can belong to more than one group.
-6. Reopen the application and verify the saved change. Select **Back up
-   project**. **Restore backup** opens a new restored project and keeps the
+6. Reopen the application and verify the saved change. Open **Project tools →
+   Back up project**. **Restore backup** opens a new restored project and keeps the
    previous project and backup intact.
 
 For later review sessions that do not need new analysis, the optional command
@@ -66,10 +80,21 @@ the card preview is shorter. **Find and select rungs** provides a paged list
 with keyboard access and a page-number field. It remains available when cards
 are offscreen or grouped into tiles.
 
+**Function family** is also available on **Rungs**, using the same captured
+instruction families and counts. These families differ from the engineering
+functions on **Classification & groups** and from your reviewed categories.
+A mixed rung can match several families; filtering changes no saved decision.
+Choose **Show rung descriptions** for captured comment previews on cards and
+**Show signal names** for labels beside signal points. **Map help** explains
+the colors, connections, filters, controls, display limits and multiple windows.
+
 Select a rung to open its complete **Rung flow**, equations, original source,
 and saved review beside the map. Hover or keyboard-focus a card for its block
 families and descriptions. Choose **Pin information** above the map to use the
 preview's links; an unpinned preview lets clicks pass through to the map.
+The pinned panel has its own **Unpin panel** and **Close panel** controls.
+Escape also dismisses it. Panning, zooming, changing filters or leaving the map
+closes the panel; delayed hover responses cannot reopen a dismissed preview.
 Within the inspector, instruction cards also open information on hover/focus.
 Where the export contains an unambiguous supported
 declaration, information links expose its captured AOI parameters or datatype
@@ -86,13 +111,16 @@ source relationships: no live Boolean state, scan timing, or complete implicit
 instruction behavior is inferred. Missing lines do not prove unused logic.
 
 For one screen, drag the divider between the map and inspector, or select
-**Map only**. The split and equation size have their own saved browser preferences.
+**Hide source**. The split and equation size have their own saved browser preferences.
 For two or three screens, use **Pop out map**, **Pop out selected source**, and
 **Pop out connections**, then move the browser windows to your monitors. Each
-window has an independent selection and shares the same saved project. After
-saving in one window, choose **Refresh saved data** in the others. Unsaved edits
+window has an independent selection and shares the same saved project. A
+successful source popout hides the matching original pane; **Show source**
+restores it. Opening a different instruction or declaration does not hide the
+selected rung. Save an edited source before moving it to another window.
+After saving in one window, choose **Project tools → Refresh saved data** in the others. Unsaved edits
 require an explicit decision before replacement; an out-of-date save is rejected.
-Close popouts with their browser window controls. **Close workspace** in the
+Close popouts with their browser window controls. **Stop workspace** in the
 main window stops the shared local server.
 
 The page loads compact metadata in batches and renders only the visible cards.
