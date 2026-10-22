@@ -1,5 +1,17 @@
 # Current handoff: PLC analysis workbench
 
+## Wheel navigation over rung drawings (2026-10-22)
+
+The shared ladder viewport used overscroll containment on both axes, trapping
+vertical wheel gestures even when the drawing had no vertical overflow. Only
+horizontal containment remains; vertical scrolling now continues to the parent
+page or pane at the drawing boundary. Native drawing scrollbars and zoom remain.
+
+Chrome checks on invented data reproduced the stuck page before the change,
+then verified wheel-down/up over a rung, navigation over a branched rung, and
+horizontal scrolling inside a zoomed wide rung. This CSS-only fix requires a
+manual pull and workspace reload, with no L5X reanalysis.
+
 ## Readable operations inside ladder blocks (2026-10-22)
 
 The ladder drawing previously sent every non-contact/coil through a generic

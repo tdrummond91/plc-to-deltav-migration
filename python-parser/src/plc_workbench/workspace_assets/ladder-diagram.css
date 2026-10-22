@@ -3,7 +3,8 @@
 .ladder-diagram-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: .5rem 0; }
 .ladder-diagram-controls button { font-size: .8rem; padding: .3rem .55rem; }
 .ladder-diagram-zoom { min-width: 3.5rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--accent); }
-.ladder-diagram-viewport { overflow: auto; max-height: min(70vh, 750px); border: 1px solid var(--border); border-radius: 8px; background: var(--bg); overscroll-behavior: contain; }
+/* Let vertical wheel gestures continue to the page at a drawing's boundary. */
+.ladder-diagram-viewport { overflow: auto; max-height: min(70vh, 750px); border: 1px solid var(--border); border-radius: 8px; background: var(--bg); overscroll-behavior-x: contain; overscroll-behavior-y: auto; }
 .ladder-diagram-canvas { display: block; max-width: none; flex: none; }
 .ladder-diagram-wire, .ladder-diagram-rail { fill: none; stroke: var(--muted); stroke-width: 1.7; }
 .ladder-diagram-rail { stroke-width: 3; }
