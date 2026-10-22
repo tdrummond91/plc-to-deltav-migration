@@ -75,7 +75,7 @@
 @media (max-width: 1150px) {
   .ladder-map-layout > #map-detail { max-height: none; }
   .topbar { align-items: start; flex-wrap: wrap; position: relative; }
-  .topbar .brand { flex: 1; }
+  .topbar .brand-with-language { flex: 1; }
   .page-switcher { order: 3; width: 100%; }
   .top-actions { justify-content: end; max-width: 100%; }
   .project-tools { position: static; }
@@ -261,6 +261,12 @@ code,
   padding: 1rem 1.5rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+}
+.brand-with-language {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
 }
 .brand {
   display: flex;

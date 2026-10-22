@@ -19,7 +19,10 @@ continue until you stop the workspace, so other review windows remain usable.
    demonstration. **Project tools → Choose analysis run** is a manual fallback for an already
    completed run under `confidential/workspaces/work-check`. Each Home card
    explains a page and links to it. **Home**, the **Page** selector and the
-   **How to review** button are in the header. There is no permanent sidebar.
+   **How to review** button are in the header. The Page dropdown follows the same
+   order as the Home cards. Compact **FR / EN** flag buttons sit immediately to
+   the right of the PLC Workbench logo and switch source language on any page.
+   There is no permanent sidebar.
    **Project tools** holds the source details, analysis-run selection, source
    language, changes and reconciliation, reviewer name, refresh, theme and backups.
    **How to review** opens the checkable guide directly.
@@ -240,7 +243,8 @@ Setup downloads optional Python translation packages and a public French-to-Engl
 model (about 67 MB). No engineering comments are uploaded. The subsequent
 translation process works offline on the CPU. Under **Project tools → Source
 language**, use the flag buttons **EN / English** and **FR / French** to switch
-quickly. French displays the original source wording, including any existing
+quickly. The compact header flags control the same saved setting; both flags are
+highlighted when bilingual display is selected. French displays the original source wording, including any existing
 English or mixed-language comments. **Show both languages** displays the source
 and English together; press it again to return to English. English or bilingual
 view prepares the imported source while reviewing. Switching to French changes

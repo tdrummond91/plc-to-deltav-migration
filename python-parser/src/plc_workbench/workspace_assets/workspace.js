@@ -2725,7 +2725,7 @@
     review: (routineId, sourceId) => run(() => openRoutineRungs(routineId, sourceId)),
     inspect: instruction => popupWorkspace(instruction.id, 'source'),
   });
-  const translations = window.PLCTranslation.mount($("translation-controls"), api, translationChanged);
+  const translations = window.PLCTranslation.mount($("translation-controls"), api, translationChanged, $("header-language"));
   const classificationBrowser = window.PLCClassification.mount($("classification-browser"), {
     api,
     getState: () => state.project,

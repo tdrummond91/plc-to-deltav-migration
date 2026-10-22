@@ -94,6 +94,37 @@ class WorkspaceTranslationUiTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("TRANSLATION_TEST_COMPLETE", result.stdout)
 
+    def test_header_and_project_controls_share_pending_requests_and_saved_mode(self) -> None:
+        self.run_js(r"""
+const shortcuts = new Element('div');
+const controller = window.PLCTranslation.mount(container, api, () => {}, shortcuts);
+await controller.refresh();
+assert.equal(calls.length, 1);
+assert.equal(language('original', shortcuts).attributes['aria-pressed'], 'true');
+const pending = deferred();
+respond = (_path, body) => body ? pending.promise : state({presentation_mode: 'english'});
+const change = language('english', shortcuts).fire('click');
+assert.ok(['original','english'].every(value => language(value, shortcuts).disabled));
+assert.equal(mode().disabled, true);
+await chooseMode('original');
+assert.equal(calls.filter(call => call.body).length, 1);
+pending.resolve(state({presentation_mode: 'english'})); await change;
+assert.equal(mode().value, 'english');
+assert.equal(language('english', shortcuts).attributes['aria-pressed'], 'true');
+assert.equal(language('original', shortcuts).attributes['aria-pressed'], 'false');
+assert.equal(language('english', shortcuts).disabled, false);
+respond = async () => state({presentation_mode: 'both'});
+await chooseMode('both');
+assert.equal(mode().value, 'both');
+assert.ok(['original','english'].every(value => language(value, shortcuts).attributes['aria-pressed'] === 'true'));
+respond = async () => state({presentation_mode: 'original'});
+await language('original', shortcuts).fire('click');
+assert.equal(mode().value, 'original');
+assert.equal(language('english', shortcuts).attributes['aria-pressed'], 'false');
+assert.equal(report().href, '/analysis?language=original');
+assert.equal(timers.size, 0);
+""")
+
     def test_original_comment_and_description_remain_plain_text(self) -> None:
         self.run_js(r"""
 const controller = window.PLCTranslation.mount(container, api);

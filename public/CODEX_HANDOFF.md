@@ -1,5 +1,25 @@
 # Current handoff: PLC analysis workbench
 
+## Header language shortcuts and consistent page order (2026-10-22)
+
+Compact FR/EN flags now sit immediately to the right of the PLC Workbench brand,
+vertically centered on the same line. Project tools retains its language controls
+and bilingual option. Both sets share one translation controller and request
+guard; they disable together during changes and mirror the saved setting. Both
+header flags are highlighted in bilingual mode. No additional polling, preference
+store, model or translation cache was introduced.
+
+The Page dropdown now follows the Home cards: Programs & routines, Rungs, Ladder
+map, Connection map, Classification & groups, then Tags & source objects. Home
+remains the first navigation option.
+
+Validation: 69 focused translation/workspace UI tests passed, including a shared
+control regression for pending requests and bilingual synchronization. Independent
+review found no blockers. Chrome checks on invented data verified header-to-tools
+and tools-to-header switching, identical card/dropdown order, and centered header
+alignment at desktop and 480px widths. Existing saved analyses need no rerun;
+save and stop the old workspace, manually pull, then `bash ./open-workbench.sh`.
+
 ## Language shortcuts and overlay dismissal (2026-10-22)
 
 **Project tools → Source language** now uses **FR / French** and **EN / English**

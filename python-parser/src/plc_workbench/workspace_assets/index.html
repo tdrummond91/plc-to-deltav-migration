@@ -29,20 +29,24 @@
   <body>
     <a class="skip" href="#main">Skip to workspace</a>
     <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true">▥</span>
-        <div>
-          <strong>PLC Workbench</strong><span>Engineering workspace</span>
+      <div class="brand-with-language">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">▥</span>
+          <div>
+            <strong>PLC Workbench</strong><span>Engineering workspace</span>
+          </div>
         </div>
+        <div id="header-language" class="header-language"></div>
       </div>
       <nav class="page-switcher" aria-label="Quick navigation">
         <button id="workspace-home" type="button">Home</button>
         <label>Page<select id="page-select">
           <option value="" disabled>Choose a page</option>
-          <option value="home">Home / page guide</option><option value="rungs">Rungs</option>
+          <option value="home">Home / page guide</option>
           <option value="routines">Programs &amp; routines</option>
-          <option value="objects">Tags &amp; source objects</option><option value="map">Ladder map</option>
+          <option value="rungs">Rungs</option><option value="map">Ladder map</option>
           <option value="connections">Connection map</option><option value="groups">Classification &amp; groups</option>
+          <option value="objects">Tags &amp; source objects</option>
         </select></label>
         <button id="review-help" type="button">How to review</button>
       </nav>

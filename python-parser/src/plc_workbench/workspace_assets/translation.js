@@ -72,27 +72,35 @@
     return minutes < 60 ? `${minutes}m ${total % 60}s` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
   }
 
-  function mount(container, api, onChange = () => {}) {
+  function mount(container, api, onChange = () => {}, shortcuts = null) {
     const title = el("strong", "Source language");
     const label = el("p", "Display comments and descriptions", 'translation-label');
     const mode = el('div', undefined, 'translation-mode');
-    mode.setAttribute('role', 'group');
-    mode.setAttribute('aria-label', 'Source language');
-    const languageButtons = new Map();
-    for (const [value, code, name] of [['original', 'FR', 'French'], ['english', 'EN', 'English']]) {
-      const button = el('button', undefined, `translation-language translation-choice-${value}`);
-      button.type = 'button';
-      button.setAttribute('aria-label', name);
-      button.title = name === 'French' ? 'French — source wording, including any mixed-language text' : 'English — locally translated wording';
-      button.append(flag(value), el('strong', code), el('span', name));
-      button.addEventListener('click', () => configure(value, value !== 'original'));
-      languageButtons.set(value, button); mode.append(button);
+    const languageButtons = [];
+    function addLanguageButtons(root, compact = false) {
+      root.setAttribute('role', 'group');
+      root.setAttribute('aria-label', 'Source language');
+      for (const [value, code, name] of [['original', 'FR', 'French'], ['english', 'EN', 'English']]) {
+        const button = el('button', undefined, `translation-language translation-choice-${value}`);
+        button.type = 'button';
+        button.setAttribute('aria-label', name);
+        button.title = name === 'French' ? 'French — source wording, including any mixed-language text' : 'English — locally translated wording';
+        button.append(flag(value), el('strong', code));
+        if (!compact) button.append(el('span', name));
+        button.addEventListener('click', () => configure(value, value !== 'original'));
+        languageButtons.push({value, button, compact}); root.append(button);
+      }
     }
+    addLanguageButtons(mode);
+    if (shortcuts) addLanguageButtons(shortcuts, true);
     const both = el('button', 'Show both languages', 'translation-both');
     both.type = 'button';
     both.addEventListener('click', () => configure(modeOf(last) === 'both' ? 'english' : 'both', true));
-    languageButtons.set('both', both);
-    const paintMode = value => languageButtons.forEach((button, key) => button.setAttribute('aria-pressed', String(key === value)));
+    languageButtons.push({value: 'both', button: both, compact: false});
+    // Both header flags are active for bilingual display; either selects that
+    // single language through this same controller and request guard.
+    const paintMode = value => languageButtons.forEach(control => control.button.setAttribute('aria-pressed',
+      String(control.value === value || (control.compact && value === 'both'))));
     paintMode('original');
     const status = el("p", "Checking local translation setup…", "translation-status");
     status.setAttribute("role", "status");
@@ -225,7 +233,7 @@
     async function configure(selectedMode, prepareAll = false, retryMissing = false) {
       if (!last || configuring) return;
       configuring = true;
-      languageButtons.forEach(button => { button.disabled = true; });
+      languageButtons.forEach(({button}) => { button.disabled = true; });
       prepare.disabled = retry.disabled = true;
       const request = ++serial;
       clearTimeout(timer);
@@ -239,7 +247,7 @@
         status.textContent = error.message;
       } finally {
         configuring = false;
-        languageButtons.forEach(button => { button.disabled = false; });
+        languageButtons.forEach(({button}) => { button.disabled = false; });
         retry.disabled = false;
         prepare.disabled = !last?.available || !last?.run_id || last?.state === "running";
       }
