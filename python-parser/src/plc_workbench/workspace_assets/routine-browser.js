@@ -30,7 +30,7 @@
     const pager = el('div', undefined, 'pagination routine-directory-pagination');
     const help = el('details', undefined, 'routine-directory-help');
     help.append(el('summary', 'How to read these ladders'),
-      el('p', 'Expand one routine at a time. Ladder pages contain up to 20 rungs; other source types stay available through their source link. Contacts test a bit, coils write a bit, and boxes retain other instructions and their arguments. Parallel paths split and rejoin as captured. Neutral lines do not show live controller states.', 'muted'));
+      el('p', 'Expand one routine at a time. Ladder pages contain up to 20 rungs; other source types stay available through their source link. Contacts test a bit, coils write a bit, and boxes retain other instructions and their arguments. Parallel paths split and rejoin as captured. Every captured instruction and path is retained; neutral lines do not show live controller states. Drawings start at 85%; use each rung header to zoom or fit its width. Select a symbol to read all arguments. Long argument previews may be shortened, with complete values in the selection and original text.', 'muted'));
     root.append(filters, status, help, pager, list);
     let key = '', runId = '', active = false, serial = 0, page = 1, routines = [], opened = null;
     const projectKey = () => {
@@ -94,7 +94,8 @@
       if (!matches.length) list.append(el('p', runId ? 'No routines match these filters.' : 'No analysis is selected.', 'empty'));
     }
     function paintComment(target, rung, mode) {
-      if (!rung.comment) { target.replaceChildren(el('p', 'No rung comment captured.', 'muted')); return; }
+      target.hidden = !rung.comment;
+      if (!rung.comment) { target.replaceChildren(); return; }
       window.PLCTranslation.renderProse(target, rung.comment, rung.wording?.comment, mode);
     }
     async function load(entry, rungPage, wordingOnly = false) {
@@ -139,11 +140,14 @@
         result.items.forEach(rung => {
           const card = el('section', undefined, 'routine-rung'); card.dataset.sourceId = rung.id;
           const heading = el('div', undefined, 'routine-rung-heading');
-          heading.append(el('h2', `Rung ${rung.number ?? '?'}`), button('Open rung review', () => options.review(entry.routine.id, rung.id)));
           const comment = el('div', undefined, 'routine-rung-comment'); entry.comments.set(rung.id, comment);
           paintComment(comment, rung, result.presentation_mode);
-          card.append(heading, comment, window.PLCLadderDiagram.render(rung, {
+          const tools = el('div', undefined, 'routine-rung-tools'), zoom = el('div', undefined, 'routine-rung-zoom');
+          tools.append(zoom, button('Open rung review', () => options.review(entry.routine.id, rung.id)));
+          heading.append(el('h2', `Rung ${rung.number ?? '?'}`), comment, tools);
+          card.append(heading, window.PLCLadderDiagram.render(rung, {
             sourceQualified: rung.source_qualified === true,
+            compact: true, controlsTarget: zoom,
             onInstruction: instruction => {
               if (projectKey() !== expectedKey) throw new Error('The active analysis changed. Refresh this routine before inspecting its instructions.');
               return options.inspect(instruction);

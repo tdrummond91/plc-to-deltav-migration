@@ -97,8 +97,12 @@ all captured rungs reachable without drawing an entire export at once.
 The drawing uses contacts, coils and instruction blocks. Nested branches split
 and rejoin as captured; empty legs remain bypass wires. Slashed contacts mean XIO;
 L/U coils mean latch/unlatch. Neutral colors represent source logic, not live
-energized state. **How to read these ladders** explains the controls. Zoom and
-scroll to inspect a long rung. Select a symbol for its complete arguments and a
+energized state. **How to read these ladders** explains these conventions once.
+Drawings start at **85%**, with compact branch spacing. Comments sit beside the
+rung number; zoom controls sit on the right, and **Reset zoom** returns to 85%.
+Short two-argument blocks show both numbered operands on one line. Long previews
+stay stacked, with complete values available by selecting the symbol.
+Zoom and scroll to inspect a long rung. Select a symbol for its complete arguments and a
 source inspector; **Open rung review** opens that exact rung in the main review
 page. Unknown instructions remain labeled blocks rather than guessed symbols.
 

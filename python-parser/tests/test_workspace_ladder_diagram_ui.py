@@ -35,11 +35,11 @@ const cards=root=>cls(root,'ladder-diagram-instruction');
 const wires=root=>cls(root,'ladder-diagram-wire').map(node=>({kind:node.attributes['data-wire'],v:node.attributes.d.match(/-?\d+(?:\.\d+)?/g).map(Number)}));
 const boxes=root=>cards(root).map(node=>{const [x,y]=node.attributes.transform.match(/-?\d+(?:\.\d+)?/g).map(Number);return {id:node.attributes['data-instruction-id'],x,y,width:Number(node.attributes['data-width']),height:Number(node.attributes['data-height'])};});
 const pointOn=(x,y,line)=>{const[a,b,c,d]=line.v;return x>=Math.min(a,c)&&x<=Math.max(a,c)&&y>=Math.min(b,d)&&y<=Math.max(b,d);};
-function geometry(root){
+function geometry(root,anchor=84){
  const bs=boxes(root),ws=wires(root);assert.ok(bs.length);assert.ok(ws.length);
  for(const box of bs){
-  assert.ok(ws.some(line=>pointOn(box.x,box.y+84,line)),box.id+' inlet');
-  assert.ok(ws.some(line=>pointOn(box.x+box.width,box.y+84,line)),box.id+' outlet');
+  assert.ok(ws.some(line=>pointOn(box.x,box.y+anchor,line)),box.id+' inlet');
+  assert.ok(ws.some(line=>pointOn(box.x+box.width,box.y+anchor,line)),box.id+' outlet');
   for(const line of ws){const[x1,y1,x2,y2]=line.v;assert.ok(x1===x2||y1===y2);
    if(y1===y2&&y1>box.y&&y1<box.y+box.height)assert.ok(Math.max(x1,x2)<=box.x||Math.min(x1,x2)>=box.x+box.width,line.kind+' crosses '+box.id);
    if(x1===x2&&x1>box.x&&x1<box.x+box.width)assert.ok(Math.max(y1,y2)<=box.y||Math.min(y1,y2)>=box.y+box.height,line.kind+' crosses '+box.id);
@@ -60,6 +60,54 @@ class LadderDiagramUiTests(unittest.TestCase):
         result = subprocess.run([NODE, "-"], input=code, capture_output=True, encoding="utf-8", timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("DIAGRAM_OK", result.stdout)
+
+    def test_compact_nested_geometry_keeps_every_path_without_repeated_metadata(self) -> None:
+        _, inventory, _, _ = capture('A+B', text='XIC(Enable)[GEQ(A,B),XIO(Inhibit)[TON(Timer,100,0),]]OTE(Output);')
+        self.run_js(r"""
+const normal=render(data),compact=render(data,{compact:true});geometry(normal);geometry(compact,58);
+assert.deepEqual(cards(compact).map(node=>node.attributes['data-instruction-id']),data.instructions.map(row=>row.id));
+assert.deepEqual(cards(compact).map(node=>node.attributes['data-source-position']),cards(normal).map(node=>node.attributes['data-source-position']));
+assert.deepEqual(wires(compact).map(line=>line.kind),wires(normal).map(line=>line.kind));
+assert.equal(wires(compact).filter(line=>line.kind==='bypass').length,1);
+assert.equal(cls(compact,'ladder-diagram-guide').length,0);
+assert.equal(cls(compact,'ladder-diagram-source-order').length,0);
+assert.ok(normal.textContent.includes('all captured paths'));
+assert.equal(compact.textContent.includes('all captured paths'),false);
+assert.ok(compact.textContent.includes(data.text));
+const fullCanvas=cls(normal,'ladder-diagram-canvas')[0],smallCanvas=cls(compact,'ladder-diagram-canvas')[0];
+assert.ok(Number(smallCanvas.attributes.height)<Number(fullCanvas.attributes.height)*.7);
+assert.equal(cls(normal,'ladder-diagram-zoom')[0].textContent,'100%');
+""", asdict(inventory.rungs[0]))
+
+    def test_compact_zoom_controls_can_live_in_rung_header_and_reset_to_single_85_percent_scale(self) -> None:
+        self.run_js(r"""
+const data=source(seq(ins('a'),ins('b')),[instruction('a'),instruction('b','OTE',['Output'])]);
+const header=new Element('header'),root=render(data,{compact:true,controlsTarget:header});
+assert.equal(cls(root,'ladder-diagram-controls').length,0);assert.equal(cls(header,'ladder-diagram-controls').length,1);
+const canvas=cls(root,'ladder-diagram-canvas')[0],dimensions=canvas.attributes.viewBox.split(' ').map(Number);
+assert.equal(Number(canvas.attributes.width),dimensions[2]*.85);assert.equal(Number(canvas.attributes.height),dimensions[3]*.85);
+assert.equal(cls(header,'ladder-diagram-zoom')[0].textContent,'85%');
+button(header,'Zoom in').fire('click');assert.equal(cls(header,'ladder-diagram-zoom')[0].textContent,'100%');
+button(header,'Reset zoom').fire('click');assert.equal(cls(header,'ladder-diagram-zoom')[0].textContent,'85%');
+button(header,'Zoom in').fire('click');cls(root,'ladder-diagram-viewport')[0].fire('keydown',{key:'0'});
+assert.equal(Number(canvas.attributes.height),dimensions[3]*.85);
+assert.equal(cards(root).length,2);geometry(root,58);
+""")
+
+    def test_compact_comparison_puts_short_arguments_inline_but_long_values_remain_complete_on_selection(self) -> None:
+        self.run_js(r"""
+const long='A_very_long_original_identifier_that_exceeds_preview_width';
+const rows=[instruction('compare','GEQ',['Pressure','90']),instruction('long','GEQ',[long,'Other_Long_Identifier_Which_Must_Remain_Complete'])];
+const data=source(seq(...rows.map(row=>ins(row.id))),rows),root=render(data,{compact:true});geometry(root,58);
+const inline=cls(cards(root)[0],'ladder-diagram-arguments-inline');assert.equal(inline.length,1);
+assert.ok(inline[0].textContent.includes('1: Pressure'));assert.ok(inline[0].textContent.includes('2: 90'));
+assert.equal(cls(cards(root)[1],'ladder-diagram-arguments-inline').length,0);
+const stacked=cls(cards(root)[1],'ladder-diagram-argument');assert.equal(stacked.length,2);assert.notEqual(stacked[0].attributes.y,stacked[1].attributes.y);
+await cards(root)[1].fire('click');const selected=cls(root,'ladder-diagram-selected')[0];
+rows[1].arguments.forEach(value=>assert.ok(selected.textContent.includes(value)));
+assert.ok(all(cards(root)[1]).some(node=>node.tagName==='title'&&node.textContent==='GEQ('+rows[1].arguments.join(',')+')'));
+assert.ok(root.textContent.includes(data.text));
+""")
 
     def test_real_nested_source_preserves_all_blocks_joins_and_empty_bypass(self) -> None:
         _, inventory, _, _ = capture("A+B", text="XIC(Enable)[ADD(A,B,C),XIO(Inhibit)[TON(Timer,100,0),]]OTE(Output);")

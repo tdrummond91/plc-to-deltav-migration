@@ -190,6 +190,24 @@ delayed.resolve(payload(new URL(calls.at(-2),'http://local'),{presentation_mode:
 assert.equal(firstComment.textContent,'Original comment 0');assert.equal(diagrams.length,before);
 """)
 
+    def test_compact_headers_put_comments_beside_rung_number_and_pass_right_side_controls_target(self):
+        self.run_js(r"""
+const controller=mount();open(cls('routine-directory-entry')[0]);await flush();
+const headings=cls('routine-rung-heading'),comments=cls('routine-rung-comment');
+headings.forEach((heading,index)=>{
+  assert.equal(heading.children[0].tagName,'h2');assert.equal(comments[index].parent,heading);
+  const zoom=diagrams[index].options.controlsTarget;
+  assert.equal(diagrams[index].options.compact,true);assert.equal(zoom.className,'routine-rung-zoom');
+  assert.equal(zoom.parent.className,'routine-rung-tools');assert.equal(zoom.parent.parent,heading);
+  assert.equal(heading.children.at(-1),zoom.parent);
+});
+assert.ok(cls('routine-directory-help')[0].textContent.includes('Drawings start at 85%'));
+const firstComment=comments[0],zoomTarget=diagrams[0].options.controlsTarget,drawCount=diagrams.length;
+respond=async url=>payload(url,{presentation_mode:'english'});controller.wordingChanged();await flush();
+assert.equal(firstComment.parent,headings[0]);assert.equal(firstComment.textContent,'English comment 0');
+assert.equal(diagrams.length,drawCount);assert.equal(diagrams[0].options.controlsTarget,zoomTarget);
+""")
+
     def test_repeated_translation_failures_replace_warning_and_successful_retry_keeps_diagrams(self):
         self.run_js(r"""
 const controller=mount();open(cls('routine-directory-entry')[0]);await flush();

@@ -1,5 +1,27 @@
 # Current handoff: PLC analysis workbench
 
+## Compact Programs & routines (2026-10-22)
+
+Routine drawings now start and reset at 85% with tighter instruction heights,
+branch gaps and vertical padding. Comments share the rung-number header; zoom
+controls and Open rung review sit on its right and wrap in narrow windows.
+Short two-argument blocks, including GEQ, place their numbered operands on one
+line with a visible separator. Long previews retain stacked slots, with complete
+values in symbol details, tooltips and original source text.
+
+The repeated instruction-count/path/neutral-state sentence is now explained once
+in How to read these ladders. Routine source-order numbers are retained in the
+accessible symbol labels without another visible line under each block. These
+changes apply only to Programs & routines; other drawing views retain their
+existing scale. Translation-only updates preserve drawings, selection and zoom.
+
+Validation: 36 focused ladder-renderer, routine-browser and routine-API tests
+passed; independent review found no blockers. Chrome checks used four invented
+rungs: short GEQ operands, nested branches with an empty bypass, long operands
+and comment, and an uncommented timer. Verified 85% reset, text within symbol
+bounds, and wrapped header controls at 480px without page overflow. These are
+presentation changes; reopen the saved workspace without reanalyzing the L5X.
+
 ## Analysis directory and page access (2026-10-22)
 
 Full source analysis is the first Home card and Page-menu destination, removed

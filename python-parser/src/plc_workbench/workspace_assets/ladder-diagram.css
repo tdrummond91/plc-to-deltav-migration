@@ -31,3 +31,6 @@
 .ladder-diagram-original summary { cursor: pointer; color: var(--accent); }
 .ladder-diagram-original pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 450px; overflow: auto; padding: .6rem; background: var(--bg); color: var(--ink); }
 .ladder-diagram-fallback { border-left: 3px solid var(--orange); padding: .6rem; background: var(--surface); font-size: .85rem; }
+.ladder-diagram.is-compact .ladder-diagram-viewport { border-color: transparent; border-radius: 4px; }
+.ladder-diagram.is-compact .ladder-diagram-original { margin: .2rem 0 0; }
+.ladder-diagram.is-compact .ladder-diagram-selected { margin: .4rem 0; padding: .5rem; }

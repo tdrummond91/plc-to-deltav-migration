@@ -19,6 +19,12 @@
   const shortened = (value, limit) => String(value).length > limit ? String(value).slice(0, limit - 1) + "…" : String(value);
   const instructionText = instruction => `${instruction.opcode}(${instruction.arguments.join(",")})`;
   const kindOf = instruction => SYMBOLS[instruction.opcode] && instruction.arguments.length === 1 && instruction.arguments[0].trim() ? SYMBOLS[instruction.opcode] : "block";
+  const dimensions = compact => compact
+    ? { height: 108, anchor: 58, seriesGap: 22, busMargin: 30, legGap: 10, padX: PAD_X, padY: 10, compact: true }
+    : { height: HEIGHT, anchor: ANCHOR, seriesGap: SERIES_GAP, busMargin: BUS_MARGIN, legGap: LEG_GAP, padX: PAD_X, padY: PAD_Y, compact: false };
+  const inlineArguments = instruction => instruction.arguments.length === 2
+    && instruction.arguments.every(argument => argument.trim() && argument.length <= 24)
+    && instruction.arguments.join("").length <= 36;
 
   function validate(source, options) {
     if (options.sourceQualified !== true || source?.source_qualified === false)
@@ -72,37 +78,39 @@
     child.junctions.forEach(point => target.junctions.push({ x: point.x + x, y: point.y + y }));
     child.labels.forEach(label => target.labels.push({ ...label, x: label.x + x, y: label.y + y }));
   }
-  function layout(tree, byId) {
+  function layout(tree, byId, size) {
     if (tree.kind === "instruction") {
-      const width = kindOf(byId.get(tree.instruction_id)) === "block" ? 250 : 170;
-      const result = empty(width); result.cards.push({ id: tree.instruction_id, x: 0, y: 0, width, height: HEIGHT }); return result;
+      const instruction = byId.get(tree.instruction_id), isBlock = kindOf(instruction) === "block";
+      const width = isBlock ? (size.compact && inlineArguments(instruction)
+        ? Math.max(250, (instruction.arguments.join("").length + 10) * 12 + 44) : 250) : 170;
+      const result = empty(width, size.height); result.cards.push({ id: tree.instruction_id, x: 0, y: 0, width, height: size.height }); return result;
     }
     if (tree.kind === "sequence") {
       if (!tree.items.length) {
-        const result = empty(120); result.wires.push(wire(0, ANCHOR, 120, ANCHOR, "bypass"));
-        result.labels.push({ x: 60, y: ANCHOR - 12, text: "Empty bypass", kind: "bypass" }); return result;
+        const result = empty(120, size.height); result.wires.push(wire(0, size.anchor, 120, size.anchor, "bypass"));
+        result.labels.push({ x: 60, y: size.anchor - 12, text: "Empty bypass", kind: "bypass" }); return result;
       }
-      const children = tree.items.map(child => layout(child, byId));
-      const result = empty(children.reduce((sum, child) => sum + child.width, 0) + SERIES_GAP * (children.length - 1), Math.max(...children.map(child => child.height)));
+      const children = tree.items.map(child => layout(child, byId, size));
+      const result = empty(children.reduce((sum, child) => sum + child.width, 0) + size.seriesGap * (children.length - 1), Math.max(...children.map(child => child.height)));
       let x = 0;
       children.forEach((child, index) => {
         merge(result, child, x, 0); x += child.width;
-        if (index < children.length - 1) { result.wires.push(wire(x, ANCHOR, x + SERIES_GAP, ANCHOR, "series")); x += SERIES_GAP; }
+        if (index < children.length - 1) { result.wires.push(wire(x, size.anchor, x + size.seriesGap, size.anchor, "series")); x += size.seriesGap; }
       }); return result;
     }
-    const children = tree.legs.map(child => layout(child, byId));
-    const width = Math.max(...children.map(child => child.width)) + BUS_MARGIN * 2;
-    const height = children.reduce((sum, child) => sum + child.height, 0) + LEG_GAP * (children.length - 1);
-    const result = empty(width, height), left = BUS_MARGIN / 2, right = width - BUS_MARGIN / 2;
+    const children = tree.legs.map(child => layout(child, byId, size));
+    const width = Math.max(...children.map(child => child.width)) + size.busMargin * 2;
+    const height = children.reduce((sum, child) => sum + child.height, 0) + size.legGap * (children.length - 1);
+    const result = empty(width, height), left = size.busMargin / 2, right = width - size.busMargin / 2;
     let y = 0; const anchors = [];
     children.forEach((child, index) => {
-      const anchor = y + ANCHOR; anchors.push(anchor); merge(result, child, BUS_MARGIN, y);
-      result.wires.push(wire(left, anchor, BUS_MARGIN, anchor, "branch-entry"), wire(BUS_MARGIN + child.width, anchor, right, anchor, "branch-exit"));
+      const anchor = y + size.anchor; anchors.push(anchor); merge(result, child, size.busMargin, y);
+      result.wires.push(wire(left, anchor, size.busMargin, anchor, "branch-entry"), wire(size.busMargin + child.width, anchor, right, anchor, "branch-exit"));
       result.junctions.push({ x: left, y: anchor }, { x: right, y: anchor });
-      result.labels.push({ x: left, y: y + 13, text: `Path ${index + 1}`, kind: "path" }); y += child.height + LEG_GAP;
+      result.labels.push({ x: left, y: y + (size.compact ? 9 : 13), text: `Path ${index + 1}`, kind: "path" }); y += child.height + size.legGap;
     });
     result.wires.push(wire(left, anchors[0], left, anchors[anchors.length - 1], "split"), wire(right, anchors[0], right, anchors[anchors.length - 1], "join"),
-      wire(0, ANCHOR, left, ANCHOR, "branch-inlet"), wire(right, ANCHOR, width, ANCHOR, "branch-outlet"));
+      wire(0, size.anchor, left, size.anchor, "branch-inlet"), wire(right, size.anchor, width, size.anchor, "branch-outlet"));
     return result;
   }
 
@@ -115,24 +123,27 @@
     root.append(html("p", `${reason} The complete original text is shown instead; no partial ladder is drawn.`));
     const original = originalSource(source); original.open = true; root.append(original); return root;
   }
-  function symbol(card, instruction, position) {
-    const kind = kindOf(instruction), x = card.width / 2, y = ANCHOR;
+  function symbol(card, instruction, position, size) {
+    const kind = kindOf(instruction), x = card.width / 2, y = size.anchor;
     const group = svg("g", { class: "ladder-diagram-instruction", transform: `translate(${card.x} ${card.y})`, "data-instruction-id": instruction.id,
       "data-source-position": position, "data-symbol": kind, "data-width": card.width, "data-height": card.height,
       role: "button", tabindex: "0", "aria-label": `Instruction ${position}: ${instructionText(instruction)}. Open captured arguments and source details.` });
-    group.append(svg("title", {}, instructionText(instruction)), svg("rect", { x: 0, y: 0, width: card.width, height: HEIGHT, rx: 5, class: "ladder-diagram-hit-area" }));
+    group.append(svg("title", {}, instructionText(instruction)), svg("rect", { x: 0, y: 0, width: card.width, height: card.height, rx: 5, class: "ladder-diagram-hit-area" }));
     const line = (x1, y1, x2, y2, cls = "ladder-diagram-symbol-wire") => group.append(svg("line", { x1, y1, x2, y2, class: cls }));
     if (kind === "block") {
       line(0, y, 10, y); line(card.width - 10, y, card.width, y);
-      group.append(svg("rect", { x: 10, y: 29, width: card.width - 20, height: 100, rx: 3, class: "ladder-diagram-block" }),
-        svg("text", { x: 22, y: 49, class: "ladder-diagram-opcode" }, shortened(instruction.opcode, 29)));
-      instruction.arguments.slice(0, 2).forEach((argument, index) => group.append(svg("text", { x: 22, y: 72 + index * 20, class: "ladder-diagram-argument" }, `${index + 1}: ${shortened(argument || "(empty argument)", 29)}`)));
+      group.append(svg("rect", { x: 10, y: size.compact ? 12 : 29, width: card.width - 20, height: size.compact ? 80 : 100, rx: 3, class: "ladder-diagram-block" }),
+        svg("text", { x: 22, y: size.compact ? 30 : 49, class: "ladder-diagram-opcode" }, shortened(instruction.opcode, 29)));
+      if (size.compact && inlineArguments(instruction)) {
+        group.append(svg("text", { x: 22, y: 58, class: "ladder-diagram-argument ladder-diagram-arguments-inline" },
+          instruction.arguments.map((argument, index) => `${index + 1}: ${argument || "(empty argument)"}`).join(" · ")));
+      } else instruction.arguments.slice(0, 2).forEach((argument, index) => group.append(svg("text", { x: 22, y: (size.compact ? 49 : 72) + index * (size.compact ? 18 : 20), class: "ladder-diagram-argument" }, `${index + 1}: ${shortened(argument || "(empty argument)", 29)}`)));
       const note = instruction.arguments.length > 2 ? `+ ${instruction.arguments.length - 2} more arguments; select to read` : instruction.arguments.length === 0 ? "No captured arguments" : "Select for complete arguments";
-      group.append(svg("text", { x: 22, y: 115, class: "ladder-diagram-small" }, note));
+      if (!size.compact || !inlineArguments(instruction)) group.append(svg("text", { x: 22, y: size.compact ? 85 : 115, class: "ladder-diagram-small" }, note));
     } else {
       const argument = instruction.arguments[0];
-      group.append(svg("text", { x, y: 29, "text-anchor": "middle", class: "ladder-diagram-operand" }, shortened(argument, 22)));
-      if (argument.length > 22) group.append(svg("text", { x, y: 45, "text-anchor": "middle", class: "ladder-diagram-small" }, "Select for complete address"));
+      group.append(svg("text", { x, y: size.compact ? 22 : 29, "text-anchor": "middle", class: "ladder-diagram-operand" }, shortened(argument, 22)));
+      if (argument.length > 22) group.append(svg("text", { x, y: size.compact ? 35 : 45, "text-anchor": "middle", class: "ladder-diagram-small" }, "Select for complete address"));
       if (kind === "contact" || kind === "negated-contact") {
         line(0, y, x - 12, y); line(x + 12, y, card.width, y);
         line(x - 12, y - 17, x - 12, y + 17, "ladder-diagram-contact"); line(x + 12, y - 17, x + 12, y + 17, "ladder-diagram-contact");
@@ -143,21 +154,21 @@
           svg("path", { d: `M ${x + 7} ${y - 18} C ${x + 27} ${y - 12} ${x + 27} ${y + 12} ${x + 7} ${y + 18}`, class: "ladder-diagram-coil" }));
         if (kind !== "coil") group.append(svg("text", { x, y: y + 5, "text-anchor": "middle", class: "ladder-diagram-coil-letter" }, kind === "latch-coil" ? "L" : "U"));
       }
-      group.append(svg("text", { x, y: 120, "text-anchor": "middle", class: "ladder-diagram-opcode" }, instruction.opcode));
+      group.append(svg("text", { x, y: size.compact ? 94 : 120, "text-anchor": "middle", class: "ladder-diagram-opcode" }, instruction.opcode));
     }
-    group.append(svg("text", { x: card.width - 10, y: 144, "text-anchor": "end", class: "ladder-diagram-source-order" }, `#${position}`)); return group;
+    if (!size.compact) group.append(svg("text", { x: card.width - 10, y: 144, "text-anchor": "end", class: "ladder-diagram-source-order" }, `#${position}`)); return group;
   }
 
-  function draw(source, byId, plan, options) {
-    const root = html("section", undefined, "ladder-diagram"); root.setAttribute("aria-label", "Source ladder drawing");
-    root.append(html("p", `${plan.cards.length} captured instructions · all captured paths · neutral symbols, no live states`, "ladder-diagram-guide"));
+  function draw(source, byId, plan, options, size) {
+    const root = html("section", undefined, `ladder-diagram${size.compact ? " is-compact" : ""}`); root.setAttribute("aria-label", "Source ladder drawing");
+    if (!size.compact) root.append(html("p", `${plan.cards.length} captured instructions · all captured paths · neutral symbols, no live states`, "ladder-diagram-guide"));
     const controls = html("div", undefined, "ladder-diagram-controls");
     const viewport = html("div", undefined, "ladder-diagram-viewport"); viewport.tabIndex = 0;
     viewport.setAttribute("role", "region"); viewport.setAttribute("aria-label", "Ladder drawing. Scroll horizontally or vertically; use Zoom or Fit width to change scale.");
-    const width = plan.width + PAD_X * 2, height = plan.height + PAD_Y * 2;
+    const width = plan.width + size.padX * 2, height = plan.height + size.padY * 2;
     const canvas = svg("svg", { width, height, viewBox: `0 0 ${width} ${height}`, class: "ladder-diagram-canvas", role: "group", "aria-label": "Captured series and parallel paths" });
-    const world = svg("g", { transform: `translate(${PAD_X} ${PAD_Y})` });
-    const lines = [wire(-30, ANCHOR, 0, ANCHOR, "rung-entry"), ...plan.wires, wire(plan.width, ANCHOR, plan.width + 30, ANCHOR, "rung-exit")];
+    const world = svg("g", { transform: `translate(${size.padX} ${size.padY})` });
+    const lines = [wire(-30, size.anchor, 0, size.anchor, "rung-entry"), ...plan.wires, wire(plan.width, size.anchor, plan.width + 30, size.anchor, "rung-exit")];
     lines.forEach(line => world.append(svg("path", { d: `M ${line.x1} ${line.y1} L ${line.x2} ${line.y2}`, class: "ladder-diagram-wire", "data-wire": line.kind })));
     [-30, plan.width + 30].forEach(x => world.append(svg("line", { x1: x, x2: x, y1: 12, y2: plan.height - 8, class: "ladder-diagram-rail" })));
     plan.junctions.forEach(point => world.append(svg("circle", { cx: point.x, cy: point.y, r: 3, class: "ladder-diagram-junction" })));
@@ -182,14 +193,15 @@
     }
     const positions = new Map(source.instructions.map((instruction, index) => [instruction.id, index + 1]));
     plan.cards.forEach(card => {
-      const instruction = byId.get(card.id), node = symbol(card, instruction, positions.get(card.id));
+      const instruction = byId.get(card.id), node = symbol(card, instruction, positions.get(card.id), size);
       node.setAttribute("aria-pressed", "false"); node.addEventListener("click", () => inspect(instruction));
       node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); inspect(instruction); } });
       nodes.set(card.id, node); world.append(node);
     });
     canvas.append(world); viewport.append(canvas);
-    const zoomLabel = html("output", "100%", "ladder-diagram-zoom"); zoomLabel.setAttribute("aria-live", "polite");
-    let zoom = 1;
+    const baseZoom = size.compact ? 0.85 : 1;
+    const zoomLabel = html("output", `${baseZoom * 100}%`, "ladder-diagram-zoom"); zoomLabel.setAttribute("aria-live", "polite");
+    let zoom = baseZoom;
     const zoomOut = button("Zoom out", () => updateZoom(zoom - 0.15));
     const zoomIn = button("Zoom in", () => updateZoom(zoom + 0.15));
     function updateZoom(value) {
@@ -198,21 +210,22 @@
       canvas.style.width = `${width * zoom}px`; canvas.style.height = `${height * zoom}px`;
       zoomLabel.textContent = `${zoom < 0.1 ? Math.round(zoom * 1000) / 10 : Math.round(zoom * 100)}%`; zoomOut.disabled = zoom <= 0.005; zoomIn.disabled = zoom >= 2;
     }
-    controls.append(zoomOut, zoomLabel, zoomIn, button("Reset zoom", () => updateZoom(1)), button("Fit width", () => updateZoom(((viewport.clientWidth || 900) - 20) / width)));
+    controls.append(zoomOut, zoomLabel, zoomIn, button("Reset zoom", () => updateZoom(baseZoom)), button("Fit width", () => updateZoom(((viewport.clientWidth || 900) - 20) / width)));
     viewport.addEventListener("keydown", event => {
       if (event.target !== viewport) return;
       if (event.key === "+" || event.key === "=") { event.preventDefault(); updateZoom(zoom + 0.15); }
       else if (event.key === "-") { event.preventDefault(); updateZoom(zoom - 0.15); }
-      else if (event.key === "0") { event.preventDefault(); updateZoom(1); }
+      else if (event.key === "0") { event.preventDefault(); updateZoom(baseZoom); }
     });
-    root.append(controls, viewport, error, detail, originalSource(source)); updateZoom(1); return root;
+    if (options.controlsTarget) options.controlsTarget.append(controls); else root.append(controls);
+    root.append(viewport, error, detail, originalSource(source)); updateZoom(baseZoom); return root;
   }
 
   function render(source, options = {}) {
     try {
-      const byId = validate(source, options), plan = layout(source.structure, byId);
+      const size = dimensions(options.compact === true), byId = validate(source, options), plan = layout(source.structure, byId, size);
       if (plan.width > LIMITS.extent || plan.height > LIMITS.extent) throw new Error("The complete rung exceeds the available drawing extent.");
-      return draw(source, byId, plan, options);
+      return draw(source, byId, plan, options, size);
     } catch (cause) { return fallback(source, cause instanceof Error ? cause.message : "The rung could not be drawn safely."); }
   }
   window.PLCLadderDiagram = Object.freeze({ render });
