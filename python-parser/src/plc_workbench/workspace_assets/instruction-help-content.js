@@ -16,7 +16,7 @@
   catalog.XIO = definition('Examine if open', 1, catalog.XIC.assumptions,
     'ExampleBit = FALSE.', 'Test whether ExampleBit is FALSE.', 'This instruction passes a TRUE path result.', catalog.XIC.caveat);
   const comparisons = [
-    ['EQU', 'Equal', '5 and 5', '5 = 5', 'TRUE'], ['NEQ', 'Not equal', '5 and 5', '5 is not equal to 5', 'FALSE'],
+    ['EQU', 'Equal', '5 and 5', '5 == 5', 'TRUE'], ['NEQ', 'Not equal', '5 and 5', '5 is not equal to 5', 'FALSE'],
     ['LES', 'Less than', '4 and 7', '4 < 7', 'TRUE'], ['LEQ', 'Less than or equal', '7 and 7', '7 <= 7', 'TRUE'],
     ['GRT', 'Greater than', '90 and 90', '90 > 90', 'FALSE'], ['GEQ', 'Greater than or equal', '90 and 90', '90 >= 90', 'TRUE'],
   ];
@@ -49,7 +49,7 @@
       `Write ${result} to ExampleDestination.`, 'Check the actual operand types, conversion, range, and mathematical domain.');
   });
   catalog.CPT = definition('Compute expression', 2, NUMERIC, 'ExampleA = 6, ExampleB = 4, ExampleC = 2; expression (ExampleA + ExampleB) / ExampleC.',
-    'Evaluate the parentheses first: (6 + 4) / 2 = 10 / 2.', 'Write 5 to ExampleDestination.',
+    'Evaluate the parentheses first: (6 + 4) / 2 becomes 10 / 2.', 'Write 5 to ExampleDestination.',
     'This invented calculation does not evaluate the captured expression. Its supported syntax and types still need review.');
 
   catalog.TON = definition('Timer on delay', 3, TIMER,

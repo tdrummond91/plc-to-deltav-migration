@@ -46,7 +46,7 @@
       const head = [value(destination), operation(' ← ')], row = [...head, ...expression];
       return result(widthOf(row) <= 500 ? [row] : [head, expression], note, 'calculation');
     };
-    const comparison = {EQU: '=', NEQ: '!=', LES: '<', LEQ: '<=', GRT: '>', GEQ: '>='}[opcode];
+    const comparison = {EQU: '==', NEQ: '!=', LES: '<', LEQ: '<=', GRT: '>', GEQ: '>='}[opcode];
     if (comparison && valid(2)) return result([[...term(args[0]), operation(` ${comparison} `), ...term(args[1])]], 'Compare on the incoming path', 'comparison');
     if (['ADD', 'SUB', 'MUL', 'DIV'].includes(opcode) && valid(3))
       return assignment(args[2], [...term(args[0]), operation(` ${{ADD: '+', SUB: '−', MUL: '×', DIV: '/'}[opcode]} `), ...term(args[1])]);

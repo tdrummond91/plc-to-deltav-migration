@@ -61,11 +61,15 @@ for(const [opcode,arity] of Object.entries(data)){
     def test_comparison_and_arithmetic_examples_do_not_evaluate_captured_operands(self):
         self.run_js(r"""
 const render=(opcode,args)=>window.PLCInstructionHelpContent.render({opcode,arguments:args});
+const equ=render('EQU',['PrivateA','PrivateB']);
+assert.ok(example(equ).includes('Compare 5 == 5.'));
+assert.equal(example(equ).includes('5 = 5'),false);
+assert.ok(example(equ).includes('outgoing path are TRUE'));
 const geq=render('GEQ',['PrivatePressure','PrivateLimit']);
 assert.ok(example(geq).includes('90 >= 90'));assert.ok(example(geq).includes('outgoing path are TRUE'));
 assert.ok(example(render('GRT',['A','B'])).includes('outgoing path are FALSE'));
 assert.ok(example(render('SUB',['A','B','D'])).includes('12 - 3'));assert.ok(example(render('SUB',['A','B','D'])).includes('Write 9'));
-assert.ok(example(render('CPT',['D','SECRET(A)'])).includes('(6 + 4) / 2 = 10 / 2'));
+assert.ok(example(render('CPT',['D','SECRET(A)'])).includes('(6 + 4) / 2 becomes 10 / 2'));
 assert.equal(example(geq).includes('PrivatePressure'),false);
 assert.ok(geq.textContent.includes('Numeric conversion and precision'));
 """)

@@ -167,7 +167,7 @@ assert.ok(root.textContent.includes(data.text));
     def test_known_comparisons_and_calculations_show_operations_and_destinations(self) -> None:
         self.run_js(r"""
 const cases=[
- ['EQU',['A','B'],'A = B'],['NEQ',['A','B'],'A != B'],['LES',['A','B'],'A < B'],
+ ['EQU',['A','B'],'A == B'],['NEQ',['A','B'],'A != B'],['LES',['A','B'],'A < B'],
  ['LEQ',['A','B'],'A <= B'],['GRT',['A','B'],'A > B'],['GEQ',['A','B'],'A >= B'],
  ['ADD',['A','B','Result'],'Result ← A + B'],['SUB',['A','B','Result'],'Result ← A − B'],
  ['MUL',['A','B','Result'],'Result ← A × B'],['DIV',['A','B','Result'],'Result ← A / B'],

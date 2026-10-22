@@ -1,5 +1,15 @@
 # Current handoff: PLC analysis workbench
 
+## Equality comparison notation (2026-10-22)
+
+EQU now uses == in the shared ladder drawing, equation renderer (including rung
+previews), and worked help example. Assignment expressions keep the left arrow.
+The CPT worked example describes simplification with "becomes" instead of an
+equals sign so it cannot be mistaken for an assignment. Captured source remains
+unchanged. All 49 focused rendering/help tests passed; Chrome verified EQU next
+to MOV in both drawing and equation views, plus the EQU help example. Manually
+pull and refresh the workspace; no L5X reanalysis is required.
+
 ## Wheel navigation over rung drawings (2026-10-22)
 
 The shared ladder viewport used overscroll containment on both axes, trapping
