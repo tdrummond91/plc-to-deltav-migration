@@ -129,7 +129,7 @@
       "data-source-position": position, "data-symbol": kind, "data-width": card.width, "data-height": card.height,
       role: "button", tabindex: "0", "aria-label": `Instruction ${position}: ${instructionText(instruction)}. Open captured arguments and source details.` });
     const summary = window.PLCRungExplanation?.summary?.(instruction);
-    group.append(svg("title", {}, summary ? `${summary}\n\nCaptured source: ${instructionText(instruction)}` : instructionText(instruction)), svg("rect", { x: 0, y: 0, width: card.width, height: card.height, rx: 5, class: "ladder-diagram-hit-area" }));
+    group.append(svg("rect", { x: 0, y: 0, width: card.width, height: card.height, rx: 5, class: "ladder-diagram-hit-area" }));
     if (summary) group.setAttribute('aria-description', summary);
     const argumentText = (parent, argument, limit) => {
       if (colors) colors.append(parent, argument, {namespace: NS, tag: 'tspan', limit});
@@ -219,6 +219,7 @@
       const instruction = byId.get(card.id), node = symbol(card, instruction, positions.get(card.id), size, colors);
       node.setAttribute("aria-pressed", "false"); node.addEventListener("click", () => inspect(instruction));
       node.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); inspect(instruction); } });
+      window.PLCInstructionHelp?.attach?.(node, instruction, options.helpContext);
       nodes.set(card.id, node); world.append(node);
     });
     canvas.append(world); viewport.append(canvas);

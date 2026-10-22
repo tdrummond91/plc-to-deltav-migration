@@ -381,8 +381,9 @@ assert.equal(rendered.math.attributes['aria-label'],'Custom_Block('+instruction.
 assert.ok(tags(rendered.math,'mtext').every(n=>n.namespaceURI==='http://www.w3.org/1998/Math/MathML'));
 """)
 
-    def test_operation_explanations_reach_each_hover_surface_without_changing_source_labels(self) -> None:
+    def test_help_attaches_to_instruction_content_without_native_titles_or_review_control_targets(self) -> None:
         self.run_js([*RUNG_FUNCTIONS, "renderInstructions", "renderRungPreview"], r"""
+const attached=[];window.PLCInstructionHelp={attach:(anchor,instruction)=>attached.push({anchor,instruction}),close:()=>{}};
 const root=node('div');renderRungLogic(root,data.source,data,{sourceQualified:true});
 const list=node('div');renderInstructions(list,data.source.instructions,[]);
 const preview=renderRungPreview({preview:{instructions:data.source.instructions,calculations:data}});
@@ -391,16 +392,54 @@ const math=tags(panels[2],'math');
 for(let index=0;index<data.source.instructions.length;index++) {
   const instruction=data.source.instructions[index],help=window.PLCRungExplanation.summary(instruction);
   assert.ok(help.length>instruction.opcode.length);
-  assert.equal(math[index].attributes.title,help);
+  assert.equal(math[index].attributes['aria-description'],help);
   assert.equal(math[index].attributes['aria-label'],instruction.opcode+'('+instruction.arguments.join(', ')+')');
-  for(const [panel,cls] of [[panels[1],'flow-instruction'],[panels[2],'equation-row'],[panels[3],'instruction-box'],[preview,'rung-preview-expression']])
-    assert.equal([panel,...descendants(panel)].filter(n=>hasClass(n,cls))[index].title,help);
-  assert.equal(tags(list,'header')[index].title,help);
+  const targets=attached.filter(item=>item.instruction===instruction).map(item=>item.anchor);
+  assert.equal(targets.length,6,'Flow, equation heading/formula, branch expression, list header, and preview all get help');
+  targets.forEach(anchor=>{
+    assert.equal(anchor.attributes['aria-description'],help);
+    assert.equal([anchor,...descendants(anchor)].some(n=>['a','input','label','button'].includes(n.tagName)),false,
+      'Help must not intercept review checkboxes or evidence links');
+  });
 }
+for(const surface of [root,list,preview]) for(const item of [surface,...descendants(surface)]) {
+  assert.equal(Boolean(item.title),false,'No competing native tooltip');
+  assert.equal(item.attributes.title,undefined,'MathML also uses the shared help');
+}
+const branchChecks=tags(panels[3],'input');
+assert.equal(branchChecks.length,data.source.instructions.length);
+assert.ok(branchChecks.every(input=>typeof input.events.change==='function'),'Review selection remains wired');
 const unknown=data.source.instructions[1];
 assert.ok(/unresolved|unsupported|not inferred|unknown|not recognized/i.test(window.PLCRungExplanation.summary(unknown)));
 assert.equal(tags(panels[4],'pre')[0].textContent,data.source.text);
 """, parsed(text="GEQ(Measured,Limit)Custom_Block(Measured,Output)OTE(Output);"))
+
+    def test_reconciliation_help_keeps_historical_run_through_nested_branches(self) -> None:
+        self.run_js(["renderStructure", "rebindDialog"], r"""
+const attached=[],pending=[];
+state.project.active_run='current-analysis';
+window.PLCInstructionHelp={attach:(anchor,instruction,context)=>attached.push({anchor,instruction,
+  runId:context?.runId??state.project.active_run})};
+globalThis.debounce=()=>()=>{};
+run=action=>{const result=action();pending.push(result);return result;};
+const historical={...data.source,comment:null,description:null};
+api=async path=>{
+  const query=new URL(path,'http://local').searchParams;
+  assert.equal(query.get('run_id'),'historical-analysis');assert.equal(query.get('id'),historical.id);
+  return {run_id:'historical-analysis',source:historical,path:'Invented historical source'};
+};
+rebindDialog({run_id:'historical-analysis',source_id:historical.id,review:{}});
+await Promise.all(pending);
+assert.equal(attached.length,historical.instructions.length);
+attached.forEach((item,index)=>{
+  assert.equal(item.runId,'historical-analysis');assert.equal(item.instruction,historical.instructions[index]);
+});
+const historicalScroll=tags(modalBody,'div').find(n=>hasClass(n,'structure-scroll'));
+assert.equal(tags(historicalScroll,'a').length,0);assert.equal(tags(historicalScroll,'input').length,0);
+renderStructure(data.source.structure,new Map(data.source.instructions.map(instruction=>[instruction.id,instruction])),new Set());
+assert.ok(attached.slice(historical.instructions.length).every(item=>item.runId==='current-analysis'),
+  'Current source views continue using their configured current context');
+""", parsed(text="XIC(Start)[GEQ(Value,Limit),XIO(Hold)]OTE(Result);"))
 
     def test_shared_reading_guide_explains_colors_without_adding_review_decisions(self) -> None:
         self.run_js(["renderGuide"], r"""

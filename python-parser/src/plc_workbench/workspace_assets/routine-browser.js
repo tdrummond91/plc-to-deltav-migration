@@ -30,7 +30,7 @@
     const pager = el('div', undefined, 'pagination routine-directory-pagination');
     const help = el('details', undefined, 'routine-directory-help');
     help.append(el('summary', 'How to read these ladders'),
-      el('p', 'Expand one routine at a time. Ladder pages contain up to 20 rungs; other source types stay available through their source link. Contacts test a bit, coils write a bit, and boxes retain other instructions and their arguments. Parallel paths split and rejoin as captured. Every captured instruction and path is retained; neutral lines do not show live controller states. Drawings start at 85%; use each rung header to zoom or fit its width. Variable colors distinguish exact names within this rung; the palette repeats after six colors and does not indicate live state or an input/output role. Operators and symbols are orange. Hover over or focus a block for its operation summary; select it to read the summary and complete arguments. Long argument previews may be shortened, with complete values in the selection and original text. A rung without a captured comment is marked No comment.', 'muted'));
+      el('p', 'Expand one routine at a time. Ladder pages contain up to 20 rungs; other source types stay available through their source link. Contacts test a bit, coils write a bit, and boxes retain other instructions and their arguments. Parallel paths split and rejoin as captured. Every captured instruction and path is retained; neutral lines do not show live controller states. Drawings start at 85%; use each rung header to zoom or fit its width. Variable colors distinguish exact names within this rung; the palette repeats after six colors and does not indicate live state or an input/output role. Operators and symbols are orange. Hover over or focus a block for its explanation and worked example. Ctrl-click opens its help in a separate window; a normal click opens the captured instruction details. Long argument previews may be shortened, with complete values in the selection and original text. A rung without a captured comment is marked No comment.', 'muted'));
     root.append(filters, status, help, pager, list);
     let key = '', runId = '', active = false, serial = 0, page = 1, routines = [], opened = null;
     const commentViews = new WeakMap();
@@ -53,6 +53,7 @@
     function closeCurrent() {
       serial++;
       if (!opened) return;
+      window.PLCInstructionHelp?.close?.();
       const old = opened; opened = null;
       clearComments(old);
       old.details.open = false; old.body.replaceChildren();
@@ -151,6 +152,7 @@
       entry.requestedPage = rungPage;
       entry.error?.remove(); entry.error = null;
       if (!wordingOnly) {
+        window.PLCInstructionHelp?.close?.();
         entry.payload = null; clearComments(entry);
         entry.body.replaceChildren(el('p', `Loading rung page ${rungPage}…`, 'routine-loading'));
       }
@@ -194,6 +196,7 @@
           card.append(heading, window.PLCLadderDiagram.render(rung, {
             sourceQualified: rung.source_qualified === true,
             compact: true, controlsTarget: zoom,
+            helpContext: {runId: expectedRun},
             onInstruction: instruction => {
               if (projectKey() !== expectedKey) throw new Error('The active analysis changed. Refresh this routine before inspecting its instructions.');
               return options.inspect(instruction);
@@ -226,7 +229,7 @@
         renderDirectory();
       } else if (opened?.loading) load(opened, opened.requestedPage, opened.payload?.page === opened.requestedPage);
     }
-    function deactivate() { active = false; serial++; }
+    function deactivate() { active = false; serial++; window.PLCInstructionHelp?.close?.(); }
     function wordingChanged() {
       if (active && opened) {
         const target = opened.loading ? opened.requestedPage : opened.page;

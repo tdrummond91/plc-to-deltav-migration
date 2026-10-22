@@ -1,5 +1,35 @@
 # Current handoff: PLC analysis workbench
 
+## Interactive instruction help and independent windows (2026-10-22)
+
+Hover help now uses an interactive panel instead of native browser tooltips.
+Ladder symbols, equations, previews, flow blocks, branch expressions and opcode
+headers expose explanations, complete captured arguments and worked examples.
+The 31 supported instruction shapes have deliberately invented examples;
+custom/unsupported effects stay unresolved. Stateful examples link to verified
+Rockwell documentation and state their execution/state assumptions.
+
+Ctrl-click opens a new read-only help window each time. Windows capture both
+instruction and analysis IDs and validate the historical source response, so
+later navigation or imports cannot silently retarget them. F1, Ctrl+Enter and
+the panel's Open help window button provide keyboard/visible alternatives.
+Outside click, Escape, navigation and source changes dismiss transient help;
+moving into its panel keeps it readable. Pointer-caused focus cannot insert a
+panel before a click completes. Popups use local assets/read APIs, with safe text
+rendering, bounded content, blocked-window fallback and timeout/retry handling.
+
+Validation: 137 focused tests passed across content, interaction, renderer,
+routine/flow/workspace integration and historical source reads. Independent
+review and browser checks caught and resolved pointer-focus and narrow-placement
+issues; reconciliation also explicitly propagates its historical run identity.
+Chrome checks used invented data for multiple simultaneous Ctrl-click windows,
+keyboard/equation help, unknown instructions, dark/light themes and a 900px
+viewport with the panel clear of its instruction. Transient help inside a native
+dialog shares that dialog's top layer. No parser or plant evaluation is performed.
+
+Save/stop, manually pull and reopen with `bash ./open-workbench.sh`. No L5X
+reanalysis or translation rerun is needed. Parser/source/review data are unchanged.
+
 ## Rung variable colors, comments and operation help (2026-10-22)
 
 Variable names now have distinct reading colors across routine ladder drawings,

@@ -64,6 +64,27 @@ class LadderDiagramUiTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("DIAGRAM_OK", result.stdout)
 
+    def test_help_receives_exact_instruction_and_captured_run_without_native_svg_titles(self) -> None:
+        self.run_js(r"""
+const attached=[],visits=[];
+window.PLCInstructionHelp={attach:(anchor,instruction,context)=>attached.push({anchor,instruction,context})};
+const rows=[instruction('a','GEQ',['Pressure','90']),instruction('b','OTE',['Warning'])];
+const data=source(seq(...rows.map(row=>ins(row.id))),rows),context={runId:'invented-run'};
+let accept=false;
+const root=render(data,{helpContext:context,onInstruction:instruction=>{visits.push(instruction.id);return accept;}});
+assert.equal(attached.length,rows.length);
+attached.forEach((item,index)=>{
+  assert.equal(item.anchor,cards(root)[index]);assert.equal(item.instruction,rows[index]);
+  assert.equal(item.context,context);assert.equal(item.anchor.attributes.tabindex,'0');
+  assert.ok(item.anchor.attributes['aria-description']);
+});
+assert.equal(all(root).some(node=>node.tagName==='title'||node.attributes.title),false);
+await cards(root)[0].fire('click');
+assert.deepEqual(visits,['a']);assert.equal(cards(root)[0].attributes['aria-pressed'],'false','Existing selection guard still declines a normal click');
+accept=true;cards(root)[1].fire('keydown',{key:'Enter'});await tick();
+assert.deepEqual(visits,['a','b']);assert.equal(cards(root)[1].attributes['aria-pressed'],'true');
+""")
+
     def test_variables_keep_colors_between_blocks_and_selected_full_arguments(self) -> None:
         self.run_js(r"""
 const rows=[instruction('a','GEQ',['Pressure','Limit']),instruction('b','ADD',['Pressure','Bias','Output']),instruction('c','OTE',['Output'])];
@@ -77,7 +98,7 @@ await cards(root)[1].fire('click');
 const selected=cls(root,'ladder-diagram-selected')[0];
 assert.deepEqual(all(selected).filter(n=>n.tagName==='code').map(n=>n.textContent),['Pressure','Bias','Output']);
 assert.equal(cls(selected,'source-variable')[0].attributes.class,forName('Pressure')[0].attributes.class);
-assert.ok(all(cards(root)[0]).find(n=>n.tagName==='title').textContent.includes('greater than or equal to'));
+assert.ok(cards(root)[0].attributes['aria-description'].includes('greater than or equal to'));
 assert.ok(selected.textContent.includes('write the result to Output'));
 """)
 
@@ -138,7 +159,7 @@ assert.equal(cls(cards(root)[1],'ladder-diagram-arguments-inline').length,0);
 const stacked=cls(cards(root)[1],'ladder-diagram-argument');assert.equal(stacked.length,2);assert.notEqual(stacked[0].attributes.y,stacked[1].attributes.y);
 await cards(root)[1].fire('click');const selected=cls(root,'ladder-diagram-selected')[0];
 rows[1].arguments.forEach(value=>assert.ok(selected.textContent.includes(value)));
-assert.ok(all(cards(root)[1]).some(node=>node.tagName==='title'&&node.textContent.endsWith('Captured source: GEQ('+rows[1].arguments.join(',')+')')));
+assert.ok(cards(root)[1].attributes['aria-label'].includes('GEQ('+rows[1].arguments.join(',')+')'));
 assert.ok(root.textContent.includes(data.text));
 """)
 
@@ -172,7 +193,7 @@ const root=render(source(seq(...rows.map(row=>ins(row.id))),rows));geometry(root
 assert.deepEqual(cards(root).map(node=>node.attributes['data-symbol']),['contact','negated-contact','coil','latch-coil','unlatch-coil']);
 assert.equal(cls(root,'ladder-diagram-negation').length,1);assert.equal(cls(root,'ladder-diagram-contact').length,4);assert.equal(cls(root,'ladder-diagram-coil').length,6);
 assert.deepEqual(cls(root,'ladder-diagram-coil-letter').map(node=>node.textContent),['L','U']);
-for(const row of rows)assert.ok(all(root).some(node=>node.tagName==='title'&&node.textContent.endsWith('Captured source: '+row.opcode+'('+row.arguments[0]+')')));
+for(const row of rows)assert.ok(cards(root).some(node=>node.attributes['aria-label'].includes(row.opcode+'('+row.arguments[0]+')')));
 """)
 
     def test_unknown_and_arity_invalid_opcodes_keep_generic_blocks_and_complete_arguments(self) -> None:

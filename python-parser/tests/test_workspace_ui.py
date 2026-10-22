@@ -468,6 +468,21 @@ assert.equal(state.source,null);assert.equal(state.detailSerial,9);
 for(const panel of panels.values()){assert.equal(panel.children.length,1);assert.ok(contents(panel).includes('Select a source record'));assert.equal(panel.inert,false);}
 """)
 
+    def test_help_closes_for_accepted_navigation_but_not_a_declined_dirty_transition(self) -> None:
+        self.run_js(["switchView", "openSource"], r"""
+const panel=node('section');$=()=>panel;document.querySelectorAll=()=>[];
+loadObjects=async()=>{};renderDetail=()=>{};let closes=0,requests=0;
+window.PLCInstructionHelp={close:()=>closes++};
+api=async()=>{requests++;return {source:{id:'instruction-next'}};};
+discard=()=>false;
+assert.equal(switchView('objects'),false);await openSource('instruction-next');
+assert.equal(closes,0);assert.equal(requests,0,'The dirty guard still runs first');
+discard=()=>true;
+assert.equal(switchView('objects'),true);assert.equal(closes,1);
+await openSource('instruction-next','object-detail');
+assert.equal(closes,2);assert.equal(requests,1);assert.equal(state.source.source.id,'instruction-next');
+""")
+
     def test_delayed_source_request_cannot_replace_new_unsaved_edits(self) -> None:
         self.run_js(["openSource"], r"""
 const panel=node('section');panel.append(node('textarea','Unsaved correction'));

@@ -1,0 +1,26 @@
+.has-instruction-help:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.instruction-help-target { display: grid; gap: .3rem; min-width: 0; }
+.instruction-help-panel { position: fixed; z-index: 120; width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); display: flex; flex-direction: column; overflow: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--accent); border-radius: 12px; box-shadow: 0 16px 54px #0008, 0 0 18px #64e1cf12; font-size: .88rem; }
+.instruction-help-toolbar { display: flex; align-items: center; gap: .5rem; padding: .7rem .8rem; border-bottom: 2px solid var(--accent); flex: 0 0 auto; }
+.instruction-help-toolbar .eyebrow { flex: 1; font-size: .7rem; }
+.instruction-help-toolbar button { font-size: .78rem; padding: .3rem .5rem; }
+.instruction-help-body { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: .85rem 1rem; }
+.instruction-help-content h2 { margin: 0 0 .6rem; font-size: 1.12rem; color: var(--orange); }
+.instruction-help-content h3 { margin: 1rem 0 .35rem; font-size: .9rem; color: var(--accent); }
+.instruction-help-content p { margin: .35rem 0 .65rem; }
+.instruction-help-content ol, .instruction-help-content ul { margin: .35rem 0; padding-left: 1.4rem; }
+.instruction-help-content li { margin: .25rem 0; }
+.instruction-help-content code, .instruction-help-content pre, .instruction-help-content p, .instruction-help-content li, .instruction-help-path { overflow-wrap: anywhere; white-space: pre-wrap; }
+.instruction-help-content pre { padding: .65rem; background: var(--bg); border-radius: 6px; overflow: auto; }
+.instruction-help-example { background: var(--panel); border-left: 3px solid var(--magenta); padding: .7rem .85rem; margin: .85rem 0; border-radius: 0 7px 7px 0; }
+.instruction-help-example h3 { color: var(--magenta); margin-top: 0; }
+.instruction-help-caveat, .instruction-help-provenance { color: var(--muted); font-size: .82rem; }
+.instruction-help-hint { flex: 0 0 auto; padding: .6rem .9rem; border-top: 1px solid var(--border); margin: 0; color: var(--muted); font-size: .75rem; }
+.instruction-help-blocked { padding: .5rem .9rem; margin: 0; color: var(--orange); }
+.instruction-help-window-header { position: sticky; top: 0; display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; padding: .9rem 1.2rem; border-bottom: 2px solid var(--accent); background: var(--surface); }
+.instruction-help-window-header span { margin-left: auto; }
+#instruction-help-window { max-width: 850px; padding: 1rem 1.2rem 2rem; margin: auto; }
+.instruction-help-path { color: var(--accent); font-size: .9rem; }
+.instruction-help-provenance { overflow-wrap: anywhere; }
+@media (max-width: 400px) { .instruction-help-toolbar { flex-wrap: wrap; } .instruction-help-toolbar .eyebrow { flex-basis: 100%; } }
+@media print { .instruction-help-panel { display: none; } .instruction-help-window-header { position: static; } }

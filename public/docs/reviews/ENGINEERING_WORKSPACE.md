@@ -111,10 +111,21 @@ color within a rung. Operators, instruction names and ladder symbols use orange;
 constants have a neutral foreground. The six variable colors repeat for larger
 rungs and do not represent live state or input/output roles. The same convention
 applies to the Rungs equation, flow, branch and instruction displays in both themes.
-Hover over a block or expression for its supported operation summary, including
-inputs and outputs where known. Selecting a ladder symbol also shows the summary
-with its full arguments; keyboard users can focus and select it. Unknown/custom
-instructions explicitly retain unresolved effects.
+Hover over a block or expression for an interactive **Instruction help** panel:
+what it does, captured arguments, and a separate worked example using invented
+values. Move into the panel to scroll and read it. Click outside, press Escape,
+or use its close button to dismiss it.
+**Ctrl-click** (Command-click on Mac) opens a separate read-only help window.
+Each click opens another window, so several instructions can stay visible on
+different monitors. Each window retains its saved analysis and instruction even
+when the workspace selection changes. **Open help window** is the equivalent
+panel button; keyboard users can focus a block and press **F1**, or **Ctrl+Enter**
+for a window. If the browser blocks a popup, the panel offers a new-tab link.
+Normal clicks still open source details. Unknown/custom instructions and
+unsupported argument shapes keep their effects unresolved, without a fabricated
+worked result. Examples explain standard behavior; they do not evaluate the
+captured rung or assign a DeltaV class. All help works locally; optional vendor
+reference links open only when selected.
 If no nonblank comment was captured, its header says **Rung N — No comment**.
 Existing comments stay beside the rung number, including original wording when
 English is unavailable; long comments still have **Show full comment**.

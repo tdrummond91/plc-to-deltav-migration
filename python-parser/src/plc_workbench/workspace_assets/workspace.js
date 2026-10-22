@@ -144,7 +144,10 @@
     }
   }
   async function refresh() {
-    state.project = await api("/api/state");
+    const project = await api("/api/state");
+    if (state.project?.active_run !== project.active_run)
+      window.PLCInstructionHelp?.close?.();
+    state.project = project;
     renderProject();
     translations?.refresh();
   }
@@ -240,6 +243,7 @@
   }
   function switchView(view, skipCheck = false) {
     if (!skipCheck && !discard()) return false;
+    window.PLCInstructionHelp?.close?.();
     if (state.view === 'map' && view !== 'map') ladderMap.deactivate?.();
     if (state.view === 'routines' && view !== 'routines') routineBrowser.deactivate();
     if (view === "connections" && state.source?.source?.instructions)
@@ -299,6 +303,7 @@
     const grid = $(view + '-layout');
     const toggle = $(view + '-inspector-toggle');
     if (!grid || !toggle) return;
+    if (hidden) window.PLCInstructionHelp?.close?.();
     grid.classList.toggle('source-collapsed', hidden);
     if (view === 'map') grid.classList.toggle('map-only', hidden);
     toggle.textContent = hidden ? 'Show source' : 'Hide source';
@@ -434,6 +439,7 @@
       notify('Your current edits or selection were kept. Use Refresh saved data again when ready.');
       return;
     }
+    window.PLCInstructionHelp?.close?.();
     state.project = project;
     renderProject();
     translations?.refresh();
@@ -622,8 +628,9 @@
       const opcode = node("span", inst.opcode, "eyebrow");
       colors?.paint(opcode, inst.opcode, "operator");
       const equation = instructionEquation(inst, occurrences.get(inst.id), nodes, colors);
-      card.title = equation.help;
+      card.setAttribute("aria-description", equation.help);
       card.append(opcode, equation.math);
+      window.PLCInstructionHelp?.attach?.(card, inst);
       root.append(card);
     });
     if (!preview.instructions?.length)
@@ -706,6 +713,7 @@
   }
   async function openSource(id, target = "rung-detail", skipCheck = false) {
     if (!skipCheck && !discard()) return;
+    window.PLCInstructionHelp?.close?.();
     const serial = ++state.detailSerial;
     const panel = $(target);
     panel.inert = true;
@@ -848,6 +856,7 @@
     root.append(card);
   }
   function renderDetail(data, root) {
+    window.PLCInstructionHelp?.close?.();
     clear(root);
     const s = data.source || {},
       kind = data.kind || s.kind || "rung",
@@ -1053,6 +1062,7 @@
     const panels = [], controls = [];
     const names = ["Logic summary", "Rung flow", "Equations", "Branch structure", "Original text"];
     const activate = (index) => {
+      window.PLCInstructionHelp?.close?.();
       panels.forEach((panel, i) => { panel.hidden = i !== index; });
       controls.forEach((control, i) => {
         control.setAttribute("aria-selected", String(i === index));
@@ -1088,14 +1098,16 @@
         instruction: (inst) => {
           const card = node("div", null, "flow-instruction");
           const equation = instructionEquation(inst, occurrences.get(inst.id), nodes, colors);
-          card.title = equation.help;
-          if (state.view === 'map') ladderMap.attachHover?.(card, inst.id, equation.label);
+          const content = node("div", null, "instruction-help-target");
+          content.setAttribute("aria-description", equation.help);
           const opcode = node("strong", `${positions.get(inst.id)} · ${inst.opcode}`, "flow-opcode");
           colors?.paint(opcode, inst.opcode, "operator");
-          card.append(opcode, node("span", equation.label, "flow-kind"));
+          content.append(opcode, node("span", equation.label, "flow-kind"));
           const display = node("div", null, "equation-display");
           display.append(equation.math);
-          card.append(display, link("Instruction evidence ↗", inst.id));
+          content.append(display);
+          window.PLCInstructionHelp?.attach?.(content, inst);
+          card.append(content, link("Instruction evidence ↗", inst.id));
           return card;
         },
         onInstruction: inst => popupWorkspace(inst.id, 'source'),
@@ -1231,7 +1243,7 @@
     math.setAttribute("display", "block");
     math.setAttribute("aria-label", `${inst.opcode}(${args.join(", ")})`);
     const help = window.PLCRungExplanation?.summary?.(inst) || label;
-    math.setAttribute("title", help);
+    math.setAttribute("aria-description", help);
     return { math, label, fallback, help };
   }
   function renderEquationTree(tree, byId, occurrences, nodes, positions, depth = 0, colors = window.PLCSourceColors?.create([...byId.values()])) {
@@ -1256,16 +1268,19 @@
     if (!inst) return node("p", "Instruction structure unavailable. Use Original text.", "warning-panel");
     const row = node("div", null, "equation-row"), heading = node("div", null, "equation-heading");
     const rendered = instructionEquation(inst, occurrences.get(inst.id), nodes, colors);
-    row.title = rendered.help;
     const opcode = node("strong", `${positions.get(inst.id)} · ${inst.opcode}`);
     colors?.paint(opcode, inst.opcode, "operator");
+    opcode.setAttribute("aria-description", rendered.help);
+    window.PLCInstructionHelp?.attach?.(opcode, inst);
     heading.append(opcode, node("span", rendered.label), link("Evidence ↗", inst.id));
     const display = node("div", null, "equation-display");
     display.append(rendered.math);
+    display.setAttribute("aria-description", rendered.help);
+    window.PLCInstructionHelp?.attach?.(display, inst);
     row.append(heading, display);
     return row;
   }
-  function renderStructure(tree, byId, chosen, depth = 0, colors = window.PLCSourceColors?.create([...byId.values()])) {
+  function renderStructure(tree, byId, chosen, depth = 0, colors = window.PLCSourceColors?.create([...byId.values()]), helpContext) {
     if (depth > 140)
       return node(
         "div",
@@ -1278,7 +1293,7 @@
         sequence.append(node("span", "Empty branch path", "empty-leg"));
       else
         tree.items.forEach((item) =>
-          sequence.append(renderStructure(item, byId, chosen, depth + 1, colors)),
+          sequence.append(renderStructure(item, byId, chosen, depth + 1, colors, helpContext)),
         );
       return sequence;
     }
@@ -1286,7 +1301,7 @@
       const branch = node("div", null, "branch");
       branch.setAttribute("aria-label", "Parallel source branch");
       (tree.legs || []).forEach((leg) =>
-        branch.append(renderStructure(leg, byId, chosen, depth + 1, colors)),
+        branch.append(renderStructure(leg, byId, chosen, depth + 1, colors, helpContext)),
       );
       return branch;
     }
@@ -1299,16 +1314,19 @@
           "unknown-node",
         );
       const box = node("div", null, "instruction-box");
-      box.title = window.PLCRungExplanation?.summary?.(inst) || "Original instruction and arguments";
+      const content = node("div", null, "instruction-help-target");
+      content.setAttribute("aria-description", window.PLCRungExplanation?.summary?.(inst) || "Original instruction and arguments");
       const opcode = node("strong", inst.opcode);
       colors?.paint(opcode, inst.opcode, "operator");
-      box.append(opcode);
+      content.append(opcode);
       (inst.arguments || []).forEach((arg, index) => {
         const value = node("span", index + 1 + ": ", "argument mono");
         if (colors) colors.append(value, arg);
         else value.append(document.createTextNode(arg));
-        box.append(value);
+        content.append(value);
       });
+      window.PLCInstructionHelp?.attach?.(content, inst, helpContext);
+      box.append(content);
       const check = node("input");
       check.type = "checkbox";
       check.addEventListener("change", () =>
@@ -1335,9 +1353,10 @@
     instructions.forEach((inst, index) => {
       const card = node("div", null, "instruction-row");
       const header = node("header");
-      header.title = window.PLCRungExplanation?.summary?.(inst) || "Original instruction and arguments";
       const opcode = node("strong", index + 1 + ". " + inst.opcode);
       colors?.paint(opcode, inst.opcode, "operator");
+      opcode.setAttribute("aria-description", window.PLCRungExplanation?.summary?.(inst) || "Original instruction and arguments");
+      window.PLCInstructionHelp?.attach?.(opcode, inst);
       header.append(opcode, link("Evidence ↗", inst.id));
       card.append(header);
       const args = node("ol");
@@ -2215,6 +2234,7 @@
               source.structure,
               new Map((source.instructions || []).map((i) => [i.id, i])),
               new Set(),
+              0, undefined, {runId: evidence.run_id},
             );
             // Historical evidence is read-only; active-source links would point
             // at the wrong snapshot, and fragment checks cannot be edited here.
@@ -2306,7 +2326,7 @@
     clear(root);
     root.className = "guide";
     section(root, "Reading colors and operation hints",
-      "Colors distinguish variable names, operations and literal values. The same exact variable spelling keeps its color within a rung. Six variable colors repeat, so a shared color does not establish that different names are the same signal. Colors do not indicate live values, input/output roles, alarm severity or execution state. Hover an operation for its instruction explanation; unsupported blocks keep their effects unresolved.");
+      "Colors distinguish variable names, operations and literal values. The same exact variable spelling keeps its color within a rung. Six variable colors repeat, so a shared color does not establish that different names are the same signal. Colors do not indicate live values, input/output roles, alarm severity or execution state. Hover or focus an operation for its explanation and worked example. Ctrl-click opens help in a separate window; unsupported blocks keep their effects unresolved.");
     const steps = [
       [
         "source",
@@ -2438,6 +2458,7 @@
         async () => {
           if (!path.value.trim())
             throw new Error("Choose a run or enter its local directory.");
+          window.PLCInstructionHelp?.close?.();
           await api("/api/import", {
             path: path.value.trim(),
             expected_revision: modalRevision,
@@ -2827,6 +2848,7 @@
       note.append(sourceAccess);
     }
   }
+  window.PLCInstructionHelp?.configure?.({getContext: () => ({runId: state.project?.active_run})});
   const ladderMap = window.PLCLadderMap.mount($('ladder-map'), {
     api,
     getState: () => state.project,
