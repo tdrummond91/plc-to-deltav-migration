@@ -73,6 +73,7 @@ class Workspace:
         self._ladder_map_cache: tuple[Any, Any] = (_UNLOADED, None)
         self._map_qualification_cache: tuple[Any, Any] = (_UNLOADED, None)
         self._variable_cache: dict[str, Any] = {}
+        self._field_io_cache: dict[str, Any] = {}
         self._translation_service: Any = None
         self._translation_run: str | None = None
         self._translation_catalog_cache: tuple[Any, dict] = (_UNLOADED, {})
@@ -644,17 +645,9 @@ class Workspace:
                 self.store.artifact('snapshot.L5X', self._run), self._inventory))
         return self._map_qualification_cache[1]
 
-    def variable(self, query: dict) -> dict:
-        """Inspect one immutable run without switching the active workspace."""
-        from .workspace_variables import (
-            MAX_ARTIFACT_BYTES, VariableError, VariableIndex, unavailable, validate_query,
-        )
-        run_id, instruction_id, variable = (query.get(key) for key in ('run_id', 'instruction_id', 'variable'))
-        try:
-            validate_query(run_id, instruction_id, variable)
-        except VariableError as exc:
-            raise ProjectError(str(exc)) from None
-        state = self.store.state()
+    def _variable_index(self, run_id: str) -> Any:
+        """Share immutable authenticated evidence across variable and field-I/O views."""
+        from .workspace_variables import MAX_ARTIFACT_BYTES, VariableError, VariableIndex
         # Validate the requested run even when an unavailable index is cached.
         # Historical calls never mutate _run, loaded source lists, or selection.
         self.store._run(run_id)
@@ -686,9 +679,22 @@ class Workspace:
             # Two immutable indexes cover active and historical popup use without
             # retaining every imported project snapshot in memory.
             while len(self._variable_cache) >= 2:
-                self._variable_cache.pop(next(iter(self._variable_cache)))
+                expired = next(iter(self._variable_cache))
+                self._variable_cache.pop(expired)
+                self._field_io_cache.pop(expired, None)
             self._variable_cache[run_id] = index
-        index = self._variable_cache[run_id]
+        return self._variable_cache[run_id]
+
+    def variable(self, query: dict) -> dict:
+        """Inspect one immutable run without switching the active workspace."""
+        from .workspace_variables import VariableError, unavailable, validate_query
+        run_id, instruction_id, variable = (query.get(key) for key in ('run_id', 'instruction_id', 'variable'))
+        try:
+            validate_query(run_id, instruction_id, variable)
+        except VariableError as exc:
+            raise ProjectError(str(exc)) from None
+        state = self.store.state()
+        index = self._variable_index(run_id)
         try:
             result = (index.view(instruction_id, variable) if index is not None else
                       unavailable('Saved variable evidence is missing or could not be verified. Original source remains available.'))
@@ -696,6 +702,45 @@ class Workspace:
             raise ProjectError(str(exc)) from None
         return {**result, 'run_id': run_id, 'instruction_id': instruction_id, 'variable': variable,
                 'historical': run_id != state.get('active_run')}
+
+    def field_io(self, query: dict) -> dict:
+        """Read catalog-qualified module cards without changing review state."""
+        from .workspace_field_io import (MAX_RESPONSE_BYTES, FieldIOError, FieldIOIndex,
+                                         _preview, unavailable, validate_query)
+        try:
+            selected = validate_query(query)
+            run_id = selected['run_id']
+            state = self.store.state()
+            evidence = self._variable_index(run_id)
+            if run_id not in self._field_io_cache:
+                try:
+                    self._field_io_cache[run_id] = FieldIOIndex(evidence) if evidence else None
+                except FieldIOError:
+                    self._field_io_cache[run_id] = None
+            index = self._field_io_cache[run_id]
+            result = index.view(selected) if index else unavailable()
+            # Lookup cached derived wording for visible original descriptions;
+            # browsing never starts translation or changes the selected run.
+            visible = list(result['modules']['items']) + list(result['addresses']['items'])
+            detail = result['selected_module']
+            if detail:
+                visible += [detail, *detail['roots'], *detail['rack_aliases']]
+            visible += [alias for row in result['addresses']['items'] for alias in row['aliases']]
+            originals = {}
+            for row in visible:
+                entity = evidence._entities.get(row.get('root_id', row.get('id'))) if evidence else None
+                if entity and entity.description:
+                    originals[row['id']] = entity.description
+            mode, wording = self._wording([{'description': value} for value in originals.values()], 'description')
+            for row in visible:
+                entry = wording.get(originals.get(row['id']))
+                row['wording'] = {'description': _preview(entry) if type(entry) is dict else None}
+            result['presentation_mode'] = mode
+            if len(_json(result)) > MAX_RESPONSE_BYTES:
+                raise FieldIOError('Saved field I/O evidence is inconsistent or exceeds its limits.')
+        except FieldIOError as exc:
+            raise ProjectError(str(exc)) from None
+        return {**result, 'run_id': run_id, 'historical': run_id != state.get('active_run')}
 
     def _map_connection_index(self) -> Any:
         index = self._connection_index()
@@ -1068,6 +1113,7 @@ class Workspace:
         self._ladder_map_cache = (_UNLOADED, None)
         self._map_qualification_cache = (_UNLOADED, None)
         self._variable_cache = {}
+        self._field_io_cache = {}
         self._historical_labels = {}
         return self.state()
 
@@ -1189,6 +1235,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._json(200, workspace.connections(query))
             elif url.path == '/api/variable':
                 self._json(200, workspace.variable(query))
+            elif url.path == '/api/field-io':
+                self._json(200, workspace.field_io(query))
             elif url.path == '/api/ladder-map':
                 self._json(200, workspace.ladder_map(query))
             elif url.path == '/api/ladder-map/links':
@@ -1216,6 +1264,7 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                               "/source-colors.js", "/source-colors.css",
                               "/instruction-help.html", "/instruction-help.js", "/instruction-help.css", "/instruction-help-content.js",
                               "/variable-help-content.js",
+                              "/field-io.js", "/field-io.css",
                               "/rung-flow.js", "/rung-flow.css", "/rung-explanation.js", "/rung-explanation.css",
                               "/routine-browser.js", "/routine-browser.css", "/ladder-diagram.js", "/ladder-diagram.css",
                               "/connections.js", "/connections.css",

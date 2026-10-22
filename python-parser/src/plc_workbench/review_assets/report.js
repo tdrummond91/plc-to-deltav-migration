@@ -366,7 +366,7 @@
   headings.residuals=['Unresolved analysis','Inspect remaining catalogue, binding and condition questions alongside the source context already captured.'];
   headings.rackbacking=['Rack source addresses','Follow qualified exported rack declarations into captured adapter Slot members. Source correspondence remains separate from physical wiring, runtime values and the original binding model.'];
   const navCounts = {objects:entities.length,ladder:rungs.length,sfc:bySfcRoutine.size,patterns:patterns.length,findings:findings.length};
-  const labels = {overview:'Overview',guide:'Review guide',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',patterns:'Patterns',findings:'Findings'};
+  const labels = {overview:'Overview',patterns:'Patterns',guide:'Review guide',...(rungAnalysis?{engineering:'Engineering analysis'}:{}),objects:'Objects',ladder:'Ladder',sfc:'SFC',findings:'Findings'};
   if(language?.enabled){labels.annotations='Comments & descriptions';navCounts.annotations=language.entries.length;headings.annotations=['Comments & descriptions','Read every eligible source note in this snapshot. Translation is a reading layer; source logic and classifications remain unchanged.'];}
   if(executionContext){labels.executioncontext='Execution context';navCounts.executioncontext=executionContext.calls.length;}
   if(signalContext){labels.signalcontext='Signal relationships';navCounts.signalcontext=signalAddresses.length;}
@@ -389,7 +389,8 @@
   if(pid){labels.pid='PID evidence';navCounts.pid=pidOccurrences.length;}
   if(calculations){labels.calculations='Calculations';navCounts.calculations=calculationOccurrences.length;}
   if(calculationPaths){labels.calculationpaths='Calculation inputs and destinations';navCounts.calculationpaths=calculationPathOccurrences.length;}
-  let state = {view:'overview',query:'',filter:'all',detail:null,contentId:null,listPages:{}};
+  let state = {view:'overview',query:'',filter:'all',detail:null,contentId:null,listPages:{},patternSort:'most'};
+  let rungContext = null, rungContextAnchor = null, rungContextHide;
   const backStack = [];
   const heading = document.getElementById('page-heading');
   const toolbar = document.getElementById('toolbar');
@@ -479,23 +480,24 @@
   function roleIds(root,role) { return root[role+'_operand_ids'] || []; }
   const accessRoles=['read','write','read_write','unknown'];
   function table(headers, rows, rowFn, caption, options={}) {
+    const pageSize=Number.isInteger(options.pageSize)?Math.max(1,Math.min(PAGE_SIZE,options.pageSize)):PAGE_SIZE;
     const pageKey=(state.detail?state.detail.type+':'+state.detail.id+':'+(state.contentId||''):state.view)+':'+caption;
-    const wrap=node('div'); let page=Math.min(state.listPages[pageKey]||0,Math.max(0,Math.ceil(rows.length/PAGE_SIZE)-1));
+    const wrap=node('div'); let page=Math.min(state.listPages[pageKey]||0,Math.max(0,Math.ceil(rows.length/pageSize)-1));
     const render=() => {
       wrap.replaceChildren();
       if(!rows.length){wrap.append(empty(options.emptyTitle || 'No records in this section',options.emptyDetail || 'Nothing was captured for this selection.'));return;}
       const box=node('div','table-wrap'), t=node('table');
       const c=node('caption','visually-hidden',caption); t.append(c);
       const head=node('thead'), hr=node('tr'); headers.forEach(h=>{const th=node('th','',h);th.scope='col';hr.append(th);});head.append(hr);t.append(head);
-      const body=node('tbody'); rows.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE).forEach((row,index)=>{const tr=node('tr');rowFn(row,page*PAGE_SIZE+index).forEach(value=>{const td=node('td');td.append(value instanceof Node ? value : node('span','',value ?? '—'));tr.append(td);});body.append(tr);});
+      const body=node('tbody'); rows.slice(page*pageSize,(page+1)*pageSize).forEach((row,index)=>{const tr=node('tr');rowFn(row,page*pageSize+index).forEach(value=>{const td=node('td');td.append(value instanceof Node ? value : node('span','',value ?? '—'));tr.append(td);});body.append(tr);});
       t.append(body);box.append(t);wrap.append(box);
-      const pager=node('div','pager'); const status=node('span','',fmt(page*PAGE_SIZE+1)+'–'+fmt(Math.min((page+1)*PAGE_SIZE,rows.length))+' of '+fmt(rows.length)+' records');status.setAttribute('role','status');
+      const pager=node('div','pager'); const status=node('span','',fmt(page*pageSize+1)+'–'+fmt(Math.min((page+1)*pageSize,rows.length))+' of '+fmt(rows.length)+' records');status.setAttribute('role','status');
       const actions=node('div','pager-buttons');
-      const change=(delta)=>{page+=delta;state.listPages[pageKey]=page;render();const next=wrap.querySelector(delta>0?'[data-next]':'[data-prev]');if(next && !next.disabled)next.focus();else wrap.querySelector('table').focus();};
+      const change=(delta)=>{closeRungContext();window.PLCInstructionHelp?.close();page+=delta;state.listPages[pageKey]=page;render();const next=wrap.querySelector(delta>0?'[data-next]':'[data-prev]');if(next && !next.disabled)next.focus();else wrap.querySelector('table').focus();};
       t.tabIndex=-1;
       const prev=button('Previous',()=>change(-1));prev.disabled=page===0;prev.dataset.prev='';prev.setAttribute('aria-label','Previous page: '+caption);
-      const next=button('Next',()=>change(1));next.disabled=(page+1)*PAGE_SIZE>=rows.length;next.dataset.next='';next.setAttribute('aria-label','Next page: '+caption);
-      actions.append(prev,node('span','','Page '+(page+1)+' / '+Math.ceil(rows.length/PAGE_SIZE)),next);pager.append(status,actions);wrap.append(pager);
+      const next=button('Next',()=>change(1));next.disabled=(page+1)*pageSize>=rows.length;next.dataset.next='';next.setAttribute('aria-label','Next page: '+caption);
+      actions.append(prev,node('span','','Page '+(page+1)+' / '+Math.ceil(rows.length/pageSize)),next);pager.append(status,actions);wrap.append(pager);
     }; render();return wrap;
   }
   function openDetail(type,id,extra={}) { backStack.push({...state});state={...state,detail:{type,id},focusOperand:null,focusInstruction:null,focusCalculationNode:null,focusConditionNode:null,...(type==='pid'?{pidMemberQuery:'',pidMemberGroup:'all'}:{}),...extra};render(true); }
@@ -615,7 +617,11 @@
   function notice(title,text){const n=node('div','notice');const body=node('div');body.append(node('strong','',title),node('div','',text));n.append(node('span','notice-icon','i'),body);return n;}
   function overview() {
     const inWorkspace=typeof WORKSPACE_REVIEW !== 'undefined' && WORKSPACE_REVIEW;
-    const guideStart=panel('Start here: Review guide',inWorkspace
+    const patternStart=panel('Start with patterns','Compare repeated ladder layouts, then inspect each occurrence and review its categories in the workspace.');
+    patternStart.className+=' pattern-start';
+    patternStart.append(node('p','pattern-counts',fmt(patterns.length)+' patterns · '+fmt(data.statistics.repeated_pattern_groups)+' repeated groups'),button('Review patterns — most occurrences first',()=>go('patterns'),'pattern-entry'));
+    content.append(patternStart);
+    const guideStart=panel('Review guide',inWorkspace
       ? 'Use the Review guide for source navigation and explanations of report terms. Follow the source links, then return to the editable workspace to save categories, properties and groups.'
       : 'Use the Review guide for subject checklists, explanations of report terms, and a feedback template. Then follow the source links in the sections relevant to your assignment.');
     guideStart.append(button('Open Review guide',()=>go('guide'),'guide-entry'));content.append(guideStart);
@@ -2490,15 +2496,63 @@
     const notes=elementNotes.get(e.id)||[];if(notes.length){const p=section('Annotation attachments involving this element');p.append(relationTable(notes,true));content.append(p);}
     content.append(technical({'Source ID':e.id,'XML element':e.xml_name,'XML ID status':e.block_id_status,'Canonical XML ID':e.canonical_id,'Content ID':e.content_id,'Parent ID':e.parent_id,'XML location':e.locator}));
   }
+  function closeRungContext(restoreFocus=false){
+    clearTimeout(rungContextHide);
+    const anchor=rungContextAnchor;rungContextAnchor=null;
+    if(anchor)anchor.setAttribute('aria-expanded','false');
+    rungContext?.remove();rungContext=null;
+    // Focus restoration must not reopen the dismissed panel.
+    if(restoreFocus&&anchor?.isConnected){anchor.dataset.suppressContext='true';anchor.focus({preventScroll:true});delete anchor.dataset.suppressContext;}
+  }
+  function showRungContext(anchor,r){
+    clearTimeout(rungContextHide);
+    if(!anchor.isConnected||rungContextAnchor===anchor)return;
+    closeRungContext();window.PLCInstructionHelp?.close();rungContextAnchor=anchor;
+    const box=node('section','pattern-rung-context');box.id='pattern-rung-context';
+    box.setAttribute('role','dialog');box.setAttribute('aria-label','Rung context');box.setAttribute('aria-modal','false');
+    const bar=node('div','pattern-context-toolbar');bar.append(node('strong','',rungNumber(r)),button('Close',()=>closeRungContext(box.contains(document.activeElement))));
+    box.append(bar,values({'Routine':entityName(r.parent_id),'Scope':entityPath(r.scope_id),'Parse status':human(r.parse_status)}));
+    box.append(node('h3','','Rung comment'),r.comment?.trim()?sourceText(r.comment,true):node('p','','No comment'));
+    const actions=node('div','inline-links');actions.append(button('Open complete rung',()=>openDetail('rung',r.id)),button('Open routine source',()=>openSource(r.parent_id)));
+    if(helpContext.runId){const edit=node('a','text-link','Review categories in workspace ↗');edit.href='/#view=rungs&source='+encodeURIComponent(r.id);edit.target='_blank';edit.rel='noopener';actions.append(edit);}
+    box.append(actions);rungContext=box;document.body.append(box);anchor.setAttribute('aria-expanded','true');
+    const rect=anchor.getBoundingClientRect(),bounds=box.getBoundingClientRect();
+    box.style.left=Math.max(12,Math.min(rect.right+10,window.innerWidth-bounds.width-12))+'px';
+    box.style.top=Math.max(12,Math.min(rect.top,window.innerHeight-bounds.height-12))+'px';
+    box.addEventListener('pointerenter',()=>clearTimeout(rungContextHide));
+    const leave=event=>{if(!box.contains(event.relatedTarget)&&!anchor.contains(event.relatedTarget)&&!box.contains(document.activeElement))rungContextHide=setTimeout(closeRungContext,220);};
+    box.addEventListener('pointerleave',leave);box.addEventListener('focusout',leave);
+  }
+  function rungContextButton(r){
+    const status=r.parse_status==='parsed'?'parsed':['error','malformed'].includes(r.parse_status)?'error':'warning';
+    const anchor=button(rungNumber(r),()=>openDetail('rung',r.id),'pattern-rung pattern-status-'+status);
+    anchor.dataset.sourceId=r.id;anchor.setAttribute('aria-description','Parse status: '+human(r.parse_status)+'. Hover or focus for routine and scope; Enter opens the rung. F1 opens context controls.');
+    anchor.setAttribute('aria-haspopup','dialog');anchor.setAttribute('aria-expanded','false');anchor.setAttribute('aria-controls','pattern-rung-context');
+    anchor.addEventListener('pointerenter',()=>showRungContext(anchor,r));
+    anchor.addEventListener('focusin',()=>{if(!anchor.dataset.suppressContext)showRungContext(anchor,r);});
+    const leave=event=>{if(!rungContext?.contains(event.relatedTarget))rungContextHide=setTimeout(closeRungContext,220);};
+    anchor.addEventListener('pointerleave',leave);anchor.addEventListener('focusout',leave);
+    anchor.addEventListener('keydown',event=>{if(event.key==='F1'){event.preventDefault();showRungContext(anchor,r);rungContext?.querySelector('button')?.focus();}});
+    return anchor;
+  }
+  document.addEventListener('pointerdown',event=>{if(rungContext&&!rungContext.contains(event.target)&&!rungContextAnchor?.contains(event.target))closeRungContext();},true);
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&rungContext){event.preventDefault();event.stopImmediatePropagation();closeRungContext(rungContext.contains(document.activeElement));}},true);
+  document.addEventListener('scroll',event=>{if(rungContext&&!rungContext.contains(event.target))closeRungContext();},true);
+  window.addEventListener('resize',()=>closeRungContext());
   function patternSummary(p){return (p.opcode_summary||[]).map(o=>o.opcode+' ×'+o.count+' ['+o.arity+']').join(' · ');}
   function patternList(){
-    const rows=patterns.filter(p=>matches(p)&&(state.filter==='all'||(state.filter==='repeated'?p.count>1:p.count===1)));
+    const rows=patterns.filter(p=>matches(p)&&(state.filter==='all'||(state.filter==='repeated'?p.count>1:p.count===1)))
+      .sort((a,b)=>(state.patternSort==='least'?a.count-b.count:b.count-a.count)||String(a.shape).localeCompare(String(b.shape))||a.id.localeCompare(b.id));
     content.append(table(['Syntax pattern','Occurrences','First occurrence'],rows,p=>[button(patternSummary(p)||'Empty parsed rung',()=>openDetail('pattern',p.id),'text-link'),fmt(p.count),sourceCell(p.rung_ids[0])],'Ladder syntax patterns'));
   }
   function patternDetail(p){
     setDetailHeading('LADDER PATTERN','Syntax pattern · '+fmt(p.count)+' occurrence'+(p.count===1?'':'s'),patternSummary(p));
     content.append(notice('A structural comparison','This group preserves opcode spelling, argument counts and ordered branch structure. Operand names and values are excluded from grouping. Equal shapes do not imply equal purpose or behavior.'));
-    const occurrences=section('Source occurrences','Open each rung to compare its context, operands and comments.');occurrences.append(rungList((p.rung_ids||[]).map(id=>byRung.get(id)).filter(Boolean)));content.append(occurrences);
+    const occurrences=section('Source occurrences','Hover or focus a rung number for its routine, scope and comment. Click it for complete source details. Block and variable help works as in Programs & routines. Ten drawings load per page.');
+    const legend=node('p','pattern-status-legend');legend.append(node('span','pattern-status-parsed','Teal: parsed'),node('span','pattern-status-warning','Amber: incomplete / other'),node('span','pattern-status-error','Red: parse error'),node('span','','Parse status describes syntax capture, not engineering approval.'));occurrences.append(legend);
+    const rows=(p.rung_ids||[]).map(id=>byRung.get(id)).filter(Boolean);
+    const listing=table(['Rung','Ladder / equation'],rows,r=>[rungContextButton(r),window.PLCLadderDiagram?window.PLCLadderDiagram.render(r,{sourceQualified:qualifiedRungs.has(r.id),compact:true,helpContext}):sourceText(r.text)],'Pattern occurrences',{pageSize:10});
+    listing.className='pattern-occurrences';occurrences.append(listing);content.append(occurrences);
     const ops=panel('Instruction signature','The number in brackets is the argument count, not a classified instruction role.');ops.append(table(['Opcode','Argument count','Occurrences in shape'],p.opcode_summary||[],o=>[node('span','mono',o.opcode),fmt(o.arity),fmt(o.count)],'Pattern opcode signature'));content.append(ops);
     const shape=node('details','technical');shape.append(node('summary','','Ordered syntax shape'),sourceText(p.shape));content.append(shape,technical({'Pattern ID':p.id}));
   }
@@ -3227,6 +3281,7 @@
     content.append(technical({'Source ID':e.id,'XML element':e.xml_name,'XML namespace':e.xml_namespace,'Capture kind':e.kind,'Parent ID':e.parent_id,'XML location':tagElementLocation(e)}));
   }
   function renderList(){
+    closeRungContext();window.PLCInstructionHelp?.close();
     content.replaceChildren();
     if(state.view==='overview')overview();
     else if(state.view==='guide')content.append(renderReviewGuide({node,button,panel,values,labels,go,back:goBack,data,context:state.reviewContext||null}));
@@ -3260,7 +3315,7 @@
     else if(state.view==='alarmevidence')alarmList();
   }
   function render(focus=false){
-    window.PLCInstructionHelp?.close();
+    window.PLCInstructionHelp?.close();closeRungContext();
     heading.replaceChildren();toolbar.replaceChildren();content.replaceChildren();
     document.querySelectorAll('.nav-button').forEach(b=>{if(b.dataset.view===state.view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
     if(state.detail){
@@ -3331,7 +3386,10 @@
       else if(state.view==='objects')toolbarFor('Search names, scopes, descriptions or attributes',countsFilter(entities,'kind'));
       else if(state.view==='ladder')toolbarFor('Search rung text, comments or routine names',countsFilter(rungs,'parse_status'));
       else if(state.view==='sfc')toolbarFor('Search SFC routines, elements and source text');
-      else if(state.view==='patterns')toolbarFor('Search opcode or syntax shape',[['all','All patterns'],['repeated','Repeated patterns'],['single','Single occurrences']]);
+      else if(state.view==='patterns'){
+        toolbarFor('Search opcode or syntax shape',[['all','All patterns'],['repeated','Repeated patterns'],['single','Single occurrences']]);
+        addToolbarSelect('Sort occurrences',[['most','Most to least'],['least','Least to most']],state.patternSort||'most',value=>{state.patternSort=value;state.listPages={};renderList();});
+      }
       else if(state.view==='findings')toolbarFor('Search finding codes, source context or detail',countsFilter(findings,'origin'));
       else if(state.view==='access')toolbarFor('Search root names, scopes, opcodes or rung context');
       else if(state.view==='tagdata')toolbarFor('Search declarations, members, saved values or data text',countsFilter(tagContents,'format_kind'));

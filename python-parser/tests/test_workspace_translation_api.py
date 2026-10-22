@@ -173,6 +173,19 @@ class WorkspaceTranslationApiTests(unittest.TestCase):
             self.assertEqual(report_overlay(client.get('/analysis?language=english'))['language'], 'english')
             self.assertEqual(client.request('/analysis?language=invalid')[0], 400)
 
+    def test_report_navigation_uses_saved_language_without_a_query_override(self):
+        with running_workspace(self.project, self.runs) as client:
+            imported = client.post('/api/import', {'path': str(self.prose), 'expected_revision': 0})
+            for language in ('english', 'both', 'original'):
+                with self.subTest(language=language):
+                    client.post('/api/translation', {'presentation_mode': language,
+                        'prepare': False, 'run_id': imported['active_run']})
+                    # The Home cards and Page menu open /analysis#view=patterns
+                    # or overview. Fragments stay in the browser; the server
+                    # receives /analysis and applies the saved language.
+                    self.assertEqual(report_overlay(client.get('/analysis'))['language'], language)
+            self.assertEqual(client.get('/api/state')['revision'], imported['revision'])
+
     def test_historical_translation_poll_uses_prose_cache_without_source_or_calculation_reload(self):
         with running_workspace(self.project, self.runs) as client:
             first = client.post('/api/import', {'path': str(self.prose), 'expected_revision': 0})

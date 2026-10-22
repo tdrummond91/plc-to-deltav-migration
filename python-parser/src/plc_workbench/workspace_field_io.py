@@ -1,0 +1,414 @@
+"""Read-only module and field-address evidence from an authenticated saved run.
+
+Catalog classification describes a declared module, not a verified installed
+device. A member spelling/type alone never establishes a physical I/O point.
+"""
+from __future__ import annotations
+
+from collections import Counter, defaultdict
+from copy import deepcopy
+import hashlib
+import json
+import re
+from typing import Any
+
+from .references import _ADDRESS
+from .workspace_variables import VariableIndex, _member_key
+
+PAGE_SIZE = 24
+USE_PAGE_SIZE = 12
+MAX_ALIASES = 8
+MAX_DETAIL = 24
+MAX_PREVIEW = 512
+MAX_ADDRESSES = 100_000
+MAX_INDEX_BYTES = 32 * 1024 * 1024
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+_DIGITAL_REFERENCE = ('https://www.rockwellautomation.com/en-tr/docs/studio-5000-logix-designer/38-00/'
+    'contents-ditamap/module-information/wiring-diagrams/1756-i-o-module-wiring-diagrams/'
+    'wiring-diagrams-1756-digital-i-o-modules.html')
+_ANALOG_REFERENCE = ('https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/'
+    'contents-ditamap/module-information/wiring-diagrams/1756-i-o-module-wiring-diagrams/'
+    'wiring-diagram---1756-analog-i-o-modules.html')
+_DIGITAL_MANUAL = 'https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1756-um058_-en-p.pdf'
+_ANALOG_MANUAL = 'https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1756-um009_-en-p.pdf'
+_POINT_LAYOUTS = {'1756-IB16': ('input', 'di', 16, 'DINT'),
+                  '1756-OB16E': ('output', 'do', 16, 'DINT'),
+                  '1756-IF8': ('input', 'ai', 8, 'REAL'),
+                  '1756-OF8': ('output', 'ao', 8, 'REAL')}
+# Exact catalog identities only; neither prefixes nor the digits establish a
+# channel count, terminal layout, configured mode, or member-to-point mapping.
+CATALOG_TYPES = {f'1756-{catalog}': kind for kind, catalogs in (
+    ('di', 'IA16 IB16 IB32 IC16 IN16 IV16 IA16I IB16I IH16I IM16I IB16D IA8D'),
+    ('do', 'OA8 OB8 OB32 OC8 ON8 OA16I OB8I OB16I OH8I OW16I OX8I OA16 OB8EI OB16E OV16E OA8E OB16D OA8D'),
+    ('ai', 'IF16 IF8 IF6I IR6I IT6I'), ('ao', 'OF4 OF6CI OF6VI OF8'),
+) for catalog in catalogs.split()}
+_DIRECTIONS = {'module_input_tag': 'input', 'module_output_tag': 'output',
+               'module_config_tag': 'configuration'}
+_LIMITATIONS = (
+    'Catalog classes describe qualified module declarations in this export; installed equipment and field wiring are not verified.',
+    'Controller input/output data can contain status, echo, diagnostics, or configuration. Those members are not automatically physical points.',
+    'BOOL/REAL types, tag names, and channel-like member names do not establish DI/DO/AI/AO or terminal assignments.',
+    'Documented member indexes are not wiring verification. Analog configuration, enabled channels, electrical modes, scaling, and installed terminal blocks are not evaluated.',
+    'Rung links show possible explicit uses, not execution order, energized outputs, live readings, or complete external use.',
+    'Unresolved and dynamic references cannot be assigned to a proven module address; the listed uses may be incomplete.',
+    'Grouping a card selects its module declaration. Grouping a backing tag covers all its members, not one physical channel.',
+)
+
+
+class FieldIOError(ValueError):
+    """Fixed source-free projection or selection failure."""
+
+
+def _invalid() -> None:
+    raise FieldIOError('Saved field I/O evidence is inconsistent or exceeds its limits.') from None
+
+
+def _page(rows: list, page: int, size: int = PAGE_SIZE) -> dict:
+    pages = max(1, (len(rows) + size - 1) // size)
+    page = min(page, pages)
+    return {'items': rows[(page - 1) * size:page * size], 'total': len(rows),
+            'page': page, 'pages': pages, 'page_size': size}
+
+
+def _preview(row: dict) -> dict:
+    """Only presentation strings are shortened; identities remain canonical."""
+    result = {}
+    for key, value in row.items():
+        if isinstance(value, str) and len(value) > MAX_PREVIEW and not key.endswith('_id') and key != 'id':
+            result[key], result[key + '_truncated'] = value[:MAX_PREVIEW], True
+        elif isinstance(value, dict):
+            result[key] = _preview(value)
+        elif isinstance(value, list):
+            result[key] = [_preview(item) if isinstance(item, dict) else item for item in value]
+        else:
+            result[key] = value
+    return result
+
+
+def validate_query(query: dict) -> dict:
+    result = {}
+    for key, limit in (('run_id', 256), ('module_id', 256), ('address_id', 256), ('query', 256)):
+        value = query.get(key, '')
+        if (type(value) is not str or len(value) > limit or key == 'run_id' and not value
+                or any(ord(char) < 32 or ord(char) == 127 for char in value)):
+            raise FieldIOError('Choose a captured run and bounded field I/O filters.')
+        result[key] = value
+    for key, allowed in (('field_type', {'', 'di', 'do', 'ai', 'ao', 'unknown'}),
+                         ('direction', {'', 'input', 'output', 'configuration'})):
+        value = query.get(key, '')
+        if type(value) is not str or value not in allowed:
+            raise FieldIOError('Choose an available field I/O filter.')
+        result[key] = value
+    for key in ('page', 'signal_page', 'use_page'):
+        value = query.get(key, '1')
+        if type(value) not in {int, str} or not re.fullmatch(r'[1-9][0-9]{0,5}', str(value)):
+            raise FieldIOError('Choose a positive bounded field I/O page.')
+        result[key] = int(value)
+    if result['address_id'] and not result['module_id']:
+        raise FieldIOError('Choose a module before selecting a field address.')
+    return result
+
+
+def unavailable() -> dict:
+    return {'available': False,
+        'notice': 'Saved field I/O evidence is missing or could not be verified. Original source remains available.',
+        'snapshot_id': None, 'modules': _page([], 1), 'selected_module': None,
+        'addresses': _page([], 1), 'coverage': {}, 'limitations': list(_LIMITATIONS)}
+
+
+class FieldIOIndex:
+    """A bounded projection sharing the workspace's authenticated variable index."""
+
+    def __init__(self, evidence: VariableIndex) -> None:
+        if type(evidence) is not VariableIndex:
+            _invalid()
+        self.base = evidence
+        self.modules: dict[str, dict] = {}
+        self.addresses: dict[str, dict] = {}
+        self.by_module: dict[str, list[str]] = defaultdict(list)
+        self.roots: dict[str, list[dict]] = defaultdict(list)
+        self.ports: dict[str, list[dict]] = defaultdict(list)
+        self.rack_aliases: dict[str, list[dict]] = defaultdict(list)
+        self._root_module: dict[str, str] = {}
+        self._keys: dict[tuple[str, str], str] = {}
+        self._search: dict[str, str] = {}
+        self._budget = 0
+        self._omitted = 0
+        try:
+            self._build()
+        except FieldIOError:
+            raise
+        except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
+            _invalid()
+
+    def _retain(self, value: Any) -> None:
+        self._budget += len(json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
+        if self._budget > MAX_INDEX_BYTES:
+            _invalid()
+
+    def _add(self, root_id: str, suffix: str) -> dict | None:
+        if (root_id not in self._root_module or not self.base._entity_ok.get(root_id)
+                or not isinstance(suffix, str) or len(suffix) > 4096 or not _ADDRESS.fullmatch('A' + suffix)):
+            self._omitted += 1
+            return None
+        key = root_id, _member_key(suffix)
+        if key in self._keys:
+            return self.addresses[self._keys[key]]
+        if len(self.addresses) >= MAX_ADDRESSES:
+            _invalid()
+        entity = self.base._entities[root_id]
+        name = self.base._resolver.name(entity)
+        if not name or len(name) > 4096:
+            self._omitted += 1
+            return None
+        module_id = self._root_module[root_id]
+        if not self.modules[module_id]['qualified']:
+            return None
+        identifier = 'field_address_' + hashlib.sha256((root_id + '\0' + key[1]).encode()).hexdigest()
+        row = {'id': identifier, 'root_id': root_id, 'root_name': name,
+            'root_name_origin': self.base._resolver.names[root_id]['name_origin'],
+            'suffix': suffix, 'address': name + suffix, 'direction': _DIRECTIONS[entity.kind],
+            'field_type': 'unknown', 'point_status': 'unresolved', 'channel': None,
+            'point_basis': None, 'point_reference': None, 'channel_status': 'unresolved',
+            'configuration_status': 'not_evaluated',
+            'datatype': None, 'description': entity.description, 'aliases': [], 'uses': [],
+            'group_member_ids': [root_id], 'grouping_scope': 'backing_declaration'}
+        self._retain(row)
+        self.addresses[identifier] = row
+        self._keys[key] = identifier
+        self.by_module[module_id].append(identifier)
+        return row
+
+    def _build(self) -> None:
+        base, entities = self.base, self.base._entities
+        children: dict[str, list] = defaultdict(list)
+        names: dict[tuple[str | None, str], list] = defaultdict(list)
+        for entity in entities.values():
+            children[entity.parent_id].append(entity)
+            if entity.kind == 'module' and entity.name:
+                names[entity.scope_id, entity.name.lower()].append(entity)
+        for entity in entities.values():
+            if entity.kind != 'module':
+                continue
+            attrs, okay = entity.attributes, bool(base._entity_ok.get(entity.id))
+            catalog = attrs.get('CatalogNumber')
+            field_type = (CATALOG_TYPES.get(catalog, 'unknown') if okay and attrs.get('Vendor') == '1'
+                and 'UserDefinedCatalogNumber' not in attrs else 'unknown')
+            controller = entities.get(entity.scope_id)
+            parent_name = attrs.get('ParentModule')
+            parents = names.get((entity.scope_id, (parent_name or '').lower()), [])
+            parent = parents[0] if len(parents) == 1 and base._entity_ok.get(parents[0].id) else None
+            ports = [child for child in children[entity.id] if child.kind == 'module_port']
+            upstream = [port for port in ports if port.attributes.get('Upstream') in {'true', '1'}]
+            slot = None
+            if (okay and len(upstream) == 1 and base._entity_ok.get(upstream[0].id)
+                    and upstream[0].attributes.get('Type') == 'ICP'
+                    and re.fullmatch(r'0|[1-9][0-9]{0,8}', upstream[0].attributes.get('Address', ''))):
+                slot = upstream[0].attributes['Address']
+            row = {'id': entity.id, 'name': entity.name, 'description': entity.description,
+                'path': base._path(entity.id), 'controller': {'id': entity.scope_id,
+                    'name': controller.name if controller else None, 'path': base._path(entity.scope_id)},
+                'catalog_number': catalog, 'vendor': attrs.get('Vendor'), 'product_type': attrs.get('ProductType'),
+                'parent_module_name': parent_name, 'parent_module_id': parent.id if parent else None,
+                'slot': slot, 'location_status': 'declared_upstream_ICP_address' if slot is not None else 'unresolved',
+                'directions': [], 'field_type': field_type,
+                'field_type_basis': 'exact_vendor_catalog' if field_type != 'unknown' else 'unresolved',
+                'catalog_reference': (_DIGITAL_REFERENCE if field_type in {'di', 'do'} else _ANALOG_REFERENCE)
+                    if field_type != 'unknown' else None,
+                'point_count': None, 'point_count_basis': None, 'address_count': 0, 'use_count': 0,
+                'rung_count': 0, 'rack_alias_count': 0, 'qualified': okay,
+                'group_member_ids': [entity.id], 'grouping_scope': 'module_declaration'}
+            self._retain(row)
+            self.modules[entity.id] = row
+            if field_type != 'unknown' and catalog in _POINT_LAYOUTS:
+                row['point_count'] = _POINT_LAYOUTS[catalog][2]
+                row['point_count_basis'] = ('maximum_configuration_dependent' if catalog == '1756-IF8'
+                                             else 'documented_capacity')
+            for port in ports:
+                value = {'id': port.id, 'port_id': port.attributes.get('Id'), 'type': port.attributes.get('Type'),
+                    'address': port.attributes.get('Address'), 'upstream': port.attributes.get('Upstream'),
+                    'qualified': bool(base._entity_ok.get(port.id))}
+                self._retain(value)
+                self.ports[entity.id].append(value)
+        for entity in entities.values():
+            if entity.kind not in _DIRECTIONS and entity.kind not in {'module_rack_input_alias', 'module_rack_output_alias'}:
+                continue
+            parent = entities.get(entity.parent_id)
+            module_id = parent.parent_id if parent and parent.kind in {'module_connection', 'module_rack_connection'} else entity.parent_id
+            if module_id not in self.modules:
+                continue
+            if entity.kind in _DIRECTIONS:
+                provenance = base._resolver.names[entity.id]
+                self._root_module[entity.id] = module_id
+                value = {'id': entity.id, 'name': provenance['name'], 'kind': entity.kind,
+                    'direction': _DIRECTIONS[entity.kind], 'name_origin': provenance['name_origin'],
+                    'name_reason': provenance['reason'], 'description': entity.description,
+                    'datatype': entity.attributes.get('DataType'), 'qualified': bool(base._entity_ok.get(entity.id))}
+                self._retain(value)
+                self.roots[module_id].append(value)
+                self._add(entity.id, '')
+            else:
+                value = {'id': entity.id, 'kind': entity.kind, 'alias_for': entity.attributes.get('AliasFor'),
+                    'description': entity.description, 'status': 'backing_unresolved',
+                    'qualified': bool(base._entity_ok.get(entity.id))}
+                self._retain(value)
+                self.rack_aliases[module_id].append(value)
+        access = {row['id']: row for row in base._access.operands} if base._access else {}
+        for ref in base._references.operands:
+            if ref['status'] != 'root_bound' or ref['target_id'] not in self._root_module:
+                continue
+            if not base._qualified(ref, ref['rung_id']):
+                continue
+            row = self._add(ref['target_id'], ref['suffix'])
+            if row is not None:
+                self._use(row, ref, access.get(ref['id'], {}).get('role', 'unknown'), ref['raw_text'])
+        if base._access:
+            for use in base._access.expression_uses:
+                if (use['binding_status'] == 'root_bound' and use['target_id'] in self._root_module
+                        and base._qualified(use, use['rung_id'])):
+                    row = self._add(use['target_id'], use['suffix'])
+                    if row is not None:
+                        self._use(row, use, use['role'], row['address'])
+        for alias in base._references.aliases:
+            ids = [alias['source_id'], alias.get('target_id'), *alias.get('alias_chain', [])]
+            if alias['status'] != 'root_bound' or not all(base._entity_ok.get(identifier) for identifier in ids):
+                continue
+            row = self._add(alias['target_id'], alias['suffix']) if alias['target_id'] in self._root_module else None
+            if row is not None:
+                entity = entities[alias['source_id']]
+                value = _preview({'id': entity.id, 'name': entity.name, 'path': base._path(entity.id),
+                                  'description': entity.description})
+                self._retain(value)
+                row['aliases'].append(value)
+        for (owner_id, _), values in base._values.items():
+            if owner_id not in self._root_module:
+                continue
+            for value in values:
+                if value['status'] == 'qualified':
+                    self._add(owner_id, value['path'])
+        for row in self.addresses.values():
+            values = base._values.get((row['root_id'], _member_key(row['suffix'])), [])
+            types = {value['datatype'] for value in values if value['status'] == 'qualified' and value['datatype']}
+            row['datatype'] = next(iter(types)) if len(types) == 1 else None
+            self._point(row)
+        for identifier, module in self.modules.items():
+            self.by_module[identifier].sort(key=lambda key: (
+                self.addresses[key]['channel'] is None, self.addresses[key]['direction'],
+                self.addresses[key]['channel'] if self.addresses[key]['channel'] is not None else -1,
+                self.addresses[key]['address'].casefold(), key))
+            rows = [self.addresses[key] for key in self.by_module[identifier]]
+            module.update(directions=sorted({row['direction'] for row in self.roots[identifier]
+                                             if row['qualified'] and module['qualified']}),
+                address_count=len(rows), use_count=sum(len(row['uses']) for row in rows),
+                point_mapped_address_count=sum(row['channel'] is not None for row in rows),
+                rung_count=len({use['rung_id'] for row in rows for use in row['uses']}),
+                rack_alias_count=len(self.rack_aliases[identifier]))
+            search_parts = [str(value) for value in [module['name'], module['description'], module['catalog_number'],
+                module['controller']['name'], module['parent_module_name'], module['slot']]]
+            for row in rows:
+                search_parts.extend([row['address'], *[str(alias.get(key) or '')
+                    for alias in row['aliases'] for key in ('name', 'description')]])
+            text = ' '.join(search_parts)
+            self._retain(text)
+            self._search[identifier] = text.casefold()
+        counts = Counter(row['field_type'] for row in self.modules.values())
+        self.coverage = {'modules_total': len(self.modules),
+            'qualified_modules': sum(row['qualified'] for row in self.modules.values()),
+            'modules_by_field_type': {kind: counts[kind] for kind in ('di', 'do', 'ai', 'ao', 'unknown')},
+            'module_type_counts_scope': 'all_captured_modules',
+            'addresses_total': len(self.addresses),
+            'point_mapped_addresses': sum(row['channel'] is not None for row in self.addresses.values()),
+            'rung_uses_total': sum(row['use_count'] for row in self.modules.values()),
+            'rack_aliases_unresolved': sum(row['rack_alias_count'] for row in self.modules.values()),
+            'unresolved_reference_operands_in_run': sum(row['status'] in {'unresolved', 'ambiguous',
+                'unsupported_address', 'alias_cycle', 'alias_depth_limit'} for row in base._references.operands),
+            'omitted_addresses': self._omitted}
+
+    def _point(self, row: dict) -> None:
+        """Only four documented profiles; no generic datatype/channel guessing.
+
+        UM058L tables 44/49 and p157 distinguish input state/output command
+        Data bits from table48 output echo. UM009G pp130-131 distinguish I/O
+        Ch0Data from input-side output echo and retain mode uncertainty.
+        """
+        module = self.modules[self._root_module[row['root_id']]]
+        layout = _POINT_LAYOUTS.get(module['catalog_number'])
+        if module['field_type'] == 'unknown' or layout is None:
+            return
+        direction, kind, count, datatype = layout
+        if row['direction'] != direction:
+            return
+        digital = kind in {'di', 'do'}
+        match = re.fullmatch(r'\.Data\.(0|[1-9][0-9]?)' if digital else r'\.Ch(0|[1-9][0-9]?)Data',
+                             row['suffix'], re.ASCII | re.IGNORECASE)
+        if match is None or int(match[1]) >= count:
+            return
+        suffix = '.Data' if digital else row['suffix']
+        key = _member_key(suffix)
+        values = [value for value in self.base._values.get((row['root_id'], key), [])
+                  if value['envelope'] == 'Data' and value['format'] == 'decorated']
+        if len(values) != 1 or values[0]['status'] != 'qualified' or values[0]['datatype'] != datatype:
+            return
+        if any(gap == '' or key == gap or key.startswith(gap + '.') or key.startswith(gap + '[')
+               for gap in self.base._ambiguous.get((row['root_id'], values[0]['content_id']), ())):
+            return
+        contents = [value for value in self.base._contents[row['root_id']]
+                    if value['xml_name'] == 'Data' and value['format_kind'] == 'decorated']
+        if len(contents) != 1:
+            return
+        row.update(field_type=kind, point_status='documented_member_layout', channel=int(match[1]),
+            point_basis='exact_catalog_direction_member_and_captured_profile_type',
+            point_reference=_DIGITAL_MANUAL if digital else _ANALOG_MANUAL,
+            channel_status='documented_member_index_not_wiring',
+            configuration_status='input_mode_unresolved' if module['catalog_number'] == '1756-IF8' else 'not_evaluated')
+
+    def _use(self, address: dict, use: dict, role: str, variable: str) -> None:
+        rung = self.base._rungs[use['rung_id']]
+        instruction = self.base._instructions[use['instruction_id']]
+        row = _preview({'id': use['id'], 'instruction_id': instruction.id, 'rung_id': rung.id,
+            'opcode': instruction.opcode, 'role': role, 'variable': variable,
+            'path': self.base._path(rung.parent_id) + ' / Rung ' + str(rung.number), 'rung_number': rung.number})
+        self._retain(row)
+        address['uses'].append(row)
+
+    def view(self, query: dict) -> dict:
+        selected = query['module_id']
+        if selected and selected not in self.modules:
+            raise FieldIOError('Choose a module captured in this run.')
+        rows = [row for row in self.modules.values()
+            if (not query['field_type'] or row['field_type'] == query['field_type'])
+            and (not query['direction'] or query['direction'] in row['directions'])
+            and (not query['query'] or query['query'].casefold() in self._search[row['id']])]
+        modules = _page(rows, query['page'])
+        detail = None
+        addresses = _page([], query['signal_page'])
+        if selected:
+            detail = dict(self.modules[selected])
+            for key, values in (('ports', self.ports[selected]), ('roots', self.roots[selected]),
+                                ('rack_aliases', self.rack_aliases[selected])):
+                detail[key] = values[:MAX_DETAIL]
+                detail[key + '_total'] = len(values)
+                detail[key + '_truncated'] = len(values) > MAX_DETAIL
+            values = [self.addresses[key] for key in self.by_module[selected]]
+            if query['address_id']:
+                if query['address_id'] not in self.by_module[selected]:
+                    raise FieldIOError('Choose an address captured on this module.')
+                values = [self.addresses[query['address_id']]]
+            addresses = _page(values, query['signal_page'])
+            addresses['items'] = [dict(row, aliases=row['aliases'][:MAX_ALIASES],
+                aliases_total=len(row['aliases']), aliases_truncated=len(row['aliases']) > MAX_ALIASES,
+                uses=(uses := _page(row['uses'], query['use_page'], USE_PAGE_SIZE))['items'],
+                uses_total=uses['total'], use_page=uses['page'], use_pages=uses['pages'])
+                for row in addresses['items']]
+        limitations = list(_LIMITATIONS)
+        if not self.base._has_access:
+            limitations.append('Saved instruction-access evidence is absent; explicit reference roles remain unknown.')
+        if not self.base._has_data:
+            limitations.append('Saved tag-data evidence is absent; unused stored members are not listed.')
+        result = _preview({'available': True,
+            'notice': 'Module catalog classes and exact exported addresses; field wiring and installed devices require confirmation.',
+            'snapshot_id': self.base._captured.snapshot['id'], 'modules': modules,
+            'selected_module': detail, 'addresses': addresses, 'coverage': self.coverage, 'limitations': limitations})
+        if len(json.dumps(result, ensure_ascii=False, separators=(',', ':')).encode('utf-8')) > MAX_RESPONSE_BYTES:
+            _invalid()
+        return deepcopy(result)

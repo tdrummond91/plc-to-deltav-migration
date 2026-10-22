@@ -32,7 +32,19 @@ continue until you stop the workspace, so other review windows remain usable.
    explanation of what can change. Source evidence is never edited. Review
    decisions are saved separately in the project; guide checkmarks stay in this
    browser. Project tools are available regardless of the page label.
-2. Open **Classification & groups** for the automatic functional overview.
+2. Start with **Patterns**, the first Home card. It opens the evidence report
+   in another window with the most frequent structures first. Change **Sort
+   occurrences** to reverse the order. Open a pattern to compare ten visual
+   rungs per page, using the same drawing, zoom and instruction help as Programs
+   & routines. Hover or focus a rung number for its routine, scope and comment;
+   **F1** keeps that context panel available. Its color indicates syntax parse
+   status. Use **Review categories in workspace** in that panel to edit the
+   selected rung. Matching structure does not establish matching behavior or
+   automatically apply a category to every occurrence.
+   Open **Field I/O**, the second Home card, to start from the captured hardware
+   instead: filter DI, DO, AI or AO cards, then open a card's channel addresses
+   and rung links. The detailed workflow is below.
+   Open **Classification & groups** for the automatic functional overview.
    Choose **Function** to find DC, AC, PID, alarms, timers, counters, structured
    objects, or I/O candidates. Expand **Evidence, parameters & source links**
    on a relevant item, then follow its rung links to inspect the logic.
@@ -77,6 +89,44 @@ For later review sessions that do not need new analysis, the optional command
 `bash ./open-workbench.sh` reopens the saved project. Double-clicking
 `Open-Workbench.cmd` is an alternative to that shortcut. The opener does not
 run tests, analyze the L5X, or perform Git operations.
+
+### Start from field I/O
+
+Choose **Field I/O** on Home or in the Page menu. The DI, DO, AI and AO buttons
+show module-card counts across the complete saved source and filter the list.
+**Unresolved field type** retains unfamiliar modules and declarations whose
+type cannot be established. Search by original module description, catalog,
+address or alias. The header's FR / EN option controls displayed descriptions.
+
+Open a module card to see its controller, parent/rack, captured slot and catalog.
+Documented field-point addresses appear first. Expand a point's **Source aliases**
+for tag names/descriptions, and **Captured rung uses** to follow its readers and
+writers into the source. Other captured addresses, including status, feedback
+and configuration, remain in a collapsed section. Pages keep every captured
+address and rung use reachable without loading the whole export at once.
+
+Module type, documented capacity and captured field addresses are separate:
+a 16-point card does not prove that 16 devices are wired to it. Output-card
+feedback does not become a DI or AI merely because it is input data to the
+controller. The page does not infer field devices from BOOL/REAL types. Analog
+mode and terminal assignments still require the configuration and wiring
+information. An unresolved address remains available for inspection.
+
+To section the hardware, tick **Select whole module** on one or more cards and
+choose **Add whole modules to group**. Create a group or choose an existing one;
+edit its categorization later in **Classification & groups**. This saves whole
+module declarations, not individual channel selections. Source evidence remains
+read-only and saved engineering groups retain their normal history and backups.
+
+The initial catalog library recognizes 39 exact Rockwell 1756 module types.
+Documented member-to-channel mapping currently covers 1756-IB16, 1756-OB16E,
+1756-IF8 and 1756-OF8 when the saved direction and data profile support it.
+Other modules and addresses remain listed without a guessed point mapping.
+Catalog and member-layout evidence follows the linked Rockwell references.
+
+After a manual pull, stop and reopen the workspace to use these pages with
+the existing saved analysis. A new L5X run is needed only if the required saved
+source companions are absent; the page reports that condition explicitly.
 
 ### Reading rungs and saved variable settings
 

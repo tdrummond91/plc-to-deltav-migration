@@ -1,0 +1,42 @@
+.field-io-filters { align-items: end; }
+.field-io-filters > label:first-child { flex: 2 1 22rem; }
+.field-io-selection { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; padding: .7rem 0; }
+.field-io-selection > small { flex-basis: 100%; }
+.field-io-status { color: var(--accent); }
+.field-io-type-totals { display: flex; flex-wrap: wrap; gap: .5rem; margin: .8rem 0; }
+.field-io-type-totals > p { flex-basis: 100%; margin: 0; font-size: .8rem; }
+.field-io-type-tile { border-top: 2px solid var(--accent); }
+.field-io-type-tile[aria-pressed="true"] { border-color: var(--magenta); color: var(--magenta); }
+.field-io-help { margin: .6rem 0 1rem; max-width: 110ch; }
+.field-io-help summary, .field-io-detail summary { cursor: pointer; color: var(--accent); }
+.field-io-layout { display: grid; grid-template-columns: minmax(300px, .85fr) minmax(460px, 1.15fr); gap: 1rem; align-items: start; }
+.field-io-directory, .field-io-detail { min-width: 0; }
+.field-io-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 275px), 1fr)); gap: .8rem; }
+.field-io-card { border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: var(--radius); padding: .85rem; background: var(--surface); min-width: 0; }
+.field-io-card.is-current { border-color: var(--magenta); box-shadow: 0 0 0 1px var(--magenta); }
+.field-io-card-heading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: .5rem; }
+.field-io-card-heading > label { display: flex; flex-direction: row; align-items: center; gap: .4rem; font-size: .75rem; }
+.field-io-card-open { padding: .2rem 0; text-align: left; border: 0; background: none; color: var(--accent); font-weight: 700; overflow-wrap: anywhere; }
+.field-io-point-count { display: block; color: var(--accent); font-size: .85rem; margin: .4rem 0; }
+.field-io-other-addresses { border-top: 1px solid var(--border); padding-top: .7rem; }
+.field-io-facts { display: grid; grid-template-columns: minmax(6rem, .7fr) minmax(0, 1.3fr); gap: .2rem .6rem; font-size: .84rem; margin: .7rem 0; }
+.field-io-facts dt { color: var(--muted); }
+.field-io-facts dd { margin: 0; overflow-wrap: anywhere; }
+.field-io-description { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .88rem; }
+.field-io-detail { padding: 1rem; position: sticky; top: var(--workspace-pane-top); max-height: var(--workspace-pane-height); overflow: auto; }
+.field-io-detail h2, .field-io-detail h3, .field-io-detail p, .field-io-detail a { overflow-wrap: anywhere; }
+.field-io-detail > a { margin-left: .7rem; font-size: .85rem; }
+.field-io-detail details { margin: .65rem 0; }
+.field-io-module-source { border-block: 1px solid var(--border); padding: .7rem 0; }
+.field-io-source-row { border-left: 2px solid var(--border); padding: .3rem .7rem; margin: .6rem 0; }
+.field-io-address { border: 1px solid var(--border); border-left: 3px solid var(--orange); border-radius: 8px; padding: .8rem; margin: .8rem 0; }
+.field-io-address h3 { font: 600 .94rem ui-monospace, Consolas, monospace; color: var(--accent); }
+.field-io-use-list { padding-left: 1.2rem; }
+.field-io-use-list li { margin: .65rem 0; }
+.field-io-use-list span, .field-io-use-list code, .field-io-aliases small { display: block; overflow-wrap: anywhere; font-size: .8rem; }
+.field-io-aliases > div { border-left: 2px solid var(--border); padding: .3rem .6rem; }
+.field-io-use-pages { font-size: .8rem; }
+@media (max-width: 1150px) {
+  .field-io-layout { grid-template-columns: 1fr; }
+  .field-io-detail { position: static; max-height: none; }
+}

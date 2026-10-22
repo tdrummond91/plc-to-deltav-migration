@@ -120,6 +120,9 @@ class VariableIndex:
             _invalid()
         refs = ReferenceResult(**_plain(references))
         validate_references(captured, refs)
+        # Shared, authenticated immutable records also support the field-I/O
+        # projection; keep references rather than copying the saved evidence.
+        self._captured, self._references = captured, refs
         self._resolver = _Resolver(captured)
         self._entities = {row.id: row for row in captured.entities}
         self._rungs = {row.id: row for row in captured.rungs}
@@ -150,6 +153,7 @@ class VariableIndex:
                 _invalid()
             self._access_instructions = {row['id']: row for row in access_result.instructions}
         self._has_access = access_result is not None
+        self._access = access_result
         self._has_data = tag_data is not None
         self._contents: dict[str, list[dict]] = defaultdict(list)
         self._values: dict[tuple[str, str], list[dict]] = defaultdict(list)

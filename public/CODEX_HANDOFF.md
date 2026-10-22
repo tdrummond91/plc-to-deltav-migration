@@ -1,5 +1,69 @@
 # Current handoff: PLC analysis workbench
 
+## Patterns first and physical field-I/O inventory (2026-10-22)
+
+Home and the Page menu lead with Patterns, then Field I/O. Patterns opens the
+hosted evidence report in another window while preserving the editor selection
+and saved source language. The report leads with pattern review, defaults to
+descending numeric occurrence count, and supports ascending order. Pattern
+occurrences reuse the shared ladder renderer in a two-column, ten-rung page.
+Rung-number hover/focus context contains scope, routine, comment, parse status
+and an editable-workspace link. Escape/outside click/navigation dismiss it;
+shared instruction/member help, zoom and independent help windows remain.
+
+Report syntax patterns include opcode spelling, arity and ordered branch shape;
+operands/values are excluded. This is not behavioral equivalence or a bulk
+classification edit. The existing editable `rung_pattern` category-rule contract
+does not include arity and is unchanged. Do not imply identical membership or
+save review decisions against snapshot-bound report pattern IDs.
+
+Field I/O is a bounded read-only projection of authenticated source companions,
+reusing the per-run variable index. It lists module cards by controller, parent,
+declared slot, catalog, source description and recorded address/rung uses.
+The exact catalog library recognizes 39 Rockwell 1756 DI/DO/AI/AO declarations.
+Four documented member layouts (1756-IB16, 1756-OB16E, 1756-IF8, 1756-OF8)
+require the correct direction and a unique qualified captured data profile.
+Output echo/status, unknown catalogs, unsupported profiles, dynamic addresses,
+ambiguous/foreign data and unresolved rack aliases are not promoted to points.
+IF8 input mode stays unresolved; no installed-device or terminal claims are made.
+
+Documented point addresses sort first; other addresses stay in a collapsed
+section. Counts distinguish module cards, rated/configuration-dependent capacity
+and mapped address records. Pages cap modules/addresses at 24, uses at 12 and
+alias previews at 8; full source links remain. Cached FR/EN wording is displayed
+without initiating translation. Whole-module selection uses the existing
+revision-checked group editor and store; it never pretends to save a derived
+channel ID as a source entity. Run/project changes invalidate selections and
+late responses. No parser artifacts, source facts or work-PC Git workflow change.
+
+Vendor evidence: Rockwell's 1756 digital/analog wiring catalogs; digital manual
+1756-UM058L (September 2026), tables 44/48/49 and page 157; analog manual
+1756-UM009G (March 2025), pages 130-131. Rendered manual tables were checked where
+text extraction misaligned the analog datatype cells. References are linked
+from the implementation and catalog details.
+
+Validation includes source-authentication, namespace/type/address gaps, output
+echo exclusions, page bounds, aliases, stale UI responses, shared cache reuse
+and eviction, grouping, translations, numeric sorting and repeated rung numbers.
+A synthetic 4,606-rung profile took 4.33 seconds for cold shared authentication,
+0.18 seconds for the field projection, and 0.001 seconds for a cached selected-card
+page (local measurements, not a work-PC guarantee). The final related suites
+passed 221 tests. One initially mistyped test-module name was corrected and its
+API suite passed. Independent review found and resolved an XML boolean display
+bug (`Upstream="false"`/`"0"`); cache-eviction coverage confirms at most two shared
+run indexes and unchanged project selection.
+
+Chrome checks in the invented `confidential/field-io-preview/` project verified
+point-first DI/DO/AI details, output-echo exclusion, use paging across two scopes,
+English fallback, saved whole-module grouping after reload, pattern order in
+both directions, ten-drawing paging, context dismissal, same-number rung scope
+and independent instruction-help windows. Browser popup blocking exposed the
+expected direct-link fallback, which opened the Patterns report successfully.
+
+Manually pull, stop the running workspace and reopen with
+`bash ./open-workbench.sh`. Existing saved analysis can supply these views;
+rerun `bash ./run-work-check.sh` only for new analysis or missing companions.
+
 ## Visual report rungs and saved variable evidence (2026-10-22)
 
 Engineering-review rung details now reuse the Programs & routines ladder

@@ -205,6 +205,7 @@
     renderRoutines();
     renderGroups();
     if (state.view === "groups") classificationBrowser.refresh();
+    if (state.view === "field-io") fieldIOBrowser.refresh();
     if (state.view === "map") ladderMap.refresh();
     renderChanges();
     renderGuide();
@@ -246,6 +247,7 @@
     window.PLCInstructionHelp?.close?.();
     if (state.view === 'map' && view !== 'map') ladderMap.deactivate?.();
     if (state.view === 'routines' && view !== 'routines') routineBrowser.deactivate();
+    if (state.view === 'field-io' && view !== 'field-io') fieldIOBrowser.deactivate();
     if (view === "connections" && state.source?.source?.instructions)
       state.connectionRung = state.source.source.id;
     if (view !== state.view) {
@@ -275,6 +277,7 @@
       .querySelectorAll(".view")
       .forEach((n) => (n.hidden = n.id !== "view-" + view));
     if (view === "routines") routineBrowser.refresh();
+    if (view === "field-io") fieldIOBrowser.refresh();
     if (view === "rungs") run(loadRungs);
     if (view === "objects") run(loadObjects);
     if (view === "groups") {
@@ -288,9 +291,9 @@
   }
 
   function navigateWorkspace(view) {
-    if (view === 'analysis') {
+    if (view === 'analysis' || view === 'patterns') {
       $('page-select').value = ['changes', 'guide'].includes(state.view) ? '' : state.view;
-      return openFullAnalysis();
+      return openFullAnalysis(view === 'patterns' ? 'patterns' : 'overview');
     }
     if (!switchView(view)) { $('page-select').value = state.view; return false; }
     // A source-only window can return to normal browsing through Home or Page.
@@ -324,6 +327,8 @@
       node('p', p?.active_run ? `${Number(s.rung_count || 0).toLocaleString()} captured rungs · ${Number(s.instruction_count || 0).toLocaleString()} instructions · project revision ${p.revision}` : 'Open a completed analysis to begin. Your existing saved project can be reopened without analyzing the L5X again.'),
       node('p', 'Choose or change the source under Project tools → Choose analysis run.'));
     const pages = [
+      ['patterns','Patterns','Compare rungs grouped by instruction and branch structure, then open each occurrence to inspect its source. Save categorization in Rungs or Classification & groups.','Repeated and single-occurrence structures · Opens in a new window · Uses the selected source language'],
+      ['field-io','Field I/O','Browse captured I/O modules by controller, slot and catalog. Inspect field-address evidence, aliases and linked rungs; add whole modules to engineering groups.','DI · DO · AI · AO · unresolved types · captured data direction · search'],
       ['analysis','Full source analysis','Browse the complete saved evidence report: inventory, logic patterns, references, calculations, alarms and unresolved findings.','Opens in a new window · Uses the selected source language'],
       ['routines','Programs & routines','Expand a routine to see its captured ladder with contacts, coils, instruction blocks and parallel branches.','Program or AOI · routine type · name/path search'],
       ['rungs','Rungs','Read one rung from its inputs through conditions and actions to outputs. Inspect the original source, then save categories and properties.','Function family · reviewed category · review status · source search'],
@@ -337,9 +342,11 @@
       const card = node('a', null, 'home-page-card panel');
       // The report server applies the saved language, including before the
       // first language-status response and for native modified link clicks.
-      card.href = view === 'analysis' ? '/analysis#view=overview' : '#view=' + view;
-      if (view === 'analysis') {
-        card.id = 'full-analysis-card'; card.target = '_blank'; card.rel = 'noopener';
+      const reportView = view === 'patterns' ? 'patterns' : view === 'analysis' ? 'overview' : '';
+      card.href = reportView ? '/analysis#view=' + reportView : '#view=' + view;
+      if (reportView) {
+        card.id = view === 'patterns' ? 'patterns-card' : 'full-analysis-card';
+        card.target = '_blank'; card.rel = 'noopener';
       }
       const heading = node('h2', title); heading.id = 'home-page-' + view;
       card.setAttribute('aria-labelledby', heading.id);
@@ -358,6 +365,8 @@
   function pageAccessNote(view, compact = false) {
     const access = {
       home: ['Read only', 'Page directory and current source summary.'],
+      patterns: ['Read only', 'Source structure groups do not establish equivalent behavior. Save categorization in Rungs or Classification & groups.'],
+      'field-io': ['Read & write', 'Inspect captured module and address evidence; add whole module declarations to engineering groups. Source and channel data remain read-only.'],
       analysis: ['Read only', 'Saved source evidence and analysis; review decisions are edited in the workspace.'],
       routines: ['Read only', 'Captured ladders and declarations. Open rung review to edit decisions.'],
       rungs: ['Read & write', 'Save categories, properties, review status and group membership beside the original source.'],
@@ -378,14 +387,15 @@
     note.append(badge, node('span', description));
     return note;
   }
-  function openFullAnalysis() {
+  function openFullAnalysis(view = 'overview') {
     // Reading a separate evidence window must not discard an unfinished review.
-    const url = '/analysis#view=overview';
+    const patterns = view === 'patterns';
+    const url = '/analysis#view=' + (patterns ? 'patterns' : 'overview');
     const opened = window.open(url, '_blank', 'popup,width=1400,height=900');
     if (opened) opened.opener = null;
     else {
       notify('The browser blocked the analysis window. Use this link to open it in a new tab.');
-      const fallback = node('a', 'Open full source analysis in a new tab');
+      const fallback = node('a', patterns ? 'Open Patterns in a new tab' : 'Open full source analysis in a new tab');
       fallback.href = url; fallback.target = '_blank'; fallback.rel = 'noopener';
       $('notice').append(fallback);
     }
@@ -2787,7 +2797,7 @@
     const view = parameters.get("view");
     const source = parameters.get("source") || "";
     if (
-      !["home", "routines", "rungs", "objects", "map", "connections", "groups", "changes", "guide"].includes(view) ||
+      !["home", "field-io", "routines", "rungs", "objects", "map", "connections", "groups", "changes", "guide"].includes(view) ||
       source.length > 256 ||
       /[\x00-\x1f\x7f]/.test(source)
     )
@@ -2802,6 +2812,7 @@
     if (state.view === "rungs") run(loadRungs);
     if (state.view === "objects") run(loadObjects);
     if (state.view === "routines") routineBrowser.wordingChanged();
+    if (state.view === "field-io") fieldIOBrowser.refresh();
   }
   async function openLocation(skipCheck = false) {
     const location = requestedLocation();
@@ -2866,6 +2877,16 @@
     api, getState: () => state.project, reportLink: link,
     review: (routineId, sourceId) => run(() => openRoutineRungs(routineId, sourceId)),
     inspect: instruction => popupWorkspace(instruction.id, 'source'),
+  });
+  const fieldIOBrowser = window.PLCFieldIO.mount($('field-io-browser'), {
+    api, getState: () => state.project,
+    addToGroup: ids => groupPicker(ids),
+    openSource: (id, kind) => run(async () => {
+      if (!discard()) return;
+      const view = kind === 'rung' ? 'rungs' : 'objects';
+      switchView(view, true);
+      await openSource(id, view === 'rungs' ? 'rung-detail' : 'object-detail', true);
+    }),
   });
   const translations = window.PLCTranslation.mount($("translation-controls"), api, translationChanged, $("header-language"));
   installHeaderLayout();

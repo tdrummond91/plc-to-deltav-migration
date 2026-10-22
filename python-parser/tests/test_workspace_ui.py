@@ -182,6 +182,16 @@ class WorkspacePageTests(unittest.TestCase):
         self.assertNotIn('project-navigation', page.parents)
         self.assertNotIn('routine-tree', page.parents)
 
+    def test_page_menu_puts_patterns_first_and_keeps_full_analysis_separate(self) -> None:
+        html = (ASSETS / 'index.html').read_text(encoding='utf-8')
+        menu = re.search(r'<select id="page-select">(.*?)</select>', html, re.DOTALL)
+        self.assertIsNotNone(menu)
+        values = re.findall(r'<option value="([^"]+)"', menu.group(1))
+        self.assertEqual(values, ['home', 'patterns', 'field-io', 'analysis', 'routines', 'rungs',
+                                  'map', 'connections', 'groups', 'objects'])
+        self.assertNotIn('view-patterns', page_ids := [attrs.get('id') for _, attrs in Page().elements])
+        self.assertNotIn('view-analysis', page_ids)
+
 
 @unittest.skipUnless(NODE, "Node is optional developer tooling")
 class WorkspaceInteractionTests(unittest.TestCase):
@@ -511,12 +521,14 @@ assert.equal(visible,'rung-b');assert.equal(state.source.source.id,'rung-b');ass
 window.location={hash:'#view=rungs&source=rung_abc'};
 assert.deepEqual(requestedLocation(),{view:'rungs',source:'rung_abc'});
 window.location.hash='#view=objects&source=tag_abc';assert.equal(requestedLocation().source,'tag_abc');
-for(const hash of ['#main','#view=bad','#view=rungs&source=a&source=b','#view=rungs&extra=x','#view=groups&source=a','#view=rungs&source=%00','#view=rungs&source='+ 'a'.repeat(257),'#view=rungs&source='+ 'a'.repeat(2049)]){
+for(const hash of ['#main','#view=bad','#view=patterns','#view=analysis','#view=rungs&source=a&source=b','#view=rungs&extra=x','#view=groups&source=a','#view=rungs&source=%00','#view=rungs&source='+ 'a'.repeat(257),'#view=rungs&source='+ 'a'.repeat(2049)]){
   window.location.hash=hash;assert.equal(requestedLocation(),null,hash);
 }
 window.location.hash='';assert.deepEqual(requestedLocation(),{view:'home',source:''});
 window.location.hash='#view=map&source=rung_abc';assert.deepEqual(requestedLocation(),{view:'map',source:'rung_abc'});
 window.location.hash='#view=connections&source=rung_abc';assert.equal(requestedLocation().view,'connections');
+window.location.hash='#view=field-io';assert.deepEqual(requestedLocation(),{view:'field-io',source:''});
+window.location.hash='#view=field-io&source=module-1';assert.equal(requestedLocation(),null);
 """)
 
     def test_popouts_use_same_origin_source_ids_and_detach_opener(self) -> None:
@@ -598,38 +610,63 @@ importDialog=()=>{};state.project={active_run:'invented',revision:3,source:{name
 const visits=[];navigateWorkspace=view=>visits.push(view);
 renderHome();assert.ok(contents($('home-source')).includes('Invented.L5X'));
 const links=descendants($('home-pages')).filter(n=>n.tagName==='a');
-assert.equal(links.length,7);
+assert.equal(links.length,9);
 assert.deepEqual($('home-pages').children,links);
 links.forEach(link=>link.events.click({preventDefault(){}}));
-assert.deepEqual(visits,['analysis','routines','rungs','map','connections','groups','objects']);
-links[0].events.click({ctrlKey:true,preventDefault(){throw new Error('Keep native new-tab navigation');}});
-assert.equal(visits.length,7);
+assert.deepEqual(visits,['patterns','field-io','analysis','routines','rungs','map','connections','groups','objects']);
+for(const card of [links[0],links[2]]){
+  for(const modifiers of [{ctrlKey:true},{metaKey:true},{shiftKey:true},{button:1}]){
+    card.events.click({...modifiers,preventDefault(){throw new Error('Keep native new-window navigation');}});
+  }
+  assert.equal(card.target,'_blank');assert.equal(card.rel,'noopener');
+}
+assert.equal(visits.length,9);
 // No language override: server applies the saved preference, even before UI status loads.
-assert.equal(links[0].href,'/analysis#view=overview');
-assert.equal(links[0].target,'_blank');assert.equal(links[0].rel,'noopener');
+assert.equal(links[0].href,'/analysis#view=patterns');assert.equal(links[0].id,'patterns-card');
+assert.equal(links[1].href,'#view=field-io');assert.equal(links[1].children[0].textContent,'Field I/O');
+assert.equal(links[2].href,'/analysis#view=overview');assert.equal(links[2].id,'full-analysis-card');
+assert.equal(links[0].children[0].textContent,'Patterns');
+assert.ok(contents(links[0]).includes('Save categorization in Rungs or Classification & groups'));
+assert.ok(links[0].children[1].title.includes('do not establish equivalent behavior'));
 assert.deepEqual(links.map(card=>card.children[1].textContent),
-  ['Read only','Read only','Read & write','Read & write','Read only','Read & write','Read & write']);
+  ['Read only','Read & write','Read only','Read only','Read & write','Read & write','Read only','Read & write','Read & write']);
 assert.ok(contents($('home-pages')).includes('AI, AO, DI, DO, DC, AC, PID'));
 """)
 
-    def test_analysis_window_preserves_unsaved_form_and_recovers_blocked_popups(self) -> None:
+    def test_analysis_windows_preserve_unsaved_form_and_recover_blocked_popups(self) -> None:
         self.run_js(['navigateWorkspace', 'openFullAnalysis'], r"""
 const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
 const calls=[],opened={opener:'workspace'};window.open=(...args)=>{calls.push(args);return opened;};
 discard=()=>{throw new Error('Opening evidence must not discard a review');};
 switchView=()=>{throw new Error('Opening evidence must not navigate the editor');};
 const selected={source:{id:'rung-current'}};state.source=selected;state.dirty=true;state.view='rungs';
-$('page-select').value='analysis';
-assert.equal(navigateWorkspace('analysis'),true);
-assert.deepEqual(calls[0],['/analysis#view=overview','_blank','popup,width=1400,height=900']);
-assert.equal(opened.opener,null);assert.equal($('page-select').value,'rungs');
-assert.equal(state.source,selected);assert.equal(state.dirty,true);assert.equal(state.view,'rungs');
-window.open=()=>null;state.view='guide';
-assert.equal(navigateWorkspace('analysis'),false);assert.equal($('page-select').value,'');
-const fallback=$('notice').children[0];
-assert.equal(fallback.href,'/analysis#view=overview');
-assert.equal(fallback.target,'_blank');assert.equal(fallback.rel,'noopener');
-assert.ok(notice.includes('blocked'));assert.equal(state.source,selected);assert.equal(state.dirty,true);
+for(const [page,report] of [['patterns','patterns'],['analysis','overview']]){
+  $('page-select').value=page;
+  assert.equal(navigateWorkspace(page),true);
+  assert.deepEqual(calls.at(-1),['/analysis#view='+report,'_blank','popup,width=1400,height=900']);
+  assert.equal(opened.opener,null);assert.equal($('page-select').value,'rungs');
+  assert.equal(state.source,selected);assert.equal(state.dirty,true);assert.equal(state.view,'rungs');
+}
+window.open=()=>null;
+for(const [page,report,activeView] of [['patterns','patterns','guide'],['analysis','overview','changes']]){
+  state.view=activeView;$('notice').replaceChildren();$('page-select').value=page;
+  assert.equal(navigateWorkspace(page),false);assert.equal($('page-select').value,'');
+  const fallback=$('notice').children[0];
+  assert.equal(fallback.href,'/analysis#view='+report);
+  assert.equal(fallback.target,'_blank');assert.equal(fallback.rel,'noopener');
+  assert.ok(fallback.textContent.includes(page==='patterns'?'Patterns':'full source analysis'));
+  assert.ok(notice.includes('blocked'));assert.equal(state.source,selected);assert.equal(state.dirty,true);
+  assert.equal(state.view,activeView);
+}
+""")
+
+    def test_field_io_view_refreshes_and_invalidates_background_requests_on_exit(self) -> None:
+        self.run_js(['switchView'], r"""
+const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
+document.querySelectorAll=()=>[];let refreshes=0,exits=0;
+fieldIOBrowser={refresh:()=>refreshes++,deactivate:()=>exits++};state.view='home';
+assert.equal(switchView('field-io'),true);assert.equal(refreshes,1);assert.equal($('page-select').value,'field-io');
+assert.equal(switchView('home'),true);assert.equal(exits,1);assert.equal(state.view,'home');
 """)
 
     def test_changed_analysis_clears_unavailable_routine_filter(self) -> None:
