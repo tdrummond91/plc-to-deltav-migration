@@ -123,6 +123,7 @@ class VariableIndex:
         # Shared, authenticated immutable records also support the field-I/O
         # projection; keep references rather than copying the saved evidence.
         self._captured, self._references = captured, refs
+        self._source = source  # Shared immutable bytes for qualified authored I/O comments.
         self._resolver = _Resolver(captured)
         self._entities = {row.id: row for row in captured.entities}
         self._rungs = {row.id: row for row in captured.rungs}

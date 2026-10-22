@@ -3,6 +3,17 @@
   'use strict';
   const PAGE_SIZE = 24, USE_SIZE = 12;
   const types = {di: 'DI · digital input', do: 'DO · digital output', ai: 'AI · analogue input', ao: 'AO · analogue output', unknown: 'Unresolved field type'};
+  const moduleTypes = {di: types.di, do: types.do, ai: types.ai, ao: types.ao,
+    mixed: 'Mixed field I/O', non_field: 'Controller / network', unknown: 'Unclassified'};
+  const moduleRoles = {field_io: 'Field I/O', controller: 'Controller', communication: 'Communication / network', unknown: 'Unresolved module role'};
+  const typeReasons = {
+    exact_vendor_catalog: 'Exact vendor and catalog recognized',
+    source_unqualified: 'Source declaration could not be verified',
+    missing_catalog: 'Catalog number is missing',
+    unsupported_vendor: 'Vendor is not supported by the catalog lookup',
+    user_defined_catalog: 'User-defined catalog needs review',
+    unsupported_catalog: 'Catalog is not yet in the supported lookup',
+  };
   const human = value => String(value ?? '').replaceAll('_', ' ');
   const el = (tag, text, cls = '') => {
     const result = document.createElement(tag); result.className = cls;
@@ -47,7 +58,7 @@
     const filters = el('form', undefined, 'filters field-io-filters');
     const search = el('input', undefined, 'field-io-search');
     search.type = 'search'; search.maxLength = 256; search.placeholder = 'Name, catalog, address, alias or original description…';
-    const type = choices([['', 'All field types'], ...Object.entries(types)], 'field-io-type');
+    const type = choices([['', 'All module types'], ...Object.entries(moduleTypes)], 'field-io-type');
     const direction = choices([['', 'All captured directions'], ['input', 'Input data'], ['output', 'Output data'], ['configuration', 'Configuration data']], 'field-io-direction');
     const find = el('button', 'Search'); find.type = 'submit';
     const reset = button('Clear filters', () => { search.value = ''; type.value = ''; direction.value = ''; return changeFilters(); });
@@ -78,6 +89,21 @@
       el('p', 'Input and output labels describe captured module data direction. Status, configuration and feedback members are not automatically field points. Linked rungs show recorded source uses, not physical wiring, live values or confirmed device connections.'),
       el('p', 'Search matches captured names, catalogs, addresses, aliases and original descriptions. English translations change the displayed wording; they do not replace the source search terms.'),
       el('p', 'Descriptions follow the header language setting and retain original wording when English is unavailable. Select whole module cards to add their declarations to an existing engineering group or create a new group. Use Classification & groups to edit the saved grouping.'));
+    const glossary = el('details', undefined, 'field-io-glossary');
+    glossary.append(el('summary', 'Field I/O glossary'), facts([
+      ['DI', 'Digital input: an on/off field signal, such as a switch contact.'],
+      ['DO', 'Digital output: an on/off command to field equipment.'],
+      ['AI', 'Analogue input: a measured numeric signal, such as pressure or level.'],
+      ['AO', 'Analogue output: a variable numeric command to field equipment.'],
+      ['Mixed I/O card', 'One module supports more than one field type. It appears in each matching type filter.'],
+      ['Controller / network', 'A recognized controller or communication module, separated from field I/O cards.'],
+      ['Channel', 'An individual I/O path on a module. A source member index alone does not prove the wired terminal.'],
+      ['Address', 'A captured tag or member reference. Several source records can describe the same physical signal.'],
+      ['Alias', 'An exported name that refers to another source address.'],
+      ['Catalog function', 'A description derived from manufacturer documentation for the recognized catalog.'],
+      ['Source description', 'Wording captured in this L5X export, with cached English shown when selected.'],
+    ]));
+    help.append(glossary);
     root.append(filters, totals, status, selection, help, layout);
     let key = '', runId = '', active = false, directorySerial = 0, detailSerial = 0;
     let page = 1, signalPage = 1, moduleId = '', lastDirectory = null, directoryMode = 'original';
@@ -118,13 +144,40 @@
     function paintTotals(coverage) {
       totals.replaceChildren();
       if (coverage?.module_type_counts_scope !== 'all_captured_modules') return;
-      const counts = coverage.modules_by_field_type;
-      if (!counts || Object.keys(types).some(name => !Number.isInteger(counts[name]) || counts[name] < 0)) return;
-      totals.append(el('p', 'Module types across the complete source · counts describe cards, not wired points', 'muted'));
-      Object.entries(types).forEach(([value, label]) => {
-        const choose = button(`${label} · ${counts[value].toLocaleString()}`, () => { type.value = value; return changeFilters(); }, 'field-io-type-tile');
+      const counts = coverage.modules_by_field_type, filterCounts = coverage.modules_by_filter;
+      const validCounts = value => value && Object.keys(moduleTypes).every(name => Number.isInteger(value[name]) && value[name] >= 0);
+      if (!validCounts(counts) || !validCounts(filterCounts)) return;
+      const recognized = counts.di + counts.do + counts.ai + counts.ao + counts.mixed;
+      const total = recognized + counts.non_field + counts.unknown;
+      totals.append(el('p', `${total.toLocaleString()} captured module record${total === 1 ? '' : 's'} · ${recognized.toLocaleString()} recognized field I/O card${recognized === 1 ? '' : 's'} · ${counts.non_field.toLocaleString()} controller/network record${counts.non_field === 1 ? '' : 's'} · ${counts.unknown.toLocaleString()} unclassified module record${counts.unknown === 1 ? '' : 's'}.`, 'field-io-count-summary'));
+      totals.append(el('p', 'Module catalog coverage across the complete source · counts describe module declarations, not field-point addresses or wired channels.', 'muted'));
+      Object.entries(moduleTypes).forEach(([value, label]) => {
+        const amount = filterCounts[value];
+        const quantity = ['unknown', 'non_field'].includes(value) ? `module record${amount === 1 ? '' : 's'}` : amount === 1 ? 'card' : 'cards';
+        const choose = button(`${label} · ${amount.toLocaleString()} ${quantity}`, () => { type.value = value; return changeFilters(); }, 'field-io-type-tile');
         choose.setAttribute('aria-pressed', String(type.value === value)); totals.append(choose);
       });
+      if (counts.mixed) totals.append(el('p', 'Mixed cards appear in every matching DI, DO, AI or AO filter. These filter counts overlap; the module total above counts each record once.', 'muted'));
+      const roles = coverage.modules_by_role;
+      if (roles && ['controller', 'communication'].every(role => Number.isInteger(roles[role]) && roles[role] >= 0))
+        totals.append(el('p', `Recognized infrastructure: ${roles.controller.toLocaleString()} controller record${roles.controller === 1 ? '' : 's'} · ${roles.communication.toLocaleString()} communication/network record${roles.communication === 1 ? '' : 's'}.`, 'muted'));
+      if (Number.isInteger(coverage.point_mapped_addresses) && coverage.point_mapped_addresses >= 0)
+        totals.append(el('p', `Separate address coverage: ${coverage.point_mapped_addresses.toLocaleString()} documented field-point addresses across the captured source. These are address records, not a count of distinct wired points.`, 'muted'));
+      if (counts.unknown) {
+        totals.append(el('p', 'Catalog coverage is incomplete. Unclassified module records can include unsupported I/O or infrastructure catalogs. A zero recognized AI or AO card count does not establish that analogue I/O is absent. Open an unclassified record to inspect its catalog and classification reason.', 'field-io-coverage-note'));
+        const reasons = coverage.modules_by_field_type_reason;
+        const unresolved = Object.keys(typeReasons).filter(reason => reason !== 'exact_vendor_catalog');
+        if (reasons && unresolved.every(reason => Number.isInteger(reasons[reason]) && reasons[reason] >= 0)
+            && unresolved.reduce((sum, reason) => sum + reasons[reason], 0) === counts.unknown) {
+          const breakdown = el('details', undefined, 'field-io-reason-counts');
+          breakdown.append(el('summary', 'Why module records are unclassified'));
+          const list = el('ul');
+          unresolved.filter(reason => reasons[reason] > 0).forEach(reason => {
+            list.append(el('li', `${typeReasons[reason]} · ${reasons[reason].toLocaleString()} module record${reasons[reason] === 1 ? '' : 's'}`));
+          });
+          breakdown.append(list); totals.append(breakdown);
+        }
+      }
     }
     function placeholder() {
       detail.replaceChildren(el('h2', 'Choose a module'), el('p', 'Open a card to inspect its captured addresses, aliases and recorded rung uses.'));
@@ -135,6 +188,19 @@
         if (!current(expected)) { ensureCurrent(); return; }
         return options.openSource(id, kind);
       }, 'text-link');
+    }
+    function sourceReportLink(label, view, ownerId = '') {
+      const expected = key;
+      const link = el('a', label, 'text-link');
+      link.href = '/analysis#view=' + encodeURIComponent(view)
+        + (ownerId ? '&source=' + encodeURIComponent(ownerId) : '');
+      link.target = '_blank'; link.rel = 'noopener';
+      const guard = event => {
+        if (!current(expected)) { event.preventDefault(); ensureCurrent(); }
+      };
+      link.addEventListener('click', guard);
+      link.addEventListener('auxclick', guard);
+      return link;
     }
     function paging(target, result, label, load) {
       const previous = button('Previous ' + label, () => { if (ensureCurrent()) return load(result.page - 1); });
@@ -166,11 +232,14 @@
         });
         const heading = el('div', undefined, 'field-io-card-heading');
         heading.append(title, field('Select whole module', pick));
-        card.append(heading, el('span', types[module.field_type] || types.unknown, 'chip'),
+        card.append(heading, el('span', moduleTypes[module.field_type] || moduleTypes.unknown, 'chip'),
           facts([['Controller', module.controller?.name], ['Parent / rack', module.parent_module_name],
             ['Slot', module.slot], ['Catalog', module.catalog_number],
             ['Data directions', (module.directions || []).map(human).join(' · ') || 'Unresolved']]));
-        description(card, module, directoryMode);
+        if (module.field_type === 'unknown')
+          card.append(el('p', typeReasons[module.field_type_reason] || 'Catalog classification is unresolved', 'field-io-classification-reason'));
+        catalogFunction(card, module);
+        description(card, module, directoryMode, true);
         if (Number.isInteger(module.point_mapped_address_count))
           card.append(el('strong', `${module.point_mapped_address_count} documented field-point address${module.point_mapped_address_count === 1 ? '' : 'es'}`, 'field-io-point-count'));
         card.append(el('small', `${module.address_count || 0} captured addresses · ${module.rung_count || 0} linked rungs`, 'muted'));
@@ -201,11 +270,70 @@
         if (current(expected) && serial === directorySerial) directory.removeAttribute('aria-busy');
       }
     }
-    function description(parent, record, mode) {
+    function catalogFunction(parent, module, full = false) {
+      const block = el('section', undefined, 'field-io-catalog-function');
+      block.append(el('strong', 'Catalog function'), el('p', module.catalog_description || 'No manufacturer description is available for this catalog yet.'));
+      if (module.catalog_family) block.append(el('small', 'Catalog family: ' + module.catalog_family, 'muted'));
+      block.append(el('small', module.catalog_description
+        ? 'Manufacturer documentation; separate from the L5X source wording.'
+        : 'Catalog metadata is separate from the L5X source wording.', 'muted'));
+      if (full) {
+        const capacity = module.catalog_capacity;
+        if (capacity && ['di', 'do', 'ai', 'ao'].some(kind => Number.isInteger(capacity[kind]) && capacity[kind] > 0)) {
+          const heading = module.catalog_capacity_basis === 'maximum_configuration_dependent'
+            ? 'Documented maximum capacity (configuration dependent)' : 'Documented catalog capacity';
+          block.append(el('strong', heading), facts(['di', 'do', 'ai', 'ao']
+            .filter(kind => Number.isInteger(capacity[kind]) && capacity[kind] > 0)
+            .map(kind => [types[kind], capacity[kind]])),
+          el('small', 'Catalog capacity does not establish the active configuration or the number of wired points.', 'muted'));
+        }
+        if (typeof module.catalog_reference === 'string') {
+          try {
+            const url = new URL(module.catalog_reference);
+            if (url.protocol === 'https:' && ['rockwellautomation.com', 'www.rockwellautomation.com', 'literature.rockwellautomation.com', 'configurator.rockwellautomation.com'].includes(url.hostname) && !url.username && !url.password && !url.port) {
+              const reference = el('a', 'Catalog reference' + (module.catalog_publication ? ' · ' + module.catalog_publication : '')
+                + (module.catalog_reference_page ? ' · p. ' + module.catalog_reference_page : '') + ' ↗');
+              reference.href = url.href; reference.target = '_blank'; reference.rel = 'noopener noreferrer'; block.append(reference);
+            }
+          } catch { /* Source text is not treated as an external link. */ }
+        }
+      }
+      parent.append(block);
+    }
+    function description(parent, record, mode, compact = false) {
+      const notes = record.source_annotations;
+      if (Array.isArray(notes) && notes.length) {
+        const section = el(compact ? 'details' : 'section', undefined, 'field-io-source-annotations');
+        section.append(el(compact ? 'summary' : 'h4', 'Source comments and descriptions'));
+        notes.slice(0, 8).forEach(note => {
+          const entry = el('article', undefined, 'field-io-source-note');
+          const label = note.kind === 'member_comment' ? 'Member comment' : note.kind === 'source_description' ? 'Source description' : 'Captured source note';
+          const basis = note.via === 'alias' ? 'Via alias' + (note.owner_name ? ': ' + note.owner_name : '')
+            : note.via === 'backing_declaration' ? 'Backing tag' : note.via === 'module' ? 'Module declaration' : '';
+          const provenance = [label, basis,
+            note.language ? 'Recorded language: ' + note.language : '', note.suffix || ''].filter(Boolean);
+          entry.append(el('strong', provenance.join(' · ')));
+          const prose = el('div', undefined, 'field-io-description');
+          if (window.PLCTranslation?.renderProse) window.PLCTranslation.renderProse(prose, note.text, note.wording, mode);
+          else prose.textContent = note.text || 'No note text captured';
+          entry.append(prose);
+          if (note.owner_id) entry.append(sourceReportLink('Open note source' + (note.owner_name ? ': ' + note.owner_name : ''), 'objects', note.owner_id));
+          if (note.text_truncated || note.wording?.text_truncated) entry.append(el('small', 'Source note preview shortened; use Open note source to read its complete wording in a separate window.', 'muted'));
+          section.append(entry);
+        });
+        if (record.source_annotations_truncated || notes.length > 8) {
+          const total = Number.isInteger(record.source_annotations_total) ? ` of ${record.source_annotations_total}` : '';
+          section.append(el('p', `Showing ${Math.min(notes.length, 8)}${total} source comments and descriptions. Browse all source comments to find the additional wording in a separate window.`, 'muted'),
+            sourceReportLink('Browse all source comments', 'annotations'));
+        }
+        parent.append(section); return;
+      }
+      const backing = record.description_basis === 'backing_declaration';
+      parent.append(el('strong', backing ? 'Backing tag description' : 'Source description', 'field-io-description-label'));
       const prose = el('div', undefined, 'field-io-description');
       if (record.description && window.PLCTranslation?.renderProse)
         window.PLCTranslation.renderProse(prose, record.description, record.wording?.description, mode);
-      else prose.textContent = record.description || 'No source description';
+      else prose.textContent = record.description || (backing ? 'No backing tag description captured' : 'No source description captured');
       parent.append(prose);
       if (record.description_truncated || record.wording?.description?.text_truncated)
         parent.append(el('small', 'Description preview shortened; open the source for complete wording.', 'muted'));
@@ -275,21 +403,17 @@
       const module = result.selected_module;
       if (!result.available || !module) { detail.append(el('p', result.notice || 'Module details are unavailable.')); return; }
       detail.append(el('h2', module.name || 'Unnamed module'), el('p', module.path, 'muted'),
-        el('span', types[module.field_type] || types.unknown, 'chip'),
+        el('span', moduleTypes[module.field_type] || moduleTypes.unknown, 'chip'),
         facts([['Controller', module.controller?.path || module.controller?.name], ['Catalog', module.catalog_number],
           ['Parent / rack', module.parent_module_name], ['Slot', module.slot], ['Location evidence', human(module.location_status)],
-          ['Type evidence', human(module.field_type_basis)],
-          [module.point_count_basis === 'maximum_configuration_dependent' ? 'Maximum capacity (configuration dependent)' : 'Documented rated capacity', module.point_count]]));
+          ['Module role', moduleRoles[module.module_role] || moduleRoles.unknown],
+          ['Supported field types', Array.isArray(module.field_types) && module.field_types.length ? module.field_types.map(kind => types[kind] || human(kind)).join(' · ') : 'None identified'],
+          ['Type evidence', human(module.field_type_basis)], ['Classification reason', typeReasons[module.field_type_reason] || 'Not provided by this analysis'],
+          ...(Number.isInteger(module.point_count) && module.point_count >= 0
+            ? [[module.point_count_basis === 'maximum_configuration_dependent' ? 'Maximum capacity (configuration dependent)' : 'Documented rated capacity', module.point_count]] : [])]));
+      catalogFunction(detail, module, true);
       description(detail, module, result.presentation_mode || 'original');
       detail.append(sourceButton('Open module source', module.id));
-      if (typeof module.catalog_reference === 'string') {
-        try {
-          const url = new URL(module.catalog_reference);
-          if (url.protocol === 'https:' && ['rockwellautomation.com', 'www.rockwellautomation.com', 'literature.rockwellautomation.com'].includes(url.hostname) && !url.username && !url.password && !url.port) {
-            const reference = el('a', 'Catalog reference ↗'); reference.href = url.href; reference.target = '_blank'; reference.rel = 'noopener noreferrer'; detail.append(reference);
-          }
-        } catch { /* Source text is not treated as an external link. */ }
-      }
       const sourceInfo = el('details', undefined, 'field-io-module-source');
       sourceInfo.append(el('summary', 'Captured module connections and declarations'));
       ['ports', 'roots', 'rack_aliases'].forEach(name => {

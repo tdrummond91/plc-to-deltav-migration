@@ -735,6 +735,12 @@ class Workspace:
             for row in visible:
                 entry = wording.get(originals.get(row['id']))
                 row['wording'] = {'description': _preview(entry) if type(entry) is dict else None}
+            notes = [note for row in visible for note in row.get('source_annotations', [])]
+            note_originals = {note['id']: index.annotation_texts[note['id']] for note in notes} if index else {}
+            _, note_wording = self._wording([{'text': value} for value in note_originals.values()], 'text')
+            for note in notes:
+                entry = note_wording.get(note_originals[note['id']])
+                note['wording'] = _preview(entry) if type(entry) is dict else None
             result['presentation_mode'] = mode
             if len(_json(result)) > MAX_RESPONSE_BYTES:
                 raise FieldIOError('Saved field I/O evidence is inconsistent or exceeds its limits.')

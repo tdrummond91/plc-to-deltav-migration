@@ -2285,7 +2285,15 @@
       related.append(localLinkNotice(),relationshipLinkTable(linksByRung.get(r.id)||[],'Rung local calculation links'));content.append(related);
     }
   }
-  function rungList(rows=rungs.filter(r=>matches(r)&&(state.filter==='all'||r.parse_status===state.filter))){return table(['Rung','Routine / scope','Source preview','Parse status'],rows,r=>[link(rungNumber(r),r.id),entityPath(r.parent_id),node('div','snippet',short(r.text,180)),badge(r.parse_status)],'Ladder rungs');}
+  function visualRungTable(rows,caption){
+    const listing=table(['Rung','Ladder / equation'],rows,r=>[rungContextButton(r),window.PLCLadderDiagram?window.PLCLadderDiagram.render(r,{sourceQualified:qualifiedRungs.has(r.id),compact:true,helpContext}):sourceText(r.text)],caption,{pageSize:10});
+    listing.className='pattern-occurrences';return listing;
+  }
+  function rungList(rows=rungs.filter(r=>matches(r)&&(state.filter==='all'||r.parse_status===state.filter))){
+    const list=node('section','visual-rung-list');
+    list.append(node('p','row-note','Hover or focus the rung number for routine, scope and comment. Its color indicates parse status; click it for complete source and review links. Ten drawings load per page.'),visualRungTable(rows,'Ladder rungs'));
+    return list;
+  }
   function objectDetail(e){
     if(alarmByOwner.has(e.id)){
       const p=panel('Alarm source evidence','Inspect each declaration or captured XML record separately. Definition templates and stored settings are not active alarm instances.');
@@ -2295,6 +2303,13 @@
     if(byExecutionSource.has(e.id))content.append(button('Inspect execution context',()=>openDetail('executioncontext',byExecutionSource.get(e.id))));
     const meta=node('div','detail-meta');meta.append(badge(e.kind));if(e.attributes?.DataType)meta.append(badge(e.attributes.DataType));content.append(meta);
     const description=panel('Source description');description.append(sourceText(e.description,true));content.append(description);
+    const annotations=(language?.entries||[]).filter(entry=>entry.owner_id===e.id);
+    if(annotations.length){
+      const notes=section('Complete source comments and descriptions','Every captured note owned by this declaration. XML locations keep channel comments and localized wording separate.');
+      notes.append(table(['Source location','Kind','Complete wording'],annotations,entry=>[
+        node('span','mono',entry.locator),human(entry.kind),sourceText(entry.original,true)
+      ],'Declaration source comments',{pageSize:10}));content.append(notes);
+    }
     const attributes=panel('Declaration attributes');attributes.append(values(e.attributes));content.append(attributes);
     if(byTagOwner.has(e.id)){
       const stored=section('Stored tag data','Each exported representation is retained separately. Values are not validated or selected as effective runtime settings.');
@@ -2516,9 +2531,20 @@
     const actions=node('div','inline-links');actions.append(button('Open complete rung',()=>openDetail('rung',r.id)),button('Open routine source',()=>openSource(r.parent_id)));
     if(helpContext.runId){const edit=node('a','text-link','Review categories in workspace ↗');edit.href='/#view=rungs&source='+encodeURIComponent(r.id);edit.target='_blank';edit.rel='noopener';actions.append(edit);}
     box.append(actions);rungContext=box;document.body.append(box);anchor.setAttribute('aria-expanded','true');
-    const rect=anchor.getBoundingClientRect(),bounds=box.getBoundingClientRect();
-    box.style.left=Math.max(12,Math.min(rect.right+10,window.innerWidth-bounds.width-12))+'px';
-    box.style.top=Math.max(12,Math.min(rect.top,window.innerHeight-bounds.height-12))+'px';
+    const rect=anchor.getBoundingClientRect(),margin=12,gap=10,width=window.innerWidth,height=window.innerHeight;
+    box.style.maxHeight=Math.max(60,height-margin*2)+'px';
+    let bounds=box.getBoundingClientRect(),left=rect.right+gap,top=rect.top;
+    if(left+bounds.width>width-margin){
+      if(rect.left-gap-bounds.width>=margin)left=rect.left-gap-bounds.width;
+      else{
+        // Leave the clicked rung exposed when a narrow window has no side gap.
+        const below=height-rect.bottom-gap-margin,above=rect.top-gap-margin,useBelow=below>=above;
+        box.style.maxHeight=Math.max(60,useBelow?below:above)+'px';bounds=box.getBoundingClientRect();
+        left=rect.left;top=useBelow?rect.bottom+gap:rect.top-gap-bounds.height;
+      }
+    }
+    box.style.left=Math.max(margin,Math.min(left,width-bounds.width-margin))+'px';
+    box.style.top=Math.max(margin,Math.min(top,height-bounds.height-margin))+'px';
     box.addEventListener('pointerenter',()=>clearTimeout(rungContextHide));
     const leave=event=>{if(!box.contains(event.relatedTarget)&&!anchor.contains(event.relatedTarget)&&!box.contains(document.activeElement))rungContextHide=setTimeout(closeRungContext,220);};
     box.addEventListener('pointerleave',leave);box.addEventListener('focusout',leave);
@@ -2551,8 +2577,7 @@
     const occurrences=section('Source occurrences','Hover or focus a rung number for its routine, scope and comment. Click it for complete source details. Block and variable help works as in Programs & routines. Ten drawings load per page.');
     const legend=node('p','pattern-status-legend');legend.append(node('span','pattern-status-parsed','Teal: parsed'),node('span','pattern-status-warning','Amber: incomplete / other'),node('span','pattern-status-error','Red: parse error'),node('span','','Parse status describes syntax capture, not engineering approval.'));occurrences.append(legend);
     const rows=(p.rung_ids||[]).map(id=>byRung.get(id)).filter(Boolean);
-    const listing=table(['Rung','Ladder / equation'],rows,r=>[rungContextButton(r),window.PLCLadderDiagram?window.PLCLadderDiagram.render(r,{sourceQualified:qualifiedRungs.has(r.id),compact:true,helpContext}):sourceText(r.text)],'Pattern occurrences',{pageSize:10});
-    listing.className='pattern-occurrences';occurrences.append(listing);content.append(occurrences);
+    occurrences.append(visualRungTable(rows,'Pattern occurrences'));content.append(occurrences);
     const ops=panel('Instruction signature','The number in brackets is the argument count, not a classified instruction role.');ops.append(table(['Opcode','Argument count','Occurrences in shape'],p.opcode_summary||[],o=>[node('span','mono',o.opcode),fmt(o.arity),fmt(o.count)],'Pattern opcode signature'));content.append(ops);
     const shape=node('details','technical');shape.append(node('summary','','Ordered syntax shape'),sourceText(p.shape));content.append(shape,technical({'Pattern ID':p.id}));
   }

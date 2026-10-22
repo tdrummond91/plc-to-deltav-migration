@@ -1,5 +1,55 @@
 # Current handoff: PLC analysis workbench
 
+## Restore I/O wording and complete the routine drawing paths (2026-10-22)
+
+The report's Routine ladder, Ladder directory and operand-reuse lists still
+used text snippets after the individual-rung and pattern views gained drawings.
+They now share the same ten-row graphic table, branch/equation rendering,
+85% initial scale, help controls and scope/comment context. Narrow-window
+context panels use space above or below the rung rather than covering its
+click target.
+
+Field I/O's previous DI/DO figures counted module declarations, not physical
+points. Its 39-model lookup also omitted many analogue and infrastructure
+products. The offline library now contains 223 exact vendor/catalog identities:
+1756 digital, isolated/HART/RTD analogue and mixed cards, controllers and
+communication products, plus selected 1794 analogue cards. Each record keeps
+its vendor publication, page, function and rated/configuration-dependent
+capacity. The four independently documented member layouts remain a separate
+gate; recognizing a card does not prove which addresses map to wired devices.
+
+The page separates controller/network records, mixed cards and unclassified
+records with explicit reasons. Filter counts include mixed cards in each
+supported category; disjoint module totals avoid double-counting. Manufacturer
+functions remain separate from plant-authored descriptions. Zero recognized
+AI/AO cards is explicitly incomplete recognition, not evidence of absence.
+
+`workspace_io_comments.py` recovers direct/localized descriptions and
+Comments/Comment Operand notes from the authenticated snapshot. Only exact
+module/root/member and qualified alias-to-member joins attach prose; unrelated
+tag comments do not consume the bounded I/O annotation budget. Cached English
+wording is displayed without starting translation. Eight-note/512-character
+previews link to the owner's complete paged report annotations, with a complete
+comments directory for additional owners. Source bytes, saved analysis,
+review decisions and work-machine Git behavior are unchanged.
+
+Independent review found and fixed the unreachable full-comment links and
+unrelated-comment budget issue. All 202 related catalog, annotation, field-I/O,
+variable, report, workspace and language tests passed. Chrome verified an
+invented ten-module export: HART/mixed filters, separate infrastructure roles,
+matching channel/alias wording, complete long comments and later annotation
+pages, ten-drawing routine pages and zoom, and first-click rung navigation at
+400px width. Full-note search also includes text beyond the preview and ninth
+notes. The preview project and screenshots are ignored under
+`confidential/field-io-coverage-preview/`; temporary tabs/server were stopped.
+Existing work-machine counts are not yet revalidated: this PC has only invented
+examples and the bounded aggregate.
+
+Manually pull, stop the existing workspace, then run `bash ./open-workbench.sh`.
+These views can use existing saved source companions. Old standalone HTML files
+keep their embedded presentation; use Full source analysis in the running
+workspace, or rerun `bash ./run-work-check.sh` to generate a new standalone file.
+
 ## Patterns first and physical field-I/O inventory (2026-10-22)
 
 Home and the Page menu lead with Patterns, then Field I/O. Patterns opens the

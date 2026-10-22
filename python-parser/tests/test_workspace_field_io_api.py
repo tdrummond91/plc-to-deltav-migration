@@ -130,6 +130,12 @@ class WorkspaceFieldIOAPITests(unittest.TestCase):
         self.assertEqual(row['description'], 'Invented DiscreteIn module')
         self.assertEqual(row['wording']['description']['text'], 'Cached English wording')
         self.assertEqual(detail['selected_module']['wording']['description']['text'], 'Cached English wording')
+        annotation = detail['selected_module']['source_annotations'][0]
+        self.assertEqual(annotation['text'], 'Invented DiscreteIn module')
+        self.assertEqual(annotation['wording']['text'], 'Cached English wording')
+        point = next(row for row in detail['addresses']['items'] if row['suffix'] == '.Data.0')
+        self.assertEqual(point['source_annotations'][0]['via'], 'alias')
+        self.assertEqual(point['source_annotations'][0]['wording']['text'], 'Cached English wording')
         self.assertEqual(self.workspace.store.inventory(self.run_id), original)
 
     def test_http_filters_identity_and_origin_fail_closed(self) -> None:
@@ -138,7 +144,8 @@ class WorkspaceFieldIOAPITests(unittest.TestCase):
             response = client.get(route)
             self.assertEqual(response['run_id'], self.run_id)
             self.assertEqual(response['modules']['total'], 1)
-            self.assertEqual(response['coverage']['modules_by_field_type'], {'di': 1, 'do': 1, 'ai': 1, 'ao': 1, 'unknown': 2})
+            self.assertEqual(response['coverage']['modules_by_field_type'], {
+                'di': 1, 'do': 1, 'ai': 1, 'ao': 1, 'mixed': 0, 'non_field': 0, 'unknown': 2})
             for route in ('/api/field-io', '/api/field-io?' + urlencode(dict(self.query, page='0')),
                           '/api/field-io?' + urlencode(dict(self.query, module_id='foreign'))):
                 self.assertEqual(client.request(route)[0], 400)

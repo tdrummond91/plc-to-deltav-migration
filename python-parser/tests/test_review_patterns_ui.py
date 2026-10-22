@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import re
 import unittest
 
 from plc_workbench.review import build_review_data
 from plc_workbench.review_html import render_review_html
 from plc_workbench.workspace_classification import _qualify_source
 from plc_workbench.workspace_report import refresh_report
+from plc_workbench.translation_catalog import collect_annotations
 from test_access_review_ui import _NODE
 from test_review import fixture
 import test_review_ladder_ui as ladder_ui
@@ -134,6 +136,30 @@ assert.ok(content.textContent.includes('No records in this section'));
 search('');choose('Filter Patterns','all');assert.deepEqual(counts(),[1,2,2,12]);
 """)
 
+    def test_routine_source_and_ladder_directory_use_same_paged_drawings(self):
+        source, data = repeated_capture()
+        self.check_ui(render_review_html(data, source=source), r"""
+navigate('ladder');
+let listing=tableNamed('Ladder rungs');
+assert.deepEqual(listing.querySelectorAll('th').map(n=>n.textContent),['Rung','Ladder / equation']);
+assert.equal(rows(listing).length,10);
+assert.equal(listing.querySelectorAll('.ladder-diagram').length,10);
+assert.equal(listing.querySelectorAll('.snippet').length,0);
+const anchor=listing.querySelector('.pattern-rung');anchor.focus();
+assert.ok(context().textContent.includes('Invented main comment'));
+clickText(context(),'Open routine source');
+listing=tableNamed('Ladder rungs');
+assert.equal(rows(listing).length,10);
+assert.ok(listing.querySelector('svg'));
+const next=content.querySelectorAll('button').find(n=>n.getAttribute('aria-label')==='Next page: Ladder rungs');next.click();
+assert.equal(rows(tableNamed('Ladder rungs')).length,2);
+assert.deepEqual(tableNamed('Ladder rungs').querySelectorAll('.pattern-rung').map(n=>n.textContent),['Rung 10','Rung 11']);
+const drawing=tableNamed('Ladder rungs').querySelector('.ladder-diagram');
+assert.ok(drawing.querySelectorAll('.ladder-diagram-wire').some(n=>n.getAttribute('data-wire')==='branch-entry'));
+assert.equal(drawing.querySelector('.ladder-diagram-zoom').textContent,'85%');
+clickText(drawing,'Zoom in');assert.equal(drawing.querySelector('.ladder-diagram-zoom').textContent,'100%');
+""")
+
     def test_occurrence_uses_two_columns_shared_branch_graphic_original_zoom_and_help(self):
         source, data = captured()
         self.check_ui(render_review_html(data, source=source), r"""
@@ -158,6 +184,50 @@ assert.ok(help.textContent.includes('Invented worked example'));
 assert.ok(help.textContent.includes('Pressure'));assert.equal(requests.length,0);
 navigate('overview');assert.equal(page.querySelector('.instruction-help-panel'),null);
 """)
+
+    def test_narrow_context_keeps_pointer_target_exposed_above_or_below(self):
+        source, data = repeated_capture()
+        self.check_ui(render_review_html(data, source=source), r"""
+openFirstPattern();const anchor=occurrenceButtons()[0];
+window.innerWidth=400;window.innerHeight=650;
+const originalRect=Element.prototype.getBoundingClientRect;
+Element.prototype.getBoundingClientRect=function(){
+  if(this.matches('.pattern-rung-context'))return {width:376,height:Math.min(320,parseFloat(this.style.maxHeight)||320)};
+  return originalRect.call(this);
+};
+anchor.getBoundingClientRect=()=>({left:20,right:90,top:100,bottom:130,width:70,height:30});
+anchor.focus();assert.ok(parseFloat(context().style.top)>=140);
+dispatch(documentEvents,'pointerdown',{target:page});
+anchor.getBoundingClientRect=()=>({left:20,right:90,top:530,bottom:560,width:70,height:30});
+anchor.events.pointerenter({});
+assert.ok(parseFloat(context().style.top)+context().getBoundingClientRect().height<=520);
+anchor.click();assert.equal(context(),null);assert.ok(heading.textContent.includes('Rung 0'));
+""")
+
+    def test_owner_source_link_exposes_full_member_comments_and_all_pages(self):
+        notes = ''.join(f'<Comment Operand="Data.{i}">note-{i}-' + 'word ' * 120 + '-END</Comment>'
+                        for i in range(12))
+        args = fixture(tags='<Tag Name="Notes" DataType="DINT"><Description>'
+            '<LocalizedDescription Lang="fr-FR">Description locale</LocalizedDescription>'
+            '</Description><Comments>' + notes + '</Comments></Tag>')
+        data = build_review_data(*args)
+        source = args[0].data
+        page = refresh_report(render_review_html(data, source=source).encode(), data['inventory'],
+            catalog=collect_annotations(source, data['inventory']), translations={}).decode()
+        overlay = re.search(r'<div id="review-language-data" hidden>(.*?)</div>', page).group(1)
+        self.check_ui(page, r"""
+let listing=tableNamed('Declaration source comments');
+assert.equal(rows(listing).length,10);
+assert.ok(listing.textContent.includes('Description locale'));
+assert.ok(listing.textContent.includes('note-8-'+'word '.repeat(120)+'-END'));
+const next=content.querySelectorAll('button').find(n=>n.getAttribute('aria-label')==='Next page: Declaration source comments');
+next.click();listing=tableNamed('Declaration source comments');
+assert.equal(rows(listing).length,3);
+assert.ok(listing.textContent.includes('note-11-'+'word '.repeat(120)+'-END'));
+assert.ok(listing.textContent.includes('/Comment[12]'));
+""", setup="window.location={hash:'#view=objects&source='+input.data.inventory.entities.find(e=>e.name==='Notes').id};"
+            + "const overlay=new Element('div');overlay.id='review-language-data';overlay.textContent=JSON.stringify("
+            + overlay + ");page.append(overlay);")
 
     def test_ten_row_pages_keep_all_source_ids_and_repeated_numbers_in_source_order(self):
         source, data = repeated_capture()

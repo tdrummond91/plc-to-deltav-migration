@@ -13,35 +13,29 @@ import re
 from typing import Any
 
 from .references import _ADDRESS
+from .module_catalog import CATALOG_TYPES, lookup_catalog
+from .workspace_io_comments import collect_io_annotations
 from .workspace_variables import VariableIndex, _member_key
 
 PAGE_SIZE = 24
 USE_PAGE_SIZE = 12
 MAX_ALIASES = 8
 MAX_DETAIL = 24
+MAX_ANNOTATIONS = 8
 MAX_PREVIEW = 512
 MAX_ADDRESSES = 100_000
 MAX_INDEX_BYTES = 32 * 1024 * 1024
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
-_DIGITAL_REFERENCE = ('https://www.rockwellautomation.com/en-tr/docs/studio-5000-logix-designer/38-00/'
-    'contents-ditamap/module-information/wiring-diagrams/1756-i-o-module-wiring-diagrams/'
-    'wiring-diagrams-1756-digital-i-o-modules.html')
-_ANALOG_REFERENCE = ('https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/'
-    'contents-ditamap/module-information/wiring-diagrams/1756-i-o-module-wiring-diagrams/'
-    'wiring-diagram---1756-analog-i-o-modules.html')
 _DIGITAL_MANUAL = 'https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1756-um058_-en-p.pdf'
 _ANALOG_MANUAL = 'https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1756-um009_-en-p.pdf'
 _POINT_LAYOUTS = {'1756-IB16': ('input', 'di', 16, 'DINT'),
                   '1756-OB16E': ('output', 'do', 16, 'DINT'),
                   '1756-IF8': ('input', 'ai', 8, 'REAL'),
                   '1756-OF8': ('output', 'ao', 8, 'REAL')}
-# Exact catalog identities only; neither prefixes nor the digits establish a
-# channel count, terminal layout, configured mode, or member-to-point mapping.
-CATALOG_TYPES = {f'1756-{catalog}': kind for kind, catalogs in (
-    ('di', 'IA16 IB16 IB32 IC16 IN16 IV16 IA16I IB16I IH16I IM16I IB16D IA8D'),
-    ('do', 'OA8 OB8 OB32 OC8 ON8 OA16I OB8I OB16I OH8I OW16I OX8I OA16 OB8EI OB16E OV16E OA8E OB16D OA8D'),
-    ('ai', 'IF16 IF8 IF6I IR6I IT6I'), ('ao', 'OF4 OF6CI OF6VI OF8'),
-) for catalog in catalogs.split()}
+FIELD_TYPE_REASONS = ('exact_vendor_catalog', 'source_unqualified', 'missing_catalog',
+                      'unsupported_vendor', 'user_defined_catalog', 'unsupported_catalog')
+FIELD_TYPES = ('di', 'do', 'ai', 'ao', 'mixed', 'non_field', 'unknown')
+MODULE_ROLES = ('field_io', 'controller', 'communication', 'unknown')
 _DIRECTIONS = {'module_input_tag': 'input', 'module_output_tag': 'output',
                'module_config_tag': 'configuration'}
 _LIMITATIONS = (
@@ -93,7 +87,7 @@ def validate_query(query: dict) -> dict:
                 or any(ord(char) < 32 or ord(char) == 127 for char in value)):
             raise FieldIOError('Choose a captured run and bounded field I/O filters.')
         result[key] = value
-    for key, allowed in (('field_type', {'', 'di', 'do', 'ai', 'ao', 'unknown'}),
+    for key, allowed in (('field_type', {'', *FIELD_TYPES}),
                          ('direction', {'', 'input', 'output', 'configuration'})):
         value = query.get(key, '')
         if type(value) is not str or value not in allowed:
@@ -132,6 +126,7 @@ class FieldIOIndex:
         self._root_module: dict[str, str] = {}
         self._keys: dict[tuple[str, str], str] = {}
         self._search: dict[str, str] = {}
+        self.annotation_texts: dict[str, str] = {}
         self._budget = 0
         self._omitted = 0
         try:
@@ -171,7 +166,9 @@ class FieldIOIndex:
             'field_type': 'unknown', 'point_status': 'unresolved', 'channel': None,
             'point_basis': None, 'point_reference': None, 'channel_status': 'unresolved',
             'configuration_status': 'not_evaluated',
-            'datatype': None, 'description': entity.description, 'aliases': [], 'uses': [],
+            'datatype': None, 'description': entity.description, 'description_basis': 'backing_declaration',
+            'aliases': [], 'uses': [],
+            'source_annotations': [],
             'group_member_ids': [root_id], 'grouping_scope': 'backing_declaration'}
         self._retain(row)
         self.addresses[identifier] = row
@@ -192,8 +189,25 @@ class FieldIOIndex:
                 continue
             attrs, okay = entity.attributes, bool(base._entity_ok.get(entity.id))
             catalog = attrs.get('CatalogNumber')
-            field_type = (CATALOG_TYPES.get(catalog, 'unknown') if okay and attrs.get('Vendor') == '1'
-                and 'UserDefinedCatalogNumber' not in attrs else 'unknown')
+            catalog_record = None
+            # One first-gap reason per module keeps the census disjoint. An
+            # empty user-defined override is still an authored override;
+            # neither identity values nor catalog spellings are normalized.
+            if not okay:
+                type_reason = 'source_unqualified'
+            elif not catalog or not catalog.strip():
+                type_reason = 'missing_catalog'
+            elif attrs.get('Vendor') != '1':
+                type_reason = 'unsupported_vendor'
+            elif 'UserDefinedCatalogNumber' in attrs:
+                type_reason = 'user_defined_catalog'
+            else:
+                catalog_record = lookup_catalog(catalog, attrs.get('Vendor'))
+                type_reason = 'exact_vendor_catalog' if catalog_record else 'unsupported_catalog'
+            field_types = catalog_record['field_types'] if catalog_record else []
+            role = catalog_record['role'] if catalog_record else 'unknown'
+            field_type = (field_types[0] if len(field_types) == 1 else 'mixed' if field_types else
+                          'non_field' if role in {'controller', 'communication'} else 'unknown')
             controller = entities.get(entity.scope_id)
             parent_name = attrs.get('ParentModule')
             parents = names.get((entity.scope_id, (parent_name or '').lower()), [])
@@ -212,9 +226,17 @@ class FieldIOIndex:
                 'parent_module_name': parent_name, 'parent_module_id': parent.id if parent else None,
                 'slot': slot, 'location_status': 'declared_upstream_ICP_address' if slot is not None else 'unresolved',
                 'directions': [], 'field_type': field_type,
+                'field_types': field_types, 'module_role': role,
+                'field_type_reason': type_reason,
                 'field_type_basis': 'exact_vendor_catalog' if field_type != 'unknown' else 'unresolved',
-                'catalog_reference': (_DIGITAL_REFERENCE if field_type in {'di', 'do'} else _ANALOG_REFERENCE)
-                    if field_type != 'unknown' else None,
+                'catalog_description': catalog_record['description'] if catalog_record else None,
+                'catalog_family': catalog_record['family'] if catalog_record else None,
+                'catalog_capacity': catalog_record['capacity'] if catalog_record else {},
+                'catalog_capacity_basis': catalog_record['capacity_basis'] if catalog_record else None,
+                'catalog_reference': catalog_record['reference'] if catalog_record else None,
+                'catalog_reference_page': catalog_record.get('reference_page') if catalog_record else None,
+                'catalog_publication': catalog_record.get('publication') if catalog_record else None,
+                'source_annotations': [],
                 'point_count': None, 'point_count_basis': None, 'address_count': 0, 'use_count': 0,
                 'rung_count': 0, 'rack_alias_count': 0, 'qualified': okay,
                 'group_member_ids': [entity.id], 'grouping_scope': 'module_declaration'}
@@ -269,11 +291,14 @@ class FieldIOIndex:
                     row = self._add(use['target_id'], use['suffix'])
                     if row is not None:
                         self._use(row, use, use['role'], row['address'])
+        io_aliases = []
         for alias in base._references.aliases:
             ids = [alias['source_id'], alias.get('target_id'), *alias.get('alias_chain', [])]
-            if alias['status'] != 'root_bound' or not all(base._entity_ok.get(identifier) for identifier in ids):
+            if (alias['status'] != 'root_bound' or alias['target_id'] not in self._root_module
+                    or not all(base._entity_ok.get(identifier) for identifier in ids)):
                 continue
-            row = self._add(alias['target_id'], alias['suffix']) if alias['target_id'] in self._root_module else None
+            io_aliases.append(alias)
+            row = self._add(alias['target_id'], alias['suffix'])
             if row is not None:
                 entity = entities[alias['source_id']]
                 value = _preview({'id': entity.id, 'name': entity.name, 'path': base._path(entity.id),
@@ -286,6 +311,24 @@ class FieldIOIndex:
             for value in values:
                 if value['status'] == 'qualified':
                     self._add(owner_id, value['path'])
+        annotation_owners = set(self.modules) | set(self._root_module)
+        annotation_owners.update(alias['source_id'] for alias in io_aliases)
+        annotations = collect_io_annotations(base._source, base._captured, base._entity_ok,
+                                             owner_ids=annotation_owners)
+        by_owner: dict[str, list[tuple[str, list[dict]]]] = defaultdict(list)
+        for (owner_id, suffix), notes in annotations.items():
+            by_owner[owner_id].append((suffix, notes))
+            if owner_id in self.modules and not suffix:
+                self._annotations(self.modules[owner_id], notes, 'module')
+            elif owner_id in self._root_module:
+                address = self._add(owner_id, suffix)
+                if address is not None:
+                    self._annotations(address, notes, 'backing_declaration')
+        for alias in io_aliases:
+            for suffix, notes in by_owner[alias['source_id']]:
+                address = self._add(alias['target_id'], alias['suffix'] + suffix)
+                if address is not None:
+                    self._annotations(address, notes, 'alias')
         for row in self.addresses.values():
             values = base._values.get((row['root_id'], _member_key(row['suffix'])), [])
             types = {value['datatype'] for value in values if value['status'] == 'qualified' and value['datatype']}
@@ -304,17 +347,26 @@ class FieldIOIndex:
                 rung_count=len({use['rung_id'] for row in rows for use in row['uses']}),
                 rack_alias_count=len(self.rack_aliases[identifier]))
             search_parts = [str(value) for value in [module['name'], module['description'], module['catalog_number'],
-                module['controller']['name'], module['parent_module_name'], module['slot']]]
+                module['controller']['name'], module['parent_module_name'], module['slot'], module['catalog_description']]]
             for row in rows:
                 search_parts.extend([row['address'], *[str(alias.get(key) or '')
                     for alias in row['aliases'] for key in ('name', 'description')]])
+                search_parts.extend(self.annotation_texts[note['id']] for note in row['source_annotations'])
+            search_parts.extend(self.annotation_texts[note['id']] for note in module['source_annotations'])
             text = ' '.join(search_parts)
             self._retain(text)
             self._search[identifier] = text.casefold()
         counts = Counter(row['field_type'] for row in self.modules.values())
+        reasons = Counter(row['field_type_reason'] for row in self.modules.values())
+        roles = Counter(row['module_role'] for row in self.modules.values())
         self.coverage = {'modules_total': len(self.modules),
             'qualified_modules': sum(row['qualified'] for row in self.modules.values()),
-            'modules_by_field_type': {kind: counts[kind] for kind in ('di', 'do', 'ai', 'ao', 'unknown')},
+            'modules_by_field_type': {kind: counts[kind] for kind in FIELD_TYPES},
+            'modules_by_filter': {kind: sum(self._matches_type(row, kind) for row in self.modules.values())
+                                  for kind in FIELD_TYPES},
+            'modules_by_role': {role: roles[role] for role in MODULE_ROLES},
+            'field_filter_counts_overlap': True,
+            'modules_by_field_type_reason': {reason: reasons[reason] for reason in FIELD_TYPE_REASONS},
             'module_type_counts_scope': 'all_captured_modules',
             'addresses_total': len(self.addresses),
             'point_mapped_addresses': sum(row['channel'] is not None for row in self.addresses.values()),
@@ -323,6 +375,26 @@ class FieldIOIndex:
             'unresolved_reference_operands_in_run': sum(row['status'] in {'unresolved', 'ambiguous',
                 'unsupported_address', 'alias_cycle', 'alias_depth_limit'} for row in base._references.operands),
             'omitted_addresses': self._omitted}
+
+    @staticmethod
+    def _matches_type(row: dict, kind: str) -> bool:
+        return not kind or kind in row['field_types'] or row['field_type'] == kind
+
+    def _annotations(self, target: dict, notes: list[dict], via: str) -> None:
+        for note in notes:
+            owner = self.base._entities[note['owner_id']]
+            row = _preview(dict(note, owner_name=owner.name, owner_path=self.base._path(owner.id), via=via))
+            self._retain(row)
+            target['source_annotations'].append(row)
+            if note['id'] not in self.annotation_texts:
+                self._retain(note['text'])
+                self.annotation_texts[note['id']] = note['text']
+
+    @staticmethod
+    def _annotation_preview(row: dict) -> dict:
+        notes = row['source_annotations']
+        return dict(row, source_annotations=notes[:MAX_ANNOTATIONS], source_annotations_total=len(notes),
+                    source_annotations_truncated=len(notes) > MAX_ANNOTATIONS)
 
     def _point(self, row: dict) -> None:
         """Only four documented profiles; no generic datatype/channel guessing.
@@ -376,14 +448,15 @@ class FieldIOIndex:
         if selected and selected not in self.modules:
             raise FieldIOError('Choose a module captured in this run.')
         rows = [row for row in self.modules.values()
-            if (not query['field_type'] or row['field_type'] == query['field_type'])
+            if self._matches_type(row, query['field_type'])
             and (not query['direction'] or query['direction'] in row['directions'])
             and (not query['query'] or query['query'].casefold() in self._search[row['id']])]
         modules = _page(rows, query['page'])
+        modules['items'] = [self._annotation_preview(row) for row in modules['items']]
         detail = None
         addresses = _page([], query['signal_page'])
         if selected:
-            detail = dict(self.modules[selected])
+            detail = self._annotation_preview(self.modules[selected])
             for key, values in (('ports', self.ports[selected]), ('roots', self.roots[selected]),
                                 ('rack_aliases', self.rack_aliases[selected])):
                 detail[key] = values[:MAX_DETAIL]
@@ -395,7 +468,7 @@ class FieldIOIndex:
                     raise FieldIOError('Choose an address captured on this module.')
                 values = [self.addresses[query['address_id']]]
             addresses = _page(values, query['signal_page'])
-            addresses['items'] = [dict(row, aliases=row['aliases'][:MAX_ALIASES],
+            addresses['items'] = [dict(self._annotation_preview(row), aliases=row['aliases'][:MAX_ALIASES],
                 aliases_total=len(row['aliases']), aliases_truncated=len(row['aliases']) > MAX_ALIASES,
                 uses=(uses := _page(row['uses'], query['use_page'], USE_PAGE_SIZE))['items'],
                 uses_total=uses['total'], use_page=uses['page'], use_pages=uses['pages'])

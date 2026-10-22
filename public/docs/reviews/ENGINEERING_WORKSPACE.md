@@ -94,13 +94,17 @@ run tests, analyze the L5X, or perform Git operations.
 
 Choose **Field I/O** on Home or in the Page menu. The DI, DO, AI and AO buttons
 show module-card counts across the complete saved source and filter the list.
-**Unresolved field type** retains unfamiliar modules and declarations whose
-type cannot be established. Search by original module description, catalog,
+Mixed cards appear in each supported category, so those filter counts overlap.
+The total counts each module once. **Controller / network** separates recognized
+infrastructure from field cards. **Unclassified** retains unfamiliar modules and
+explains which catalog or source evidence is missing. Search by original module description, catalog,
 address or alias. The header's FR / EN option controls displayed descriptions.
 
 Open a module card to see its controller, parent/rack, captured slot and catalog.
-Documented field-point addresses appear first. Expand a point's **Source aliases**
-for tag names/descriptions, and **Captured rung uses** to follow its readers and
+Documented field-point addresses appear first. Channel comments and descriptions
+from matching aliases appear beside their address, with language and source-owner
+links. Distinct comments remain separate. Expand **Source aliases** for the full
+alias list, and **Captured rung uses** to follow its readers and
 writers into the source. Other captured addresses, including status, feedback
 and configuration, remain in a collapsed section. Pages keep every captured
 address and rung use reachable without loading the whole export at once.
@@ -118,7 +122,14 @@ edit its categorization later in **Classification & groups**. This saves whole
 module declarations, not individual channel selections. Source evidence remains
 read-only and saved engineering groups retain their normal history and backups.
 
-The initial catalog library recognizes 39 exact Rockwell 1756 module types.
+The offline catalog library recognizes 223 exact Rockwell 1756 and selected
+1794 declarations, including HART/isolated analogue, mixed analogue, controller
+and communication products. **Catalog function** gives the manufacturer's
+product function; **Source comments and descriptions** preserve the authored
+plant wording. A vendor glossary cannot supply a missing plant description.
+The linked publication supports each catalog's description and capacity.
+Unclassified module records mean recognition is incomplete: zero recognized
+analogue cards does not establish that the export contains no analogue I/O.
 Documented member-to-channel mapping currently covers 1756-IB16, 1756-OB16E,
 1756-IF8 and 1756-OF8 when the saved direction and data profile support it.
 Other modules and addresses remain listed without a guessed point mapping.
@@ -135,6 +146,9 @@ ladder drawing as **Programs & routines**. Zoom, Fit width, colored variables,
 branch paths and block help work the same way. **Original rung text (complete)**
 keeps the captured source available below the drawing. Reports opened through
 the workspace use the current drawing tools even when their analysis is older.
+The report's **Ladder** directory, **Routine ladder** source page and related-rung
+lists also use these drawings, ten per page. Hover or focus the rung number for
+its scope and comment; its color indicates parse status.
 
 Timer and counter blocks show exported preset and accumulator values when
 the saved tag data establishes them. For example, `5000 ms (export)` is a value

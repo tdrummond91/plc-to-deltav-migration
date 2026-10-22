@@ -5,7 +5,7 @@ from copy import deepcopy
 import unittest
 from unittest.mock import patch
 
-from plc_workbench.workspace_field_io import CATALOG_TYPES, FieldIOError, FieldIOIndex, validate_query
+from plc_workbench.workspace_field_io import CATALOG_TYPES, FIELD_TYPE_REASONS, FieldIOError, FieldIOIndex, validate_query
 from plc_workbench.workspace_variables import VariableError, VariableIndex
 from test_workspace_connections import multi_routine
 from test_workspace_variables import program, wire
@@ -64,7 +64,7 @@ def address(view: dict, suffix: str, direction: str = 'input') -> dict:
 class WorkspaceFieldIOTests(unittest.TestCase):
     def test_exact_catalog_module_classes_and_source_topology(self) -> None:
         index = build()
-        self.assertEqual(len(CATALOG_TYPES), 39)
+        self.assertGreater(len(CATALOG_TYPES), 39)
         view = index.view(query())
         self.assertEqual(view['modules']['total'], 6)
         self.assertEqual({row['name']: row['field_type'] for row in view['modules']['items']}, {
@@ -93,6 +93,7 @@ class WorkspaceFieldIOTests(unittest.TestCase):
         self.assertIsNone(address(selected(index, 'DiscreteIn'), '.Fault.0')['channel'])
         self.assertIsNone(address(selected(index, 'Unlisted'), '.Ch0Data')['channel'])
         self.assertEqual(di['aliases'][0]['name'], 'InputAlias')
+        self.assertEqual(di['description_basis'], 'backing_declaration')
         self.assertEqual(di['uses'][0]['role'], 'read')
         self.assertEqual(do['uses'][0]['role'], 'write')
         self.assertEqual(ai['uses_total'], 2)  # Direct operand and CPT expression.
@@ -105,6 +106,149 @@ class WorkspaceFieldIOTests(unittest.TestCase):
                 view = selected(build(field_inputs(modules=module('Card', 1, catalog, vendor, extra))), 'Card')
                 self.assertEqual(view['selected_module']['field_type'], 'unknown')
                 self.assertIsNone(address(view, '.Data.0')['channel'])
+
+    def test_module_reasons_partition_the_full_inventory_independent_of_filters(self) -> None:
+        modules = ''.join((module('Supported', 1, '1756-IF8'),
+            module('NoCatalog', 2, '').replace('CatalogNumber="" ', ''),
+            module('OtherVendor', 3, '1756-IF8', vendor='2'),
+            module('Override', 4, '1756-IF8', extra='UserDefinedCatalogNumber=""'),
+            module('Unlisted', 5, 'UNLISTED'),
+            module('Foreign', 6, '1756-IF8', extra='xmlns:x="urn:extension" x:Marker="present"')))
+        index = build(field_inputs(modules=modules))
+        view = index.view(query(field_type='ai'))
+        self.assertEqual(view['modules']['total'], 1)
+        reasons = view['coverage']['modules_by_field_type_reason']
+        self.assertEqual(set(reasons), set(FIELD_TYPE_REASONS))
+        self.assertEqual(reasons, {'exact_vendor_catalog': 1, 'source_unqualified': 1,
+            'missing_catalog': 2, 'unsupported_vendor': 1, 'user_defined_catalog': 1, 'unsupported_catalog': 1})
+        self.assertEqual(sum(reasons.values()), view['coverage']['modules_total'])
+        self.assertEqual(reasons['exact_vendor_catalog'], sum(count for kind, count
+            in view['coverage']['modules_by_field_type'].items() if kind != 'unknown'))
+        self.assertEqual(selected(index, 'Override')['selected_module']['field_type_reason'], 'user_defined_catalog')
+        self.assertEqual(selected(index, 'Foreign')['selected_module']['field_type_reason'], 'source_unqualified')
+
+    def test_reason_priority_explains_first_gap_without_normalizing_identity(self) -> None:
+        variants = [
+            ('', '2', 'UserDefinedCatalogNumber=""', 'missing_catalog'),
+            ('   ', '1', '', 'missing_catalog'),
+            ('1756-IF8', '', 'UserDefinedCatalogNumber=""', 'unsupported_vendor'),
+            ('1756-IF8', '1 ', '', 'unsupported_vendor'),
+            ('1756-IF8 ', '1', '', 'unsupported_catalog'),
+            ('1756-IF8', '1', 'UserDefinedCatalogNumber=""', 'user_defined_catalog'),
+            ('', '', 'xmlns:x="urn:extension" x:Marker="present" UserDefinedCatalogNumber=""', 'source_unqualified'),
+        ]
+        for catalog, vendor, extra, reason in variants:
+            with self.subTest(reason=reason, catalog=catalog, vendor=vendor):
+                view = selected(build(field_inputs(modules=module('Card', 1, catalog, vendor, extra))), 'Card')
+                card = view['selected_module']
+                self.assertEqual(card['field_type'], 'unknown')
+                self.assertEqual(card['field_type_reason'], reason)
+                self.assertEqual(card['catalog_number'], catalog)
+                self.assertEqual(card['vendor'], vendor)
+
+    def test_vendor_function_mixed_filters_and_non_field_context_stay_separate(self) -> None:
+        catalogs = (('HartInput', '1756-IF8IH'), ('HartOutput', '1756-OF8IH'),
+                    ('Mixed', '1756-IF4FXOF2F'), ('Controller', '1756-L81E'), ('Network', '1756-EN2T'))
+        modules = ''.join(module(name, slot, catalog).replace(f'<Description>Invented {name} module</Description>', '')
+                          for slot, (name, catalog) in enumerate(catalogs, 1))
+        index = build(field_inputs(modules=modules))
+        self.assertEqual(index.view(query(field_type='ai'))['modules']['total'], 2)
+        self.assertEqual(index.view(query(field_type='ao'))['modules']['total'], 2)
+        mixed = selected(index, 'Mixed')['selected_module']
+        self.assertEqual((mixed['field_type'], mixed['field_types']), ('mixed', ['ai', 'ao']))
+        self.assertEqual(mixed['catalog_capacity'], {'ai': 4, 'ao': 2})
+        self.assertIsNone(mixed['description'])
+        self.assertTrue(mixed['catalog_description'])
+        for name, role in (('Controller', 'controller'), ('Network', 'communication')):
+            row = selected(index, name)['selected_module']
+            self.assertEqual((row['field_type'], row['module_role']), ('non_field', role))
+            self.assertEqual(row['field_types'], [])
+            self.assertEqual(row['field_type_reason'], 'exact_vendor_catalog')
+        coverage = index.view(query())['coverage']
+        self.assertEqual(coverage['modules_by_field_type']['mixed'], 1)
+        self.assertEqual(coverage['modules_by_filter']['ai'], 2)
+        self.assertEqual(coverage['modules_by_filter']['non_field'], 2)
+        self.assertEqual(coverage['modules_by_role'], {'field_io': 3, 'controller': 1, 'communication': 1, 'unknown': 1})
+        self.assertEqual(sum(coverage['modules_by_field_type'].values()), coverage['modules_total'])
+        self.assertIsNone(address(selected(index, 'HartInput'), '.Data.0')['channel'])
+
+    def test_authored_comments_and_alias_notes_attach_only_to_exact_module_members(self) -> None:
+        card = module('Card', 1, '1756-IB16').replace('<InputTag>', '<InputTag><Comments>'
+            '<Comment Operand="Data.1"><LocalizedComment Lang="fr-FR">Entree un</LocalizedComment>'
+            '<LocalizedComment Lang="en-US">Input one</LocalizedComment></Comment>'
+            '<Comment Operand="Data.2">Input two only</Comment></Comments>')
+        aliases = ('<Tag Name="WholeInput" TagType="Alias" AliasFor="Local:1:I">'
+            '<Description>Whole backing description</Description><Comments>'
+            '<Comment Operand="Data.3">Alias member three only</Comment></Comments></Tag>'
+            '<Tag Name="PointAlias" TagType="Alias" AliasFor="Local:1:I.Data.4">'
+            '<Description>Point four only</Description></Tag>')
+        index = build(field_inputs(('XIC(InputAlias);',), modules=card, extra_tags=aliases))
+        view = selected(index, 'Card')
+        first = address(view, '.data.1')
+        self.assertEqual({note['language'] for note in first['source_annotations']}, {'fr-FR', 'en-US'})
+        self.assertEqual({note['text'] for note in first['source_annotations']}, {'Entree un', 'Input one'})
+        self.assertEqual(first['channel'], 1)  # Comments can expose an otherwise unused captured member.
+        second = address(view, '.data.2')
+        self.assertEqual([note['text'] for note in second['source_annotations']], ['Input two only'])
+        third = address(view, '.data.3')
+        self.assertEqual(third['source_annotations'][0]['via'], 'alias')
+        self.assertEqual(third['source_annotations'][0]['owner_name'], 'WholeInput')
+        fourth = address(view, '.Data.4')
+        self.assertEqual([note['text'] for note in fourth['source_annotations']], ['Point four only'])
+        self.assertEqual(fourth['source_annotations_total'], 1)
+        self.assertFalse(any('Input two' in note['text'] for note in first['source_annotations']))
+        self.assertEqual(view['selected_module']['source_annotations'][0]['via'], 'module')
+
+    def test_annotation_preview_keeps_duplicates_and_bounds_without_borrowing_rung_prose(self) -> None:
+        notes = ''.join(f'<Comment Operand="Data.5">note-{number}</Comment>' for number in range(12))
+        card = module('Card', 1, '1756-IB16').replace('<InputTag>', '<InputTag><Comments>' + notes + '</Comments>')
+        view = selected(build(field_inputs(('XIC(InputAlias);',), modules=card)), 'Card')
+        row = address(view, '.data.5')
+        self.assertEqual((len(row['source_annotations']), row['source_annotations_total'], row['source_annotations_truncated']),
+                         (8, 12, True))
+        self.assertTrue(all(note['kind'] == 'member_comment' for note in row['source_annotations']))
+
+    def test_note_search_uses_full_text_and_notes_beyond_the_display_limit(self) -> None:
+        notes = '<Comment Operand="Data.5">' + 'Repeated prose ' * 50 + 'UniqueTailMatch</Comment>'
+        notes += ''.join(f'<Comment Operand="Data.5">Visible note {number}</Comment>' for number in range(7))
+        notes += '<Comment Operand="Data.5">NinthNoteMatch</Comment>'
+        card = module('Card', 1, '1756-IB16').replace('<InputTag>', '<InputTag><Comments>' + notes + '</Comments>')
+        index = build(field_inputs(('XIC(InputAlias);',), modules=card))
+        row = address(selected(index, 'Card'), '.data.5')
+        self.assertEqual((len(row['source_annotations']), row['source_annotations_total']), (8, 9))
+        self.assertTrue(row['source_annotations'][0]['text_truncated'])
+        preview = ' '.join(note['text'] for note in row['source_annotations'])
+        for text in ('UniqueTailMatch', 'NinthNoteMatch'):
+            self.assertNotIn(text, preview)
+            found = index.view(query(query=text.lower()))['modules']
+            self.assertEqual(found['total'], 1)
+            self.assertEqual(found['items'][0]['name'], 'Card')
+
+    def test_unrelated_tag_comments_do_not_exhaust_field_annotation_budget(self) -> None:
+        card = module('Card', 1, '1756-IB16').replace('<InputTag>', '<InputTag><Comments>'
+            '<Comment Operand="Data.1">Field point one</Comment></Comments>')
+        unrelated = ''.join(f'<Tag Name="Internal{number}" DataType="DINT"><Comments>'
+            '<Comment Operand="Value">' + 'Internal note ' * 20 + '</Comment></Comments></Tag>'
+            for number in range(100))
+        unrelated += ('<Tag Name="InternalAlias" TagType="Alias" AliasFor="InternalReal">'
+            '<Description>Unrelated bound alias</Description></Tag>'
+            '<Tag Name="MissingAlias" TagType="Alias" AliasFor="Missing">'
+            '<Description>Unresolved alias</Description></Tag>'
+            '<Tag Name="ForeignAlias" TagType="Alias" AliasFor="Local:1:I.Data.2" '
+            'xmlns:x="urn:foreign" x:Extra="unsupported"><Description>Unqualified alias</Description></Tag>')
+        evidence = VariableIndex(*wire(field_inputs(('XIC(InputAlias);',), modules=card, extra_tags=unrelated)))
+        with patch('plc_workbench.workspace_io_comments.MAX_ANNOTATIONS', 3), \
+                patch('plc_workbench.workspace_io_comments.MAX_ANNOTATION_CHARS', 100):
+            index = FieldIOIndex(evidence)
+            view = selected(index, 'Card')
+            self.assertEqual(view['selected_module']['source_annotations_total'], 1)
+            self.assertEqual(address(view, '.data.1')['source_annotations'][0]['text'], 'Field point one')
+            self.assertEqual(address(view, '.Data.0')['source_annotations'][0]['via'], 'alias')
+            self.assertEqual(len(index.annotation_texts), 3)
+        for setting, limit in (('MAX_ANNOTATIONS', 2), ('MAX_ANNOTATION_CHARS', 1)):
+            with self.subTest(setting=setting), patch('plc_workbench.workspace_io_comments.' + setting, limit), \
+                    self.assertRaisesRegex(FieldIOError, '^Saved field I/O evidence is inconsistent or exceeds its limits.$'):
+                FieldIOIndex(evidence)
 
     def test_wrong_missing_duplicate_or_foreign_profile_types_do_not_map_points(self) -> None:
         for data in ('', '<DataValueMember Name="Data" DataType="BOOL" Value="0"/>',
