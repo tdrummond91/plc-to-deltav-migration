@@ -57,6 +57,8 @@ class Workspace:
         self._report_cache: tuple[Any, bytes] = (None, b'')
         self._calculation_cache: tuple[str | None | object, dict] = (_UNLOADED, {})
         self._connection_cache: tuple[str | None | object, Any] = (_UNLOADED, None)
+        self._ladder_map_cache: tuple[Any, Any] = (_UNLOADED, None)
+        self._map_qualification_cache: tuple[Any, Any] = (_UNLOADED, None)
         self._translation_service: Any = None
         self._translation_run: str | None = None
         self._translation_catalog_cache: tuple[Any, dict] = (_UNLOADED, {})
@@ -466,12 +468,11 @@ class Workspace:
             }
         return result
 
-    def connections(self, query: dict) -> dict:
-        """Return a paged, immutable neighborhood of exact source-address uses."""
+    def _connection_index(self) -> Any:
+        """One authenticated saved-evidence index shared by map and rung views."""
         from .workspace_connections import ConnectionIndex, ConnectionError as EvidenceError, MAX_ARTIFACT_BYTES
-        self.state()
         if not self._run:
-            return {'available': False, 'notice': 'Import a completed analysis to explore connections.'}
+            return None
         if self._connection_cache[0] != self._run:
             def unique_object(pairs: list[tuple[str, Any]]) -> dict:
                 result = {}
@@ -498,11 +499,25 @@ class Workspace:
             except (ProjectError, EvidenceError, ValueError, TypeError, KeyError, RecursionError, OverflowError):
                 index = None
             self._connection_cache = (self._run, index)
-        index = self._connection_cache[1]
+        return self._connection_cache[1]
+
+    @staticmethod
+    def _connection_notice(index: Any) -> str:
         if index is None:
-            return {'available': False, 'notice': (
-                'Connection evidence is missing or could not be verified in this saved run. '
-                'Original rungs remain available; this does not mean there are no connections.')}
+            return ('Connection evidence is missing or could not be verified in this saved run. '
+                    'Original rungs remain available; this does not mean there are no connections.')
+        from .workspace_connections import _NOTICE
+        return _NOTICE
+
+    def connections(self, query: dict) -> dict:
+        """Return a paged, immutable neighborhood of exact source-address uses."""
+        from .workspace_connections import ConnectionError as EvidenceError
+        self.state()
+        if not self._run:
+            return {'available': False, 'notice': 'Import a completed analysis to explore connections.'}
+        index = self._connection_index()
+        if index is None:
+            return {'available': False, 'notice': self._connection_notice(index)}
         try:
             page, endpoint_page = int(query.get('page', '1')), int(query.get('endpoint_page', '1'))
             identifier = query.get('id', '')
@@ -512,6 +527,86 @@ class Workspace:
                               page=page, endpoint_page=endpoint_page)
         except (EvidenceError, ValueError, TypeError) as exc:
             raise ProjectError('Choose a captured rung and valid connection filters.') from exc
+
+    def _map_qualification(self) -> tuple[dict, dict, Any]:
+        from .workspace_classification import _qualify_source
+        if self._map_qualification_cache[0] != self._run:
+            self._map_qualification_cache = (self._run, _qualify_source(
+                self.store.artifact('snapshot.L5X', self._run), self._inventory))
+        return self._map_qualification_cache[1]
+
+    def _map_connection_index(self) -> Any:
+        index = self._connection_index()
+        if index is not None:
+            entities, rungs, _ = self._map_qualification()
+            index.qualify_map(entities, rungs)
+        return index
+
+    def _ladder_map(self, query: dict) -> tuple[Any, dict]:
+        from .workspace_map import LadderMapIndex, query_text
+        state = self.store.state()
+        self._load(state)
+        selected = query_text(query, 'run_id')
+        if selected and selected != self._run:
+            raise RevisionConflict('The source analysis changed. Reload the ladder map.')
+        if not self._run:
+            raise ProjectError('Import a completed analysis to explore the ladder map.')
+        if self._ladder_map_cache[0] != self._run:
+            _, rungs, _ = self._map_qualification()
+            self._ladder_map_cache = (self._run, LadderMapIndex(
+                self._inventory, self.store.analysis(self._run), rung_ok=rungs))
+        return self._ladder_map_cache[1], state
+
+    def ladder_map(self, query: dict) -> dict:
+        from .workspace_connections import ConnectionError as EvidenceError
+        from .workspace_map import query_text
+        metadata, state = self._ladder_map(query)
+        index = self._map_connection_index()
+        selected_signal = query_text(query, 'signal_id')
+        signal_rungs = None
+        if selected_signal:
+            if index is None:
+                raise ProjectError('Connections are unavailable; clear the signal filter to browse all source rungs.')
+            try:
+                signal_rungs = index.signal_rungs(selected_signal)
+            except EvidenceError as exc:
+                raise ProjectError(str(exc)) from exc
+        return dict(metadata.view(query, signal_rungs=signal_rungs), run_id=self._run,
+                    revision=state['revision'], connection_available=index is not None,
+                    connection_notice=index.map_notice() if index is not None else self._connection_notice(index))
+
+    def ladder_map_links(self, query: dict) -> dict:
+        from .workspace_connections import ConnectionError as EvidenceError
+        from .workspace_map import MAX_ID, page_number, query_text
+        metadata, state = self._ladder_map(query)
+        selection = query_text(query, 'ids', 80 * (MAX_ID + 1))
+        identifiers = selection.split(',') if selection else []
+        direction = query_text(query, 'direction', 16) or 'both'
+        page = page_number(query)
+        if (len(identifiers) > 80 or len(set(identifiers)) != len(identifiers)
+                or any(len(identifier) > MAX_ID or identifier not in metadata.rungs for identifier in identifiers)
+                or direction not in {'both', 'inputs', 'outputs'}):
+            raise ProjectError('Choose at most 80 captured rungs and a valid connection direction.')
+        index = self._map_connection_index()
+        if index is None:
+            return {'available': False, 'notice': self._connection_notice(index), 'signals': [],
+                    'total': 0, 'page': 1, 'pages': 1, 'page_size': 80, 'omitted_signals': 0,
+                    'run_id': self._run, 'revision': state['revision']}
+        try:
+            result = index.map_links(identifiers, direction=direction, page=page)
+        except EvidenceError as exc:
+            raise ProjectError(str(exc)) from exc
+        return dict(result, run_id=self._run, revision=state['revision'])
+
+    def ladder_map_detail(self, query: dict) -> dict:
+        from .workspace_map import query_text
+        metadata, state = self._ladder_map(query)
+        identifier = query_text(query, 'id')
+        if identifier not in metadata.sources:
+            raise ProjectError('Choose a captured source item from the selected analysis.')
+        entities, rungs, _ = self._map_qualification()
+        return dict(metadata.detail(identifier, entity_ok=entities, rung_ok=rungs),
+                    run_id=self._run, revision=state['revision'])
 
     def objects(self, query: dict) -> dict:
         self.state()
@@ -802,6 +897,8 @@ class Workspace:
         self._report_cache = (None, b'')
         self._calculation_cache = (_UNLOADED, {})
         self._connection_cache = (_UNLOADED, None)
+        self._ladder_map_cache = (_UNLOADED, None)
+        self._map_qualification_cache = (_UNLOADED, None)
         self._historical_labels = {}
         return self.state()
 
@@ -913,6 +1010,12 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._json(200, workspace.rungs(query))
             elif url.path == "/api/connections":
                 self._json(200, workspace.connections(query))
+            elif url.path == '/api/ladder-map':
+                self._json(200, workspace.ladder_map(query))
+            elif url.path == '/api/ladder-map/links':
+                self._json(200, workspace.ladder_map_links(query))
+            elif url.path == '/api/ladder-map/detail':
+                self._json(200, workspace.ladder_map_detail(query))
             elif url.path == "/api/objects":
                 self._json(200, workspace.objects(query))
             elif url.path == '/api/classification':
@@ -932,7 +1035,7 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
             elif url.path in ("/", "/index.html", "/workspace.js", "/workspace.css",
                               "/rung-flow.js", "/rung-flow.css", "/connections.js", "/connections.css",
                               "/reading-layout.js", "/reading-layout.css", "/translation.js", "/translation.css",
-                              '/classification.js', '/classification.css'):
+                              '/classification.js', '/classification.css', '/ladder-map.js', '/ladder-map.css'):
                 name = "index.html" if url.path in ("/", "/index.html") else url.path[1:]
                 data = (ASSETS / name).read_bytes()
                 if name == "index.html":

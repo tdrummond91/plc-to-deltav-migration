@@ -35,6 +35,28 @@
   --danger: #a91d35;
   --shadow: 0 10px 30px #233a4910;
 }
+.ladder-map-layout > #ladder-map { min-width: 0; }
+.ladder-map-layout > #map-detail { min-width: 0; max-height: 84vh; overflow: auto; }
+.workspace-grid.ladder-map-layout.map-only { grid-template-columns: minmax(0, 1fr); }
+.ladder-map-layout.map-only > .rung-pane-divider,
+.ladder-map-layout.map-only > #map-detail { display: none; }
+.workspace-popout .app-shell { grid-template-columns: minmax(0, 1fr); }
+.workspace-popout .sidebar { display: none; }
+.source-popout #view-rungs > .filters,
+.source-popout #view-rungs > .page-heading,
+.source-popout #rung-reading-settings,
+.source-popout #view-rungs .inventory,
+.source-popout #view-rungs .rung-pane-divider,
+.source-popout #view-objects > .filters,
+.source-popout #view-objects > .page-heading,
+.source-popout #view-objects .inventory { display: none; }
+.source-popout #view-rungs .workspace-grid,
+.source-popout #view-objects .workspace-grid { display: block; }
+.source-popout .detail { max-height: none; }
+.popout-note { padding: .55rem 1rem; margin: 0; font-size: .82rem; color: var(--muted); border-bottom: 1px solid var(--border); }
+@media (max-width: 1150px) {
+  .ladder-map-layout > #map-detail { max-height: none; }
+}
 * {
   box-sizing: border-box;
 }

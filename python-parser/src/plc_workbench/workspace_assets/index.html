@@ -11,11 +11,13 @@
     <link rel="stylesheet" href="/reading-layout.css" />
     <link rel="stylesheet" href="/translation.css" />
     <link rel="stylesheet" href="/classification.css" />
+    <link rel="stylesheet" href="/ladder-map.css" />
     <script defer src="/rung-flow.js"></script>
     <script defer src="/connections.js"></script>
     <script defer src="/reading-layout.js"></script>
     <script defer src="/translation.js"></script>
     <script defer src="/classification.js"></script>
+    <script defer src="/ladder-map.js"></script>
     <script defer src="/workspace.js"></script>
   </head>
   <body>
@@ -37,6 +39,7 @@
             autocomplete="name"
         /></label>
         <span id="revision" class="muted">Connecting…</span
+        ><button id="refresh-project" type="button">Refresh saved data</button
         ><button id="backup" type="button">Back up project</button
         ><button id="restore" type="button">Restore backup</button
         ><button id="theme" type="button" aria-label="Switch to light theme">
@@ -67,6 +70,7 @@
           <button type="button" data-view="objects">
             Tags &amp; source objects
           </button>
+          <button type="button" data-view="map">Ladder map</button>
           <button type="button" data-view="connections">Connection map</button>
           <button type="button" data-view="groups">Classification &amp; groups</button>
           <button type="button" data-view="changes">
@@ -162,6 +166,23 @@
                   a rung title opens it without checking it.
                 </p>
               </div>
+            </section>
+          </div>
+        </section>
+        <section id="view-map" class="view" hidden>
+          <div class="page-heading">
+            <div>
+              <span class="eyebrow">EXPLORE THE COMPLETE EXPORT</span>
+              <h1>Ladder map</h1>
+              <p>Find a rung, follow shared signals, then inspect its complete branches and equations. Map positions organize your view; they do not change the source.</p>
+            </div>
+            <button id="map-inspector-toggle" type="button" aria-pressed="false">Map only</button>
+          </div>
+          <div id="map-reading-settings"></div>
+          <div id="map-layout" class="workspace-grid ladder-map-layout">
+            <section id="ladder-map" aria-label="Visual ladder overview"></section>
+            <section id="map-detail" class="detail panel" aria-label="Selected map source">
+              <div class="empty"><h2>Select a rung on the map</h2><p>Its full logic, source evidence and saved review open here. Drag the divider to resize these panes, or pop out a view to another monitor.</p></div>
             </section>
           </div>
         </section>

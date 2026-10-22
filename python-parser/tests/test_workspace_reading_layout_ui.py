@@ -115,6 +115,18 @@ assert.equal(inventory.styleValues['font-size'], undefined);
 assert.equal(detail.styleValues['font-size'], undefined);
 """)
 
+    def test_map_split_has_independent_preferences_and_labels(self) -> None:
+        self.run_js(r"""
+storage.set(key, JSON.stringify({version:1,ratio:.3,scale:125}));
+const mapKey='plc-workspace-map-layout-v1';
+window.PLCReadingLayout.mount(grid,settings,{storageKey:mapKey,defaultRatio:.6,leftLabel:'Ladder map',rightLabel:'selected source',minLeft:380});
+close(left(),1180*.6);assert.equal(size().value,'75');
+assert.equal(separator().attributes['aria-label'],'Resize ladder map and selected source panes');
+separator().fire('keydown',{key:'Home'});close(left(),380);
+assert.equal(JSON.parse(storage.get(key)).ratio,.3);assert.equal(JSON.parse(storage.get(key)).scale,125);
+assert.ok(storage.has(mapKey));reset().fire('click');close(left(),1180*.6);
+""")
+
     def test_drag_captures_pointer_preserves_grab_offset_and_clamps_both_panes(self) -> None:
         self.run_js(r"""
 window.PLCReadingLayout.mount(grid, settings);

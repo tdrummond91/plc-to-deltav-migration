@@ -319,6 +319,108 @@ class ConnectionIndex:
             'access_schema_version': version, 'calculation_reads_available': version == 4,
             'implicit_effects_available': False, 'member_overlap_available': False,
         }
+        self._map_qualification: tuple[dict, dict] | None = None
+
+    def qualify_map(self, entity_ok: dict, rung_ok: dict) -> None:
+        """Exclude unsupported XML associations from the visual map once/run.
+
+        The legacy source index remains available to the original connection
+        browser. The map uses a separate qualified projection: an unsupported
+        source is not an unknown-role signal edge because even its target may
+        be an artifact of local-name XML matching.
+        """
+        if (self._map_qualification is not None and self._map_qualification[0] is entity_ok
+                and self._map_qualification[1] is rung_ok):
+            return
+        rejected = set()
+        for identifier, use in self._uses.items():
+            targets = [use.get('target_id'), use.get('symbol_id', use.get('target_id')),
+                       *use.get('alias_chain', [])]
+            if (not rung_ok.get(use.get('rung_id'), False)
+                    or use.get('binding_status') == 'root_bound'
+                    and not all(entity_ok.get(target, False) for target in targets)):
+                rejected.add(identifier)
+        self._map_buckets: dict[str, dict[str, frozenset[str]]] = {}
+        self._map_rung_signals: dict[str, list[str]] = defaultdict(list)
+        for identifier, signal in self._signals.items():
+            buckets = {name: frozenset(rung_id for rung_id, uses in endpoints.items()
+                                      if any(use not in rejected for use in uses))
+                       for name, endpoints in signal['buckets'].items()}
+            members = set().union(*buckets.values())
+            if not members:
+                continue
+            self._map_buckets[identifier] = buckets
+            for rung_id in members:
+                self._map_rung_signals[rung_id].append(identifier)
+        self._map_rejected_by_rung: dict[str, int] = defaultdict(int)
+        for identifier in rejected:
+            self._map_rejected_by_rung[self._uses[identifier]['rung_id']] += 1
+        self._map_unqualified_rungs = frozenset(identifier for identifier in self._rungs
+                                              if not rung_ok.get(identifier, False))
+        self._map_coverage = {
+            **self._coverage, 'signals': len(self._map_buckets), 'source_signals': len(self._signals),
+            'unqualified_rungs': len(self._map_unqualified_rungs), 'unqualified_uses': len(rejected),
+            'rejected_signal_count': len(self._signals) - len(self._map_buckets),
+        }
+        self._map_qualification = (entity_ok, rung_ok)
+
+    def map_notice(self) -> str:
+        if self._map_qualification is None:
+            raise ConnectionError('Qualified source evidence is required for the ladder map.')
+        extra = (' Unsupported XML source associations are omitted from connections; '
+                 'the source rungs remain visible. Unsupported rung text is listed under Unidentified blocks.'
+                 if self._map_coverage['unqualified_rungs'] or self._map_coverage['unqualified_uses'] else '')
+        return _NOTICE + extra
+
+    def signal_rungs(self, signal_id: str) -> frozenset[str]:
+        """All exact-address users, including unknown roles, without fanout edges."""
+        self.map_notice()
+        if type(signal_id) is not str or signal_id not in self._map_buckets:
+            raise ConnectionError('Choose a captured signal from the selected analysis.')
+        return frozenset(identifier for bucket in self._map_buckets[signal_id].values()
+                         for identifier in bucket)
+
+    def map_links(self, rung_ids: list[str], *, direction: str = 'both', page: int = 1) -> dict:
+        """Bound a bipartite rung/signal view while retaining offscreen counts.
+
+        Direction selects signals used as inputs/outputs by visible rungs. Each
+        selected bus still shows every known role within the visible selection;
+        it never invents a writer-to-reader ordering or Cartesian edge set.
+        """
+        if (type(rung_ids) is not list or len(rung_ids) > 80
+                or any(type(identifier) is not str or identifier not in self._rungs for identifier in rung_ids)
+                or len(set(rung_ids)) != len(rung_ids)
+                or type(direction) is not str or direction not in {'both', 'inputs', 'outputs'}
+                or type(page) is not int or not 1 <= page <= 1_000_000):
+            raise ConnectionError('Choose at most 80 captured rungs and a valid connection page.')
+        notice = self.map_notice()
+        visible = set(rung_ids)
+        identifiers = dict.fromkeys(identifier for rung_id in rung_ids
+                                    for identifier in self._map_rung_signals.get(rung_id, []))
+        if direction != 'both':
+            role = 'readers' if direction == 'inputs' else 'writers'
+            identifiers = {identifier: None for identifier in identifiers
+                           if visible.intersection(self._map_buckets[identifier][role])}
+        pages = max(1, (len(identifiers) + 79) // 80)
+        page = min(page, pages)
+        signals = []
+        for identifier in list(identifiers)[(page - 1) * 80:page * 80]:
+            signal = self._signals[identifier]
+            row = {key: signal[key] for key in ('id', 'target_id')}
+            row.update(label=signal['label'][:512], target_path=signal['target_path'][:1024],
+                       outside_counts={}, totals={})
+            for role, bucket in (('readers', 'readers'), ('writers', 'writers'), ('unknown', 'unknown_uses')):
+                endpoints = self._map_buckets[identifier][bucket]
+                row[role] = [rung_id for rung_id in rung_ids if rung_id in endpoints]
+                row['totals'][role] = len(endpoints)
+                row['outside_counts'][role] = len(endpoints) - len(row[role])
+            signals.append(row)
+        return {'available': True, 'signals': signals, 'total': len(identifiers), 'page': page,
+                'pages': pages, 'page_size': 80, 'omitted_signals': len(identifiers) - len(signals),
+                'coverage': {**self._map_coverage,
+                             'unqualified_visible_rungs': len(visible.intersection(self._map_unqualified_rungs)),
+                             'unqualified_visible_uses': sum(self._map_rejected_by_rung.get(rung_id, 0) for rung_id in visible)},
+                'notice': notice}
 
     def _entity_path(self, entity_id: str | None) -> str:
         names = []

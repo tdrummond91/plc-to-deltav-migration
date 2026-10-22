@@ -21,6 +21,7 @@
     saving: false,
     listSerial: 0,
     detailSerial: 0,
+    refreshSerial: 0,
     connectionRung: null,
   };
   const node = (tag, text, className) => {
@@ -201,6 +202,7 @@
     renderRoutines();
     renderGroups();
     if (state.view === "groups") classificationBrowser.refresh();
+    if (state.view === "map") ladderMap.refresh();
     renderChanges();
     renderGuide();
   }
@@ -229,6 +231,11 @@
             if (!discard()) return;
             state.routine = r.id;
             state.page = 1;
+            if (state.view === "map") {
+              renderRoutines();
+              run(() => ladderMap.setRoutine(r.id));
+              return;
+            }
             switchView("rungs", true);
             renderRoutines();
             run(loadRungs);
@@ -268,8 +275,9 @@
       // Hidden forms must not outlive the source revision that populated them.
       state.source = null;
       state.detailSerial += 1;
-      ["rung-detail", "object-detail"].forEach((id) => {
+      ["rung-detail", "object-detail", "map-detail"].forEach((id) => {
         const panel = $(id);
+        if (!panel) return;
         clear(panel);
         panel.inert = false;
         panel.removeAttribute("aria-busy");
@@ -298,7 +306,66 @@
     }
     if (view === "changes") renderChanges();
     if (view === "connections") renderConnections();
+    if (view === "map") run(() => ladderMap.refresh());
     return true;
+  }
+
+  function popupWorkspace(id = '', view = 'map') {
+    if (!['map', 'source', 'connections'].includes(view)) return;
+    if (typeof id !== 'string' || id.length > 256 || /[\x00-\x1f\x7f]/.test(id)) return;
+    if (view !== 'map' && !id) {
+      notify('Select a source record first.');
+      return;
+    }
+    const target = view === 'source' ? (/^(rung|instruction)_/.test(id) ? 'rungs' : 'objects') : view;
+    const url = '/?panel=' + (view === 'source' ? 'source' : 'workspace')
+      + '#view=' + target + (id ? '&source=' + encodeURIComponent(id) : '');
+    // A direct user gesture opens an independent same-origin window. No source
+    // text or credentials are placed in the URL, only canonical evidence IDs.
+    const opened = window.open(url, '_blank', 'popup,width=1400,height=900');
+    if (opened) {
+      opened.opener = null;
+    } else {
+      notify('The browser blocked the window. Open this view in a new tab instead.');
+      const fallback = node('a', 'Open selected view in a new tab');
+      fallback.href = url; fallback.target = '_blank'; fallback.rel = 'noopener';
+      $('notice').append(fallback);
+    }
+  }
+
+  async function refreshProjectWindow() {
+    if (!discard()) return;
+    const request = state.refreshSerial = (state.refreshSerial || 0) + 1;
+    const previousProject = state.project, previousSource = state.source;
+    const detailSerial = state.detailSerial;
+    const selected = state.source?.source?.id;
+    const runId = state.project?.active_run;
+    const view = state.view;
+    const project = await api('/api/state');
+    // A slow request must not replace edits or navigation made after it began.
+    // Keep the old project revision too, so a retained form cannot save as fresh.
+    if (request !== state.refreshSerial) return;
+    if (state.dirty || state.saving || state.detailSerial !== detailSerial
+        || state.source !== previousSource || state.project !== previousProject
+        || state.view !== view) {
+      notify('Your current edits or selection were kept. Use Refresh saved data again when ready.');
+      return;
+    }
+    state.project = project;
+    renderProject();
+    translations?.refresh();
+    if (runId !== state.project.active_run) {
+      state.connectionRung = null;
+      state.selected.clear();
+      state.source = null;
+      state.view = '';
+      switchView(view, true);
+      notify('The active analysis changed. Select a source from the current map or list.');
+    } else if (selected) {
+      await openSource(selected, state.detailTarget, true);
+    } else if (view === 'connections') renderConnections();
+    else if (view === 'rungs') await loadRungs();
+    else if (view === 'objects') await loadObjects();
   }
   function renderSelection() {
     const count = state.selected.size;
@@ -704,6 +771,7 @@
         s.id,
         isRung || kind === "instruction" ? "ladder" : "objects",
       ),
+      button('Pop out source', () => popupWorkspace(s.id, 'source')),
     );
     root.append(header);
     root.append(
@@ -711,7 +779,7 @@
         "Back to source list",
         () =>
           $(
-            state.detailTarget === "object-detail"
+            state.detailTarget === 'map-detail' ? 'ladder-map' : state.detailTarget === "object-detail"
               ? "object-list"
               : "rung-list",
           ).scrollIntoView({ block: "center" }),
@@ -743,6 +811,7 @@
     root.append(summary);
     if (isRung) {
       root.append(button("Explore inputs & outputs →", () => openConnections(s.id), "primary"));
+      root.append(button('Pop out connections', () => popupWorkspace(s.id, 'connections')));
       renderRungLogic(root, s, data.calculations || {});
     }
     const editor = section(
@@ -913,6 +982,8 @@
         instruction: (inst) => {
           const card = node("div", null, "flow-instruction");
           const equation = instructionEquation(inst, occurrences.get(inst.id), nodes);
+          card.title = equation.label;
+          if (state.view === 'map') ladderMap.attachHover?.(card, inst.id, equation.label);
           card.append(node("strong", `${positions.get(inst.id)} · ${inst.opcode}`, "flow-opcode"),
             node("span", equation.label, "flow-kind"));
           const display = node("div", null, "equation-display");
@@ -920,6 +991,7 @@
           card.append(display, link("Instruction evidence ↗", inst.id));
           return card;
         },
+        onInstruction: inst => popupWorkspace(inst.id, 'source'),
       }), button("Select individual instructions to group", () => activate(2), "text-button"));
       panels[1].append(renderEquationTree(source.structure, byId, occurrences, nodes, positions));
       const chosen = new Set();
@@ -2044,6 +2116,13 @@
         () => switchView("rungs"),
       ],
       [
+        "map",
+        "Explore the whole ladder",
+        "Open Ladder map. Count tiles cover every captured rung; click one to zoom in, or search and filter by routine or function. Drag the background to pan and drag a rung to arrange this view. Select a rung for its complete branches and equations; hover or focus for block information. Click a signal to find all its recorded rungs. Drag the divider to resize the inspector, or use Map only. Pop out map, selected source or connections into separate windows for other monitors. Save before switching, then use Refresh saved data in other windows to load your changes.",
+        "Open ladder map",
+        () => switchView("map"),
+      ],
+      [
         "trace",
         "Follow inputs and outputs",
         "From a rung, select Explore inputs & outputs. The connection map shows upstream writer rungs and downstream readers through their shared signals. Click a signal to expand its fan-out, or a neighboring rung to keep tracing. Back in trace retraces your steps. Check multiple-writer warnings and coverage notes before interpreting an absent connection.",
@@ -2251,6 +2330,11 @@
     if (!discard()) return;
     state.routine = "";
     state.page = 1;
+    if (state.view === 'map') {
+      renderRoutines();
+      run(() => ladderMap.setRoutine(''));
+      return;
+    }
     renderRoutines();
     switchView("rungs", true);
   });
@@ -2484,12 +2568,12 @@
     const view = parameters.get("view");
     const source = parameters.get("source") || "";
     if (
-      !["rungs", "objects", "groups", "changes", "guide"].includes(view) ||
+      !["rungs", "objects", "map", "connections", "groups", "changes", "guide"].includes(view) ||
       source.length > 256 ||
       /[\x00-\x1f\x7f]/.test(source)
     )
       return null;
-    if (source && !["rungs", "objects"].includes(view)) return null;
+    if (source && !["rungs", "objects", "map", "connections"].includes(view)) return null;
     return { view, source };
   }
   function translationChanged() {
@@ -2502,6 +2586,15 @@
   async function openLocation(skipCheck = false) {
     const location = requestedLocation();
     if (!location || !switchView(location.view, skipCheck)) return;
+    if (location.view === 'map') {
+      if (location.source) await ladderMap.focus(location.source);
+      return;
+    }
+    if (location.view === 'connections') {
+      if (location.source) state.connectionRung = location.source;
+      renderConnections();
+      return;
+    }
     if (location.source)
       await openSource(
         location.source,
@@ -2511,6 +2604,35 @@
   }
   window.addEventListener("hashchange", () => run(() => openLocation()));
   window.PLCReadingLayout.mount(document.querySelector("#view-rungs .workspace-grid"), $("rung-reading-settings"));
+  window.PLCReadingLayout.mount($('map-layout'), $('map-reading-settings'), {
+    storageKey: 'plc-workspace-map-layout-v1', defaultRatio: 0.6,
+    leftLabel: 'Ladder map', rightLabel: 'selected source', minLeft: 380,
+  });
+  $('map-inspector-toggle').addEventListener('click', () => {
+    const mapOnly = $('map-layout').classList.toggle('map-only');
+    $('map-inspector-toggle').setAttribute('aria-pressed', String(mapOnly));
+    $('map-inspector-toggle').textContent = mapOnly ? 'Map + inspector' : 'Map only';
+  });
+  $('refresh-project').addEventListener('click', () => run(refreshProjectWindow));
+  const panelMode = new URLSearchParams(window.location.search).get('panel');
+  if (panelMode === 'source' || panelMode === 'workspace') {
+    document.body.classList.add('workspace-popout');
+    if (panelMode === 'source') document.body.classList.add('source-popout');
+    $('stop').hidden = true;
+    const note = node('p', 'This window shares the same saved project. After saving elsewhere, use Refresh saved data here. Close this window with the browser window controls.', 'popout-note');
+    document.querySelector('.topbar').after(note);
+  }
+  const ladderMap = window.PLCLadderMap.mount($('ladder-map'), {
+    api,
+    getState: () => state.project,
+    inspect: async id => {
+      if (!discard()) return false;
+      await openSource(id, 'map-detail', true);
+      return state.source?.source?.id === id;
+    },
+    popout: popupWorkspace,
+    connections: openConnections,
+  });
   const translations = window.PLCTranslation.mount($("translation-controls"), api, translationChanged);
   const classificationBrowser = window.PLCClassification.mount($("classification-browser"), {
     api,

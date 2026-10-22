@@ -51,6 +51,58 @@ For later review sessions that do not need new analysis, the optional command
 `Open-Workbench.cmd` is an alternative to that shortcut. The opener does not
 run tests, analyze the L5X, or perform Git operations.
 
+## Whole-ladder map and multiple monitors
+
+Open **Ladder map** to browse every captured rung, including empty, unparsed,
+and disconnected rungs. The initial overview groups rungs into count tiles.
+Click a tile to zoom in, use the mouse wheel or **Zoom in / Zoom out**, and
+drag the background to pan. **Fit all** returns to the full overview. Drag a
+rung card to arrange it; this changes the current view only. Positions are
+not saved as engineering changes and reset when you reopen the page.
+
+Use **Search all captured rungs**, **Routine**, or **Function family** to narrow
+the overview. Search includes full captured rung text and comments, even if
+the card preview is shorter. **Find and select rungs** provides a paged list
+with keyboard access and a page-number field. It remains available when cards
+are offscreen or grouped into tiles.
+
+Select a rung to open its complete **Rung flow**, equations, original source,
+and saved review beside the map. Hover or keyboard-focus a card for its block
+families and descriptions. Choose **Pin information** above the map to use the
+preview's links; an unpinned preview lets clicks pass through to the map.
+Within the inspector, instruction cards also open information on hover/focus.
+Where the export contains an unambiguous supported
+declaration, information links expose its captured AOI parameters or datatype
+declaration. A declaration candidate does not confirm the instruction's behavior;
+uncertain meanings and unavailable member layouts stay explicit.
+
+Orange signal points connect the visible rungs. Solid arrows show recorded
+writers/readers; dashed lines show uses whose direction is unknown. Click a
+signal or its entry under **Signals connected to the visible rungs** to find
+all of its recorded rungs, including other routines. Offscreen counts and signal
+pages expose fan-out beyond the current view. The coverage notice explains
+unresolved addresses, unsupported source, and other gaps. These are static
+source relationships: no live Boolean state, scan timing, or complete implicit
+instruction behavior is inferred. Missing lines do not prove unused logic.
+
+For one screen, drag the divider between the map and inspector, or select
+**Map only**. The split and equation size have their own saved browser preferences.
+For two or three screens, use **Pop out map**, **Pop out selected source**, and
+**Pop out connections**, then move the browser windows to your monitors. Each
+window has an independent selection and shares the same saved project. After
+saving in one window, choose **Refresh saved data** in the others. Unsaved edits
+require an explicit decision before replacement; an out-of-date save is rejected.
+Close popouts with their browser window controls. **Close workspace** in the
+main window stops the shared local server.
+
+The page loads compact metadata in batches and renders only the visible cards.
+Full rung diagrams and declaration information load on selection/hover. Zooming
+out uses tiles instead of thousands of diagrams; visible signals use shared
+address points instead of every possible writer-to-reader pair. Reopening an
+existing completed project is sufficient; another work-check run is unnecessary
+for this view. If saved connection companions are unavailable, all rungs remain
+browsable and the map shows the missing-evidence notice.
+
 ## Classifications, parameters, and migration decisions
 
 **Classification & groups** projects the saved analysis into source-linked

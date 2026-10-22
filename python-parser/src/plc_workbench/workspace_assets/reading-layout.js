@@ -11,29 +11,35 @@
   const MIN_DETAIL = 360;
   const mounted = new WeakMap();
 
-  function preferences() {
+  function preferences(storageKey = STORAGE_KEY, defaultRatio = DEFAULT_RATIO) {
     try {
-      const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
+      const saved = JSON.parse(window.localStorage.getItem(storageKey));
       if (saved && saved.version === 1) {
         return {
           ratio: typeof saved.ratio === "number" && Number.isFinite(saved.ratio)
-            && saved.ratio > 0 && saved.ratio < 1 ? saved.ratio : DEFAULT_RATIO,
+            && saved.ratio > 0 && saved.ratio < 1 ? saved.ratio : defaultRatio,
           scale: SCALES.includes(saved.scale) ? saved.scale : DEFAULT_SCALE,
         };
       }
     } catch (_) {
       // Browser privacy settings may disable storage. Reading still works.
     }
-    return { ratio: DEFAULT_RATIO, scale: DEFAULT_SCALE };
+    return { ratio: defaultRatio, scale: DEFAULT_SCALE };
   }
 
-  function mount(grid, settingsContainer) {
+  function mount(grid, settingsContainer, options = {}) {
     if (!grid || !settingsContainer) return null;
     if (mounted.has(grid)) return mounted.get(grid);
     const panels = Array.from(grid.children);
     if (panels.length !== 2) return null;
     const [inventory, detail] = panels;
-    const saved = preferences();
+    const storageKey = options.storageKey || STORAGE_KEY;
+    const defaultRatio = options.defaultRatio || DEFAULT_RATIO;
+    const leftLabel = options.leftLabel || 'Rung inventory';
+    const rightLabel = options.rightLabel || 'selected source';
+    const minLeft = options.minLeft || MIN_INVENTORY;
+    const minRight = options.minRight || MIN_DETAIL;
+    const saved = preferences(storageKey, defaultRatio);
     let ratio = saved.ratio;
     let scale = saved.scale;
     let drag = null;
@@ -46,7 +52,7 @@
     divider.tabIndex = 0;
     divider.setAttribute("role", "separator");
     divider.setAttribute("aria-orientation", "vertical");
-    divider.setAttribute("aria-label", "Resize rung inventory and selected source panes");
+    divider.setAttribute("aria-label", `Resize ${leftLabel.toLowerCase()} and ${rightLabel.toLowerCase()} panes`);
     divider.title = "Drag to resize. Use arrow keys for small changes, Shift + arrows for larger changes, Home or End for the limits. Double-click to reset the split.";
     if (inventory.id && detail.id) {
       divider.setAttribute("aria-controls", `${inventory.id} ${detail.id}`);
@@ -80,7 +86,7 @@
 
     function save() {
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, ratio, scale }));
+        window.localStorage.setItem(storageKey, JSON.stringify({ version: 1, ratio, scale }));
       } catch (_) {
         // The current layout remains usable when persistence is unavailable.
       }
@@ -89,7 +95,7 @@
     function bounds() {
       const box = grid.getBoundingClientRect();
       const available = Math.max(0, box.width - DIVIDER_WIDTH);
-      return { box, available, min: MIN_INVENTORY, max: available - MIN_DETAIL };
+      return { box, available, min: minLeft, max: available - minRight };
     }
 
     function stopDrag(event, persist = false) {
@@ -108,7 +114,7 @@
     function paint() {
       if (destroyed) return;
       const { available, min, max } = bounds();
-      stacked = compact.matches || available < MIN_INVENTORY + MIN_DETAIL;
+      stacked = compact.matches || available < minLeft + minRight;
       grid.classList.toggle("rung-reading-stacked", stacked);
       divider.hidden = stacked;
       divider.tabIndex = stacked ? -1 : 0;
@@ -125,12 +131,12 @@
       divider.setAttribute("aria-valuemin", String(Math.round(100 * min / available)));
       divider.setAttribute("aria-valuemax", String(Math.round(100 * max / available)));
       divider.setAttribute("aria-valuenow", String(Math.round(100 * left / available)));
-      divider.setAttribute("aria-valuetext", `Rung inventory ${Math.round(left)} pixels; selected source ${Math.round(available - left)} pixels`);
+      divider.setAttribute("aria-valuetext", `${leftLabel} ${Math.round(left)} pixels; ${rightLabel} ${Math.round(available - left)} pixels`);
     }
 
     function changeWidth(left) {
       const { available, min, max } = bounds();
-      if (stacked || available < MIN_INVENTORY + MIN_DETAIL) return;
+      if (stacked || available < minLeft + minRight) return;
       ratio = Math.max(min, Math.min(max, left)) / available;
       paint();
     }
@@ -142,7 +148,7 @@
 
     function reset() {
       stopDrag(null);
-      ratio = DEFAULT_RATIO;
+      ratio = defaultRatio;
       scale = DEFAULT_SCALE;
       applyScale();
       paint();
@@ -174,7 +180,7 @@
     divider.addEventListener("lostpointercapture", (event) => stopDrag(event, true));
     divider.addEventListener("dblclick", () => {
       stopDrag(null);
-      ratio = DEFAULT_RATIO;
+      ratio = defaultRatio;
       paint();
       save();
     });

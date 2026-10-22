@@ -1,5 +1,47 @@
 # Current handoff: PLC analysis workbench
 
+## Whole-ladder visual map (2026-10-21)
+
+**Ladder map** adds complete rung discovery, viewport-limited SVG rendering,
+zoomed-out count tiles, drag/pan/zoom, source/comment/routine/function filters,
+and a paged keyboard list. The shared connection index supplies exact-address
+signal buses, paged fan-out and explicit offscreen/unknown-role counts. Full
+rung logic remains in the existing inspector; cached hover details link to
+supported captured declarations and AOI parameters. A separate map qualification
+projection rejects unsupported rung text, declarations and alias associations
+before filtering, counts or edges. Original source remains visible for review.
+
+The map inspector uses independently persisted reading-layout preferences.
+User-initiated map/source/connection popouts share the local project, with
+independent selections and **Refresh saved data** for other-window saves.
+Refresh retains edits/navigation begun while its request was pending, including
+the original form revision. Popouts omit the server-stop button. No new network
+service, background Git operation, model or runtime dependency was added.
+
+Bounds: metadata pages250, visible rung cards80, signal pages80, rendered edges320,
+hover cache80, hover block/parameter lists64. Remaining records stay reachable
+through lists, signal filters and original source. Diagram placement is temporary
+view state; arrows do not establish execution order, live Boolean states, member
+overlap or implicit instruction effects. The underlying original neighborhood
+connection view retains its existing model; the new map projection adds XML
+qualification gating without rewriting saved analysis artifacts.
+
+Validation: 139 focused map, connection, workspace, reading-layout and rung-flow
+tests passed. The final pending-hover pin correction passed all 17 map UI tests
+(overlapping coverage). The map UI suite includes 10,000 indexed rungs.
+Independent review found and verified fixes for stale filters, pending-refresh
+edits and unsupported XML associations. Chrome checks on invented 271-rung and
+nine-rung exports covered full-comment search, 268-rung signal fan-out, card
+dragging, tile zoom, a 380px map pane, complete parallel branches, pinned AOI
+parameters, separate source/connection windows and saved edits refreshed from
+another inspector. Unpinned previews let pointer clicks pass through. Popup
+input automation timed out; saved-edit interaction was verified in an independent
+source-inspector tab using the same page. No plant source was opened.
+Work-PC use: manually pull, close any older workspace and run
+`bash ./open-workbench.sh`, then choose **Ladder map**. The usual
+`bash ./run-work-check.sh` also opens it; another full analysis is unnecessary
+when the saved run already includes the connection artifacts.
+
 ## Functional classification workspace (2026-10-21)
 
 The editable workspace now exposes **Classification & groups** before any manual

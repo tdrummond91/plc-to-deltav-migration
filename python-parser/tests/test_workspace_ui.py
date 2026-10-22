@@ -81,11 +81,11 @@ let activeGroups=[];
 const groups=()=>activeGroups;
 let commands=[],modalBody,saveDialog,notice='',state={project:{revision:1},selected:new Set(['rung-a','rung-b']),source:null,dirty:false,detailSerial:0,view:'rungs'};
 const statusNames={unreviewed:'Not reviewed',needs_review:'Needs review',confirmed:'Confirmed'};
-const discard=()=>true;
+let discard=()=>true;
 const modal=(title,build,save)=>{modalBody=node('div');build(modalBody);saveDialog=save;};
 let mutate=async command=>{commands.push(command);};
 const loadRungs=async()=>{};
-const openSource=async()=>{};
+let openSource=async()=>{};
 const notify=text=>{notice=text;};
 let run=async callback=>callback();
 const Event=function(type){this.type=type;};
@@ -142,6 +142,7 @@ class WorkspaceInteractionTests(unittest.TestCase):
         for name in ("openSource", "loadRungs"):
             if name in names:
                 dom = dom.replace(f"const {name}=async()=>{{}};", "")
+                dom = dom.replace(f"let {name}=async()=>{{}};", "")
         if "loadObjects" in names:
             dom = dom.replace("renderDetail, loadObjects;", "renderDetail;")
         if "loadRungs" in names or "loadObjects" in names:
@@ -380,6 +381,55 @@ for(const hash of ['#main','#view=bad','#view=rungs&source=a&source=b','#view=ru
   window.location.hash=hash;assert.equal(requestedLocation(),null,hash);
 }
 window.location.hash='';assert.deepEqual(requestedLocation(),{view:'rungs',source:''});
+window.location.hash='#view=map&source=rung_abc';assert.deepEqual(requestedLocation(),{view:'map',source:'rung_abc'});
+window.location.hash='#view=connections&source=rung_abc';assert.equal(requestedLocation().view,'connections');
+""")
+
+    def test_popouts_use_same_origin_source_ids_and_detach_opener(self) -> None:
+        self.run_js(['popupWorkspace'], r"""
+const opened={opener:'parent'},calls=[];
+window.open=(...args)=>{calls.push(args);return opened;};
+popupWorkspace('rung_abc','source');
+assert.equal(calls[0][0],'/?panel=source#view=rungs&source=rung_abc');
+assert.equal(opened.opener,null);assert.ok(calls[0][2].includes('popup'));
+popupWorkspace('aoi_abc','source');assert.ok(calls[1][0].includes('view=objects'));
+popupWorkspace('rung_abc','connections');assert.ok(calls[2][0].includes('view=connections'));
+popupWorkspace('','map');assert.equal(calls[3][0],'/?panel=workspace#view=map');
+popupWorkspace('','source');assert.equal(calls.length,4);assert.ok(notice.includes('Select'));
+popupWorkspace('x'.repeat(257),'source');popupWorkspace('rung_abc','https://unrelated.invalid');assert.equal(calls.length,4);
+""")
+
+    def test_refresh_other_window_does_not_replace_unsaved_review_without_consent(self) -> None:
+        self.run_js(['refreshProjectWindow'], r"""
+let fetched=0;discard=()=>false;api=async()=>{fetched++;};
+state.dirty=true;state.source={source:{id:'rung-current'}};
+await refreshProjectWindow();assert.equal(fetched,0);assert.equal(state.source.source.id,'rung-current');
+""")
+
+    def test_refresh_preserves_edits_or_navigation_started_while_request_pending(self) -> None:
+        self.run_js(['refreshProjectWindow'], r"""
+for (const change of ['edit','navigate']) {
+  const oldProject={active_run:'old',revision:1};
+  const oldSource={source:{id:'old-rung'}};
+  state={...state,project:oldProject,source:oldSource,dirty:false,view:'map',saving:false};
+  let resolve;api=()=>new Promise(done=>resolve=done);
+  const pending=refreshProjectWindow();
+  if(change==='edit')state.dirty=true;
+  else {state.detailSerial++;state.source={source:{id:'later-rung'}};}
+  resolve({active_run:'new',revision:2});await pending;
+  assert.equal(state.project,oldProject);
+  assert.equal(state.source.source.id,change==='edit'?'old-rung':'later-rung');
+  assert.equal(state.dirty,change==='edit');
+  assert.ok(notice.includes('kept'));
+}
+""")
+
+    def test_map_deep_link_focuses_map_without_loading_hidden_rung_editor(self) -> None:
+        self.run_js(['openLocation'], r"""
+requestedLocation=()=>({view:'map',source:'rung-map'});switchView=()=>true;
+const focused=[];ladderMap={focus:async id=>focused.push(id)};
+openSource=async()=>{throw Error('hidden editor must not load');};
+await openLocation(true);assert.deepEqual(focused,['rung-map']);
 """)
 
     def test_initial_inventory_opens_first_rung_in_an_untouched_pane(self) -> None:
