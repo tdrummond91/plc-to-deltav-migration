@@ -63,6 +63,24 @@ class WorkspaceReportLanguageTests(unittest.TestCase):
         rendered = refresh_report(original.encode(), data['inventory'], language='english')
         self.assertEqual(ParsedPage(original).scripts[0][1], ParsedPage(rendered.decode()).scripts[0][1])
 
+    def test_partial_overlay_keeps_accepted_wording_without_rewriting_evidence(self):
+        translations = {self.original: {'text': 'Pump feedback / retour', 'status': 'needs_review',
+                                        'failed': False, 'partial': True}}
+        _, parsed, overlay = self.rendered(translations=translations)
+        self.assertEqual(overlay['translations'], [{'original': self.original, 'text': 'Pump feedback / retour',
+                                                    'status': 'needs_review', 'partial': True}])
+        self.assertEqual(parsed.scripts[0][1], ParsedPage(render_review_html(self.data)).scripts[0][1])
+
+    @unittest.skipUnless(_NODE, 'Node is optional development UI tooling.')
+    def test_partial_report_shows_mixed_wording_and_an_explicit_note(self):
+        self.run_ui(r'''
+        navigate('ladder');clickText(content,'Rung 0');
+        assert.ok(content.querySelectorAll('pre').some(d=>d.textContent.includes('Pump feedback / retour')));
+        assert.ok(content.textContent.includes('English partial'));
+        assert.ok(content.querySelectorAll('details').some(d=>d.textContent.includes('Retour de la pompe')));
+        ''', translations={self.original: {'text': 'Pump feedback / retour', 'status': 'needs_review',
+                                           'failed': False, 'partial': True}})
+
     @unittest.skipUnless(_NODE, 'Node is optional development UI tooling.')
     def test_full_report_switches_language_searches_both_and_keeps_code(self):
         self.run_ui(r'''
@@ -96,11 +114,11 @@ class WorkspaceReportLanguageTests(unittest.TestCase):
         ''')
 
     @unittest.skipUnless(_NODE, 'Node is optional development UI tooling.')
-    def test_missing_english_is_explicit_and_original_is_collapsed(self):
+    def test_missing_english_keeps_original_visible_without_disclosure(self):
         self.run_ui(r'''
         navigate('ladder');clickText(content,'Rung 0');
-        assert.ok(content.textContent.includes('English wording is not available for this note.'));
-        assert.ok(content.querySelectorAll('details').some(d=>d.textContent.includes('Retour de la pompe')));
+        assert.ok(content.textContent.includes('Original shown · English unavailable'));
+        assert.ok(content.querySelectorAll('pre').some(d=>d.textContent.includes('Retour de la pompe')));
         assert.ok(!content.querySelectorAll('pre').some(d=>d.textContent.includes('Discard this result')));
         ''', translations={self.original: {'text': 'Discard this result', 'status': 'needs_review', 'failed': True}})
 
@@ -112,7 +130,7 @@ class WorkspaceReportLanguageTests(unittest.TestCase):
         navigate('ladder');clickText(content,'Rung 0');
         assert.ok(content.textContent.includes('Retour de la pompe'));
         picker.value='english';picker.events.change();
-        assert.ok(content.textContent.includes('English wording is not available for this note.'));
+        assert.ok(content.textContent.includes('Original shown · English unavailable'));
         navigate('annotations');
         assert.ok(content.textContent.includes('English available0'));
         ''', language='original', translations={})

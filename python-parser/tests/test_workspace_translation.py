@@ -149,9 +149,102 @@ class TranslationServiceTests(unittest.TestCase):
         self.assertEqual((state["failed"], state["needs_review"]), (0, 1))
         result = service.lookup("Marche pompe")
         self.assertEqual(result["text"], "Pump enabled")
+        self.assertFalse(result["partial"])
+        self.assertIsNone(result["translated_segments"])
+        self.assertIsNone(result["retained_segments"])
         self.assertNotIn("Private", result["warning"])
         service.start(["Marche pompe"], retry=True)
         self.assertEqual(len(self.calls), 1)
+
+    def test_old_cache_schema_migrates_without_retranslating_successes(self):
+        source, failed_source = "Pompe en marche", "Ancienne note manquante"
+        with closing(sqlite3.connect(self.cache)) as connection:
+            connection.executescript("""
+                CREATE TABLE english_translations (
+                    model_id TEXT NOT NULL, rules_version TEXT NOT NULL,
+                    source_hash TEXT NOT NULL, source_text TEXT NOT NULL,
+                    english_text TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK(status IN ('translated', 'needs_review')),
+                    failed INTEGER NOT NULL CHECK(failed IN (0, 1)),
+                    PRIMARY KEY(model_id, rules_version, source_hash, source_text)
+                );
+            """)
+            connection.executemany("INSERT INTO english_translations VALUES (?, ?, ?, ?, ?, ?, ?)", [
+                (*TranslationService._key(source, "test-fr-en-v1"), "Pump running", "translated", 0),
+                (*TranslationService._key(failed_source, "test-fr-en-v1"), "", "needs_review", 1),
+            ])
+            connection.commit()
+        service = self.service()
+        state = service.start([source, failed_source])
+        self.assertEqual((state["cached"], state["failed"], state["partial"]), (2, 1, 0))
+        self.assertEqual(self.calls, [])
+        entry = service.lookup(source)
+        self.assertEqual(entry["text"], "Pump running")
+        self.assertFalse(entry["partial"])
+        self.assertIsNone(entry["translated_segments"])
+        service.start([source, failed_source], retry=True)
+        self.complete(service)
+        self.assertEqual(self.calls, [failed_source])
+        self.assertEqual(service.lookup(source)["text"], "Pump running")
+        with closing(sqlite3.connect(self.cache)) as connection:
+            self.assertEqual(connection.execute("SELECT count(*) FROM english_translations").fetchone()[0], 2)
+
+    def test_partial_composite_survives_restart_and_retries_only_explicitly(self):
+        source = "Pompe en marche.\r\nPression maximale 2,5 bar."
+        composite = "Pump running.\r\nPression maximale 2,5 bar."
+        service = self.service(callback=lambda _: {
+            "text": composite, "status": "needs_review", "failed": False, "partial": True,
+            "translated_segments": 1, "retained_segments": 1,
+        })
+        service.start([source])
+        state = self.complete(service)
+        self.assertEqual((state["needs_review"], state["failed"], state["partial"]), (1, 0, 1))
+        signature = state["cache_signature"]
+        service.close()
+        reopened = self.service(callback=lambda _: {
+            "text": "Pump running.\r\nMaximum pressure 2,5 bar.", "status": "translated", "failed": False,
+            "partial": False, "translated_segments": 2, "retained_segments": 0,
+        })
+        entry = reopened.lookup(source)
+        self.assertEqual(entry["text"], composite)
+        self.assertTrue(entry["partial"])
+        self.assertEqual((entry["translated_segments"], entry["retained_segments"]), (1, 1))
+        self.assertIn("original language", entry["warning"])
+        cached = reopened.start([source])
+        self.assertEqual((cached["cached"], cached["partial"], len(self.calls)), (1, 1, 1))
+        self.assertEqual(cached["cache_signature"], signature)
+        reopened.start([source], retry=True)
+        state = self.complete(reopened)
+        self.assertEqual((state["partial"], state["failed"], state["needs_review"], len(self.calls)), (0, 0, 0, 2))
+        self.assertNotEqual(state["cache_signature"], signature)
+        self.assertFalse(reopened.lookup(source)["partial"])
+
+    def test_all_retained_nonempty_source_is_failed_and_can_be_retried(self):
+        service = self.service(callback=lambda source: {
+            "text": source, "status": "needs_review", "failed": True, "partial": False,
+            "translated_segments": 0, "retained_segments": 2,
+        })
+        source = "Premiere note.\nDeuxieme note."
+        service.start([source])
+        state = self.complete(service)
+        self.assertEqual((state["failed"], state["partial"]), (1, 0))
+        self.assertEqual(service.lookup(source)["text"], source)
+        self.assertTrue(service.lookup(source)["failed"])
+        service.start([source])
+        self.assertEqual(len(self.calls), 1)
+        service.start([source], retry=True)
+        self.complete(service)
+        self.assertEqual(len(self.calls), 2)
+
+    def test_malformed_partial_metadata_does_not_certify_generic_candidate(self):
+        result = TranslationService._validated_output({
+            "text": "Candidate wording", "status": "needs_review", "partial": True,
+            "translated_segments": True, "retained_segments": "one",
+        })
+        self.assertEqual(result["status"], "needs_review")
+        self.assertFalse(result["partial"])
+        self.assertIsNone(result["translated_segments"])
+        self.assertIsNone(result["retained_segments"])
 
     def test_missing_model_still_reads_cache_without_starting_engine(self):
         service = self.service()

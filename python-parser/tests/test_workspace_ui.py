@@ -203,6 +203,32 @@ class WorkspaceInteractionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("UI_TEST_COMPLETE", result.stdout, "An asynchronous check never completed")
 
+    def test_sticky_panel_offset_tracks_wrapped_header_height_and_releases_observer(self) -> None:
+        self.run_js(['installHeaderLayout'], r"""
+const header=node('header');let height=88.25,observe,resize,disconnected=false;
+const writes=[];header.getBoundingClientRect=()=>({height});
+document.querySelector=selector=>selector==='.topbar'?header:null;
+document.documentElement={style:{setProperty:(name,value)=>writes.push([name,value])}};
+window.ResizeObserver=class{constructor(callback){observe=callback;}observe(target){assert.equal(target,header);}disconnect(){disconnected=true;}};
+window.addEventListener=(name,callback)=>{assert.equal(name,'resize');resize=callback;};
+window.removeEventListener=(name,callback)=>{assert.equal(name,'resize');assert.equal(callback,resize);resize=null;};
+const cleanup=installHeaderLayout();assert.deepEqual(writes,[['--workspace-header-height','89px']]);
+observe();assert.equal(writes.length,1,'Unchanged layout should not write styles repeatedly');
+height=162.5;observe();assert.deepEqual(writes.at(-1),['--workspace-header-height','163px']);
+height=211;resize();assert.deepEqual(writes.at(-1),['--workspace-header-height','211px']);
+height=88.25;observe();assert.deepEqual(writes.at(-1),['--workspace-header-height','89px']);
+cleanup();assert.equal(disconnected,true);assert.equal(resize,null);
+""")
+
+    def test_sticky_header_measurement_has_window_resize_fallback(self) -> None:
+        self.run_js(['installHeaderLayout'], r"""
+let height=100,resize;const header={getBoundingClientRect:()=>({height})},values=[];
+document.querySelector=()=>header;document.documentElement={style:{setProperty:(name,value)=>values.push(value)}};
+window.addEventListener=(name,callback)=>{resize=callback;};window.removeEventListener=()=>{};
+installHeaderLayout();assert.equal(values.at(-1),'100px');height=190;resize();assert.equal(values.at(-1),'190px');
+document.querySelector=()=>null;assert.doesNotThrow(()=>installHeaderLayout()());
+""")
+
     def test_dialog_backdrop_click_is_distinct_from_padding_drag_cancel_and_keyboard_click(self) -> None:
         self.run_js(['closeModal', 'installOverlayDismissal'], OVERLAY_SETUP + r"""
 fire('pointerdown',{clientX:110,clientY:110});fire('pointerup',{clientX:110,clientY:110});fire('click',{clientX:110,clientY:110});

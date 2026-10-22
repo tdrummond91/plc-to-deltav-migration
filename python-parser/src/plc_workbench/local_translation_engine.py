@@ -8,6 +8,7 @@ Translations are derived reading aids, never source facts or review decisions.
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import dataclass
 from itertools import islice
 import hashlib
 import importlib.util
@@ -89,8 +90,20 @@ def token_fingerprint(text: str, extra: Iterable[str] = ()) -> Counter[str]:
     return Counter(values)
 
 
-def _unsafe(reason: str) -> dict:
-    return {"text": "", "status": "needs_review", "warning": reason}
+def _unsafe(reason: str, original: str = "") -> dict:
+    return {"text": original, "status": "needs_review", "warning": reason,
+            "partial": False, "translated_segments": 0, "retained_segments": 1,
+            "failed": True}
+
+
+@dataclass
+class _Prepared:
+    original: str
+    pieces: list[str]
+    # Preserve formatting around each independently translated sentence/line.
+    segments: list[tuple[int, str, str, str]]
+    tokens: list[list[str]]
+    total_segments: int
 
 
 class Engine:
@@ -124,16 +137,15 @@ class Engine:
     def translate_many(self, texts: Iterable[str], protected_tokens: Iterable[str] = ()) -> list[dict]:
         """Pack independent comments into bounded inference batches.
 
-        Sentence boundaries, decoding options, and every wording guard are the
-        same as single-comment translation. Only scheduling changes: CTranslate2
-        can process similarly sized sentences from several comments together.
+        Rejected or unattempted sentences stay exactly as captured, while safe
+        sentences remain readable in English. No incomplete model output is used.
         """
         results: list[dict] = []
         sources = iter(texts)
         extra = tuple(protected_tokens)
         while group := tuple(islice(sources, MAX_BATCH_TEXTS)):
             prepared = [self._prepare(text) for text in group]
-            tokenized = [tokens for item in prepared if isinstance(item, tuple) for tokens in item[2]]
+            tokenized = [tokens for item in prepared if isinstance(item, _Prepared) for tokens in item.tokens]
             if tokenized:
                 try:
                     batches = self._translator.translate_batch(
@@ -152,52 +164,74 @@ class Engine:
                 if isinstance(item, dict):
                     results.append(item)
                     continue
-                pieces, segments, tokens = item
-                if batches is None:
-                    results.append(_unsafe("The local model could not translate this comment. Review the original wording."))
-                else:
-                    results.append(self._finish(pieces, segments, batches[offset:offset + len(tokens)], extra))
-                offset += len(tokens)
+                results.append(self._finish(item, None if batches is None else batches[offset:offset + len(item.tokens)], extra))
+                offset += len(item.tokens)
         return results
 
-    def _prepare(self, text: str) -> dict | tuple[list[str], list[str], list[list[str]]]:
+    def _prepare(self, text: str) -> dict | _Prepared:
         if not isinstance(text, str) or len(text) > MAX_TEXT_CHARS:
-            return _unsafe("This comment is too long for the local reading aid; review the original wording.")
-        if not text.strip():
-            return {"text": text, "status": "translated"}
+            return _unsafe("This comment is too long for the local reading aid; review the original wording.", text if isinstance(text, str) else "")
         # Split only at paragraph and sentence boundaries. Never truncate or split
-        # an overlong sentence into unrelated fragments to force it through.
-        pieces = re.split(r"(\n+|(?<=[.!?;])\s+(?=[A-ZÀ-ÖØ-Þ]))", text)
-        segments = [part for index, part in enumerate(pieces) if index % 2 == 0 and part.strip()]
-        if len(segments) > MAX_SEGMENTS:
-            return _unsafe("This comment contains too many sections for the local reading aid.")
-        try:
-            tokenized = [self._tokenizer.encode(part, out_type=str) for part in segments]
-            if any(len(tokens) > MAX_SENTENCE_TOKENS for tokens in tokenized):
-                return _unsafe("A sentence exceeds the local model's reading limit. Review the original; nothing was truncated.")
-            return pieces, segments, tokenized
-        except Exception:
-            return _unsafe("The local model could not translate this comment. Review the original wording.")
+        # an overlong sentence into unrelated fragments to force it through. The
+        # exact separator is retained, including CRLF and whitespace-only lines.
+        pieces = re.split(r"(\r\n|\r|\n|(?<=[.!?;])[^\S\r\n]+(?=[A-ZÀ-ÖØ-Þ]))", text)
+        segments, tokenized = [], []
+        total = 0
+        for index in range(0, len(pieces), 2):
+            part = pieces[index]
+            core = part.strip()
+            # Decorative rules, list punctuation and numbers require no model.
+            if not re.search(r"[^\W\d_]", core, re.UNICODE):
+                continue
+            total += 1
+            if total > MAX_SEGMENTS:
+                continue
+            prefix = part[:len(part) - len(part.lstrip())]
+            suffix = part[len(part.rstrip()):]
+            try:
+                tokens = self._tokenizer.encode(core, out_type=str)
+                if not tokens or len(tokens) > MAX_SENTENCE_TOKENS:
+                    continue
+            except Exception:
+                continue
+            segments.append((index, prefix, core, suffix))
+            tokenized.append(tokens)
+        return _Prepared(text, pieces, segments, tokenized, total)
 
-    def _finish(self, pieces: list[str], segments: list[str], batches: list, extra: tuple[str, ...]) -> dict:
-        try:
-            if len(batches) != len(segments) or any(not batch.hypotheses[0] or batch.hypotheses[0][-1] != "</s>" for batch in batches):
-                return _unsafe("The local model did not finish this comment. Review the original; partial wording was withheld.")
-            # The source tokenizer does not know every target-language piece.
-            # Argos also normalizes residual SentencePiece space markers. Keep
-            # real underscores intact because they can be part of PLC names.
-            translated_segments = [self._tokenizer.decode(batch.hypotheses[0][:-1]).replace("▁", " ").strip() for batch in batches]
-            for original, candidate in zip(segments, translated_segments):
+    def _finish(self, prepared: _Prepared, batches: list | None, extra: tuple[str, ...]) -> dict:
+        pieces = prepared.pieces.copy()
+        accepted = 0
+        size = len(prepared.original)
+        # A malformed batch cannot safely be aligned to its source segments.
+        aligned = batches is not None and len(batches) == len(prepared.segments)
+        for (index, prefix, original, suffix), batch in zip(prepared.segments, batches if aligned else []):
+            try:
+                hypothesis = batch.hypotheses[0]
+                if not hypothesis or hypothesis[-1] != "</s>":
+                    continue
+                # Normalize SentencePiece spaces without touching real tag underscores.
+                candidate = self._tokenizer.decode(hypothesis[:-1]).replace("▁", " ").strip()
+                if not candidate or any(character in candidate for character in "\r\n"):
+                    continue
                 if token_fingerprint(original, extra) != token_fingerprint(candidate, extra):
-                    return _unsafe("The translation changed a value, unit, address, or identifier, so it was withheld. Review the original wording.")
+                    continue
                 original_negative = bool(_FRENCH_NEGATION.search(original) or _ENGLISH_NEGATION.search(original))
                 candidate_negative = bool(_ENGLISH_NEGATION.search(candidate))
                 if original_negative != candidate_negative:
-                    return _unsafe("The translation may have added or removed a negative condition, so it was withheld. Review the original wording.")
-            translated = iter(translated_segments)
-            english = "".join(next(translated) if i % 2 == 0 and part.strip() else part for i, part in enumerate(pieces))
-            if not english.strip() or len(english) > MAX_TEXT_CHARS * 2:
-                return _unsafe("The local model did not return usable wording. Review the original.")
-            return {"text": english, "status": "translated", "warning": "Reading aid only. Confirm equipment terminology and control meaning against the original."}
-        except Exception:
-            return _unsafe("The local model could not translate this comment. Review the original wording.")
+                    continue
+                replacement = prefix + candidate + suffix
+                next_size = size - len(pieces[index]) + len(replacement)
+                if next_size > MAX_TEXT_CHARS * 2:
+                    continue
+                pieces[index] = replacement
+                size = next_size
+                accepted += 1
+            except Exception:
+                # Library failures never replace source text or expose raw exceptions.
+                continue
+        retained = prepared.total_segments - accepted
+        return {"text": "".join(pieces), "status": "needs_review" if retained else "translated",
+                "partial": bool(accepted and retained), "translated_segments": accepted,
+                "retained_segments": retained, "failed": bool(retained and not accepted),
+                "warning": "Some wording remains in its original language. Review it against the source." if retained
+                else "Reading aid only. Confirm equipment terminology and control meaning against the original."}

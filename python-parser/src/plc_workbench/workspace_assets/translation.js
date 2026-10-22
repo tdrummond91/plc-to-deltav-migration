@@ -45,15 +45,27 @@
       return;
     }
     const english = el("div", undefined, "translation-english");
-    english.append(el("strong", "English translation · review wording"));
-    if (entry?.status === "translated" && entry.text) {
+    const available = ["translated", "needs_review"].includes(entry?.status)
+      && entry.failed !== true && typeof entry.text === 'string' && entry.text.trim();
+    const caption = el('span', '', 'translation-caption');
+    if (available) {
       const text = el("div", entry.text, "source-comment");
-      text.lang = "en";
+      if (entry.status === 'translated') text.lang = "en";
       english.append(text);
+      caption.textContent = entry.partial === true ? 'English partial · untranslated portions kept in original wording'
+        : entry.status === 'needs_review' ? 'English wording · review required' : 'English · review wording';
     } else {
-      english.append(el("p", entry?.warning || "English wording is not ready. Open Original wording to inspect the source.", "muted translation-gap"));
+      // Missing wording must not hide the comment behind another disclosure.
+      english.append(source);
+      caption.textContent = entry?.failed === true ? 'Original shown · English unavailable'
+        : 'Original shown · English not ready';
+      caption.className += ' translation-gap';
     }
-    if (mode === "both") {
+    caption.title = entry?.warning || (available ? 'Compare translated wording with the original source.' : 'English wording is not ready. The original remains visible.');
+    english.append(caption);
+    if (!available) {
+      root.append(english);
+    } else if (mode === "both") {
       const originalBlock = el("div", undefined, "translation-original-block");
       originalBlock.append(el("strong", "Original wording"), source);
       root.append(originalBlock, english);
@@ -126,7 +138,7 @@
     help.append(el("summary", "How English analysis works"),
       coverageDetails,
       el("p", "Prepare all English translates every available comment and description in this imported L5X analysis on this PC. The first pass can take several minutes. You can keep reviewing or switch to FR / French while preparation continues. No full parser rerun is needed."),
-      el("p", "FR / French shows source wording, including any English or mixed-language comments already present. EN / English shows translated wording with the original available on demand. Show both languages keeps them visible together. Names, addresses, logic, and saved review decisions stay as entered. Missing or uncertain translations are marked; they do not silently switch to French."),
+      el("p", "FR / French shows source wording, including any English or mixed-language comments already present. EN / English shows accepted translations and retains original portions where translation is unavailable, with a visible note. Show both languages keeps complete versions together. Names, addresses, logic, and saved review decisions stay as entered. Retry missing translations retries failed or partial notes and reuses complete cached translations."),
       el("p", "Unchanged wording is translated once and reused from the local cache, including after later exports. New or changed wording is prepared separately. Review translations against their originals; abbreviations and mixed-language comments may need correction."),
       el("p", "First use: close the workspace and run this once from the repository in Git Bash. Setup downloads the translation software and French-to-English model. It does not send your comments anywhere."),
       el("code", "bash ./setup-translation.sh", "translation-command"),
@@ -143,12 +155,12 @@
       paintMode(modeOf(result));
       const running = result.state === "running";
       prepare.disabled = configuring || running || !result.available || !result.run_id;
-      retry.hidden = !result.available || running || !(result.failed || result.state === "error");
+      retry.hidden = !result.available || running || !(result.failed || result.partial || result.state === "error");
       const total = Number(result.total || 0), completed = Number(result.completed || 0);
       const remaining = Math.max(0, total - completed);
       const counts = `${completed} / ${total} unique texts`;
       const notes = [result.cached ? `${result.cached} reused` : "", remaining ? `${remaining} pending` : "",
-        result.needs_review ? `${result.needs_review} need wording review` : "", result.failed ? `${result.failed} failed` : ""].filter(Boolean);
+        result.needs_review ? `${result.needs_review} need wording review` : "", result.partial ? `${result.partial} partial` : "", result.failed ? `${result.failed} failed` : ""].filter(Boolean);
       const elapsed = duration(result.elapsed_seconds), eta = duration(result.remaining_seconds);
       const timing = [elapsed && `elapsed ${elapsed}`, running && (eta ? `about ${eta} remaining` : "estimating remaining time")].filter(Boolean);
       status.textContent = !result.available ? result.message || "Install the local translation model to prepare English."

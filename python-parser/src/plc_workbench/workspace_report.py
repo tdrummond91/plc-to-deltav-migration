@@ -128,9 +128,13 @@ def _language_overlay(data: dict, translations: dict | None, language: str,
         if not isinstance(original, str) or original not in allowed or not isinstance(translated, dict):
             continue
         text = translated.get('text')
-        ready = translated.get('status') == 'translated' and translated.get('failed') is not True and isinstance(text, str)
-        rows.append({'original': original, 'text': text if ready else '',
-                     'status': 'translated' if ready else 'unavailable'})
+        ready = (translated.get('status') in {'translated', 'needs_review'}
+                 and translated.get('failed') is not True and isinstance(text, str) and bool(text.strip()))
+        row = {'original': original, 'text': text if ready else '',
+               'status': translated['status'] if ready else 'unavailable'}
+        if ready and translated.get('partial') is True:
+            row['partial'] = True
+        rows.append(row)
     overlay = {'schema_version': data['schema_version'], 'snapshot_id': data['snapshot']['id'],
                'language': language, 'translations': rows, 'entries': entries,
                'coverage': catalog.get('coverage', {}) if catalog else {},

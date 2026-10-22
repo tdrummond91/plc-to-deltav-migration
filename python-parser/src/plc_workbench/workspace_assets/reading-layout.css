@@ -5,9 +5,9 @@
 }
 .rung-pane-divider {
   position: sticky;
-  top: 1rem;
-  min-height: 280px;
-  height: min(60vh, 550px);
+  top: var(--workspace-pane-top, 1rem);
+  min-height: min(280px, var(--workspace-pane-height, 100vh));
+  height: min(60vh, 550px, var(--workspace-pane-height, 100vh));
   cursor: col-resize;
   touch-action: none;
   user-select: none;

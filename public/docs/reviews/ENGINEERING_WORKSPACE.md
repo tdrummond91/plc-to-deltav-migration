@@ -100,6 +100,10 @@ L/U coils mean latch/unlatch. Neutral colors represent source logic, not live
 energized state. **How to read these ladders** explains these conventions once.
 Drawings start at **85%**, with compact branch spacing. Comments sit beside the
 rung number; zoom controls sit on the right, and **Reset zoom** returns to 85%.
+Long comments show a three-line preview with **Show full comment / Collapse
+comment**. Their language status stays visible below the preview; opening the
+comment survives a language change while that rung page stays open. The main
+header stays at the top while scrolling, with a distinct lower border.
 Short two-argument blocks show both numbered operands on one line. Long previews
 stay stacked, with complete values available by selecting the symbol.
 Zoom and scroll to inspect a long rung. Select a symbol for its complete arguments and a
@@ -264,9 +268,13 @@ a selected comment appears when its batch is reached. Elapsed time, estimated
 remaining time and any missing translations are shown in Project tools.
 English is a reading aid:
 confirm terminology, negation and control meaning against the original,
-especially abbreviations and mixed French/English wording. Text whose translation
-changes checked values/identifiers or cannot be completed is withheld for review.
-These checks do not prove semantic equivalence.
+especially abbreviations and mixed French/English wording. Each sentence or line
+is checked separately. Accepted English remains visible; portions that change
+checked values/identifiers, fail negation checks or cannot be completed keep their
+exact original wording. **English partial** identifies this mixed result. If no
+English is available, the original still displays in the same comment area with
+**Original shown · English unavailable**. These checks do not prove semantic
+equivalence.
 
 Identical text is translated once per model/rule version, including repeated
 comments and later L5X exports. New or changed text is translated on the next
@@ -276,6 +284,11 @@ reading features. The source-analysis report follows the selected language, with
 its own Original/English/Both control. Reopen the report to include translations
 completed since it was opened. **Comments & descriptions** provides a searchable
 index of captured wording and links back to its source context.
+After updating from an older version, use **Retry missing translations** under
+**Project tools → Source language** once to retry previously failed or partial
+comments. Successfully completed comments remain cached; retry rechecks each
+failed/partial comment as a whole. The original is readable immediately, before
+retry finishes. No new model download or L5X analysis is required for this update.
 
 To prepare an English review phase before browsing, close the workspace, then run:
 
@@ -290,7 +303,7 @@ saves `review-english.html` plus `source-wording.json` in a new private
 `english-analysis/` folder beside the project. The final `complete.json` records
 the source identity, coverage and any wording gaps. A partial result (exit code 3)
 means some eligible wording still needs review; the report remains usable.
-`--retry` retries missing/withheld translations. There are no Git operations or
+`--retry` retries missing/failed/partial translations. There are no Git operations or
 automatic model downloads. Use one workspace/preparation process per project.
 
 Coverage includes supported description/comment fields, localized notes,

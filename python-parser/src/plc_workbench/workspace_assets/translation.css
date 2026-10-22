@@ -18,12 +18,13 @@
 .translation-command { display: block; white-space: normal; overflow-wrap: anywhere; padding: .6rem; background: var(--bg); border-radius: .4rem; }
 .translation-pair { margin-block: .7rem; }
 .translation-pair > strong, .translation-english > strong, .translation-original-block > strong { display: block; margin-bottom: .35rem; font-size: .8rem; color: var(--muted); }
-.translation-english { margin-block: .4rem; padding: .7rem .85rem; border-left: 2px solid var(--accent); background: var(--surface); }
+.translation-english { margin: 0; padding: 0; }
+.translation-caption { display: block; margin: .15rem 0; font-size: .75rem; line-height: 1.35; color: var(--muted); }
 .translation-english[hidden] { display: none; }
 .translation-original-disclosure { margin-top: .45rem; color: var(--muted); }
 .translation-original-disclosure .source-comment { color: var(--ink); padding: .5rem 0; }
 .source-preview.translation-prose-root { max-height: none; overflow: visible; }
-.source-preview .translation-english { padding: .35rem .5rem; }
+.source-preview .translation-english { padding: 0; }
 .source-preview .translation-english > strong { font-size: .72rem; }
 .source-preview .source-comment { font-size: inherit; padding: .25rem .4rem; border-left: 0; background: transparent; }
-.translation-gap { border-left: 2px solid var(--orange); padding-left: .55rem; }
+.translation-gap { color: var(--orange); }

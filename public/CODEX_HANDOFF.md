@@ -1,5 +1,38 @@
 # Current handoff: PLC analysis workbench
 
+## Compact comments and partial English (2026-10-22)
+
+Programs & routines now previews long comments in about three lines, with Show
+full comment / Collapse comment. Complete wording remains available; expansion
+survives language-only updates on the current rung page. Translation status stays
+outside the preview, and keyboard access reveals controls inside longer comments.
+The main header is opaque and sticky at every width with a stronger cyan edge.
+Its measured height offsets sticky lists, inspectors and dividers, including
+wrapped headers; anchor scrolling and the Project tools menu use the same space.
+
+English mode immediately displays the original when a translation is unavailable.
+Accepted English sentences/lines now survive a neighboring segment's failure;
+rejected portions retain exact original wording and formatting, marked English
+partial. Identifier/value, negation, end-token and bounded-work checks still apply.
+The full evidence report also displays these partial results and source fallbacks.
+Existing source facts and saved review decisions are unchanged.
+
+The translation cache adds partial status and segment counts without changing the
+model/rule identity or invalidating completed translations. Retry missing
+translations explicitly retries failed/partial comments, rechecking each comment
+as a whole. Old failed entries need that one-time retry to benefit from segment
+fallback; the original is readable immediately. No new model setup or analysis
+run is required. Save/stop the workspace, manually pull, then reopen with
+`bash ./open-workbench.sh`.
+
+Validation: 209 focused tests completed successfully (one existing symlink skip),
+including the installed offline model, cache migration/retry, report/source
+fallbacks, comment disclosure and responsive header offsets. Independent review
+found no remaining blockers. Chrome checks used invented comments with seeded
+partial, failed and completed translations: three-line preview, full expansion,
+FR/EN continuity, visible status, desktop scrolling and 480px wrapping without
+page overflow. The Rungs inspector remained below the pinned header.
+
 ## Compact Programs & routines (2026-10-22)
 
 Routine drawings now start and reset at 85% with tighter instruction heights,

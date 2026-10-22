@@ -5,18 +5,22 @@
 .routine-directory-help { color: var(--muted); margin: .5rem 0 1rem; max-width: 100ch; }
 .routine-directory-help > summary { cursor: pointer; color: var(--accent); }
 .routine-directory-pagination label { display: flex; align-items: center; gap: .5rem; }
-.routine-directory-entry { border: 1px solid var(--border); border-radius: 10px; margin: .8rem 0; background: var(--surface); }
-.routine-directory-entry > summary { cursor: pointer; padding: 1rem; border-left: 3px solid transparent; }
+.routine-directory-entry { border: 1px solid var(--border); border-radius: 10px; margin: .55rem 0; background: var(--surface); }
+.routine-directory-entry > summary { cursor: pointer; padding: .65rem .8rem; border-left: 3px solid transparent; }
 .routine-directory-entry[open] > summary { border-left-color: var(--accent); background: var(--raised); }
 .routine-directory-entry > summary > strong { color: var(--ink); margin-inline: .5rem 1rem; }
 .routine-directory-path { color: var(--muted); overflow-wrap: anywhere; margin-right: 1rem; }
-.routine-directory-body { padding: .7rem; min-width: 0; }
+.routine-directory-body { padding: .5rem; min-width: 0; }
 .routine-actions, .routine-rung-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
 .routine-rung { margin: .65rem 0; border: 1px solid var(--border); border-radius: 8px; padding: .55rem .65rem; min-width: 0; background: var(--bg); }
 .routine-rung-heading { align-items: flex-start; margin-bottom: .4rem; }
 .routine-rung-heading h2 { flex: 0 0 auto; margin: .15rem 0; font-size: .95rem; color: var(--accent); }
 .routine-rung-comment { flex: 1 1 220px; min-width: 0; margin: .1rem .4rem; overflow-wrap: anywhere; }
 .routine-rung-comment[hidden] { display: none; }
+.routine-rung-comment-text { font-size: .86rem; line-height: 1.5; max-height: calc(4.5em + .5rem); overflow: hidden; }
+.routine-rung-comment-text[data-expanded="true"] { max-height: none; overflow: visible; }
+.routine-comment-footer { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 .5rem; }
+.routine-comment-toggle { margin-top: .2rem; padding: .15rem .45rem; font-size: .75rem; color: var(--accent); }
 .routine-rung-comment .source-comment, .routine-rung-comment p { margin: 0; }
 .routine-rung-comment .source-comment { padding: .25rem .55rem; }
 .routine-rung-comment .translation-original-disclosure { margin-block: .2rem; }
@@ -31,4 +35,8 @@
   .routine-directory-body, .routine-rung { padding: .5rem; }
   .routine-rung-comment { flex-basis: calc(100% - 6rem); margin-right: 0; }
   .routine-rung-tools { width: 100%; }
+}
+@media print {
+  .routine-rung-comment-text { max-height: none; overflow: visible; }
+  .routine-comment-toggle { display: none; }
 }

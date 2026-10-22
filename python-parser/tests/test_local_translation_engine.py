@@ -78,7 +78,8 @@ class TranslationEngineTests(unittest.TestCase):
         for candidate in ("Stop P102 at 150 kPa.", "Stop P101 at 150 psi.", "Stop P101 at 15 kPa.", "Stop P101 at 150 kPa and 20 s."):
             result = fake_engine([candidate]).translate("Arrêter P101 à 150 kPa.")
             self.assertEqual(result["status"], "needs_review")
-            self.assertEqual(result["text"], "")
+            self.assertEqual(result["text"], "Arrêter P101 à 150 kPa.")
+            self.assertTrue(result["failed"])
 
     def test_explicit_simple_name_is_preserved(self):
         result = fake_engine(["Start the Main pump."]).translate("Démarrer la pompe Principal.", protected_tokens=["Principal"])
@@ -96,7 +97,7 @@ class TranslationEngineTests(unittest.TestCase):
     def test_added_negation_is_withheld(self):
         result = fake_engine(["The pump must not start."]).translate("La pompe doit démarrer.")
         self.assertEqual(result["status"], "needs_review")
-        self.assertEqual(result["text"], "")
+        self.assertEqual(result["text"], "La pompe doit démarrer.")
 
     def test_ne_plus_negation_is_recognized_but_bare_plus_is_not(self):
         for original in ("La pompe ne démarre plus.", "La pompe n'est plus disponible."):
@@ -122,13 +123,14 @@ class TranslationEngineTests(unittest.TestCase):
     def test_incomplete_decode_is_withheld(self):
         result = fake_engine(["The pump must"], finished=False).translate("La pompe doit démarrer.")
         self.assertEqual(result["status"], "needs_review")
-        self.assertEqual(result["text"], "")
+        self.assertEqual(result["text"], "La pompe doit démarrer.")
 
     def test_runtime_error_does_not_leak_input_in_warning(self):
         instance = fake_engine([])
         instance._translator.translate_batch.side_effect = RuntimeError("SENSITIVE_SOURCE")
         result = instance.translate("SENSITIVE_SOURCE")
-        self.assertNotIn("SENSITIVE_SOURCE", json.dumps(result))
+        self.assertNotIn("SENSITIVE_SOURCE", result["warning"])
+        self.assertEqual(result["text"], "SENSITIVE_SOURCE")
         self.assertEqual(result["status"], "needs_review")
 
     def test_many_packs_comments_and_preserves_each_paragraph(self):
@@ -169,12 +171,86 @@ class TranslationEngineTests(unittest.TestCase):
 
     def test_many_bad_batch_length_withholds_without_misaligned_wording(self):
         results = fake_engine(["Pump running."]).translate_many(["Pompe en marche.", "Vanne ouverte."])
-        self.assertEqual([result["text"] for result in results], ["", ""])
+        self.assertEqual([result["text"] for result in results], ["Pompe en marche.", "Vanne ouverte."])
+        self.assertTrue(all(result["failed"] for result in results))
 
     def test_many_preserves_single_comment_guards(self):
         sources = ["The pump must not start.", "Start P101 at 150 kPa."]
         outputs = ["The pump must start.", "Start P101 at 15 kPa."]
         self.assertEqual(fake_engine(outputs).translate_many(sources), [fake_engine([output]).translate(source) for source, output in zip(sources, outputs)])
+
+    def test_one_rejected_line_keeps_other_translated_lines_and_original_values(self):
+        text = "Pompe en marche.\nPression maximale 2,5 bar.\nVanne ouverte."
+        result = fake_engine(["Pump running.", "Maximum pressure 2.5 bar.", "Valve open."]).translate(text)
+        self.assertEqual(result["text"], "Pump running.\nPression maximale 2,5 bar.\nValve open.")
+        self.assertEqual(result["status"], "needs_review")
+        self.assertTrue(result["partial"])
+        self.assertFalse(result["failed"])
+        self.assertEqual((result["translated_segments"], result["retained_segments"]), (2, 1))
+
+    def test_partial_negation_and_explicit_identifier_guards_apply_per_segment(self):
+        text = "Pompe en marche. Vanne ne doit pas ouvrir. Démarrer Principal."
+        result = fake_engine(["Pump running.", "Valve must open.", "Start Main."]).translate(text, protected_tokens=["Principal"])
+        self.assertEqual(result["text"], "Pump running. Vanne ne doit pas ouvrir. Démarrer Principal.")
+        self.assertEqual((result["translated_segments"], result["retained_segments"]), (1, 2))
+
+    def test_incomplete_decode_retains_only_its_original_line(self):
+        instance = fake_engine([])
+        instance._translator.translate_batch.return_value = [
+            SimpleNamespace(hypotheses=[["Pump", "running.", "</s>"]]),
+            SimpleNamespace(hypotheses=[["Valve", "must"]]),
+        ]
+        result = instance.translate("Pompe en marche.\nLa vanne doit ouvrir.")
+        self.assertEqual(result["text"], "Pump running.\nLa vanne doit ouvrir.")
+        self.assertTrue(result["partial"])
+
+    def test_long_line_is_retained_without_preventing_other_lines(self):
+        long_line = "mot " * (engine.MAX_SENTENCE_TOKENS + 1)
+        instance = fake_engine(["Pump running.", "Valve open."])
+        result = instance.translate("Pompe en marche.\n" + long_line + "\nVanne ouverte.")
+        self.assertEqual(result["text"], "Pump running.\n" + long_line + "\nValve open.")
+        self.assertEqual((result["translated_segments"], result["retained_segments"]), (2, 1))
+        self.assertEqual(len(instance._translator.translate_batch.call_args.args[0]), 2)
+
+    def test_whitespace_and_decorative_lines_survive_without_model_calls(self):
+        text = "  Pompe en marche.  \r\n\t----------\r\tVanne ouverte.\t\n\n  123 >= 20  \n"
+        instance = fake_engine(["Pump running.", "Valve open."])
+        result = instance.translate(text)
+        self.assertEqual(result["text"], "  Pump running.  \r\n\t----------\r\tValve open.\t\n\n  123 >= 20  \n")
+        self.assertEqual((result["translated_segments"], result["retained_segments"]), (2, 0))
+        self.assertEqual(len(instance._translator.translate_batch.call_args.args[0]), 2)
+        decorative = fake_engine([])
+        result = decorative.translate("\t----------------\r\n\r\n  1) 2)  ")
+        self.assertEqual(result["text"], "\t----------------\r\n\r\n  1) 2)  ")
+        self.assertEqual(result["status"], "translated")
+        self.assertFalse(result["failed"])
+        decorative._translator.translate_batch.assert_not_called()
+
+    def test_segment_limit_retains_unattempted_tail_and_bounds_tokenization(self):
+        instance = fake_engine(["Pump running."] * engine.MAX_SEGMENTS)
+        source = "\n".join(["Pompe en marche."] * (engine.MAX_SEGMENTS + 2))
+        result = instance.translate(source)
+        self.assertEqual(result["text"], "\n".join(["Pump running."] * engine.MAX_SEGMENTS + ["Pompe en marche."] * 2))
+        self.assertEqual(instance._tokenizer.encode.call_count, engine.MAX_SEGMENTS)
+        self.assertEqual((result["translated_segments"], result["retained_segments"]), (engine.MAX_SEGMENTS, 2))
+
+    def test_tokenizer_failure_retains_its_segment_and_keeps_later_alignment(self):
+        instance = fake_engine(["Pump running.", "Valve open."])
+        def encode(text, out_type):
+            if text == "Autre note.":
+                raise RuntimeError("private runtime details")
+            return text.split()
+        instance._tokenizer.encode.side_effect = encode
+        result = instance.translate("Pompe en marche.\nAutre note.\nVanne ouverte.")
+        self.assertEqual(result["text"], "Pump running.\nAutre note.\nValve open.")
+        self.assertTrue(result["partial"])
+        self.assertNotIn("private", result["warning"])
+
+    def test_expanded_output_retains_one_original_instead_of_hiding_all_text(self):
+        instance = fake_engine(["x" * (engine.MAX_TEXT_CHARS * 2 + 1), "Valve open."])
+        result = instance.translate("Pompe en marche.\nVanne ouverte.")
+        self.assertEqual(result["text"], "Pompe en marche.\nValve open.")
+        self.assertTrue(result["partial"])
 
 
 @unittest.skipUnless(engine.availability()["available"], "Optional offline translation model is not installed")
@@ -204,7 +280,14 @@ class InstalledTranslationTests(unittest.TestCase):
             self.assertIn("150 kPa", result["text"])
             result = translator.translate("La pression doit rester inférieure à 2,5 bar.")
             self.assertEqual(result["status"], "needs_review")
-            self.assertEqual(result["text"], "")
+            self.assertEqual(result["text"], "La pression doit rester inférieure à 2,5 bar.")
+
+    def test_real_multiline_partial_keeps_safe_english_and_exact_original_formatting(self):
+        with patch("socket.socket.connect", side_effect=AssertionError("No network")), patch("socket.create_connection", side_effect=AssertionError("No network")):
+            result = engine.Engine().translate("  La pompe ne doit pas démarrer.\r\n-----\r\nLa pression doit rester inférieure à 2,5 bar.  ")
+        self.assertEqual(result["text"], "  The pump must not start.\r\n-----\r\nLa pression doit rester inférieure à 2,5 bar.  ")
+        self.assertTrue(result["partial"])
+        self.assertEqual((result["translated_segments"], result["retained_segments"]), (1, 1))
 
 
 if __name__ == "__main__":

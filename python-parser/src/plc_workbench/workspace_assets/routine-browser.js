@@ -33,6 +33,10 @@
       el('p', 'Expand one routine at a time. Ladder pages contain up to 20 rungs; other source types stay available through their source link. Contacts test a bit, coils write a bit, and boxes retain other instructions and their arguments. Parallel paths split and rejoin as captured. Every captured instruction and path is retained; neutral lines do not show live controller states. Drawings start at 85%; use each rung header to zoom or fit its width. Select a symbol to read all arguments. Long argument previews may be shortened, with complete values in the selection and original text.', 'muted'));
     root.append(filters, status, help, pager, list);
     let key = '', runId = '', active = false, serial = 0, page = 1, routines = [], opened = null;
+    const commentViews = new WeakMap();
+    const commentObserver = window.ResizeObserver ? new window.ResizeObserver(entries => {
+      entries.forEach(({target}) => measureComment(commentViews.get(target)));
+    }) : null;
     const projectKey = () => {
       const state = options.getState() || {};
       return JSON.stringify([state.project_path || '', state.active_run || '']);
@@ -50,7 +54,12 @@
       serial++;
       if (!opened) return;
       const old = opened; opened = null;
+      clearComments(old);
       old.details.open = false; old.body.replaceChildren();
+    }
+    function clearComments(entry) {
+      entry.comments.forEach(target => { commentObserver?.unobserve(target); commentViews.delete(target); });
+      entry.comments.clear();
     }
     function renderDirectory() {
       closeCurrent(); list.replaceChildren();
@@ -93,10 +102,44 @@
       });
       if (!matches.length) list.append(el('p', runId ? 'No routines match these filters.' : 'No analysis is selected.', 'empty'));
     }
+    function measureComment(view) {
+      if (!view || !view.target.isConnected || view.target.hidden) return;
+      view.toggle.hidden = !view.expanded && view.content.scrollHeight <= view.content.clientHeight + 1;
+    }
+    function expandComment(view, expanded) {
+      view.expanded = expanded;
+      view.content.dataset.expanded = String(expanded);
+      view.toggle.textContent = expanded ? 'Collapse comment' : 'Show full comment';
+      view.toggle.setAttribute('aria-expanded', String(expanded));
+      measureComment(view);
+    }
     function paintComment(target, rung, mode) {
       target.hidden = !rung.comment;
-      if (!rung.comment) { target.replaceChildren(); return; }
-      window.PLCTranslation.renderProse(target, rung.comment, rung.wording?.comment, mode);
+      let view = commentViews.get(target);
+      if (!view) {
+        const content = el('div', undefined, 'routine-rung-comment-text');
+        content.id = `routine-comment-${rung.id}`;
+        const toggle = button('Show full comment', () => expandComment(view, !view.expanded));
+        toggle.className = 'routine-comment-toggle'; toggle.hidden = true;
+        toggle.setAttribute('aria-controls', content.id);
+        const caption = el('div', undefined, 'routine-comment-caption');
+        const footer = el('div', undefined, 'routine-comment-footer'); footer.append(toggle, caption);
+        view = {target, content, toggle, caption, expanded: false};
+        commentViews.set(target, view); target.append(content, footer);
+        // A keyboard user can reach the original-language disclosure even when it
+        // lies below the preview. Reveal that focused control instead of clipping it.
+        content.addEventListener('focusin', () => expandComment(view, true));
+        expandComment(view, false); commentObserver?.observe(target);
+      }
+      window.PLCTranslation.renderProse(view.content, rung.comment || '', rung.wording?.comment, mode);
+      // Language availability is important even while the source preview is folded.
+      // Move the existing caption; do not duplicate either wording or its status.
+      view.caption.replaceChildren(...view.content.querySelectorAll('.translation-caption'));
+      // Initial comments are painted before their cards are attached. Measure after
+      // layout so wrapped lines, translated text, and fallback notices all count.
+      const measure = () => measureComment(commentViews.get(target));
+      if (window.requestAnimationFrame) window.requestAnimationFrame(measure);
+      else Promise.resolve().then(measure);
     }
     async function load(entry, rungPage, wordingOnly = false) {
       if (!active || opened !== entry || projectKey() !== key) return;
@@ -105,7 +148,7 @@
       entry.requestedPage = rungPage;
       entry.error?.remove(); entry.error = null;
       if (!wordingOnly) {
-        entry.payload = null; entry.comments.clear();
+        entry.payload = null; clearComments(entry);
         entry.body.replaceChildren(el('p', `Loading rung page ${rungPage}…`, 'routine-loading'));
       }
       const current = () => active && opened === entry && entry.details.open && generation === serial
@@ -120,7 +163,7 @@
           result.items.forEach(rung => { const target = entry.comments.get(rung.id); if (target) paintComment(target, rung, result.presentation_mode); });
           entry.payload = result; return;
         }
-        entry.payload = result; entry.comments.clear(); entry.body.replaceChildren();
+        entry.payload = result; clearComments(entry); entry.body.replaceChildren();
         const actions = el('div', undefined, 'routine-actions');
         actions.append(options.reportLink('Open routine source ↗', entry.routine.id, result.routine.type === 'SFC' ? 'sfc' : 'objects'),
           button('Review routine rungs', () => options.review(entry.routine.id)));

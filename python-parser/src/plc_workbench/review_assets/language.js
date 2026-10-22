@@ -18,15 +18,19 @@
     };
     const english = original => {
       const row = rows.get(original);
-      return row?.status === 'translated' && typeof row.text === 'string' && row.text.trim() ? row.text : null;
+      return ['translated', 'needs_review'].includes(row?.status) && typeof row.text === 'string' && row.text.trim() ? row.text : null;
     };
     function prose(original, compact = false) {
       const text = original ?? 'No text captured.';
       if (!overlay || mode === 'original' || !original) return node(compact ? 'div' : 'pre', compact && text.length > 180 ? text.slice(0, 179) + '…' : text, compact ? 'snippet' : 'source-text note');
       const result = node('div', undefined, 'translated-source');
       const translated = english(original);
-      result.append(node('div', translated ? 'English · review wording' : 'English wording is not available for this note.', 'row-note'));
-      if (translated) result.append(node(compact ? 'div' : 'pre', compact && translated.length > 180 ? translated.slice(0, 179) + '…' : translated, compact ? 'snippet' : 'source-text note'));
+      const shown = translated || original, row = rows.get(original);
+      result.append(node(compact ? 'div' : 'pre', compact && shown.length > 180 ? shown.slice(0, 179) + '…' : shown, compact ? 'snippet' : 'source-text note'));
+      result.append(node('div', !translated ? 'Original shown · English unavailable'
+        : row.partial === true ? 'English partial · untranslated portions kept in original wording'
+        : row.status === 'needs_review' ? 'English wording · review required' : 'English · review wording', 'row-note'));
+      if (!translated) return result;
       const source = mode === 'both' ? node('div') : node('details', undefined, 'technical');
       source.append(node(mode === 'both' ? 'strong' : 'summary', 'Original source wording'),
                     node('pre', original, 'source-text note'));
@@ -37,8 +41,9 @@
       if (!original) return fallback;
       if (!overlay || mode === 'original') return original;
       const translated = english(original);
-      if (!translated) return 'English wording unavailable · open the original source';
-      return mode === 'both' ? translated + ' · Original: ' + original : translated;
+      if (!translated) return original + ' · Original shown; English unavailable';
+      const shown = translated + (rows.get(original)?.partial === true ? ' · Partial English; original portions retained' : '');
+      return mode === 'both' ? shown + ' · Original: ' + original : shown;
     }
     function mount(target, changed) {
       if (!target || !overlay) return;

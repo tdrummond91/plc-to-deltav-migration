@@ -8,28 +8,42 @@ from test_workspace_ui import ASSETS, NODE
 
 
 SCRIPT = (ASSETS / 'routine-browser.js').read_text(encoding='utf-8')
+TRANSLATION_SCRIPT = (ASSETS / 'translation.js').read_text(encoding='utf-8')
 DOM = r"""
 const assert=require('node:assert/strict');
 class Element {
   constructor(tag) {this.tagName=tag;this.children=[];this.events={};this.attributes={};this.dataset={};this.className='';this._text='';this.value='';this.disabled=false;this.open=false;}
-  set textContent(text){this._text=String(text);this.children=[];}
+  set textContent(text){this._text=String(text);this.children.forEach(child=>child.parent=null);this.children=[];}
   get textContent(){return this._text+this.children.map(child=>child.textContent).join(' ');}
-  append(...children){children.forEach(child=>{child.parent=this;this.children.push(child);});}
-  replaceChildren(...children){this.children=[];this._text='';this.append(...children);}
+  append(...children){children.forEach(child=>{child.remove();child.parent=this;this.children.push(child);});}
+  replaceChildren(...children){this.children.forEach(child=>child.parent=null);this.children=[];this._text='';this.append(...children);}
   remove(){if(this.parent){this.parent.children=this.parent.children.filter(child=>child!==this);this.parent=null;}}
   addEventListener(name,fn){this.events[name]=fn;}
   setAttribute(name,value){this.attributes[name]=String(value);}
+  querySelectorAll(selector){return this.children.flatMap(child=>[...(child.className.split(' ').includes(selector.slice(1))?[child]:[]),...child.querySelectorAll(selector)]);}
+  get isConnected(){return this===root||Boolean(this.parent?.isConnected);}
+  get scrollHeight(){return this.textContent.split('\n').reduce((lines,line)=>lines+Math.max(1,Math.ceil(line.length/(this.columns||60))),0)*20+8;}
+  get clientHeight(){return this.dataset.expanded==='true'?this.scrollHeight:Math.min(this.scrollHeight,68);}
   fire(name,values={}){if(name==='click'&&this.disabled)return;return this.events[name]?.({type:name,target:this,...values});}
 }
 const document={createElement:tag=>new Element(tag)},window={};
+const frames=[],observers=[];
+window.requestAnimationFrame=callback=>frames.push(callback);
+window.ResizeObserver=class {
+  constructor(callback){this.callback=callback;this.targets=new Set();observers.push(this);}
+  observe(target){this.targets.add(target);}
+  unobserve(target){this.targets.delete(target);}
+  resize(target){if(this.targets.has(target))this.callback([{target}]);}
+};
 const root=new Element('section');
 const all=(node=root)=>[node,...node.children.flatMap(all)];
 const cls=name=>all().filter(node=>node.className.split(' ').includes(name));
+const commentText=node=>node.querySelectorAll('.routine-rung-comment-text')[0].textContent;
 const buttons=text=>all().filter(node=>node.tagName==='button'&&node.textContent===text);
 const button=text=>buttons(text)[0];
 const open=entry=>{entry.open=true;entry.fire('toggle');};
 const close=entry=>{entry.open=false;entry.fire('toggle');};
-const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
+const flush=async()=>{for(let i=0;i<12;i++){await Promise.resolve();frames.splice(0).forEach(callback=>callback());}};
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};};
 const routine=i=>({id:'routine-'+i,name:'Routine '+i,path:'Controller / '+(i%2?'Beta':'Alpha')+' / Routine '+i,
   program_id:i%2?'beta':'alpha',program_name:i%2?'Beta':'Alpha',program_path:'Controller / '+(i%2?'Beta':'Alpha'),
@@ -59,8 +73,8 @@ const mount=()=>{const controller=window.PLCRoutineBrowser.mount(root,options);c
 
 @unittest.skipUnless(NODE, 'Node is optional developer tooling')
 class WorkspaceRoutineBrowserTests(unittest.TestCase):
-    def run_js(self, checks: str) -> None:
-        code = DOM + SCRIPT + '\n(async()=>{\n' + checks + '\n})().catch(error=>{console.error(error);process.exitCode=1;});'
+    def run_js(self, checks: str, *, translation: bool = False) -> None:
+        code = DOM + (TRANSLATION_SCRIPT if translation else '') + SCRIPT + '\n(async()=>{\n' + checks + '\n})().catch(error=>{console.error(error);process.exitCode=1;});'
         result = subprocess.run([NODE, '-'], input=code, capture_output=True, encoding='utf-8', timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -180,14 +194,14 @@ button('Review routine rungs').fire('click');assert.deepEqual(reviews,[['routine
         self.run_js(r"""
 const controller=mount();open(cls('routine-directory-entry')[0]);await flush();
 const firstDiagram=cls('test-ladder-diagram')[0],firstComment=cls('routine-rung-comment')[0];
-assert.equal(firstComment.textContent,'Original comment 0');const before=diagrams.length;
+assert.equal(commentText(firstComment),'Original comment 0');const before=diagrams.length;
 respond=async url=>payload(url,{presentation_mode:'english'});controller.wordingChanged();await flush();
 assert.equal(cls('test-ladder-diagram')[0],firstDiagram);assert.equal(diagrams.length,before);
-assert.equal(cls('routine-rung-comment')[0],firstComment);assert.equal(firstComment.textContent,'English comment 0');
+assert.equal(cls('routine-rung-comment')[0],firstComment);assert.equal(commentText(firstComment),'English comment 0');
 const delayed=deferred();respond=async()=>delayed.promise;controller.wordingChanged();
 respond=async url=>payload(url,{presentation_mode:'original'});controller.wordingChanged();await flush();
 delayed.resolve(payload(new URL(calls.at(-2),'http://local'),{presentation_mode:'english'}));await flush();
-assert.equal(firstComment.textContent,'Original comment 0');assert.equal(diagrams.length,before);
+assert.equal(commentText(firstComment),'Original comment 0');assert.equal(diagrams.length,before);
 """)
 
     def test_compact_headers_put_comments_beside_rung_number_and_pass_right_side_controls_target(self):
@@ -204,7 +218,7 @@ headings.forEach((heading,index)=>{
 assert.ok(cls('routine-directory-help')[0].textContent.includes('Drawings start at 85%'));
 const firstComment=comments[0],zoomTarget=diagrams[0].options.controlsTarget,drawCount=diagrams.length;
 respond=async url=>payload(url,{presentation_mode:'english'});controller.wordingChanged();await flush();
-assert.equal(firstComment.parent,headings[0]);assert.equal(firstComment.textContent,'English comment 0');
+assert.equal(firstComment.parent,headings[0]);assert.equal(commentText(firstComment),'English comment 0');
 assert.equal(diagrams.length,drawCount);assert.equal(diagrams[0].options.controlsTarget,zoomTarget);
 """)
 
@@ -230,7 +244,64 @@ assert.equal(button('Retry routine page'),undefined);
 assert.equal(root.textContent.includes('Wording refresh failure'),false);
 assert.equal(diagrams.length,renderCount);
 cls('test-ladder-diagram').forEach((diagram,i)=>assert.equal(diagram,originalDiagrams[i]));
-cls('routine-rung-comment').forEach((comment,i)=>{assert.equal(comment,originalComments[i]);assert.equal(comment.textContent,'English comment '+i);});
+cls('routine-rung-comment').forEach((comment,i)=>{assert.equal(comment,originalComments[i]);assert.equal(commentText(comment),'English comment '+i);});
+""")
+
+    def test_long_comments_keep_complete_text_and_disclosure_survives_language_states(self):
+        self.run_js(r"""
+const original=Array.from({length:12},(_,i)=>'Original invented description line '+i).join('\n');
+let wording={status:'failed',failed:true,warning:'Invented local translation failure'};
+let mode='original';
+respond=async url=>payload(url,{items:[{...rung(0),comment:original,wording:{comment:wording}}],presentation_mode:mode});
+const controller=mount();open(cls('routine-directory-entry')[0]);await flush();
+const comment=cls('routine-rung-comment')[0],content=cls('routine-rung-comment-text')[0],toggle=cls('routine-comment-toggle')[0];
+const heading=comment.parent,diagram=cls('test-ladder-diagram')[0];
+assert.equal(content.dataset.expanded,'false');assert.equal(toggle.hidden,false);
+assert.equal(commentText(comment),original);assert.equal(toggle.attributes['aria-controls'],content.id);
+assert.equal(toggle.attributes['aria-expanded'],'false');
+toggle.fire('click');assert.equal(toggle.textContent,'Collapse comment');assert.equal(content.dataset.expanded,'true');
+mode='english';controller.wordingChanged();await flush();
+assert.equal(commentText(comment),original);assert.equal(content.dataset.expanded,'true');
+assert.equal(comment.parent,heading);assert.equal(cls('routine-rung-comment')[0],comment);
+let caption=cls('translation-caption')[0];
+assert.ok(caption.textContent.includes('Original shown'));assert.equal(caption.parent.className,'routine-comment-caption');
+assert.equal(content.querySelectorAll('.translation-caption').length,0);
+wording={status:'needs_review',text:'Partial English\nOriginal remainder',partial:true};
+controller.wordingChanged();await flush();
+assert.equal(content.dataset.expanded,'true');assert.ok(commentText(comment).includes(wording.text));
+assert.ok(cls('translation-caption')[0].textContent.includes('English partial'));
+wording={status:'translated',text:'Short complete English'};
+controller.wordingChanged();await flush();
+assert.equal(content.dataset.expanded,'true');assert.ok(commentText(comment).includes('Short complete English'));
+assert.equal(toggle.textContent,'Collapse comment');assert.equal(toggle.hidden,false);
+assert.equal(cls('test-ladder-diagram')[0],diagram);assert.equal(diagrams.length,1);
+mode='original';controller.wordingChanged();await flush();
+assert.equal(commentText(comment),original);assert.equal(cls('translation-caption').length,0);
+toggle.fire('click');assert.equal(content.dataset.expanded,'false');assert.equal(toggle.hidden,false);
+assert.equal(commentText(comment),original);
+""", translation=True)
+
+    def test_wrapped_comment_disclosure_rechecks_after_width_change_and_keyboard_focus(self):
+        self.run_js(r"""
+respond=async url=>payload(url,{items:[{...rung(0),comment:'x'.repeat(150)}]});
+mount();open(cls('routine-directory-entry')[0]);await flush();
+const comment=cls('routine-rung-comment')[0],content=cls('routine-rung-comment-text')[0],toggle=cls('routine-comment-toggle')[0];
+assert.equal(toggle.hidden,true);assert.equal(content.textContent.length,150);
+content.columns=20;observers[0].resize(comment);assert.equal(toggle.hidden,false);
+content.fire('focusin');assert.equal(content.dataset.expanded,'true');assert.equal(toggle.attributes['aria-expanded'],'true');
+content.columns=120;observers[0].resize(comment);assert.equal(toggle.hidden,false);
+toggle.fire('click');assert.equal(content.dataset.expanded,'false');assert.equal(toggle.hidden,true);
+assert.equal(content.textContent.length,150);assert.equal(diagrams.length,1);
+""")
+
+    def test_comment_measurements_release_old_page_and_closed_routine(self):
+        self.run_js(r"""
+mount();const entry=cls('routine-directory-entry')[0];open(entry);await flush();
+const previous=cls('routine-rung-comment');assert.equal(observers[0].targets.size,20);
+button('Next rung page').fire('click');await flush();
+assert.equal(observers[0].targets.size,20);previous.forEach(comment=>assert.equal(observers[0].targets.has(comment),false));
+const current=cls('routine-rung-comment');close(entry);await flush();
+assert.equal(observers[0].targets.size,0);current.forEach(comment=>assert.equal(comment.isConnected,false));
 """)
 
     def test_review_and_instruction_callbacks_receive_canonical_source_and_qualification(self):

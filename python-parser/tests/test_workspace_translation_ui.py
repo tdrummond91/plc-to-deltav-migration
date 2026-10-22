@@ -253,7 +253,7 @@ assert.match(status().textContent, /0 \/ 2 unique texts/);
 assert.ok(status().textContent.includes('2 pending'));
 assert.ok(status().textContent.includes('elapsed 1m 5s'));
 assert.ok(status().textContent.includes('estimating remaining time'));
-assert.ok(root.textContent.includes('This wording is queued while the whole source is prepared'));
+assert.ok(byClass(root,'translation-caption').some(note=>note.title.includes('This wording is queued while the whole source is prepared')));
 assert.ok(report().textContent.includes('gaps marked'));
 await nextTimer();
 assert.ok(status().textContent.includes('about 1m 20s remaining'));
@@ -267,17 +267,36 @@ await controller.refresh();
 assert.equal(changes.length, 2);
 """)
 
-    def test_partial_english_does_not_present_untranslated_french_as_english(self) -> None:
+    def test_partial_and_review_required_wording_stays_visible_with_original_available(self) -> None:
         self.run_js(r"""
 const root = new Element('section');
 window.PLCTranslation.renderProse(root, 'Ne pas ouvrir', {status: 'needs_review', text: 'Ne pas ouvrir', warning: 'Compare uncertain wording.'}, 'english');
-assert.equal(byClass(root, 'translation-gap')[0].textContent, 'Compare uncertain wording.');
-assert.ok(!byClass(root, 'translation-english')[0].textContent.includes('Ne pas ouvrir'));
+assert.ok(byClass(root, 'translation-caption')[0].textContent.includes('review required'));
+assert.equal(byClass(root, 'translation-caption')[0].title, 'Compare uncertain wording.');
+assert.ok(byClass(root, 'translation-english')[0].textContent.includes('Ne pas ouvrir'));
 const original = byClass(root, 'translation-original-disclosure')[0];
 assert.equal(original.open, false); assert.ok(original.textContent.includes('Ne pas ouvrir'));
+window.PLCTranslation.renderProse(root, 'Pompe en marche\nNe pas ouvrir',
+  {status:'needs_review',text:'Pump running\nNe pas ouvrir',partial:true,failed:false}, 'english');
+assert.equal(byClass(root, 'source-comment')[0].textContent,'Pump running\nNe pas ouvrir');
+assert.ok(byClass(root, 'translation-caption')[0].textContent.includes('English partial'));
+assert.equal(all(root).some(node=>node.lang==='en'),false);
+assert.ok(byClass(root,'translation-original-disclosure')[0].textContent.includes('Pompe en marche'));
 window.PLCTranslation.renderProse(root, '<img src=x onerror=alert(1)>', {status: 'translated', text: '<script>alert(1)</script>'}, 'english');
 assert.equal(all(root).some(node => ['img','script'].includes(node.tagName)), false);
 assert.ok(root.textContent.includes('<script>alert(1)</script>'));
+""")
+
+    def test_unavailable_english_keeps_original_visible_without_extra_disclosure(self) -> None:
+        self.run_js(r"""
+const root=new Element('section');
+for(const mode of ['english','both']) for(const entry of [null,{status:'needs_review',text:'',failed:true},{status:'needs_review',text:'Do not show this failed candidate',failed:true}]) {
+  window.PLCTranslation.renderProse(root,'Original multiline\ncomment',entry,mode);
+  assert.equal(byClass(root,'source-comment')[0].textContent,'Original multiline\ncomment');
+  assert.equal(byClass(root,'source-comment').length,1);
+  assert.equal(byClass(root,'translation-original-disclosure').length,0);
+  assert.ok(byClass(root,'translation-caption')[0].textContent.includes('Original shown'));
+}
 """)
 
     def test_completed_batch_missing_wording_does_not_claim_it_is_still_queued(self) -> None:
@@ -285,7 +304,7 @@ assert.ok(root.textContent.includes('<script>alert(1)</script>'));
 respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2});
 const controller = window.PLCTranslation.mount(container, api);
 const root = new Element('section'); controller.show(root, source()); await tick();
-assert.ok(root.textContent.includes('English wording is not ready'));
+assert.ok(root.textContent.includes('Original shown · English not ready'));
 assert.ok(!root.textContent.includes('queued'));
 assert.ok(!root.textContent.includes('background'));
 assert.equal(timers.size, 0);
@@ -341,8 +360,8 @@ respond = async () => state({presentation_mode: 'english', enabled: true, availa
 const controller = window.PLCTranslation.mount(container, api);
 const root = new Element('section'); controller.show(root, source()); await tick();
 assert.equal(status().textContent, 'Install the local French-to-English model.');
-assert.ok(root.textContent.includes('Install the local French-to-English model.'));
-assert.ok(byClass(root, 'translation-original-disclosure')[0].textContent.includes('Fermer la vanne'));
+assert.ok(byClass(root,'translation-caption').some(note=>note.title.includes('Install the local French-to-English model.')));
+assert.ok(byClass(root, 'translation-original')[0].textContent.includes('Fermer la vanne'));
 assert.ok(container.textContent.includes('bash ./setup-translation.sh'));
 assert.ok(container.textContent.includes('without an internet connection after setup'));
 assert.equal(prepare().disabled, true); assert.equal(mode().disabled, false);
@@ -375,6 +394,17 @@ assert.deepEqual(calls.find(call => call.body).body,
   {presentation_mode: 'original', prepare: true, run_id: 'invented-run', retry: true});
 assert.equal(retry().hidden, true); assert.equal(timers.size, 1);
 controller.destroy(); assert.equal(timers.size, 0);
+""")
+
+    def test_partial_wording_is_counted_and_can_be_retried(self) -> None:
+        self.run_js(r"""
+respond=async()=>state({enabled:true,presentation_mode:'english',state:'complete',completed:2,partial:1,needs_review:1,failed:0});
+const controller=window.PLCTranslation.mount(container,api);await controller.refresh();
+assert.equal(retry().hidden,false);assert.ok(status().textContent.includes('1 partial'));
+respond=async()=>state({enabled:true,presentation_mode:'english',state:'running'});
+await retry().fire('click');
+assert.deepEqual(calls.find(call=>call.body).body,{presentation_mode:'english',prepare:true,run_id:'invented-run',retry:true});
+controller.destroy();
 """)
 
     def test_failed_configuration_rereads_applied_mode_and_resumes_running_poll(self) -> None:
@@ -411,7 +441,7 @@ await chooseMode('both');
 assert.equal(calls.slice(start).filter(call => call.body).length, 1);
 assert.equal(mode().value, 'english');
 assert.ok(root.textContent.includes('Close the valve'));
-assert.ok(root.textContent.includes('Live translation status is interrupted'));
+assert.ok(byClass(root,'translation-caption').some(note=>note.title.includes('Live translation status is interrupted')));
 assert.equal(timers.size, 1); assert.equal(control('translation-retry-status').hidden, false);
 respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2, fields: translation()});
 await nextTimer(5000);
@@ -442,7 +472,7 @@ await nextTimer();
 assert.equal(timers.size, 1);
 assert.ok(status().textContent.includes('Translation status connection interrupted. Local connection closed'));
 assert.ok(status().textContent.includes('Retrying status in 5 seconds'));
-assert.ok(root.textContent.includes('Live translation status is interrupted'));
+assert.ok(byClass(root,'translation-caption').some(note=>note.title.includes('Live translation status is interrupted')));
 assert.ok(!root.textContent.includes('This wording is queued'));
 assert.ok(root.textContent.includes('Fermer la vanne'));
 respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2, fields: translation()});
@@ -462,7 +492,7 @@ respond = async () => {throw new Error('Server disconnected');};
 await nextTimer();
 assert.equal(byClass(root, 'translation-english')[0], english);
 assert.ok(english.textContent.includes('Close the valve')); assert.equal(original.open, true);
-assert.ok(byClass(root, 'translation-english')[1].textContent.includes('status is interrupted'));
+assert.ok(byClass(root, 'translation-english')[1].children.some(note=>note.title?.includes('status is interrupted')));
 await nextTimer(5000); await nextTimer(5000); await nextTimer(5000);
 assert.equal(timers.size, 0);
 assert.ok(status().textContent.includes('Use Retry status to reconnect'));
@@ -495,7 +525,7 @@ respond = async () => state({presentation_mode: 'english', enabled: true, state:
 const controller = window.PLCTranslation.mount(container, api);
 const root = new Element('section'); controller.show(root, source()); await tick();
 respond = async () => {throw new Error('Server disconnected');}; await nextTimer();
-assert.ok(root.textContent.includes('Check this abbreviation.'));
+assert.ok(byClass(root,'translation-caption').some(note=>note.title.includes('Check this abbreviation.')));
 assert.equal(timers.size, 1); controller.destroy(); assert.equal(timers.size, 0);
 """)
 
@@ -506,9 +536,10 @@ respond = async () => state({presentation_mode: 'english', enabled: true, state:
 const controller = window.PLCTranslation.mount(container, api);
 const root = new Element('section'); const data = source(); data.historical = true; data.run_id = 'earlier-run';
 controller.show(root, data); await tick();
-assert.ok(root.textContent.includes('No saved English version for this earlier source'));
-assert.ok(root.textContent.includes('Unrecognized abbreviation'));
-assert.equal(byClass(root, 'translation-original-disclosure').length, 2);
+assert.ok(byClass(root,'translation-caption').some(note=>note.title.includes('No saved English version for this earlier source')));
+assert.ok(byClass(root,'translation-caption').some(note=>note.title.includes('Unrecognized abbreviation')));
+assert.equal(byClass(root, 'translation-original-disclosure').length, 0);
+assert.equal(byClass(root,'translation-original').length,2);
 assert.ok(calls.at(-1).path.includes('run_id=earlier-run'));
 assert.ok(report().textContent.includes('gaps marked'));
 assert.equal(retry().hidden, true);

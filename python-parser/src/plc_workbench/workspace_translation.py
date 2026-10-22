@@ -22,6 +22,7 @@ CACHE_RULES_VERSION = "source-wording-v1"
 WORKER_BATCH_TEXTS = 16
 _REVIEW_WARNING = "Check the English wording against the original before using it."
 _FAILED_WARNING = "This text could not be translated locally. The original is unchanged."
+_PARTIAL_WARNING = "Some wording remains in its original language. Review it against the source."
 _UNAVAILABLE = "Local English translation is not ready. Install the local French-to-English model first."
 
 
@@ -41,7 +42,7 @@ class TranslationService:
 
     ``start`` is idempotent for an active job and for already cached text. Failed
     text is cached too, so opening a pane cannot repeatedly retry a bad input;
-    ``retry=True`` explicitly retries failures. A subsequent import can call
+    ``retry=True`` explicitly retries failures and partial translations. A subsequent import can call
     ``start`` again after the active batch finishes. Reading mode is independent
     of preparing translations; changing to originals never cancels preparation.
     """
@@ -67,7 +68,7 @@ class TranslationService:
         self._processing_seconds = 0.0
         self._progress: dict[str, Any] = {
             "state": "idle", "total": 0, "completed": 0, "cached": 0,
-            "needs_review": 0, "failed": 0,
+            "needs_review": 0, "failed": 0, "partial": 0,
             "elapsed_seconds": 0.0, "remaining_seconds": None,
         }
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,9 +85,22 @@ class TranslationService:
                     english_text TEXT NOT NULL,
                     status TEXT NOT NULL CHECK(status IN ('translated', 'needs_review')),
                     failed INTEGER NOT NULL CHECK(failed IN (0, 1)),
+                    partial INTEGER NOT NULL DEFAULT 0 CHECK(partial IN (0, 1)),
+                    translated_segments INTEGER,
+                    retained_segments INTEGER,
                     PRIMARY KEY(model_id, rules_version, source_hash, source_text)
                 );
             """)
+            # Existing accepted wording remains valid. Extend its metadata in
+            # place instead of invalidating all successful translation entries.
+            connection.execute('BEGIN IMMEDIATE')
+            columns = {row['name'] for row in connection.execute('PRAGMA table_info(english_translations)')}
+            for name, declaration in (
+                ('partial', 'INTEGER NOT NULL DEFAULT 0 CHECK(partial IN (0, 1))'),
+                ('translated_segments', 'INTEGER'), ('retained_segments', 'INTEGER'),
+            ):
+                if name not in columns:
+                    connection.execute(f'ALTER TABLE english_translations ADD COLUMN {name} {declaration}')
         self._enabled = self._setting("enabled") == "1"
         mode = self._setting("presentation_mode")
         self._mode = mode if mode in {"original", "english", "both"} else ("both" if self._enabled else "original")
@@ -176,7 +190,7 @@ class TranslationService:
             return None
         with self._database_lock, self._connect() as connection:
             row = connection.execute(
-                "SELECT english_text, status, failed FROM english_translations "
+                "SELECT english_text, status, failed, partial, translated_segments, retained_segments FROM english_translations "
                 "WHERE model_id=? AND rules_version=? AND source_hash=? AND source_text=?",
                 self._key(text, model_id),
             ).fetchone()
@@ -189,10 +203,12 @@ class TranslationService:
         failed = bool(row["failed"])
         result = {
             "text": row["english_text"], "status": row["status"], "failed": failed,
+            "partial": bool(row["partial"]), "translated_segments": row["translated_segments"],
+            "retained_segments": row["retained_segments"],
             "model_id": model_id, "cached": True,
         }
         if row["status"] == "needs_review":
-            result["warning"] = _FAILED_WARNING if failed else _REVIEW_WARNING
+            result["warning"] = _PARTIAL_WARNING if result["partial"] else _FAILED_WARNING if failed else _REVIEW_WARNING
         return result
 
     def _cached_many(self, texts: tuple[str, ...], model_id: str) -> dict[str, dict[str, Any]]:
@@ -204,7 +220,7 @@ class TranslationService:
         with self._database_lock, self._connect() as connection:
             for text in texts:
                 row = connection.execute(
-                    "SELECT english_text, status, failed FROM english_translations "
+                    "SELECT english_text, status, failed, partial, translated_segments, retained_segments FROM english_translations "
                     "WHERE model_id=? AND rules_version=? AND source_hash=? AND source_text=?",
                     self._key(text, model_id),
                 ).fetchone()
@@ -230,11 +246,13 @@ class TranslationService:
         with self._database_lock, self._connect() as connection:
             connection.executemany(
                 "INSERT INTO english_translations "
-                "(model_id, rules_version, source_hash, source_text, english_text, status, failed) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?) "
+                "(model_id, rules_version, source_hash, source_text, english_text, status, failed, partial, translated_segments, retained_segments) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(model_id, rules_version, source_hash, source_text) DO UPDATE SET "
-                "english_text=excluded.english_text, status=excluded.status, failed=excluded.failed",
-                [(*self._key(source, model_id), result["text"], result["status"], int(result["failed"]))
+                "english_text=excluded.english_text, status=excluded.status, failed=excluded.failed, "
+                "partial=excluded.partial, translated_segments=excluded.translated_segments, retained_segments=excluded.retained_segments",
+                [(*self._key(source, model_id), result["text"], result["status"], int(result["failed"]),
+                  int(result.get("partial", False)), result.get("translated_segments"), result.get("retained_segments"))
                  for source, result in results],
             )
             connection.execute(
@@ -256,20 +274,21 @@ class TranslationService:
             unique = tuple(dict.fromkeys(text for text in texts if isinstance(text, str) and text.strip()))
             model = self._model()
             pending: list[str] = []
-            cached = needs_review = failed = 0
+            cached = needs_review = failed = partial = 0
             entries = self._cached_many(unique, model["model_id"])
             for source in unique:
                 entry = entries.get(source)
-                if entry is None or (retry and entry["failed"]):
+                if entry is None or (retry and (entry["failed"] or entry["partial"])):
                     pending.append(source)
                 else:
                     cached += 1
                     needs_review += entry["status"] == "needs_review"
                     failed += entry["failed"]
+                    partial += entry["partial"]
             self._progress = {
                 "state": "complete" if not pending else "idle",
                 "total": len(unique), "completed": cached, "cached": cached,
-                "needs_review": needs_review, "failed": failed,
+                "needs_review": needs_review, "failed": failed, "partial": partial,
                 "elapsed_seconds": 0.0, "remaining_seconds": None,
             }
             self._started_at = None
@@ -324,6 +343,7 @@ class TranslationService:
                 self._progress["completed"] += len(results)
                 self._progress["needs_review"] += sum(result["status"] == "needs_review" for _, result in results)
                 self._progress["failed"] += sum(result["failed"] for _, result in results)
+                self._progress["partial"] += sum(result["partial"] for _, result in results)
                 processed = self._progress["completed"] - self._progress["cached"]
                 remaining = self._progress["total"] - self._progress["completed"]
                 self._progress["remaining_seconds"] = round(self._processing_seconds / processed * remaining, 3)
@@ -339,9 +359,16 @@ class TranslationService:
         if isinstance(output, dict):
             english, state = output.get("text"), output.get("status")
             if isinstance(english, str) and state in {"translated", "needs_review"}:
-                failed = not bool(english.strip())
-                return {"text": english, "status": "needs_review" if failed else state, "failed": failed}
-        return {"text": "", "status": "needs_review", "failed": True}
+                translated, retained = output.get("translated_segments"), output.get("retained_segments")
+                counted = all(type(value) is int and value >= 0 for value in (translated, retained))
+                partial = bool(counted and translated and retained)
+                failed = not bool(english.strip()) or output.get("failed") is True or bool(counted and retained and not translated)
+                return {"text": english, "status": "needs_review" if failed or partial or (counted and retained) else state,
+                        "failed": failed, "partial": partial,
+                        "translated_segments": translated if counted else None,
+                        "retained_segments": retained if counted else None}
+        return {"text": "", "status": "needs_review", "failed": True, "partial": False,
+                "translated_segments": None, "retained_segments": None}
 
     def _fail(self, message: str) -> None:
         with self._lock:
