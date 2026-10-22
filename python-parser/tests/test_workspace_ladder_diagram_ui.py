@@ -93,7 +93,7 @@ const variables=cls(root,'source-variable'),forName=name=>variables.filter(n=>n.
 assert.equal(forName('Pressure').length,2);
 assert.equal(forName('Pressure')[0].attributes.class,forName('Pressure')[1].attributes.class);
 assert.notEqual(forName('Pressure')[0].attributes.class,forName('Limit')[0].attributes.class);
-assert.equal(cls(root,'ladder-diagram-arguments-inline')[0].textContent,'1: Pressure · 2: Limit');
+assert.equal(cls(root,'ladder-diagram-expression')[0].textContent,'Pressure >= Limit');
 await cards(root)[1].fire('click');
 const selected=cls(root,'ladder-diagram-selected')[0];
 assert.deepEqual(all(selected).filter(n=>n.tagName==='code').map(n=>n.textContent),['Pressure','Bias','Output']);
@@ -148,19 +148,83 @@ assert.equal(Number(canvas.attributes.height),dimensions[3]*.85);
 assert.equal(cards(root).length,2);geometry(root,58);
 """)
 
-    def test_compact_comparison_puts_short_arguments_inline_but_long_values_remain_complete_on_selection(self) -> None:
+    def test_comparison_keeps_operator_visible_and_long_values_complete_on_selection(self) -> None:
         self.run_js(r"""
 const long='A_very_long_original_identifier_that_exceeds_preview_width';
 const rows=[instruction('compare','GEQ',['Pressure','90']),instruction('long','GEQ',[long,'Other_Long_Identifier_Which_Must_Remain_Complete'])];
 const data=source(seq(...rows.map(row=>ins(row.id))),rows),root=render(data,{compact:true});geometry(root,58);
-const inline=cls(cards(root)[0],'ladder-diagram-arguments-inline');assert.equal(inline.length,1);
-assert.ok(inline[0].textContent.includes('1: Pressure'));assert.ok(inline[0].textContent.includes('2: 90'));
-assert.equal(cls(cards(root)[1],'ladder-diagram-arguments-inline').length,0);
-const stacked=cls(cards(root)[1],'ladder-diagram-argument');assert.equal(stacked.length,2);assert.notEqual(stacked[0].attributes.y,stacked[1].attributes.y);
+const inline=cls(cards(root)[0],'ladder-diagram-expression');assert.equal(inline.length,1);
+assert.equal(inline[0].textContent,'Pressure >= 90');
+const longDisplay=cls(cards(root)[1],'ladder-diagram-expression');assert.equal(longDisplay.length,1);
+assert.ok(longDisplay[0].textContent.includes('… >= '));assert.ok(longDisplay[0].textContent.endsWith('…'));
+assert.equal(cls(root,'ladder-diagram-slot').length,0);
 await cards(root)[1].fire('click');const selected=cls(root,'ladder-diagram-selected')[0];
 rows[1].arguments.forEach(value=>assert.ok(selected.textContent.includes(value)));
 assert.ok(cards(root)[1].attributes['aria-label'].includes('GEQ('+rows[1].arguments.join(',')+')'));
 assert.ok(root.textContent.includes(data.text));
+""")
+
+    def test_known_comparisons_and_calculations_show_operations_and_destinations(self) -> None:
+        self.run_js(r"""
+const cases=[
+ ['EQU',['A','B'],'A = B'],['NEQ',['A','B'],'A != B'],['LES',['A','B'],'A < B'],
+ ['LEQ',['A','B'],'A <= B'],['GRT',['A','B'],'A > B'],['GEQ',['A','B'],'A >= B'],
+ ['ADD',['A','B','Result'],'Result ← A + B'],['SUB',['A','B','Result'],'Result ← A − B'],
+ ['MUL',['A','B','Result'],'Result ← A × B'],['DIV',['A','B','Result'],'Result ← A / B'],
+ ['MOV',['A','Result'],'Result ← A'],['CLR',['Result'],'Result ← 0'],
+ ['ABS',['A','Result'],'Result ← abs(A)'],['LN',['A','Result'],'Result ← ln(A)'],
+ ['SQR',['A','Result'],'Result ← sqrt(A)'],['CPT',['Result','(A+B)/C'],'Result ← (A+B)/C'],
+];
+for(const compact of [true,false])for(const [opcode,args,expected]of cases){
+ const inst=instruction('a',opcode,args),original=JSON.stringify(inst),root=render(source(seq(ins('a')),[inst]),{compact});
+ assert.equal(cls(root,'ladder-diagram-expression').map(n=>n.textContent).join(''),expected,opcode);
+ assert.equal(cls(root,'ladder-diagram-slot').length,0);assert.equal(cls(root,'ladder-diagram-argument').length,0);
+ assert.ok(cls(root,'source-operator').length>0);assert.equal(JSON.stringify(inst),original);
+ await cards(root)[0].fire('click');assert.ok(!cls(root,'ladder-diagram-selected')[0].textContent.includes('Generic block'));
+ assert.deepEqual(all(cls(root,'ladder-diagram-selected')[0]).filter(n=>n.tagName==='code').map(n=>n.textContent),args);
+ geometry(root,compact?58:84);
+}
+""")
+
+    def test_stateful_blocks_label_all_fields_without_invented_assignments(self) -> None:
+        self.run_js(r"""
+const cases=[
+ ...['TON','TOF','RTO'].map(op=>[op,['Delay','?','0'],['Timer: Delay','Preset: ? · Accum: 0']]),
+ ...['CTU','CTD'].map(op=>[op,['Count','10','0'],['Counter: Count','Preset: 10 · Accum: 0']]),
+ ['ONS',['EdgeMemory'],['Storage bit: EdgeMemory']],
+ ...['OSR','OSF'].map(op=>[op,['EdgeMemory','Pulse'],['Storage bit: EdgeMemory','Pulse output: Pulse']]),
+ ['RES',['Delay'],['Reset Delay']],
+ ['PID',['Loop','Measured','Track','Actuator','Master','Hold','HeldValue'],['PID structure: Loop','PV: Measured','Tieback: Track','CV destination: Actuator','Master loop: Master','Hold input: Hold','Hold value: HeldValue']],
+];
+for(const compact of [true,false])for(const[opcode,args,expected]of cases){
+ const inst=instruction('a',opcode,args),root=render(source(seq(ins('a')),[inst]),{compact});
+ assert.deepEqual(cls(root,'ladder-diagram-expression').map(n=>n.textContent),expected,opcode);
+ assert.equal(cards(root)[0].attributes['data-presentation'],'state');assert.ok(!cards(root)[0].textContent.includes(' ← '));
+ const last=cls(root,'ladder-diagram-expression').at(-1);assert.ok(Number(last.attributes.y)<Number(cards(root)[0].attributes['data-height'])-30);
+ geometry(root,compact?58:84);
+}
+""")
+
+    def test_long_calculations_keep_destination_operator_and_nested_path_geometry(self) -> None:
+        self.run_js(r"""
+const args=['Long_Source_Array[SomeIndex + 2]','Another_very_long_input_identifier','A_very_long_destination_identifier'];
+const rows=[instruction('a','SUB',args),instruction('pid','PID',['Loop','PV','Tieback','CV','Master','Hold','Value']),instruction('b','NEQ',['Mode','0'])];
+const root=render(source(seq(branch(seq(ins('a')),seq(ins('pid'))),ins('b')),rows),{compact:true});
+const calculation=cls(cards(root)[0],'ladder-diagram-expression').map(n=>n.textContent);
+assert.equal(calculation.length,2);assert.ok(calculation[0].endsWith(' ← '));assert.ok(calculation[1].includes(') − '));
+assert.ok(calculation.join('').includes('…'));assert.ok(cls(root,'source-variable').some(n=>n.attributes['data-source-variable']===args[0]));
+geometry(root,58);await cards(root)[0].fire('click');args.forEach(arg=>assert.ok(cls(root,'ladder-diagram-selected')[0].textContent.includes(arg)));
+""")
+
+    def test_unknown_wrong_arity_and_blank_operands_never_gain_equation_roles(self) -> None:
+        self.run_js(r"""
+const rows=[instruction('unknown','CustomBlock',['A','B']),instruction('neq','NEQ',['A','B','C']),instruction('blank','ADD',['A',' ','D']),instruction('pid','PID',['A','B']),instruction('reset','RES',['A','B'])];
+for(const compact of [true,false]){
+ const root=render(source(seq(...rows.map(n=>ins(n.id))),rows),{compact});
+ assert.equal(cls(root,'ladder-diagram-expression').length,0);
+ assert.ok(cards(root).every(n=>!n.attributes['data-presentation']));
+ for(let i=0;i<rows.length;i++){await cards(root)[i].fire('click');const detail=cls(root,'ladder-diagram-selected')[0];assert.ok(detail.textContent.includes('Generic block'));assert.deepEqual(all(detail).filter(n=>n.tagName==='code').map(n=>n.textContent),rows[i].arguments);}
+}
 """)
 
     def test_real_nested_source_preserves_all_blocks_joins_and_empty_bypass(self) -> None:

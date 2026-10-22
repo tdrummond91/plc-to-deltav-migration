@@ -1,5 +1,33 @@
 # Current handoff: PLC analysis workbench
 
+## Readable operations inside ladder blocks (2026-10-22)
+
+The ladder drawing previously sent every non-contact/coil through a generic
+numbered-operand layout, even though the equation view knew many operations.
+Known comparisons now display A != B, A >= B and the corresponding tests.
+Arithmetic, moves, clears and unary operations show destination ← expression;
+CPT retains its captured expression/grouping without a second parse. NEQ uses
+!= in the equation view too. SVG programming ligatures are disabled so those
+characters remain visible as written.
+
+Timers/counters label their structure, Preset and Accum; one-shots label storage
+and pulse output; RES names its target without implying a whole-object clear.
+PID shows all seven fields in captured order, including master-loop and hold
+operands. These are captured parameters, not live values. Wrong arity, blank
+operands and custom instructions retain the generic source layout. Contacts,
+coils, branch structure, original text and review data keep their meanings.
+
+Card dimensions are computed before branch layout, including tall PID blocks.
+Long calculations retain their destination/operator on two lines as needed;
+full arguments remain available in hover help and selection. This is a display
+update: manually pull and reopen the workspace, with no L5X reanalysis required.
+
+Validation: 116 focused tests passed across ladder/equation rendering, routine
+browsing, workspace integration and instruction-help content. Independent review
+found no blocking issues. Chrome checks used invented source data to verify
+comparisons, destination order, stateful fields, long operands, branch spacing
+and working F1 help; rendered semantic text stayed inside its block bounds.
+
 ## Interactive instruction help and independent windows (2026-10-22)
 
 Hover help now uses an interactive panel instead of native browser tooltips.

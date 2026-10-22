@@ -104,8 +104,16 @@ Long comments show a three-line preview with **Show full comment / Collapse
 comment**. Their language status stays visible below the preview; opening the
 comment survives a language change while that rung page stays open. The main
 header stays at the top while scrolling, with a distinct lower border.
-Short two-argument blocks show both numbered operands on one line. Long previews
-stay stacked, with complete values available by selecting the symbol.
+Known comparison blocks show the actual test, such as **Mode != RequestedMode**.
+Calculation blocks show the destination and operation, such as
+**Adjusted ← Pressure − Offset**; the arrow means a write when the incoming
+path is TRUE. Moves and clears follow that convention. CPT displays its captured
+expression with original grouping, without evaluating or validating its syntax
+again. Timers, counters, one-shots and PID use named fields, including all seven
+PID operands. Preset/accumulator values are captured operands, not live readings.
+Long expressions can use two lines; shortened names retain their full source in
+help and selection. Unknown blocks or unsupported argument counts retain their
+captured positions rather than receiving guessed operators or parameter roles.
 Variable names use distinct colors, with repeated exact names retaining their
 color within a rung. Operators, instruction names and ladder symbols use orange;
 constants have a neutral foreground. The six variable colors repeat for larger

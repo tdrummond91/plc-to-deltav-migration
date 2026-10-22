@@ -19,6 +19,8 @@
 .ladder-diagram-block { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
 .ladder-diagram-opcode { fill: var(--source-operator, var(--orange)); font-size: 13px; font-weight: 650; }
 .ladder-diagram-operand, .ladder-diagram-argument { fill: var(--ink); font-size: 12px; }
+.ladder-diagram-expression { fill: var(--ink); font: 12px ui-monospace, "Cascadia Code", Consolas, monospace; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; white-space: pre; }
+.ladder-diagram-operation { fill: var(--source-operator, var(--orange)); font-weight: 650; }
 .ladder-diagram-small, .ladder-diagram-source-order { fill: var(--muted); font-size: 10px; }
 .ladder-diagram-slot { fill: var(--muted); }
 .ladder-diagram-coil-letter { fill: var(--source-operator, var(--orange)); font-size: 14px; font-weight: 700; }

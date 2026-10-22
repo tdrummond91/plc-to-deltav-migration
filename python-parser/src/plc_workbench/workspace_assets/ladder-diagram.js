@@ -18,13 +18,58 @@
   const button = (text, callback, className = "") => { const node = html("button", text, className); node.type = "button"; node.addEventListener("click", callback); return node; };
   const shortened = (value, limit) => String(value).length > limit ? String(value).slice(0, limit - 1) + "…" : String(value);
   const instructionText = instruction => `${instruction.opcode}(${instruction.arguments.join(",")})`;
-  const kindOf = instruction => SYMBOLS[instruction.opcode] && instruction.arguments.length === 1 && instruction.arguments[0].trim() ? SYMBOLS[instruction.opcode] : "block";
+  const kindOf = instruction => SYMBOLS[instruction.opcode.toUpperCase()] && instruction.arguments.length === 1 && instruction.arguments[0].trim() ? SYMBOLS[instruction.opcode.toUpperCase()] : "block";
   const dimensions = compact => compact
     ? { height: 108, anchor: 58, seriesGap: 22, busMargin: 30, legGap: 10, padX: PAD_X, padY: 10, compact: true }
     : { height: HEIGHT, anchor: ANCHOR, seriesGap: SERIES_GAP, busMargin: BUS_MARGIN, legGap: LEG_GAP, padX: PAD_X, padY: PAD_Y, compact: false };
   const inlineArguments = instruction => instruction.arguments.length === 2
     && instruction.arguments.every(argument => argument.trim() && argument.length <= 24)
     && instruction.arguments.join("").length <= 36;
+
+  // Presentation of known operand roles only. These expressions are gated by
+  // their incoming path and never evaluate source values or collapse branches.
+  function blockPresentation(instruction) {
+    const args = instruction.arguments, opcode = instruction.opcode.toUpperCase();
+    const valid = count => args.length === count && args.every(value => value.trim());
+    const value = (text, limit = 28) => ({kind: 'value', text, limit});
+    const operation = text => ({kind: 'operator', text});
+    const label = text => ({kind: 'label', text});
+    const textOf = part => part.kind === 'value' ? shortened(part.text, part.limit) : part.text;
+    const widthOf = row => row.reduce((sum, part) => sum + [...textOf(part)].reduce((width, char) => width + (char.codePointAt(0) > 255 ? 14 : 8), 0), 0);
+    const result = (rows, note, mode) => ({rows, note, mode, width: Math.max(250, ...rows.map(row => widthOf(row) + 44))});
+    const field = (name, slot) => [label(`${name}: `), value(args[slot])];
+    // An operand with expression-like punctuation stays grouped as an opaque
+    // source value. In particular, an indexed address is never algebraically split.
+    const term = text => /^[A-Za-z_][A-Za-z\d_:.[\]]*$/.test(text) || /^[-+]?\d+(?:\.\d*)?(?:[eE][-+]?\d+)?$/.test(text)
+      ? [value(text)] : [operation('('), value(text), operation(')')];
+    const assignment = (destination, expression, note = 'Write when incoming path is TRUE') => {
+      const head = [value(destination), operation(' ← ')], row = [...head, ...expression];
+      return result(widthOf(row) <= 500 ? [row] : [head, expression], note, 'calculation');
+    };
+    const comparison = {EQU: '=', NEQ: '!=', LES: '<', LEQ: '<=', GRT: '>', GEQ: '>='}[opcode];
+    if (comparison && valid(2)) return result([[...term(args[0]), operation(` ${comparison} `), ...term(args[1])]], 'Compare on the incoming path', 'comparison');
+    if (['ADD', 'SUB', 'MUL', 'DIV'].includes(opcode) && valid(3))
+      return assignment(args[2], [...term(args[0]), operation(` ${{ADD: '+', SUB: '−', MUL: '×', DIV: '/'}[opcode]} `), ...term(args[1])]);
+    if (opcode === 'MOV' && valid(2)) return assignment(args[1], [value(args[0])]);
+    if (opcode === 'CLR' && valid(1)) return assignment(args[0], [{kind: 'literal', text: '0'}]);
+    if (['ABS', 'LN', 'SQR'].includes(opcode) && valid(2))
+      return assignment(args[1], [operation(`${{ABS: 'abs', LN: 'ln', SQR: 'sqrt'}[opcode]}(`), value(args[0]), operation(')')]);
+    if (opcode === 'CPT' && valid(2)) return assignment(args[0], [value(args[1], 60)], 'Captured expression · when enabled');
+    if (['TON', 'TOF', 'RTO', 'CTU', 'CTD'].includes(opcode) && valid(3)) {
+      const settings = [...field('Preset', 1), label(' · '), ...field('Accum', 2)];
+      return result([field(['CTU', 'CTD'].includes(opcode) ? 'Counter' : 'Timer', 0),
+        ...(widthOf(settings) <= 500 ? [settings] : [field('Preset', 1), field('Accum', 2)])], 'Captured operands · not live values', 'state');
+    }
+    if (opcode === 'ONS' && valid(1)) return result([field('Storage bit', 0)], 'One-shot path on rising condition', 'state');
+    if (['OSR', 'OSF'].includes(opcode) && valid(2))
+      return result([field('Storage bit', 0), field('Pulse output', 1)], opcode === 'OSR' ? 'Pulse on rising condition' : 'Pulse on falling condition', 'state');
+    if (opcode === 'RES' && valid(1)) return result([[operation('Reset '), value(args[0])]], 'Reset selected state fields', 'state');
+    if (opcode === 'PID' && valid(7)) return result([
+      field('PID structure', 0), field('PV', 1), field('Tieback', 2), field('CV destination', 3),
+      field('Master loop', 4), field('Hold input', 5), field('Hold value', 6),
+    ], 'Captured parameters · not live control', 'state');
+    return null;
+  }
 
   function validate(source, options) {
     if (options.sourceQualified !== true || source?.source_qualified === false)
@@ -81,9 +126,11 @@
   function layout(tree, byId, size) {
     if (tree.kind === "instruction") {
       const instruction = byId.get(tree.instruction_id), isBlock = kindOf(instruction) === "block";
-      const width = isBlock ? (size.compact && inlineArguments(instruction)
-        ? Math.max(250, (instruction.arguments.join("").length + 10) * 12 + 44) : 250) : 170;
-      const result = empty(width, size.height); result.cards.push({ id: tree.instruction_id, x: 0, y: 0, width, height: size.height }); return result;
+      const presentation = isBlock ? blockPresentation(instruction) : null;
+      const width = presentation?.width || (isBlock ? (size.compact && inlineArguments(instruction)
+        ? Math.max(250, (instruction.arguments.join("").length + 10) * 12 + 44) : 250) : 170);
+      const height = presentation ? Math.max(size.height, (size.compact ? 72 : 110) + presentation.rows.length * (size.compact ? 18 : 20)) : size.height;
+      const result = empty(width, height); result.cards.push({ id: tree.instruction_id, x: 0, y: 0, width, height, presentation }); return result;
     }
     if (tree.kind === "sequence") {
       if (!tree.items.length) {
@@ -138,9 +185,24 @@
     const line = (x1, y1, x2, y2, cls = "ladder-diagram-symbol-wire") => group.append(svg("line", { x1, y1, x2, y2, class: cls }));
     if (kind === "block") {
       line(0, y, 10, y); line(card.width - 10, y, card.width, y);
-      group.append(svg("rect", { x: 10, y: size.compact ? 12 : 29, width: card.width - 20, height: size.compact ? 80 : 100, rx: 3, class: "ladder-diagram-block" }),
+      group.append(svg("rect", { x: 10, y: size.compact ? 12 : 29, width: card.width - 20, height: card.height - (size.compact ? 28 : 50), rx: 3, class: "ladder-diagram-block" }),
         svg("text", { x: 22, y: size.compact ? 30 : 49, class: "ladder-diagram-opcode" }, shortened(instruction.opcode, 29)));
-      if (size.compact && inlineArguments(instruction)) {
+      if (card.presentation) {
+        group.setAttribute('data-presentation', card.presentation.mode);
+        card.presentation.rows.forEach((row, index) => {
+          const text = svg('text', {x: 22, y: (size.compact ? 49 : 72) + index * (size.compact ? 18 : 20), class: 'ladder-diagram-expression'});
+          row.forEach(part => {
+            if (part.kind === 'value') argumentText(text, part.text, part.limit);
+            else {
+              const span = svg('tspan', {class: part.kind === 'label' ? 'ladder-diagram-slot' : 'ladder-diagram-operation'}, part.text);
+              if (part.kind !== 'label') colors?.paint(span, part.text, part.kind);
+              text.append(span);
+            }
+          });
+          group.append(text);
+        });
+        group.append(svg('text', {x: 22, y: card.height - (size.compact ? 23 : 35), class: 'ladder-diagram-small'}, card.presentation.note));
+      } else if (size.compact && inlineArguments(instruction)) {
         const text = svg("text", { x: 22, y: 58, class: "ladder-diagram-argument ladder-diagram-arguments-inline" });
         instruction.arguments.forEach((argument, index) => {
           text.append(svg('tspan', {class:'ladder-diagram-slot'}, `${index ? ' · ' : ''}${index + 1}: `));
@@ -153,7 +215,7 @@
         argumentText(text, argument || '(empty argument)', 29); group.append(text);
       });
       const note = instruction.arguments.length > 2 ? `+ ${instruction.arguments.length - 2} more arguments; select to read` : instruction.arguments.length === 0 ? "No captured arguments" : "Select for complete arguments";
-      if (!size.compact || !inlineArguments(instruction)) group.append(svg("text", { x: 22, y: size.compact ? 85 : 115, class: "ladder-diagram-small" }, note));
+      if (!card.presentation && (!size.compact || !inlineArguments(instruction))) group.append(svg("text", { x: 22, y: size.compact ? 85 : 115, class: "ladder-diagram-small" }, note));
     } else {
       const argument = instruction.arguments[0];
       const operand = svg("text", { x, y: size.compact ? 22 : 29, "text-anchor": "middle", class: "ladder-diagram-operand" });
@@ -171,7 +233,7 @@
       }
       group.append(svg("text", { x, y: size.compact ? 94 : 120, "text-anchor": "middle", class: "ladder-diagram-opcode" }, instruction.opcode));
     }
-    if (!size.compact) group.append(svg("text", { x: card.width - 10, y: 144, "text-anchor": "end", class: "ladder-diagram-source-order" }, `#${position}`)); return group;
+    if (!size.compact) group.append(svg("text", { x: card.width - 10, y: card.height - 6, "text-anchor": "end", class: "ladder-diagram-source-order" }, `#${position}`)); return group;
   }
 
   function draw(source, byId, plan, options, size) {
@@ -208,7 +270,7 @@
           row.append(code); argumentsList.append(row);
         });
         detail.append(instruction.arguments.length ? argumentsList : html("p", "No captured arguments."));
-        if (kindOf(instruction) === "block") detail.append(html("p", "Generic block presentation preserves the opcode and arguments. It does not infer the block's effects or rewrite an invalid operand count."));
+        if (kindOf(instruction) === "block" && !blockPresentation(instruction)) detail.append(html("p", "Generic block presentation preserves the opcode and arguments. It does not infer the block's effects or rewrite an invalid operand count."));
       } catch (cause) {
         if (request !== selectionRequest) return; error.hidden = false;
         error.replaceChildren(html("span", cause?.message || String(cause)), button("Retry instruction", () => inspect(instruction)));

@@ -110,7 +110,7 @@ assert.equal(exactText(division.math.children[0].children[0]),'Destination');
 const fraction=tags(division.math,'mfrac')[0];
 assert.equal(exactText(fraction.children[0]),'Source_A');
 assert.equal(exactText(fraction.children[1]),'Source_B');
-for (const [opcode,operator] of [['EQU','='],['NEQ','≠'],['LES','<'],['LEQ','≤'],['GRT','>'],['GEQ','≥']]) {
+for (const [opcode,operator] of [['EQU','='],['NEQ','!='],['LES','<'],['LEQ','≤'],['GRT','>'],['GEQ','≥']]) {
   const rendered=make(opcode,['A','B']);
   assert.equal(exactText(rendered.math),'A'+operator+'B');
   assert.equal(rendered.label,'Comparison');

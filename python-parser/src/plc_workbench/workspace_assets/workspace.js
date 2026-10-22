@@ -1217,7 +1217,7 @@
         : opcode === "LN" ? mathNode("mrow", atom("LN", "operator"), mathFence(value)) : mathNode("msqrt", value));
       label = "Calculation";
     } else if (["EQU", "NEQ", "LES", "LEQ", "GRT", "GEQ"].includes(opcode) && valid(2)) {
-      expression = mathNode("mrow", atom(args[0]), mathNode("mo", { EQU: "=", NEQ: "≠", LES: "<", LEQ: "≤", GRT: ">", GEQ: "≥" }[opcode]), atom(args[1]));
+      expression = mathNode("mrow", atom(args[0]), mathNode("mo", { EQU: "=", NEQ: "!=", LES: "<", LEQ: "≤", GRT: ">", GEQ: "≥" }[opcode]), atom(args[1]));
       label = "Comparison";
     } else if (opcode === "MOV" && valid(2)) {
       expression = assign(args[1], atom(args[0])); label = "Move value";
