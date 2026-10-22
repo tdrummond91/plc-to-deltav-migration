@@ -16,6 +16,7 @@ class Element {
   get textContent() { return this._text+this.children.map(child=>child.textContent).join(' '); }
   append(...children) { children.forEach(child=>{child.parent=this;this.children.push(child);}); }
   replaceChildren(...children) { this.children=[];this._text='';this.append(...children); }
+  contains(target) { return target===this || this.children.some(child=>child.contains(target)); }
   addEventListener(name,fn) { this.events[name]=fn; }
   setAttribute(name,value) { this.attributes[name]=String(value); }
   querySelectorAll(selector) { const descendants=this.children.flatMap(child=>[child,...child.querySelectorAll('*')]);return selector==='*'?descendants:descendants.filter(node=>node.tagName===selector); }
@@ -291,6 +292,38 @@ wait=true;node.fire('mouseenter');const callbacks=[...timers.values()];timers.cl
 button('Pin information').fire('click');assert.equal(cls('ladder-map-detail-local-controls')[0].hidden,false);
 button('Close panel').fire('click');waiting.resolve({run_id:'run-1',id:'rung-1',title:'Late response',blocks:[]});await Promise.all(pendingDisplays);await flush();
 assert.ok(cls('ladder-map-detail')[0].hidden);assert.ok(!cls('ladder-map-detail')[0].className.includes('is-pinned'));assert.ok(button('Pin information').disabled);
+""")
+
+    def test_outside_pointer_dismisses_pinned_information_but_keeps_inside_controls_and_native_dialog_priority(self) -> None:
+        self.run_js(r"""
+count=2;const controller=window.PLCLadderMap.mount(root,options);await controller.refresh();await controller.focus('rung-0');await flush();
+button('Pin information').fire('click');const box=cls('ladder-map-detail')[0],outside=new Element('button');
+document.fire('pointerdown',{target:button('Invented AOI definition')});assert.equal(box.hidden,false);
+document.fire('pointerdown',{target:button('Unpin information')});assert.equal(box.hidden,false);
+let prevented=0;document.querySelector=selector=>selector==='dialog[open]'?new Element('dialog'):null;
+document.fire('keydown',{key:'Escape',preventDefault(){prevented++;}});assert.equal(prevented,0);assert.equal(box.hidden,false);
+document.fire('pointerdown',{target:outside});assert.equal(box.hidden,false);
+document.querySelector=()=>null;document.fire('keydown',{key:'Escape',defaultPrevented:true});assert.equal(box.hidden,false);
+const before=inspected.length;document.fire('pointerdown',{target:outside});
+assert.equal(box.hidden,true);assert.equal(box.className.includes('is-pinned'),false);assert.equal(inspected.length,before);
+assert.equal(button('Pin information').disabled,true);
+controller.destroy();assert.equal(document.events.pointerdown,undefined);assert.equal(document.events.keydown,undefined);
+""")
+
+    def test_outside_pointer_cancels_queued_hover_and_late_pinned_response(self) -> None:
+        self.run_js(r"""
+count=2;const base=respond,waiting=deferred();let slow=false;
+respond=async url=>slow&&url.pathname.endsWith('/detail')?waiting.promise:base(url);
+const controller=window.PLCLadderMap.mount(root,options);await controller.refresh();await controller.focus('rung-0');await flush();
+const target=cls('ladder-map-node').find(node=>node.attributes['data-rung-id']==='rung-1'),outside=new Element('input');
+const before=calls.filter(path=>path.includes('/detail')).length;
+target.fire('mouseenter');document.fire('pointerdown',{target:outside});await flush();
+assert.equal(calls.filter(path=>path.includes('/detail')).length,before);assert.equal(cls('ladder-map-detail')[0].hidden,true);
+slow=true;target.fire('mouseenter');const callbacks=[...timers.values()];timers.clear();const displays=callbacks.map(fn=>fn());
+button('Pin information').fire('click');document.fire('pointerdown',{target:outside});
+waiting.resolve({run_id:'run-1',id:'rung-1',title:'Late information',blocks:[]});await Promise.all(displays);await flush();
+assert.equal(cls('ladder-map-detail')[0].hidden,true);assert.equal(button('Pin information').disabled,true);
+assert.equal(cls('ladder-map-detail')[0].className.includes('is-pinned'),false);
 """)
 
     def test_mouseleave_and_cancelled_second_hover_cannot_freeze_loading_preview(self) -> None:

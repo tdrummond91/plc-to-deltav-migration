@@ -76,6 +76,7 @@ class Element {
   setAttribute(name,value){this.attributes[name]=value;}
   removeAttribute(name){delete this.attributes[name];}
   remove(){if(this.parent)this.parent.children=this.parent.children.filter(n=>n!==this);}
+  contains(target){return target===this||this.children.some(child=>child.contains(target));}
   get childNodes(){return this.children;}
   get firstChild(){return this.children[0]||null;}
   querySelectorAll(selector){return descendants(this).filter(n=>selector.split(',').map(s=>s.trim()).some(s=>s==='.field-row'?n.className==='field-row':s==='input:checked'?n.tagName==='input'&&n.checked:n.tagName===s));}
@@ -109,6 +110,23 @@ let openSource=async()=>{};
 const notify=text=>{notice=text;};
 let run=async callback=>callback();
 const Event=function(type){this.type=type;};
+"""
+
+
+OVERLAY_SETUP = r"""
+const dialog=node('dialog'),tools=node('details'),summary=node('summary','Project tools'),menuField=node('input'),outside=node('main'),inline=node('details');
+tools.append(summary,menuField);inline.open=true;
+$=id=>id==='dialog'?dialog:id==='project-tools'?tools:null;
+dialog.open=true;let closed=0,confirms=0,confirmResult=false;
+dialog.getBoundingClientRect=()=>({left:100,right:500,top:100,bottom:400});
+dialog.close=()=>{closed++;dialog.open=false;dialog.events.close?.();};
+summary.focus=()=>{document.activeElement=summary;};
+window.confirm=()=>{confirms++;return confirmResult;};
+globalThis.modalDirty=false;globalThis.modalBusy=false;globalThis.modalRevision=9;state.saving=false;
+document.events={};document.addEventListener=(name,callback)=>{document.events[name]=callback;};
+const fire=(name,extra={})=>dialog.events[name]?.({type:name,target:dialog,pointerId:1,button:0,isPrimary:true,clientX:20,clientY:20,detail:1,...extra});
+const backdropClick=()=>{fire('pointerdown');fire('pointerup');fire('click');};
+installOverlayDismissal();
 """
 
 
@@ -184,6 +202,51 @@ class WorkspaceInteractionTests(unittest.TestCase):
         result = subprocess.run([NODE, "-"], input=code, capture_output=True, encoding="utf-8", timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("UI_TEST_COMPLETE", result.stdout, "An asynchronous check never completed")
+
+    def test_dialog_backdrop_click_is_distinct_from_padding_drag_cancel_and_keyboard_click(self) -> None:
+        self.run_js(['closeModal', 'installOverlayDismissal'], OVERLAY_SETUP + r"""
+fire('pointerdown',{clientX:110,clientY:110});fire('pointerup',{clientX:110,clientY:110});fire('click',{clientX:110,clientY:110});
+assert.equal(closed,0,'Dialog padding is not its backdrop');
+fire('pointerdown',{target:menuField,clientX:120,clientY:120});fire('pointerup');fire('click');
+assert.equal(closed,0,'Dragging from dialog content onto backdrop must not dismiss');
+fire('pointerdown');fire('pointerup',{clientX:120,clientY:120});fire('click');assert.equal(closed,0);
+fire('pointerdown');fire('pointermove',{clientX:60});fire('pointermove');fire('pointerup');fire('click');
+assert.equal(closed,0,'Dragging and returning to start must not count as click');
+fire('pointerdown',{button:2});fire('pointerup');fire('click');assert.equal(closed,0);
+fire('pointerdown');fire('pointercancel');fire('pointerup');fire('click');assert.equal(closed,0);
+fire('pointerdown');fire('pointerup',{pointerId:2});fire('click');assert.equal(closed,0);
+fire('pointerdown');fire('pointerup');fire('click',{detail:0});assert.equal(closed,0);
+fire('click');assert.equal(closed,0,'A click without a completed pointer press is not dismissal');
+backdropClick();assert.equal(closed,1);assert.equal(dialog.open,false);assert.equal(modalRevision,null);
+assert.equal(inline.open,true);
+""")
+
+    def test_backdrop_and_native_escape_preserve_dirty_confirmation_and_inflight_guards(self) -> None:
+        self.run_js(['closeModal', 'installOverlayDismissal'], OVERLAY_SETUP + r"""
+modalDirty=true;backdropClick();assert.equal(confirms,1);assert.equal(closed,0);assert.equal(modalDirty,true);assert.equal(modalRevision,9);
+let prevented=0;fire('cancel',{preventDefault(){prevented++;}});assert.equal(prevented,1);assert.equal(confirms,2);assert.equal(closed,0);
+state.saving=true;backdropClick();fire('cancel',{preventDefault(){prevented++;}});
+assert.equal(confirms,2);assert.equal(closed,0);assert.ok(notice.includes('Wait for the current operation'));
+state.saving=false;modalBusy=true;backdropClick();fire('cancel',{preventDefault(){prevented++;}});
+assert.equal(confirms,2);assert.equal(closed,0);assert.equal(dialog.open,true);
+modalBusy=false;confirmResult=true;fire('cancel',{preventDefault(){prevented++;}});
+assert.equal(confirms,3);assert.equal(closed,1);assert.equal(modalDirty,false);assert.equal(modalRevision,null);assert.equal(prevented,4);
+""")
+
+    def test_project_tools_outside_click_and_escape_leave_inline_details_and_native_dialog_alone(self) -> None:
+        self.run_js(['closeModal', 'installOverlayDismissal'], OVERLAY_SETUP + r"""
+dialog.open=false;tools.open=true;document.events.click({target:menuField});assert.equal(tools.open,true);
+document.events.click({target:summary});assert.equal(tools.open,true);
+document.events.click({target:outside});assert.equal(tools.open,false);assert.equal(inline.open,true);
+tools.open=true;document.activeElement=menuField;let prevented=0;
+document.events.keydown({key:'Escape',preventDefault(){prevented++;}});
+assert.equal(tools.open,false);assert.equal(document.activeElement,summary);assert.equal(prevented,1);
+tools.open=true;document.events.keydown({key:'Escape',defaultPrevented:true,preventDefault(){prevented++;}});assert.equal(tools.open,true);
+dialog.open=true;document.events.keydown({key:'Escape',preventDefault(){prevented++;}});
+document.events.click({target:dialog});assert.equal(tools.open,true);assert.equal(prevented,1);assert.equal(dialog.open,true);
+dialog.open=false;document.activeElement=outside;document.events.keydown({key:'Escape',preventDefault(){prevented++;}});
+assert.equal(document.activeElement,outside);assert.equal(tools.open,false);assert.equal(inline.open,true);
+""")
 
     def test_english_rung_search_results_keep_original_disclosed_and_dirty_detail(self) -> None:
         translation = (ASSETS / "translation.js").read_text(encoding="utf-8")

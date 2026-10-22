@@ -69,6 +69,12 @@ For later review sessions that do not need new analysis, the optional command
 `Open-Workbench.cmd` is an alternative to that shortcut. The opener does not
 run tests, analyze the L5X, or perform Git operations.
 
+Click outside **Project tools** or press Escape to close it. Dialogs also close
+when you click their shaded backdrop or press Escape. Unsaved dialog edits still
+require a discard confirmation; a save in progress must finish first. Clicking
+inside a dialog or dragging out of it does not dismiss it. Expanded routines and
+inline help sections remain open until you collapse them.
+
 ## Programs and routines
 
 Choose **Programs & routines** from Home or the header's Page selector.
@@ -122,7 +128,7 @@ and saved review beside the map. Hover or keyboard-focus a card for its block
 families and descriptions. Choose **Pin information** above the map to use the
 preview's links; an unpinned preview lets clicks pass through to the map.
 The pinned panel has its own **Unpin panel** and **Close panel** controls.
-Escape also dismisses it. Panning, zooming, changing filters or leaving the map
+Clicking outside or pressing Escape also dismisses it. Panning, zooming, changing filters or leaving the map
 closes the panel; delayed hover responses cannot reopen a dismissed preview.
 Within the inspector, instruction cards also open information on hover/focus.
 Where the export contains an unambiguous supported
@@ -232,9 +238,13 @@ bash ./open-workbench.sh
 
 Setup downloads optional Python translation packages and a public French-to-English
 model (about 67 MB). No engineering comments are uploaded. The subsequent
-translation process works offline on the CPU. Under **Source language**, choose
-**English** or **Both languages** to prepare the imported source while reviewing.
-**Original** changes the display without cancelling preparation. The progress
+translation process works offline on the CPU. Under **Project tools → Source
+language**, use the flag buttons **EN / English** and **FR / French** to switch
+quickly. French displays the original source wording, including any existing
+English or mixed-language comments. **Show both languages** displays the source
+and English together; press it again to return to English. English or bilingual
+view prepares the imported source while reviewing. Switching to French changes
+the display without cancelling preparation. The progress
 count covers unique wording across the whole export, not just the selected rung;
 a selected comment appears when its batch is reached. Elapsed time, estimated
 remaining time and any missing translations are shown in Project tools.

@@ -9,6 +9,31 @@
     if (cls) n.className = cls;
     return n;
   };
+  // Local vectors also work on Windows installations without flag emoji fonts.
+  function flag(language) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 30 20');
+    svg.setAttribute('class', 'translation-flag');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    const shape = (tag, attributes) => {
+      const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
+      svg.append(node);
+    };
+    if (language === 'original') {
+      shape('rect', {width: 30, height: 20, fill: '#fff'});
+      shape('rect', {width: 10, height: 20, fill: '#002654'});
+      shape('rect', {x: 20, width: 10, height: 20, fill: '#ed2939'});
+    } else {
+      shape('rect', {width: 30, height: 20, fill: '#012169'});
+      shape('path', {d: 'M0 0L30 20M30 0L0 20', stroke: '#fff', 'stroke-width': 5});
+      shape('path', {d: 'M0 0L30 20M30 0L0 20', stroke: '#c8102e', 'stroke-width': 2});
+      shape('path', {d: 'M15 0V20M0 10H30', stroke: '#fff', 'stroke-width': 7});
+      shape('path', {d: 'M15 0V20M0 10H30', stroke: '#c8102e', 'stroke-width': 4});
+    }
+    return svg;
+  }
 
   function renderProse(root, original, entry, mode = "original") {
     root.replaceChildren();
@@ -49,13 +74,26 @@
 
   function mount(container, api, onChange = () => {}) {
     const title = el("strong", "Source language");
-    const label = el("label", "Display comments and descriptions");
-    const mode = el("select", undefined, "translation-mode");
-    for (const [value, text] of [["original", "Original"], ["english", "English"], ["both", "Both languages"]]) {
-      const option = el("option", text); option.value = value; mode.append(option);
+    const label = el("p", "Display comments and descriptions", 'translation-label');
+    const mode = el('div', undefined, 'translation-mode');
+    mode.setAttribute('role', 'group');
+    mode.setAttribute('aria-label', 'Source language');
+    const languageButtons = new Map();
+    for (const [value, code, name] of [['original', 'FR', 'French'], ['english', 'EN', 'English']]) {
+      const button = el('button', undefined, `translation-language translation-choice-${value}`);
+      button.type = 'button';
+      button.setAttribute('aria-label', name);
+      button.title = name === 'French' ? 'French — source wording, including any mixed-language text' : 'English — locally translated wording';
+      button.append(flag(value), el('strong', code), el('span', name));
+      button.addEventListener('click', () => configure(value, value !== 'original'));
+      languageButtons.set(value, button); mode.append(button);
     }
-    mode.value = "original";
-    label.append(mode);
+    const both = el('button', 'Show both languages', 'translation-both');
+    both.type = 'button';
+    both.addEventListener('click', () => configure(modeOf(last) === 'both' ? 'english' : 'both', true));
+    languageButtons.set('both', both);
+    const paintMode = value => languageButtons.forEach((button, key) => button.setAttribute('aria-pressed', String(key === value)));
+    paintMode('original');
     const status = el("p", "Checking local translation setup…", "translation-status");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
@@ -79,13 +117,13 @@
     coverageDetails.hidden = true;
     help.append(el("summary", "How English analysis works"),
       coverageDetails,
-      el("p", "Prepare all English translates every available comment and description in this imported L5X analysis on this PC. The first pass can take several minutes. You can keep reviewing or switch to Original while preparation continues. No full parser rerun is needed."),
-      el("p", "English shows translated wording with the original available on demand. Both languages keeps them visible together. Names, addresses, logic, and saved review decisions stay as entered. Missing or uncertain translations are marked; they do not silently switch to French."),
+      el("p", "Prepare all English translates every available comment and description in this imported L5X analysis on this PC. The first pass can take several minutes. You can keep reviewing or switch to FR / French while preparation continues. No full parser rerun is needed."),
+      el("p", "FR / French shows source wording, including any English or mixed-language comments already present. EN / English shows translated wording with the original available on demand. Show both languages keeps them visible together. Names, addresses, logic, and saved review decisions stay as entered. Missing or uncertain translations are marked; they do not silently switch to French."),
       el("p", "Unchanged wording is translated once and reused from the local cache, including after later exports. New or changed wording is prepared separately. Review translations against their originals; abbreviations and mixed-language comments may need correction."),
       el("p", "First use: close the workspace and run this once from the repository in Git Bash. Setup downloads the translation software and French-to-English model. It does not send your comments anywhere."),
       el("code", "bash ./setup-translation.sh", "translation-command"),
       el("p", "Then reopen with bash ./open-workbench.sh. Your usual run-work-check.sh also opens this workspace. Translation runs locally without an internet connection after setup. The analysis report follows your selected language; reopen it to include newly prepared wording."));
-    container.append(title, label, status, coverage, prepare, retry, retryStatus, report, help);
+    container.append(title, label, mode, both, status, coverage, prepare, retry, retryStatus, report, help);
     let current = null, last = null, timer = null, serial = 0, stopped = false, configuring = false;
     let consecutiveErrors = 0;
 
@@ -94,7 +132,7 @@
       last = result;
       consecutiveErrors = 0;
       retryStatus.hidden = true;
-      mode.value = modeOf(result);
+      paintMode(modeOf(result));
       const running = result.state === "running";
       prepare.disabled = configuring || running || !result.available || !result.run_id;
       retry.hidden = !result.available || running || !(result.failed || result.state === "error");
@@ -126,7 +164,7 @@
       coverageDetails.hidden = !coverageDetails.textContent;
       const partial = remaining > 0 || Boolean(result.failed || result.needs_review);
       report.href = "/analysis?language=" + modeOf(result);
-      report.textContent = modeOf(result) === "original" ? "Open original analysis report"
+      report.textContent = modeOf(result) === "original" ? "Open French analysis report"
         : `Open ${modeOf(result) === "english" ? "English" : "both-language"} analysis report${partial ? " (wording gaps marked)" : ""}`;
       clearTimeout(timer);
       // Presentation is independent of preparation: Original never stops a job.
@@ -184,32 +222,33 @@
         timer = autoRetry ? setTimeout(refresh, 5000) : null;
       }
     }
-    async function configure(prepareAll = false, retryMissing = false) {
-      if (!last || configuring) { mode.value = modeOf(last); return; }
+    async function configure(selectedMode, prepareAll = false, retryMissing = false) {
+      if (!last || configuring) return;
       configuring = true;
-      mode.disabled = prepare.disabled = retry.disabled = true;
+      languageButtons.forEach(button => { button.disabled = true; });
+      prepare.disabled = retry.disabled = true;
       const request = ++serial;
       clearTimeout(timer);
       try {
-        const result = await api("/api/translation", { presentation_mode: mode.value, prepare: prepareAll, run_id: last.run_id, retry: retryMissing });
+        const result = await api("/api/translation", { presentation_mode: selectedMode, prepare: prepareAll, run_id: last.run_id, retry: retryMissing });
         if (stopped || request !== serial) return;
         paint(result);
       } catch (error) {
         if (stopped || request !== serial) return;
-        mode.value = modeOf(last);
+        paintMode(modeOf(last));
         status.textContent = error.message;
       } finally {
         configuring = false;
-        mode.disabled = retry.disabled = false;
+        languageButtons.forEach(button => { button.disabled = false; });
+        retry.disabled = false;
         prepare.disabled = !last?.available || !last?.run_id || last?.state === "running";
       }
       // A failed POST may still have reached the server. Re-read status rather
       // than repeating the mutation, and restore polling for any running job.
       if (!stopped && request === serial) await refresh();
     }
-    mode.addEventListener("change", () => configure(mode.value !== "original"));
-    prepare.addEventListener("click", () => configure(true));
-    retry.addEventListener("click", () => configure(true, true));
+    prepare.addEventListener("click", () => configure(modeOf(last), true));
+    retry.addEventListener("click", () => configure(modeOf(last), true, true));
     retryStatus.addEventListener("click", () => { consecutiveErrors = 0; return refresh(); });
     return {
       refresh,

@@ -24,7 +24,7 @@ class Element {
   addEventListener(name, callback) {this.events[name] = callback;}
   fire(name) {return this.events[name]?.({type: name});}
 }
-const document = {createElement: tag => new Element(tag)};
+const document = {createElement: tag => new Element(tag), createElementNS: (_ns, tag) => new Element(tag)};
 const window = {};
 const blocked = () => {throw new Error('Translation must use the supplied same-origin API only');};
 const fetch = blocked;
@@ -51,7 +51,12 @@ const all = root => [root, ...root.children.flatMap(all)];
 const byClass = (root, cls) => all(root).filter(node => node.className.split(' ').includes(cls));
 const container = new Element('section');
 const control = cls => byClass(container, cls)[0];
-const mode = () => control('translation-mode');
+const language = (value, root = container) => byClass(root, value === 'both' ? 'translation-both' : 'translation-choice-' + value)[0];
+const chooseMode = value => language(value).fire('click');
+const mode = () => ({
+  value: ['original', 'english', 'both'].find(value => language(value).attributes['aria-pressed'] === 'true'),
+  disabled: ['original', 'english', 'both'].every(value => language(value).disabled),
+});
 const prepare = () => control('translation-prepare');
 const retry = () => control('translation-retry');
 const status = () => control('translation-status');
@@ -122,7 +127,7 @@ const input = new Element('input'); input.value = 'Unsaved operator category';
 form.append(input); outer.append(root, form);
 controller.show(root, source()); await tick();
 respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2, fields: translation()});
-mode().value = 'english'; await mode().fire('change');
+await chooseMode('english');
 assert.deepEqual(calls.find(call => call.body).body,
   {presentation_mode: 'english', prepare: true, run_id: 'invented-run', retry: false});
 assert.equal(byClass(root, 'translation-original-disclosure').length, 2);
@@ -136,7 +141,7 @@ assert.equal(mode().disabled, false);
 assert.equal(report().href, '/analysis?language=english');
 assert.equal(changes.length, 1);
 respond = async () => state({presentation_mode: 'both', enabled: true, state: 'complete', completed: 2, fields: translation()});
-mode().value = 'both'; await mode().fire('change');
+await chooseMode('both');
 assert.equal(byClass(root, 'translation-original-disclosure').length, 0);
 assert.equal(byClass(root, 'translation-original-block').length, 2);
 assert.ok(root.textContent.includes('Fermer la vanne')); assert.ok(root.textContent.includes('Close the valve'));
@@ -150,7 +155,7 @@ respond = async () => state({presentation_mode: 'english', enabled: true, state:
 const controller = window.PLCTranslation.mount(container, api);
 const root = new Element('section'); controller.show(root, source()); await tick();
 respond = async () => state({presentation_mode: 'original', enabled: true, state: 'running', completed: 1});
-mode().value = 'original'; await mode().fire('change');
+await chooseMode('original');
 assert.deepEqual(calls.find(call => call.body).body,
   {presentation_mode: 'original', prepare: false, run_id: 'invented-run', retry: false});
 assert.equal(byClass(root, 'translation-english').length, 0);
@@ -158,6 +163,32 @@ assert.ok(root.textContent.includes('Fermer la vanne'));
 assert.equal(timers.size, 1);
 assert.ok(status().textContent.includes('Preparing English locally'));
 assert.equal(report().href, '/analysis?language=original');
+controller.destroy();
+""")
+
+    def test_both_language_toggle_returns_to_english_and_french_restores_source(self) -> None:
+        self.run_js(r"""
+let selected = 'both';
+respond = async (_path, body) => {
+  if (body) selected = body.presentation_mode;
+  return state({presentation_mode: selected, enabled: true, state: 'running', fields: translation()});
+};
+const controller = window.PLCTranslation.mount(container, api);
+const root = new Element('section'); controller.show(root, source()); await tick();
+assert.equal(mode().value, 'both');
+assert.equal(byClass(root, 'translation-original-block').length, 2);
+await chooseMode('both');
+assert.equal(controller.mode(), 'english');
+assert.equal(byClass(root, 'translation-original-disclosure').length, 2);
+await chooseMode('both');
+assert.equal(controller.mode(), 'both');
+await chooseMode('original');
+assert.equal(controller.mode(), 'original');
+assert.equal(byClass(root, 'translation-english').length, 0);
+assert.ok(root.textContent.includes('Fermer la vanne'));
+assert.equal(calls.filter(call => call.body).at(-1).body.prepare, false);
+assert.equal(timers.size, 1);
+assert.equal(report().textContent, 'Open French analysis report');
 controller.destroy();
 """)
 
@@ -291,14 +322,14 @@ assert.equal(timers.size, 0);
         self.run_js(r"""
 const controller = window.PLCTranslation.mount(container, api); await controller.refresh();
 const request = deferred(); respond = () => request.promise;
-mode().value = 'english'; const change = mode().fire('change');
+const change = chooseMode('english');
 assert.equal(mode().disabled, true); assert.equal(prepare().disabled, true);
 request.reject(new Error('Local service temporarily unavailable')); await change;
 assert.equal(mode().value, 'original'); assert.equal(mode().disabled, false);
 assert.equal(prepare().disabled, false);
 assert.ok(status().textContent.includes('Local service temporarily unavailable'));
 respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2});
-mode().value = 'english'; await mode().fire('change');
+await chooseMode('english');
 assert.equal(mode().value, 'english');
 """)
 
@@ -325,7 +356,7 @@ respond = async (path, body) => {
   if (body) throw new Error('Response lost after preference was applied');
   return state({presentation_mode: 'original', enabled: true, state: 'running', completed: 1});
 };
-mode().value = 'original'; await mode().fire('change');
+await chooseMode('original');
 assert.equal(calls.slice(start).filter(call => call.body).length, 1);
 assert.equal(calls.slice(start).filter(call => call.body === undefined).length, 1);
 assert.equal(mode().value, 'original');
@@ -345,7 +376,7 @@ const controller = window.PLCTranslation.mount(container, api);
 const root = new Element('section'); controller.show(root, source()); await tick();
 const start = calls.length;
 respond = async () => {throw new Error('Server disconnected');};
-mode().value = 'both'; await mode().fire('change');
+await chooseMode('both');
 assert.equal(calls.slice(start).filter(call => call.body).length, 1);
 assert.equal(mode().value, 'english');
 assert.ok(root.textContent.includes('Close the valve'));
@@ -495,8 +526,7 @@ const nextContainer = new Element('section');
 respond = async () => state();
 const next = window.PLCTranslation.mount(nextContainer, api); await next.refresh();
 const changeRequest = deferred(); respond = () => changeRequest.promise;
-const nextMode = byClass(nextContainer, 'translation-mode')[0]; nextMode.value = 'english';
-const change = nextMode.fire('change'); const count = calls.length; next.destroy();
+const change = language('english', nextContainer).fire('click'); const count = calls.length; next.destroy();
 changeRequest.resolve(state({presentation_mode: 'english', enabled: true, state: 'running'})); await change;
 assert.equal(calls.length, count); assert.equal(timers.size, 0);
 """)
@@ -507,7 +537,7 @@ const controller = window.PLCTranslation.mount(container, api); await controller
 const pending = deferred(); respond = () => pending.promise;
 const oldRead = controller.refresh();
 respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2});
-mode().value = 'english'; await mode().fire('change');
+await chooseMode('english');
 pending.resolve(state({presentation_mode: 'original'})); await oldRead;
 assert.equal(mode().value, 'english'); assert.equal(report().href, '/analysis?language=english');
 """)

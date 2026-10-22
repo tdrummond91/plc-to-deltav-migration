@@ -113,7 +113,7 @@
       ["What the lines can tell you", "The layout starts in source order, not execution order. Lines show possible address uses, not live flow, energized Boolean states or proof that one rung executes before another. Missing lines do not prove a signal is unused. Check the coverage notice for unparsed, unresolved or unsupported evidence."],
       ["Filters and classification", "Instruction families describe the blocks found in the source, such as Boolean instructions, PID or timers. They are different from your reviewed AI, AO, DI, DO, DC, AC and migration categories in Classification & groups. A signal drilldown clears the other filters to show its verified users across routines; the Clear signal filter button returns to the full index."],
       ["Move around and read descriptions", "Drag the background to pan. Drag a rung to move its card in this view only. Use the wheel, Zoom in/out or +/− keys to zoom; Fit all and Home frame the matching rungs. Reset layout clears your card positions. Show rung descriptions displays a short captured comment on each individual card, or says No rung comment captured. Inspect the source for the full text. Show signal names adds short labels beside the orange points; hover or focus a point for its full name."],
-      ["Information panels", "Hover or keyboard-focus a rung or instruction for a passive preview. Pin information makes its block and declaration links usable. A pinned panel has its own Unpin panel and Close panel buttons at the top; Escape also closes it. Panning, zooming, changing filters or leaving the map dismisses the panel. Closing cancels queued previews, and late responses cannot reopen it."],
+      ["Information panels", "Hover or keyboard-focus a rung or instruction for a passive preview. Pin information makes its block and declaration links usable. A pinned panel has its own Unpin panel and Close panel buttons at the top; clicking outside or pressing Escape also closes it. Panning, zooming, changing filters or leaving the map dismisses the panel. Closing cancels queued previews, and late responses cannot reopen it."],
       ["Large maps and multiple monitors", "The index includes every captured rung; detailed diagrams load when you select one. Zoomed-out count tiles and at most 80 individual cards keep the view responsive. At most 320 connection lines are drawn. The signal list pages through the available signals, with counts of connections outside the view; selecting a signal shows its verified users. Pop out map, selected source or connections opens a separate browser window you can move to another monitor. Resizing a split changes space, not the saved source."],
     ].forEach(([title, text]) => help.append(el("h3", title), el("p", text)));
     const viewNote = el("p", undefined, "ladder-map-view-note");
@@ -510,10 +510,20 @@
       else if (event.key === "-") { event.preventDefault(); zoomAt(1 / 1.4); }
       else if (event.key === "Home") { event.preventDefault(); fit(); }
     });
-    const closeOnEscape = event => { if (event.key === "Escape" && active && (!detailBox.hidden || hoverTimer)) { event.preventDefault(); dismissInformation(); } };
+    const nativeDialogOpen = () => Boolean(document.querySelector?.("dialog[open]"));
+    const closeOnEscape = event => {
+      if (event.key === "Escape" && !event.defaultPrevented && !nativeDialogOpen()
+          && active && (!detailBox.hidden || hoverTimer)) { event.preventDefault(); dismissInformation(); }
+    };
+    const closeOnOutside = event => {
+      if (!active || nativeDialogOpen() || (detailBox.hidden && !hoverTimer)
+          || detailBox.contains(event.target) || detailControls.contains(event.target)) return;
+      dismissInformation();
+    };
     document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("pointerdown", closeOnOutside, true);
     if (typeof ResizeObserver !== "undefined") { resizeObserver = new ResizeObserver(drawSoon); resizeObserver.observe(stage); }
-    return { refresh, focus, attachHover, deactivate, setRoutine: id => changeFilter("routine", id), destroy() { deactivate(); destroyed = true; generation++; linkGeneration++; detailGeneration++; document.removeEventListener("keydown", closeOnEscape); resizeObserver?.disconnect(); cache.clear(); pending.clear(); root.replaceChildren(); } };
+    return { refresh, focus, attachHover, deactivate, setRoutine: id => changeFilter("routine", id), destroy() { deactivate(); destroyed = true; generation++; linkGeneration++; detailGeneration++; document.removeEventListener("keydown", closeOnEscape); document.removeEventListener("pointerdown", closeOnOutside, true); resizeObserver?.disconnect(); cache.clear(); pending.clear(); root.replaceChildren(); } };
   }
   window.PLCLadderMap = { mount };
 })();

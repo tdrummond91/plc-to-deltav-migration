@@ -1481,6 +1481,59 @@
     modalDirty = false;
     modalRevision = null;
   }
+  function installOverlayDismissal() {
+    const dialog = $("dialog"), tools = $("project-tools");
+    let backdropPress = null;
+    const outsideDialog = event => {
+      if (!dialog.open || event.target !== dialog) return false;
+      const bounds = dialog.getBoundingClientRect();
+      return event.clientX < bounds.left || event.clientX > bounds.right
+        || event.clientY < bounds.top || event.clientY > bounds.bottom;
+    };
+    // Native dialog backdrops target the dialog itself. Its padding does too,
+    // so hit testing must use the full dialog rectangle, not just its form.
+    dialog.addEventListener("pointerdown", event => {
+      backdropPress = event.button === 0 && event.isPrimary !== false && outsideDialog(event)
+        ? { id: event.pointerId, x: event.clientX, y: event.clientY, completed: false } : null;
+    });
+    dialog.addEventListener("pointermove", event => {
+      if (backdropPress && event.pointerId === backdropPress.id
+          && Math.hypot(event.clientX - backdropPress.x, event.clientY - backdropPress.y) > 6)
+        backdropPress = null;
+    });
+    dialog.addEventListener("pointerup", event => {
+      if (!backdropPress || event.pointerId !== backdropPress.id || !outsideDialog(event)
+          || Math.hypot(event.clientX - backdropPress.x, event.clientY - backdropPress.y) > 6) {
+        backdropPress = null;
+        return;
+      }
+      backdropPress.completed = true;
+    });
+    dialog.addEventListener("pointercancel", () => { backdropPress = null; });
+    dialog.addEventListener("close", () => { backdropPress = null; });
+    dialog.addEventListener("click", event => {
+      const dismiss = backdropPress?.completed && event.detail > 0 && outsideDialog(event);
+      backdropPress = null;
+      if (dismiss) closeModal();
+    });
+    dialog.addEventListener("cancel", event => {
+      event.preventDefault();
+      backdropPress = null;
+      closeModal();
+    });
+    document.addEventListener("click", event => {
+      if (tools.open && !dialog.open && !tools.contains(event.target)) tools.open = false;
+    }, true);
+    document.addEventListener("keydown", event => {
+      // The native cancel event owns Escape while a dialog is open, including
+      // its unsaved-edit confirmation and in-flight-operation protection.
+      if (event.key !== "Escape" || event.defaultPrevented || dialog.open || !tools.open) return;
+      event.preventDefault();
+      const restoreFocus = tools.contains(document.activeElement);
+      tools.open = false;
+      if (restoreFocus) tools.querySelector("summary")?.focus();
+    });
+  }
   function bulkReview() {
     if (!discard()) return;
     let picker, status, replace;
@@ -2348,10 +2401,7 @@
   $("dialog-body").addEventListener("change", () => (modalDirty = true));
   $("dialog-close").addEventListener("click", closeModal);
   $("dialog-cancel").addEventListener("click", closeModal);
-  $("dialog").addEventListener("cancel", (event) => {
-    event.preventDefault();
-    closeModal();
-  });
+  installOverlayDismissal();
   $('workspace-home').addEventListener('click', () => navigateWorkspace('home'));
   $('review-help').addEventListener('click', () => navigateWorkspace('guide'));
   $('project-changes').addEventListener('click', () => navigateWorkspace('changes'));

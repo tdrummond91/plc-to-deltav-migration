@@ -1,5 +1,34 @@
 # Current handoff: PLC analysis workbench
 
+## Language shortcuts and overlay dismissal (2026-10-22)
+
+**Project tools → Source language** now uses **FR / French** and **EN / English**
+buttons with local SVG flag icons, including on Windows without flag-emoji
+support. French is the original source wording, including any mixed-language
+comments. The backend retains `original`, `english` and `both` identifiers, so
+saved preferences and cached translations remain compatible. **Show both
+languages** toggles the bilingual display; pressing it again returns to English.
+Switching to French does not cancel translation preparation or discard its cache.
+Names, logic and saved engineering decisions are unchanged.
+
+Project tools closes on outside click or Escape. Native modal dialogs accept
+backdrop clicks through the existing dirty/save guards; dialog padding, drags,
+cancelled pointers and non-primary gestures do not trigger dismissal. Escape
+uses the same guard. Pinned map information closes on outside pointer input and
+cancels queued/late previews. Native dialogs take Escape priority. Inline help,
+routine expansion and other non-overlay details retain their existing behavior.
+
+Validation: 103 focused translation UI/API, workspace UI and ladder-map UI tests
+passed across targeted suites. Independent review found no blockers. Chrome
+checks on invented data verified saved FR/EN/bilingual choices, continued/cached
+preparation, flag layout at 480px, menu outside/Escape dismissal, clean dialog
+backdrop dismissal and the expected unsaved-edit confirmation. Browser automation
+could not dismiss that native confirmation; declined-discard and in-flight-save
+protection were verified by the regression tests. No proprietary source was used.
+
+Work-PC use: save and stop the older workspace, manually pull this branch, then
+run `bash ./open-workbench.sh`. No parser or translation rerun is required.
+
 ## Dedicated routine ladders and project controls (2026-10-22)
 
 The permanent sidebar is removed. **Home**, the engineering **Page** selector

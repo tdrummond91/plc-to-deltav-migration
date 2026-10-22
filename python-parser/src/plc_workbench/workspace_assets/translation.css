@@ -1,7 +1,12 @@
 .translation-controls { border: 1px solid var(--border); border-radius: .8rem; padding: .8rem; margin-top: 1rem; font-size: .85rem; }
 .translation-controls > strong { display: block; margin-bottom: .65rem; }
-.translation-controls label { display: flex; flex-direction: column; gap: .5rem; line-height: 1.5; }
-.translation-controls select { width: 100%; }
+.translation-label { color: var(--muted); margin: 0 0 .5rem; }
+.translation-mode { display: flex; gap: .4rem; margin-bottom: .5rem; }
+.translation-language { display: flex; align-items: center; justify-content: center; gap: .45rem; flex: 1; flex-wrap: wrap; min-width: 0; }
+.translation-language span { font-size: .8rem; }
+.translation-flag { width: 1.5rem; height: 1rem; flex: none; border-radius: 2px; box-shadow: 0 0 0 1px #8886; }
+.translation-controls button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--bg); box-shadow: inset 0 -2px var(--accent); }
+.translation-both { font-size: .8rem; }
 .translation-controls p { overflow-wrap: anywhere; line-height: 1.5; }
 .translation-controls summary, .translation-original-disclosure > summary { cursor: pointer; }
 .translation-controls > button { margin-bottom: .5rem; width: 100%; }
