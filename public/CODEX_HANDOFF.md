@@ -1,5 +1,26 @@
 # Current handoff: PLC analysis workbench
 
+## Analysis directory and page access (2026-10-22)
+
+Full source analysis is the first Home card and Page-menu destination, removed
+from the general Project tools menu. It opens a separate evidence window, keeps
+the editor's selection and unfinished review, and offers a native new-tab link
+when popups are blocked. The server applies the saved source-language setting;
+native modified clicks also work before the language status finishes loading.
+
+Home cards, page headings, source popouts and the evidence report identify
+Read only or Read & write and explain what is adjustable. These describe page
+content, not security permissions; global Project tools remain available. Source
+L5X evidence stays immutable, engineering decisions are separate project records,
+and the guide checklist stays in this browser. No current page is write-only.
+Source-only access wording hides when its popout returns to normal browsing.
+
+Validation: 95 focused workspace, translation and evidence-report tests passed.
+Chrome checks on invented source verified the new analysis window, directory/menu
+order, saved English on reopen, editable-page labels and source-mode label
+dismissal on return to Home or internal Connection map navigation. Existing saved
+analyses need no rerun.
+
 Home cards are now full-card native links, with no separate bottom link. Clicking
 the heading, description or card space opens its page; Tab/Enter and modified
 clicks retain normal link behavior. Hover and keyboard focus identify the card.
@@ -14,7 +35,7 @@ guard; they disable together during changes and mirror the saved setting. Both
 header flags are highlighted in bilingual mode. No additional polling, preference
 store, model or translation cache was introduced.
 
-The Page dropdown now follows the Home cards: Programs & routines, Rungs, Ladder
+The Page dropdown now follows the Home cards: Full source analysis, Programs & routines, Rungs, Ladder
 map, Connection map, Classification & groups, then Tags & source objects. Home
 remains the first navigation option.
 

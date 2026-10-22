@@ -51,6 +51,7 @@
 .source-popout #view-rungs .workspace-grid,
 .source-popout #view-objects .workspace-grid { display: block; }
 .source-popout .detail { max-height: none; }
+body:not(.source-popout) .source-popout-access { display: none; }
 .workspace-grid.source-collapsed { grid-template-columns: minmax(0, 1fr) !important; }
 .source-collapsed > .detail, .source-collapsed > .rung-pane-divider { display: none !important; }
 .source-pane-note { color: var(--accent); font-size: .85rem; border-left: 2px solid var(--accent); padding: .35rem .7rem; }
@@ -68,6 +69,10 @@
 .home-page-card:nth-child(3n) { border-top-color: var(--orange); }
 .home-page-card h2 { font-size: 1.15rem; }
 .home-page-card p { font-size: .92rem; }
+.access-badge { display: inline-block; align-self: flex-start; flex: 0 0 auto; padding: .1rem .55rem; border: 1px solid var(--border); border-radius: 5px; color: var(--accent); font-size: .78rem; font-weight: 650; line-height: 1.6; }
+.access-editable { color: var(--orange); }
+.page-heading .page-access, .page-access { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem .65rem; max-width: none; color: var(--muted); font-size: .85rem; }
+.access-key { color: var(--muted); max-width: 105ch; font-size: .9rem; }
 .home-source, .home-reference { margin: 1rem 0; padding: 1.15rem; }
 .home-source { border-left: 3px solid var(--accent); }
 .heading-actions { display: flex; flex-wrap: wrap; gap: .6rem; }

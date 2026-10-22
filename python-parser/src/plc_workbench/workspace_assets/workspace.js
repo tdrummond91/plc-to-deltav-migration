@@ -264,6 +264,8 @@
       });
     }
     state.view = view;
+    const sourceAccess = $('source-window-access');
+    if (sourceAccess) sourceAccess.hidden = !['rungs', 'objects'].includes(view);
     if ($('page-select')) $('page-select').value = ['changes', 'guide'].includes(view) ? '' : view;
     document
       .querySelectorAll(".view")
@@ -282,6 +284,10 @@
   }
 
   function navigateWorkspace(view) {
+    if (view === 'analysis') {
+      $('page-select').value = ['changes', 'guide'].includes(state.view) ? '' : state.view;
+      return openFullAnalysis();
+    }
     if (!switchView(view)) { $('page-select').value = state.view; return false; }
     // A source-only window can return to normal browsing through Home or Page.
     document.body.classList.remove('source-popout', 'workspace-popout');
@@ -313,6 +319,7 @@
       node('p', p?.active_run ? `${Number(s.rung_count || 0).toLocaleString()} captured rungs · ${Number(s.instruction_count || 0).toLocaleString()} instructions · project revision ${p.revision}` : 'Open a completed analysis to begin. Your existing saved project can be reopened without analyzing the L5X again.'),
       node('p', 'Choose or change the source under Project tools → Choose analysis run.'));
     const pages = [
+      ['analysis','Full source analysis','Browse the complete saved evidence report: inventory, logic patterns, references, calculations, alarms and unresolved findings.','Opens in a new window · Uses the selected source language'],
       ['routines','Programs & routines','Expand a routine to see its captured ladder with contacts, coils, instruction blocks and parallel branches.','Program or AOI · routine type · name/path search'],
       ['rungs','Rungs','Read one rung from its inputs through conditions and actions to outputs. Inspect the original source, then save categories and properties.','Function family · reviewed category · review status · source search'],
       ['map','Ladder map','See how captured rungs share signals. Search, drag, zoom and inspect complete branches beside the map.','Function family · routine · signals · source search'],
@@ -323,16 +330,62 @@
     root.replaceChildren();
     pages.forEach(([view,title,description,filters]) => {
       const card = node('a', null, 'home-page-card panel');
-      card.href = '#view=' + view;
+      // The report server applies the saved language, including before the
+      // first language-status response and for native modified link clicks.
+      card.href = view === 'analysis' ? '/analysis#view=overview' : '#view=' + view;
+      if (view === 'analysis') {
+        card.id = 'full-analysis-card'; card.target = '_blank'; card.rel = 'noopener';
+      }
       const heading = node('h2', title); heading.id = 'home-page-' + view;
       card.setAttribute('aria-labelledby', heading.id);
+      const access = pageAccessNote(view, true); access.id = heading.id + '-access';
+      const scope = node('p', filters, 'muted'); scope.id = heading.id + '-scope';
+      card.setAttribute('aria-describedby', access.id + ' ' + scope.id);
       card.addEventListener('click', event => {
         if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button) return;
         event.preventDefault(); navigateWorkspace(view);
       });
-      card.append(heading, node('p', description), node('p', filters, 'muted'));
+      card.append(heading, access, node('p', description), scope);
       root.append(card);
     });
+  }
+
+  function pageAccessNote(view, compact = false) {
+    const access = {
+      home: ['Read only', 'Page directory and current source summary.'],
+      analysis: ['Read only', 'Saved source evidence and analysis; review decisions are edited in the workspace.'],
+      routines: ['Read only', 'Captured ladders and declarations. Open rung review to edit decisions.'],
+      rungs: ['Read & write', 'Save categories, properties, review status and group membership beside the original source.'],
+      map: ['Read & write', 'Explore source connections; save review decisions in the selected-source pane.'],
+      connections: ['Read only', 'Trace captured signal uses. Open rung review to edit decisions.'],
+      groups: ['Read & write', 'Save and edit engineering groups, memberships, classifications and migration decisions.'],
+      objects: ['Read & write', 'Read original declarations; save engineering properties, categories and review status.'],
+      changes: ['Read & write', 'Inspect history, reconnect prior decisions to changed source records and undo saved changes.'],
+      guide: ['Read & write', 'Checklist progress stays in this browser. Review actions open tools that save project decisions.'],
+      source: ['Read & write', 'Original source is read-only. Save your interpretation under Your engineering review.'],
+    }[view];
+    if (!access) return node('span');
+    const [label, description] = access;
+    const badge = node('span', label, 'access-badge' + (label === 'Read & write' ? ' access-editable' : ''));
+    badge.title = description;
+    if (compact) return badge;
+    const note = node('p', null, 'page-access');
+    note.append(badge, node('span', description));
+    return note;
+  }
+  function openFullAnalysis() {
+    // Reading a separate evidence window must not discard an unfinished review.
+    const url = '/analysis#view=overview';
+    const opened = window.open(url, '_blank', 'popup,width=1400,height=900');
+    if (opened) opened.opener = null;
+    else {
+      notify('The browser blocked the analysis window. Use this link to open it in a new tab.');
+      const fallback = node('a', 'Open full source analysis in a new tab');
+      fallback.href = url; fallback.target = '_blank'; fallback.rel = 'noopener';
+      $('notice').append(fallback);
+    }
+    $('project-tools').open = false;
+    return Boolean(opened);
   }
 
   function popupWorkspace(id = '', view = 'map') {
@@ -2693,6 +2746,9 @@
       );
   }
   window.addEventListener("hashchange", () => run(() => openLocation()));
+  document.querySelectorAll('.view').forEach(view => {
+    view.querySelector('.page-heading h1')?.after(pageAccessNote(view.id.replace('view-', '')));
+  });
   window.PLCReadingLayout.mount(document.querySelector("#view-rungs .workspace-grid"), $("rung-reading-settings"));
   window.PLCReadingLayout.mount($('map-layout'), $('map-reading-settings'), {
     storageKey: 'plc-workspace-map-layout-v1', defaultRatio: 0.6,
@@ -2708,8 +2764,14 @@
     document.body.classList.add('workspace-popout');
     if (panelMode === 'source') document.body.classList.add('source-popout');
     $('stop').hidden = true;
-    const note = node('p', 'This window shares the same saved project. After saving elsewhere, use Refresh saved data here. Close this window with the browser window controls.', 'popout-note');
+    const note = node('div', 'This window shares the same saved project. After saving elsewhere, use Refresh saved data here. Close this window with the browser window controls.', 'popout-note');
     document.querySelector('.topbar').after(note);
+    if (panelMode === 'source') {
+      const sourceAccess = pageAccessNote('source');
+      sourceAccess.id = 'source-window-access';
+      sourceAccess.classList.add('source-popout-access');
+      note.append(sourceAccess);
+    }
   }
   const ladderMap = window.PLCLadderMap.mount($('ladder-map'), {
     api,

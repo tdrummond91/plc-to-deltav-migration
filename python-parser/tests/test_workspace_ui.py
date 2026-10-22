@@ -539,20 +539,56 @@ assert.equal(routes[0],'/#view=home');
 assert.equal($('project-tools').open,false);
 """)
 
+    def test_source_window_access_label_follows_internal_trace_navigation(self) -> None:
+        self.run_js(['switchView'], r"""
+const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
+document.querySelectorAll=()=>[];renderConnections=()=>{};run=()=>{};
+document.body.classList.add('workspace-popout','source-popout');
+switchView('connections',true);assert.equal($('source-window-access').hidden,true);
+switchView('rungs',true);assert.equal($('source-window-access').hidden,false);
+switchView('objects',true);assert.equal($('source-window-access').hidden,false);
+switchView('home',true);assert.equal($('source-window-access').hidden,true);
+""")
+
     def test_home_has_working_page_directory_and_existing_source_summary(self) -> None:
-        self.run_js(['renderHome'], r"""
+        self.run_js(['renderHome', 'pageAccessNote'], r"""
 const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
 importDialog=()=>{};state.project={active_run:'invented',revision:3,source:{name:'Invented.L5X',rung_count:9,instruction_count:20}};
 const visits=[];navigateWorkspace=view=>visits.push(view);
 renderHome();assert.ok(contents($('home-source')).includes('Invented.L5X'));
 const links=descendants($('home-pages')).filter(n=>n.tagName==='a');
-assert.equal(links.length,6);
+assert.equal(links.length,7);
 assert.deepEqual($('home-pages').children,links);
 links.forEach(link=>link.events.click({preventDefault(){}}));
-assert.deepEqual(visits,['routines','rungs','map','connections','groups','objects']);
+assert.deepEqual(visits,['analysis','routines','rungs','map','connections','groups','objects']);
 links[0].events.click({ctrlKey:true,preventDefault(){throw new Error('Keep native new-tab navigation');}});
-assert.equal(visits.length,6);
+assert.equal(visits.length,7);
+// No language override: server applies the saved preference, even before UI status loads.
+assert.equal(links[0].href,'/analysis#view=overview');
+assert.equal(links[0].target,'_blank');assert.equal(links[0].rel,'noopener');
+assert.deepEqual(links.map(card=>card.children[1].textContent),
+  ['Read only','Read only','Read & write','Read & write','Read only','Read & write','Read & write']);
 assert.ok(contents($('home-pages')).includes('AI, AO, DI, DO, DC, AC, PID'));
+""")
+
+    def test_analysis_window_preserves_unsaved_form_and_recovers_blocked_popups(self) -> None:
+        self.run_js(['navigateWorkspace', 'openFullAnalysis'], r"""
+const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
+const calls=[],opened={opener:'workspace'};window.open=(...args)=>{calls.push(args);return opened;};
+discard=()=>{throw new Error('Opening evidence must not discard a review');};
+switchView=()=>{throw new Error('Opening evidence must not navigate the editor');};
+const selected={source:{id:'rung-current'}};state.source=selected;state.dirty=true;state.view='rungs';
+$('page-select').value='analysis';
+assert.equal(navigateWorkspace('analysis'),true);
+assert.deepEqual(calls[0],['/analysis#view=overview','_blank','popup,width=1400,height=900']);
+assert.equal(opened.opener,null);assert.equal($('page-select').value,'rungs');
+assert.equal(state.source,selected);assert.equal(state.dirty,true);assert.equal(state.view,'rungs');
+window.open=()=>null;state.view='guide';
+assert.equal(navigateWorkspace('analysis'),false);assert.equal($('page-select').value,'');
+const fallback=$('notice').children[0];
+assert.equal(fallback.href,'/analysis#view=overview');
+assert.equal(fallback.target,'_blank');assert.equal(fallback.rel,'noopener');
+assert.ok(notice.includes('blocked'));assert.equal(state.source,selected);assert.equal(state.dirty,true);
 """)
 
     def test_changed_analysis_clears_unavailable_routine_filter(self) -> None:

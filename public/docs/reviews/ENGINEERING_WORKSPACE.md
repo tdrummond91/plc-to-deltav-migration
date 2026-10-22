@@ -26,6 +26,12 @@ continue until you stop the workspace, so other review windows remain usable.
    **Project tools** holds the source details, analysis-run selection, source
    language, changes and reconciliation, reviewer name, refresh, theme and backups.
    **How to review** opens the checkable guide directly.
+   **Full source analysis** is a Home card and Page-menu destination that opens
+   the complete evidence report in a separate window, using your saved language.
+   Cards and page headings state **Read only** or **Read & write**, with an
+   explanation of what can change. Source evidence is never edited. Review
+   decisions are saved separately in the project; guide checkmarks stay in this
+   browser. Project tools are available regardless of the page label.
 2. Open **Classification & groups** for the automatic functional overview.
    Choose **Function** to find DC, AC, PID, alarms, timers, counters, structured
    objects, or I/O candidates. Expand **Evidence, parameters & source links**

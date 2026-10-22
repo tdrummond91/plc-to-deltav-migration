@@ -386,7 +386,7 @@ _TEMPLATE = '''<!doctype html>
 <p>This report contains source names, code and values. Keep it with your private project files.</p>
 <div id="snapshot-mini"></div></div></aside>
 <div class="workspace"><header class="topbar"><span>PLC migration <span aria-hidden="true">/</span> Phase 1</span>
-<div class="topbar-actions"><span class="topbar-badge">Read-only source evidence</span><div id="report-language"></div>
+<div class="topbar-actions"><span class="topbar-badge" title="Source evidence is not editable. Save engineering decisions in the workspace.">Read only · Source evidence</span><div id="report-language"></div>
 <button id="theme-toggle" class="theme-toggle" type="button" hidden>Dark mode · Switch to light</button></div></header>
 <main id="main" tabindex="-1"><div id="page-heading"></div>
 <div id="toolbar"></div><div id="content"></div></main>

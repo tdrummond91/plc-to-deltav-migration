@@ -43,6 +43,7 @@
         <label>Page<select id="page-select">
           <option value="" disabled>Choose a page</option>
           <option value="home">Home / page guide</option>
+          <option value="analysis">Full source analysis ↗</option>
           <option value="routines">Programs &amp; routines</option>
           <option value="rungs">Rungs</option><option value="map">Ladder map</option>
           <option value="connections">Connection map</option><option value="groups">Classification &amp; groups</option>
@@ -73,7 +74,6 @@
         ><button id="theme" type="button" aria-label="Switch to light theme">
           Light theme</button>
         <div id="translation-controls" class="translation-controls"></div>
-        <a class="analysis-link" href="/analysis#view=overview" target="_blank" rel="noopener">Open full source analysis ↗</a>
         <p class="muted">Closing a browser window leaves the local server running. Stop workspace ends all review windows and returns to Bash.</p>
         </div></details>
         <button id="stop" type="button" title="Stop the local server for all review windows">Stop workspace</button>
@@ -91,6 +91,7 @@
         <section id="view-home" class="view" aria-label="Workspace home">
           <div class="page-heading"><div><span class="eyebrow">START HERE</span><h1>Your analysis workspace</h1>
           <p>Click a card to open that page. Each page uses the same saved source and project; your review decisions stay separate from the original logic.</p></div></div>
+          <p class="access-key"><strong>Page access:</strong> Read only means viewing evidence. Read &amp; write means you can save reviews, groups or the stated settings. These labels describe page content; Project tools remain available on every page. The original L5X is never edited.</p>
           <div id="home-source" class="home-source panel"></div>
           <div id="home-pages" class="home-pages"></div>
           <section class="panel home-reference"><h2>Which filter should I use?</h2>
