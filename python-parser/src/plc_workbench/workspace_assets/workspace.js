@@ -208,69 +208,40 @@
     renderHome();
   }
   function renderRoutines() {
-    const root = $("routine-tree");
-    clear(root);
-    const query = $("routine-search").value.toLowerCase();
-    const buckets = new Map();
-    (state.project.routines || [])
-      .filter((r) => (r.path || r.name || "").toLowerCase().includes(query))
-      .forEach((r) => {
-        const parts = (r.path || r.name || "").split(" / ");
-        const parent =
-          parts.length > 1 ? parts.slice(0, -1).join(" / ") : "Source routines";
-        if (!buckets.has(parent)) buckets.set(parent, []);
-        buckets.get(parent).push(r);
-      });
-    buckets.forEach((routines, parent) => {
-      const details = node("details");
-      details.open = true;
-      details.append(node("summary", parent));
-      routines.forEach((r) => {
-        const b = button(
-          "",
-          () => {
-            if (!discard()) return;
-            state.routine = r.id;
-            state.page = 1;
-            if (state.view === "map") {
-              renderRoutines();
-              run(() => ladderMap.setRoutine(r.id));
-              return;
-            }
-            switchView("rungs", true);
-            renderRoutines();
-            run(loadRungs);
-          },
-          state.routine === r.id ? "active" : "",
-        );
-        b.append(
-          node("span", r.name || labelOf(r)),
-          node("span", Number(r.count || 0).toLocaleString()),
-        );
-        details.append(b);
-        if (!r.count)
-          details.append(
-            link(
-              "Open routine source ↗",
-              r.id,
-              r.type === "SFC" || r.kind === "SFC" ? "sfc" : "objects",
-            ),
-          );
-      });
-      root.append(details);
+    const picker = $('rung-routine-filter');
+    if (state.routine && !(state.project.routines || []).some(routine => routine.id === state.routine)) {
+      state.routine = '';
+      state.page = 1;
+    }
+    picker.replaceChildren(node('option', 'All routines'));
+    picker.firstChild.value = '';
+    (state.project.routines || []).forEach(routine => {
+      const option = node('option', `${routine.path || routine.name} (${routine.count || 0})`);
+      option.value = routine.id; picker.append(option);
     });
-    if (!buckets.size)
-      root.append(
-        node(
-          "p",
-          query ? "No matching routines." : "Routines appear after import.",
-          "muted",
-        ),
-      );
+    picker.value = state.routine;
+    if (state.view === 'routines') routineBrowser.refresh();
+  }
+  async function openRoutineRungs(routineId, sourceId = '') {
+    if (!discard()) return false;
+    state.routine = routineId;
+    state.page = 1;
+    ['rung-search', 'rung-family-filter', 'category-filter', 'status-filter'].forEach(id => $(id).value = '');
+    $('rung-routine-filter').value = routineId;
+    switchView('rungs', true);
+    document.body.classList.remove('source-popout', 'workspace-popout');
+    $('project-tools').open = false;
+    window.history.replaceState(null, '', '/#view=rungs' + (sourceId ? '&source=' + encodeURIComponent(sourceId) : ''));
+    if (sourceId) {
+      setSourcePaneHidden('rungs', false);
+      await openSource(sourceId, 'rung-detail', true);
+    }
+    return true;
   }
   function switchView(view, skipCheck = false) {
     if (!skipCheck && !discard()) return false;
     if (state.view === 'map' && view !== 'map') ladderMap.deactivate?.();
+    if (state.view === 'routines' && view !== 'routines') routineBrowser.deactivate();
     if (view === "connections" && state.source?.source?.instructions)
       state.connectionRung = state.source.source.id;
     if (view !== state.view) {
@@ -293,14 +264,11 @@
       });
     }
     state.view = view;
-    if ($('page-select')) $('page-select').value = view;
+    if ($('page-select')) $('page-select').value = ['changes', 'guide'].includes(view) ? '' : view;
     document
       .querySelectorAll(".view")
       .forEach((n) => (n.hidden = n.id !== "view-" + view));
-    document.querySelectorAll("#navigation button").forEach((n) => {
-      if (n.dataset.view === view) n.setAttribute("aria-current", "page");
-      else n.removeAttribute("aria-current");
-    });
+    if (view === "routines") routineBrowser.refresh();
     if (view === "rungs") run(loadRungs);
     if (view === "objects") run(loadObjects);
     if (view === "groups") {
@@ -313,17 +281,11 @@
     return true;
   }
 
-  function setNavigation(open, persist = true) {
-    document.body.classList.toggle('navigation-collapsed', !open);
-    $('project-navigation').hidden = !open;
-    $('navigation-toggle').setAttribute('aria-expanded', String(open));
-    $('navigation-toggle').textContent = open ? 'Close menu' : 'Menu';
-    if (persist) try { localStorage.setItem('plc-workspace-navigation-v1', JSON.stringify({open})); } catch (_) {}
-  }
   function navigateWorkspace(view) {
     if (!switchView(view)) { $('page-select').value = state.view; return false; }
     // A source-only window can return to normal browsing through Home or Page.
     document.body.classList.remove('source-popout', 'workspace-popout');
+    $('project-tools').open = false;
     window.history.replaceState(null, '', '/#view=' + encodeURIComponent(view));
     return true;
   }
@@ -349,15 +311,14 @@
     const p = state.project, s = p?.source || {};
     source.replaceChildren(node('h2', p?.active_run ? s.name || 'Imported source' : 'Choose your source'),
       node('p', p?.active_run ? `${Number(s.rung_count || 0).toLocaleString()} captured rungs · ${Number(s.instruction_count || 0).toLocaleString()} instructions · project revision ${p.revision}` : 'Open a completed analysis to begin. Your existing saved project can be reopened without analyzing the L5X again.'),
-      button('Choose analysis run', importDialog));
+      node('p', 'Choose or change the source under Project tools → Choose analysis run.'));
     const pages = [
+      ['routines','Programs & routines','Expand a routine to see its captured ladder with contacts, coils, instruction blocks and parallel branches.','Program or AOI · routine type · name/path search'],
       ['rungs','Rungs','Read one rung from its inputs through conditions and actions to outputs. Inspect the original source, then save categories and properties.','Function family · reviewed category · review status · source search'],
       ['map','Ladder map','See how captured rungs share signals. Search, drag, zoom and inspect complete branches beside the map.','Function family · routine · signals · source search'],
       ['connections','Connection map','Trace upstream writers and downstream readers around one selected rung. Follow a signal across routines.','Direction · routine scope · exact signal'],
       ['groups','Classification & groups','Review proposed AI, AO, DI, DO, DC, AC, PID and other engineering functions. Adopt and edit their memberships and migration decisions.','Function · migration decision · text search'],
       ['objects','Tags & source objects','Look up exported tag declarations, modules, routines, descriptions and user-defined objects.','Object type · name/path/description search'],
-      ['changes','Changes & reconciliation','See saved review history, undo a change, and reconnect earlier decisions when a new export changes the source.','Project history · changed-source correspondence'],
-      ['guide','How to review','Follow a short, checkable first session: inspect source, follow signals, save a decision and verify it.','Guided steps · local progress checklist'],
     ];
     root.replaceChildren();
     pages.forEach(([view,title,description,filters]) => {
@@ -2188,21 +2149,21 @@
       [
         "source",
         "Confirm the source",
-        "Check the source name and rung count in the sidebar. Choose analysis run if this is not the export you intend to review.",
+        "Check the source name and rung count on Home or in Project tools. Use Project tools → Choose analysis run if this is not the intended export.",
         "Choose analysis run",
         importDialog,
       ],
       [
         "inspect",
         "Inspect one complete rung",
-        "Open Rungs. Select a program and routine, then a rung title. Drag the divider to give the source pane more width. Equation text starts at 75%; adjust it above the list. Rung flow connects instructions from left to right, with parallel paths that split and rejoin. Equations shows formatted calculations; Original text preserves the exact source. Comment language in the sidebar adds local English wording alongside the original after one-time setup.",
-        "Open rungs",
-        () => switchView("rungs"),
+        "Open Programs & routines, filter by program and expand a routine. Its captured ladder shows contacts, coils and instruction blocks. Open a rung for its logic summary and saved review. Drag the divider to give the source pane more width. Equation text starts at 75%; adjust it above the list. Rung flow connects instructions from left to right, with parallel paths that split and rejoin. Equations shows formatted calculations; Original text preserves the exact source. Project tools → Source language adds local English wording after one-time setup.",
+        "Open Programs & routines",
+        () => switchView("routines"),
       ],
       [
         "map",
         "Explore the whole ladder",
-        "Open Ladder map. Count tiles cover every captured rung; click one to zoom in, or search and filter by routine or function. Drag the background to pan and drag a rung to arrange this view. Select a rung for its complete branches and equations; hover or focus for block information. Click a signal to find all its recorded rungs. Drag the divider to resize the inspector, or use Map only. Pop out map, selected source or connections into separate windows for other monitors. Save before switching, then use Refresh saved data in other windows to load your changes.",
+        "Open Ladder map. Count tiles cover every captured rung; click one to zoom in, or search and filter by routine or function. Drag the background to pan and drag a rung to arrange this view. Select a rung for its complete branches and equations; hover or focus for block information. Click a signal to find all its recorded rungs. Drag the divider to resize the inspector, or use Hide source. Pop out map, selected source or connections into separate windows for other monitors. Save before switching, then use Refresh saved data in other windows to load your changes.",
         "Open ladder map",
         () => switchView("map"),
       ],
@@ -2334,7 +2295,6 @@
             "status-filter",
             "object-search",
             "object-kind",
-            "routine-search",
           ].forEach((id) => ($(id).value = ""));
           await refresh();
           clear($("rung-detail"));
@@ -2355,7 +2315,7 @@
           );
           switchView("rungs", true);
           notify(
-            "Analysis imported. Verify the source name and total rung count in the sidebar.",
+            "Analysis imported. Verify the source name and total rung count on Home or in Project tools.",
           );
         },
         "Import analysis",
@@ -2392,17 +2352,15 @@
     event.preventDefault();
     closeModal();
   });
-  document
-    .querySelectorAll("#navigation button")
-    .forEach((n) =>
-      n.addEventListener("click", () => navigateWorkspace(n.dataset.view)),
-    );
   $('workspace-home').addEventListener('click', () => navigateWorkspace('home'));
+  $('review-help').addEventListener('click', () => navigateWorkspace('guide'));
+  $('project-changes').addEventListener('click', () => navigateWorkspace('changes'));
   $('page-select').addEventListener('change', () => navigateWorkspace($('page-select').value));
-  $('navigation-toggle').addEventListener('click', () => setNavigation($('project-navigation').hidden));
-  let navigationOpen = false;
-  try { navigationOpen = JSON.parse(localStorage.getItem('plc-workspace-navigation-v1') || '{}').open === true; } catch (_) {}
-  setNavigation(navigationOpen, false);
+  $('rung-routine-filter').addEventListener('change', () => {
+    state.routine = $('rung-routine-filter').value;
+    state.page = 1;
+    run(loadRungs);
+  });
   $("rung-search").addEventListener(
     "input",
     debounce(() => {
@@ -2416,19 +2374,6 @@
       run(loadRungs);
     }),
   );
-  $("routine-search").addEventListener("input", renderRoutines);
-  $("all-routines").addEventListener("click", () => {
-    if (!discard()) return;
-    state.routine = "";
-    state.page = 1;
-    if (state.view === 'map') {
-      renderRoutines();
-      run(() => ladderMap.setRoutine(''));
-      return;
-    }
-    renderRoutines();
-    switchView("rungs", true);
-  });
   $("clear-filters").addEventListener("click", () => {
     $("rung-search").value = "";
     $("category-filter").value = "";
@@ -2529,7 +2474,6 @@
             "status-filter",
             "object-search",
             "object-kind",
-            "routine-search",
           ].forEach((id) => ($(id).value = ""));
           await refresh();
           clear($("rung-detail"));
@@ -2661,7 +2605,7 @@
     const view = parameters.get("view");
     const source = parameters.get("source") || "";
     if (
-      !["home", "rungs", "objects", "map", "connections", "groups", "changes", "guide"].includes(view) ||
+      !["home", "routines", "rungs", "objects", "map", "connections", "groups", "changes", "guide"].includes(view) ||
       source.length > 256 ||
       /[\x00-\x1f\x7f]/.test(source)
     )
@@ -2675,6 +2619,7 @@
     if (!state.project) return;
     if (state.view === "rungs") run(loadRungs);
     if (state.view === "objects") run(loadObjects);
+    if (state.view === "routines") routineBrowser.wordingChanged();
   }
   async function openLocation(skipCheck = false) {
     const location = requestedLocation();
@@ -2708,7 +2653,6 @@
   $('refresh-project').addEventListener('click', () => run(refreshProjectWindow));
   const panelMode = new URLSearchParams(window.location.search).get('panel');
   if (panelMode === 'source' || panelMode === 'workspace') {
-    setNavigation(false, false);
     document.body.classList.add('workspace-popout');
     if (panelMode === 'source') document.body.classList.add('source-popout');
     $('stop').hidden = true;
@@ -2725,6 +2669,11 @@
     },
     popout: popupWorkspace,
     connections: openConnections,
+  });
+  const routineBrowser = window.PLCRoutineBrowser.mount($('routine-browser'), {
+    api, getState: () => state.project, reportLink: link,
+    review: (routineId, sourceId) => run(() => openRoutineRungs(routineId, sourceId)),
+    inspect: instruction => popupWorkspace(instruction.id, 'source'),
   });
   const translations = window.PLCTranslation.mount($("translation-controls"), api, translationChanged);
   const classificationBrowser = window.PLCClassification.mount($("classification-browser"), {

@@ -16,18 +16,22 @@ continue until you stop the workspace, so other review windows remain usable.
 
 1. Start on **Home / page guide**. Verify the source name and total
    rung count in the automatically loaded result. There is no default
-   demonstration. **Choose analysis run** is a manual fallback for an already
+   demonstration. **Project tools → Choose analysis run** is a manual fallback for an already
    completed run under `confidential/workspaces/work-check`. Each Home card
-   explains a page and links to it. **Home** and the **Page** selector remain
-   available with the sidebar closed. **Menu** reveals routines, source language
-   and navigation; close it to reclaim width. **Project tools** holds reviewer
-   name, refresh, theme and backups. **How to review** includes a checkable guide.
+   explains a page and links to it. **Home**, the **Page** selector and the
+   **How to review** button are in the header. There is no permanent sidebar.
+   **Project tools** holds the source details, analysis-run selection, source
+   language, changes and reconciliation, reviewer name, refresh, theme and backups.
+   **How to review** opens the checkable guide directly.
 2. Open **Classification & groups** for the automatic functional overview.
    Choose **Function** to find DC, AC, PID, alarms, timers, counters, structured
    objects, or I/O candidates. Expand **Evidence, parameters & source links**
    on a relevant item, then follow its rung links to inspect the logic.
    You can browse every proposal before saving any groups.
-3. Choose a program/routine or search for a known tag. The result count and
+3. Open **Programs & routines** and use the top filters to find a routine.
+   Expand its arrow to see the captured ladder. **Open rung review** opens that
+   rung's complete source and saved decisions. On **Rungs**, use the top routine
+   picker or search for a known tag. The result count and
    page controls cover all captured rungs. The list previews formatted instructions
    and opens the first rung automatically when no selection is pending.
    **Logic summary** is the default: read **Inputs & constants**, follow the
@@ -64,6 +68,31 @@ For later review sessions that do not need new analysis, the optional command
 `bash ./open-workbench.sh` reopens the saved project. Double-clicking
 `Open-Workbench.cmd` is an alternative to that shortcut. The opener does not
 run tests, analyze the L5X, or perform Git operations.
+
+## Programs and routines
+
+Choose **Programs & routines** from Home or the header's Page selector.
+Filter by program or AOI, routine type, or a name/path search at the top.
+Same-named routines retain their full scope, including separate AOI definitions.
+Expand the arrow beside a routine to load its ladder; opening another routine
+closes the previous one. Large directories have pages of 50 routines. Expanded
+ladders have pages of 20 captured rungs, in source order. The page controls keep
+all captured rungs reachable without drawing an entire export at once.
+
+The drawing uses contacts, coils and instruction blocks. Nested branches split
+and rejoin as captured; empty legs remain bypass wires. Slashed contacts mean XIO;
+L/U coils mean latch/unlatch. Neutral colors represent source logic, not live
+energized state. **How to read these ladders** explains the controls. Zoom and
+scroll to inspect a long rung. Select a symbol for its complete arguments and a
+source inspector; **Open rung review** opens that exact rung in the main review
+page. Unknown instructions remain labeled blocks rather than guessed symbols.
+
+Unparsed, unsupported or oversized structures show their complete original text.
+Non-ladder and empty routines remain listed with an explanation and source link.
+This page changes no classifications or source logic. English wording uses the
+same **Project tools → Source language** setting and preserves the drawings
+while translations arrive. Drawn connections do not establish execution order,
+physical consequences or target DeltaV class boundaries.
 
 ## Whole-ladder map and multiple monitors
 
@@ -208,7 +237,7 @@ translation process works offline on the CPU. Under **Source language**, choose
 **Original** changes the display without cancelling preparation. The progress
 count covers unique wording across the whole export, not just the selected rung;
 a selected comment appears when its batch is reached. Elapsed time, estimated
-remaining time and any missing translations are shown in the sidebar.
+remaining time and any missing translations are shown in Project tools.
 English is a reading aid:
 confirm terminology, negation and control meaning against the original,
 especially abbreviations and mixed French/English wording. Text whose translation

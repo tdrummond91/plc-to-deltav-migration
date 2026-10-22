@@ -1,0 +1,33 @@
+.ladder-diagram { min-width: 0; }
+.ladder-diagram-guide { color: var(--muted); font-size: .82rem; margin: .4rem 0; }
+.ladder-diagram-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: .5rem 0; }
+.ladder-diagram-controls button { font-size: .8rem; padding: .3rem .55rem; }
+.ladder-diagram-zoom { min-width: 3.5rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--accent); }
+.ladder-diagram-viewport { overflow: auto; max-height: min(70vh, 750px); border: 1px solid var(--border); border-radius: 8px; background: var(--bg); overscroll-behavior: contain; }
+.ladder-diagram-canvas { display: block; max-width: none; flex: none; }
+.ladder-diagram-wire, .ladder-diagram-rail { fill: none; stroke: var(--muted); stroke-width: 1.7; }
+.ladder-diagram-rail { stroke-width: 3; }
+.ladder-diagram-junction { fill: var(--muted); }
+.ladder-diagram-path-label { fill: var(--muted); font-size: 10px; }
+.ladder-diagram-instruction { cursor: pointer; outline: none; }
+.ladder-diagram-hit-area { fill: transparent; stroke: transparent; }
+.ladder-diagram-instruction:hover .ladder-diagram-hit-area, .ladder-diagram-instruction:focus .ladder-diagram-hit-area { fill: var(--surface); stroke: var(--accent); stroke-dasharray: 4 3; }
+.ladder-diagram-instruction.is-selected .ladder-diagram-hit-area { stroke: var(--magenta); stroke-width: 2; }
+.ladder-diagram-symbol-wire, .ladder-diagram-contact, .ladder-diagram-negation, .ladder-diagram-coil { stroke: var(--ink); stroke-width: 2; fill: none; }
+.ladder-diagram-contact { stroke-width: 2.5; }
+.ladder-diagram-block { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
+.ladder-diagram-opcode { fill: var(--ink); font-size: 13px; font-weight: 650; }
+.ladder-diagram-operand, .ladder-diagram-argument { fill: var(--ink); font-size: 12px; }
+.ladder-diagram-small, .ladder-diagram-source-order { fill: var(--muted); font-size: 10px; }
+.ladder-diagram-coil-letter { fill: var(--ink); font-size: 14px; font-weight: 700; }
+.ladder-diagram-instruction text { pointer-events: none; }
+.ladder-diagram-selected { padding: .7rem; border-left: 3px solid var(--magenta); margin: .7rem 0; background: var(--surface); overflow-wrap: anywhere; font-size: .85rem; }
+.ladder-diagram-selected[hidden], .ladder-diagram-error[hidden] { display: none; }
+.ladder-diagram-selected h4, .ladder-diagram-selected p { margin: .3rem 0; }
+.ladder-diagram-selected code { white-space: pre-wrap; }
+.ladder-diagram-error { color: var(--danger); padding: .5rem; border: 1px solid var(--danger); }
+.ladder-diagram-error button { margin-left: .5rem; }
+.ladder-diagram-original { margin: .6rem 0; font-size: .85rem; color: var(--muted); }
+.ladder-diagram-original summary { cursor: pointer; color: var(--accent); }
+.ladder-diagram-original pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 450px; overflow: auto; padding: .6rem; background: var(--bg); color: var(--ink); }
+.ladder-diagram-fallback { border-left: 3px solid var(--orange); padding: .6rem; background: var(--surface); font-size: .85rem; }

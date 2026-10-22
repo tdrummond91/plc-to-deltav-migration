@@ -1,5 +1,53 @@
 # Current handoff: PLC analysis workbench
 
+## Dedicated routine ladders and project controls (2026-10-22)
+
+The permanent sidebar is removed. **Home**, the engineering **Page** selector
+and **How to review** are header controls. **Project tools** contains the source
+summary, **Choose analysis run**, the single **Source language** controller,
+**Changes & reconciliation**, reviewer, refresh, theme and backup/restore.
+Successful navigation closes the tools menu; unsaved-review guards remain in
+place. The expanded menu stays within narrow viewports. Earlier sidebar/Menu
+instructions below describe the previous version.
+
+**Programs & routines** is a separate full-width page. Top filters cover name/
+path, program or AOI scope, and routine type. Native disclosure arrows load one
+routine at a time, using 50 directory rows and 20 captured rungs per page.
+Same-named AOI routines keep distinct scope IDs. A read-only `/api/routine-ladder`
+route uses saved inventory and cached source qualification, preserves source
+order, rejects stale run IDs, and does not rerun analysis or start translation.
+
+The new local SVG renderer draws qualified XIC/XIO contacts and OTE/OTL/OTU
+coils, retaining other instructions as labeled blocks with complete arguments.
+Series order, nested split/join paths, mid-rung outputs and empty bypass legs
+are preserved. Selecting a symbol opens its source inspector and arguments;
+**Open rung review** opens the exact rung with its routine filter. No live
+states, equipment consequences or target class allocation are inferred.
+Unsupported, malformed or oversized structures retain complete original text.
+Limits are 160 instructions, 1,200 structure nodes, depth 64, extent 40,000,
+128 argument slots per instruction and 131,072 text characters for drawing.
+Non-ladder/empty routines remain visible with source links and explanations.
+
+Routine requests discard obsolete results after collapse, navigation, changed
+analysis or changed project. Translation-only refreshes preserve drawings,
+zoom and selection, including a pending request for another rung page. Retry
+has one current warning and clears it on recovery. Different-run refreshes
+also clear obsolete Rungs routine filters.
+
+Validation: 181 focused workspace, routine API/controller/renderer, map, family,
+reading-layout, equation, explanation and flow tests passed. Final integration
+wording and accessibility changes passed the overlapping 39 workspace UI and
+14 routine controller tests. Independent review found no remaining blockers.
+Chrome checks used independently invented 28-rung data with a 26-rung routine,
+two same-named AOI routines, ST and empty routines. Verified complete two-page
+access, exact rung review, scope/type/search filters, nested branches, zoom,
+non-ladder guidance, header help, tool navigation and 480px/800px layouts.
+No proprietary source was opened and no saved engineering decision was changed.
+
+Work-PC use: save and **Stop workspace**, manually pull this branch, then run
+`bash ./open-workbench.sh`. Existing saved analyses work; no full work-check or
+translation rerun is required. No automatic Git or background listener was added.
+
 ## Workspace navigation and readable logic (2026-10-22)
 
 The default entry is now **Home / page guide**, with actual page links, filter

@@ -24,10 +24,23 @@ class Page(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.elements: list[tuple[str, dict[str, str | None]]] = []
+        self.stack = []
+        self.parents = {}
         self.feed((ASSETS / "index.html").read_text(encoding="utf-8"))
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        self.elements.append((tag, dict(attrs)))
+        attributes = dict(attrs)
+        self.elements.append((tag, attributes))
+        if attributes.get('id'):
+            self.parents[attributes['id']] = [item[1] for item in self.stack]
+        if tag not in {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'}:
+            self.stack.append((tag, attributes.get('id') or tag))
+
+    def handle_endtag(self, tag: str) -> None:
+        for index in range(len(self.stack) - 1, -1, -1):
+            if self.stack[index][0] == tag:
+                self.stack = self.stack[:index]
+                break
 
 
 def function(name: str) -> str:
@@ -121,7 +134,7 @@ class WorkspacePageTests(unittest.TestCase):
         page = Page()
         ids = [attrs["id"] for _, attrs in page.elements if "id" in attrs]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertTrue({"source-name", "source-count", "routine-tree", "rung-list", "rung-detail", "object-list", "group-list", "history", "reconciliation"}.issubset(ids))
+        self.assertTrue({"source-name", "source-count", "routine-browser", "rung-list", "rung-detail", "object-list", "group-list", "history", "reconciliation"}.issubset(ids))
         for tag, attrs in page.elements:
             for key in ("src", "href"):
                 if key in attrs:
@@ -137,9 +150,19 @@ class WorkspacePageTests(unittest.TestCase):
 
     def test_source_values_are_not_stored_as_browser_review_data(self) -> None:
         keys = re.findall(r'''localStorage\.setItem\(\s*["']([^"']+)["']''', SCRIPT)
-        self.assertCountEqual(keys, ["plc-workspace-guide-v1", "plc-workspace-theme-v1", "plc-workspace-reviewer-v1", "plc-workspace-navigation-v1"])
+        self.assertCountEqual(keys, ["plc-workspace-guide-v1", "plc-workspace-theme-v1", "plc-workspace-reviewer-v1"])
         self.assertIn("No demonstration data is loaded", SCRIPT)
         self.assertIn("__WORKSPACE_TOKEN__", (ASSETS / "index.html").read_text(encoding="utf-8"))
+
+    def test_project_controls_have_one_home_and_review_help_stays_in_header(self) -> None:
+        page = Page()
+        for control in ('translation-controls', 'import', 'project-changes', 'source-name'):
+            self.assertIn('project-tools', page.parents[control])
+        self.assertIn('header', page.parents['review-help'])
+        self.assertNotIn('project-tools', page.parents['review-help'])
+        self.assertIn('view-routines', page.parents['routine-browser'])
+        self.assertNotIn('project-navigation', page.parents)
+        self.assertNotIn('routine-tree', page.parents)
 
 
 @unittest.skipUnless(NODE, "Node is optional developer tooling")
@@ -437,15 +460,11 @@ assert.equal($('rungs-layout').classList.contains('source-collapsed'),false);
 assert.ok(contents($('notice')).includes('Open selected view in a new tab'));
 """)
 
-    def test_menu_and_navigation_restore_regular_layout_without_losing_declined_edits(self) -> None:
-        self.run_js(['setNavigation', 'navigateWorkspace'], r"""
+    def test_navigation_restores_regular_layout_without_losing_declined_edits(self) -> None:
+        self.run_js(['navigateWorkspace'], r"""
 const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
-const preferences=[];localStorage={setItem:(key,value)=>preferences.push([key,JSON.parse(value)])};
 document.body.classList.add('workspace-popout','source-popout');
-setNavigation(false);assert.equal($('project-navigation').hidden,true);
-setNavigation(true);assert.equal($('project-navigation').hidden,false);
-assert.equal($('navigation-toggle').attributes['aria-expanded'],'true');
-assert.deepEqual(preferences.at(-1),['plc-workspace-navigation-v1',{open:true}]);
+$('project-tools').open=true;
 const routes=[];window.history={replaceState:(...args)=>routes.push(args[2])};
 switchView=()=>false;assert.equal(navigateWorkspace('home'),false);
 assert.equal(routes.length,0);assert.equal(document.body.classList.contains('source-popout'),true);
@@ -454,6 +473,7 @@ assert.equal(navigateWorkspace('home'),true);
 assert.equal(document.body.classList.contains('source-popout'),false);
 assert.equal(document.body.classList.contains('workspace-popout'),false);
 assert.equal(routes[0],'/#view=home');
+assert.equal($('project-tools').open,false);
 """)
 
     def test_home_has_working_page_directory_and_existing_source_summary(self) -> None:
@@ -463,10 +483,34 @@ importDialog=()=>{};state.project={active_run:'invented',revision:3,source:{name
 const visits=[];navigateWorkspace=view=>visits.push(view);
 renderHome();assert.ok(contents($('home-source')).includes('Invented.L5X'));
 const links=descendants($('home-pages')).filter(n=>n.tagName==='a');
-assert.equal(links.length,7);
+assert.equal(links.length,6);
 links.forEach(link=>link.events.click({preventDefault(){}}));
-assert.deepEqual(visits,['rungs','map','connections','groups','objects','changes','guide']);
+assert.deepEqual(visits,['routines','rungs','map','connections','groups','objects']);
 assert.ok(contents($('home-pages')).includes('AI, AO, DI, DO, DC, AC, PID'));
+""")
+
+    def test_changed_analysis_clears_unavailable_routine_filter(self) -> None:
+        self.run_js(['renderRoutines'], r"""
+const picker=node('select');$=()=>picker;
+state.routine='old-routine';state.page=8;
+state.project.routines=[{id:'new-routine',path:'Program / New',count:4}];
+renderRoutines();assert.equal(state.routine,'');assert.equal(state.page,1);assert.equal(picker.value,'');
+state.routine='new-routine';renderRoutines();assert.equal(picker.value,'new-routine');
+""")
+
+    def test_routine_review_navigation_clears_filters_and_opens_requested_rung(self) -> None:
+        self.run_js(['openRoutineRungs'], r"""
+const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
+['rung-search','rung-family-filter','category-filter','status-filter'].forEach(id=>$(id).value='old');
+let views=[],sources=[],routes=[];switchView=(view,skip)=>views.push([view,skip]);
+openSource=async(...args)=>sources.push(args);setSourcePaneHidden=()=>{};
+window.history={replaceState:(_a,_b,url)=>routes.push(url)};
+discard=()=>false;assert.equal(await openRoutineRungs('routine-new','rung-new'),false);assert.equal(views.length,0);
+discard=()=>true;assert.equal(await openRoutineRungs('routine-new','rung-new'),true);
+assert.equal(state.routine,'routine-new');assert.equal(state.page,1);
+assert.deepEqual(views,[['rungs',true]]);assert.deepEqual(sources,[['rung-new','rung-detail',true]]);
+assert.equal(routes[0],'/#view=rungs&source=rung-new');
+assert.equal($('category-filter').value,'');assert.equal($('rung-routine-filter').value,'routine-new');
 """)
 
     def test_family_filter_keeps_choice_and_existing_inventory_constraints(self) -> None:

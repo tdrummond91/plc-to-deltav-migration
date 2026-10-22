@@ -221,6 +221,31 @@ class Workspace:
         self._paths[identifier] = result
         return result
 
+    def _routine_descriptor(self, routine: dict, count: int) -> dict:
+        """Program or AOI scope metadata without loading any rung diagrams."""
+        current = routine.get('parent_id')
+        visited: set[str] = set()
+        program = scope = None
+        while current in self._sources and current not in visited:
+            visited.add(current)
+            source = self._sources[current]
+            if scope is None and source.get('kind') in {'program', 'aoi'}:
+                scope = source
+            if source.get('kind') == 'program':
+                program = source
+                break
+            current = source.get('parent_id')
+        return {'id': routine['id'], 'source_id': routine['id'],
+                'name': routine.get('name') or 'Unnamed', 'path': self.path(routine['id']),
+                'count': count, 'type': routine.get('attributes', {}).get('Type', ''),
+                'program_id': program['id'] if program else '',
+                'program_name': (program.get('name') or 'Unnamed') if program else '',
+                'program_path': self.path(program['id']) if program else '',
+                'scope_id': scope['id'] if scope else '',
+                'scope_name': (scope.get('name') or 'Unnamed') if scope else '',
+                'scope_path': self.path(scope['id']) if scope else '',
+                'scope_kind': scope.get('kind', '') if scope else ''}
+
     def state(self) -> dict:
         from .workspace_classification import CATEGORY_DEFINITIONS
         state = self.store.state()
@@ -236,8 +261,7 @@ class Workspace:
             "object_count": len(self._objects),
         }
         state["routines"] = [
-            {"id": row["id"], "name": row.get("name", "Unnamed"), "path": self.path(row["id"]),
-             "count": routine_counts[row["id"]], "type": row.get("attributes", {}).get("Type", "")}
+            self._routine_descriptor(row, routine_counts[row['id']])
             for row in self._objects if row.get("kind") == "routine"
         ]
         state["counts"] = {"rungs": len(self._rungs), "objects": len(self._objects),
@@ -478,6 +502,66 @@ class Workspace:
                 'calculations': self._calculation_detail([item['id'] for item in preview]),
             }
         return result
+
+    def routine_ladder(self, query: dict) -> dict:
+        """Page full saved source for one routine; never rerun analysis or reports.
+
+        Qualification controls diagram eligibility, not source visibility. Even
+        unsupported containers keep every captured rung and its original text.
+        """
+        state = self.store.state()
+        self._load(state)
+        identifier, selected = query.get('routine', ''), query.get('run_id', '')
+        if (any(type(value) is not str or len(value) > 256 for value in (identifier, selected))
+                or not identifier):
+            raise ProjectError('Choose a captured routine from the selected analysis.')
+        if selected and selected != self._run:
+            raise RevisionConflict('The source analysis changed. Reload Programs & routines.')
+        if not self._run:
+            raise ProjectError('Import a completed analysis to browse its programs and routines.')
+        routine = self._sources.get(identifier)
+        if routine is None or routine.get('kind') != 'routine':
+            raise ProjectError('Choose a captured routine from the selected analysis.')
+        requested_page = query.get('page', '1')
+        if type(requested_page) not in {int, str}:
+            raise ProjectError('Choose a valid routine page.')
+        try:
+            page = int(requested_page)
+        except (ValueError, TypeError):
+            raise ProjectError('Choose a valid routine page.') from None
+        if not 1 <= page <= 1_000_000:
+            raise ProjectError('Choose a valid routine page.')
+
+        rungs = [row for row in self._rungs if row.get('parent_id') == identifier]
+        page_size = 20
+        pages = max(1, (len(rungs) + page_size - 1) // page_size)
+        page = min(page, pages)
+        visible = rungs[(page - 1) * page_size:page * page_size]
+        mode, wording = self._wording(visible, 'comment')
+        entities_ok, rungs_ok, _ = self._map_qualification()
+        descriptor = self._routine_descriptor(routine, len(rungs))
+        descriptor['source_qualified'] = entities_ok.get(identifier, False)
+        available = descriptor['source_qualified'] and descriptor['type'] == 'RLL'
+        if not descriptor['source_qualified']:
+            notice = ('This routine has unsupported source qualification. Captured rungs remain available '
+                      'as original text; a qualified ladder diagram cannot be established.')
+        elif descriptor['type'] != 'RLL':
+            notice = (f"This routine is exported as {descriptor['type'] or 'an unspecified routine type'}, "
+                      'rather than RLL ladder logic. Open its source record for context. '
+                      'Any captured rungs remain available as original text.')
+        elif not rungs:
+            notice = ('This RLL routine has no captured ladder rungs. This does not establish that '
+                      'protected or omitted source logic is empty. Open its source record for context.')
+        else:
+            notice = ('Rungs follow their captured export order. Diagrams show source structure, '
+                      'not live Boolean values or controller execution timing.')
+        items = [dict(row, path=self.path(row['id']),
+                      source_qualified=bool(available and rungs_ok.get(row['id'], False)),
+                      wording={'comment': wording.get(row.get('comment'))}) for row in visible]
+        return {'routine': descriptor, 'items': items, 'total': len(rungs),
+                'captured_rung_count': len(rungs), 'page': page, 'pages': pages, 'page_size': page_size,
+                'run_id': self._run, 'revision': state['revision'], 'presentation_mode': mode,
+                'available': available, 'notice': notice}
 
     def _connection_index(self) -> Any:
         """One authenticated saved-evidence index shared by map and rung views."""
@@ -1024,6 +1108,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._json(200, workspace.state())
             elif url.path == "/api/rungs":
                 self._json(200, workspace.rungs(query))
+            elif url.path == '/api/routine-ladder':
+                self._json(200, workspace.routine_ladder(query))
             elif url.path == "/api/connections":
                 self._json(200, workspace.connections(query))
             elif url.path == '/api/ladder-map':
@@ -1050,6 +1136,7 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._send(200, workspace.report(query.get('language')), "text/html; charset=utf-8", report=True)
             elif url.path in ("/", "/index.html", "/workspace.js", "/workspace.css",
                               "/rung-flow.js", "/rung-flow.css", "/rung-explanation.js", "/rung-explanation.css",
+                              "/routine-browser.js", "/routine-browser.css", "/ladder-diagram.js", "/ladder-diagram.css",
                               "/connections.js", "/connections.css",
                               "/reading-layout.js", "/reading-layout.css", "/translation.js", "/translation.css",
                               '/classification.js', '/classification.css', '/ladder-map.js', '/ladder-map.css'):
