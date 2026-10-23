@@ -119,7 +119,7 @@
       element("p", "These proposals are ready to browse without creating groups by hand. A shared address links source uses; it does not prove they form one piece of equipment or one DeltaV module. Review the evidence before adopting a proposal."),
       element("p", "Unknown and uncertain items stay visible. Use migration decisions to separate retained functions, replacements, and reviewed exclusions."));
     root.replaceChildren(intro, filters, description, status, coverage, limits, list, pages);
-    let page = 1, serial = 0, timer, data = null, busy = false;
+    let page = 1, pageSize = 50, serial = 0, timer, data = null, busy = false;
 
     function reset() {page = 1; return refresh();}
     search.addEventListener("input", () => {clearTimeout(timer); timer = setTimeout(reset, 250);});
@@ -191,16 +191,20 @@
         details.append(element("h4", "Linked source records"));
         const links = element("div", undefined, "classification-source-links");
         const controls = element("div", undefined, "pagination classification-source-pagination");
-        let sourcePage = 0;
+        let sourcePage = 0, sourcePageSize = 50;
         function paintSources() {
           links.replaceChildren(); controls.replaceChildren();
-          const start = sourcePage * 50, end = Math.min(start + 50, sourceIds.length);
+          const start = sourcePage * sourcePageSize, end = Math.min(start + sourcePageSize, sourceIds.length);
           sourceIds.slice(start, end).forEach(id => links.append(sourceButton(
             sourceLabels[id] || `${rungSet.has(id) ? "Rung" : "Source"} ${id}`, id, rungSet.has(id) ? "rung" : "object")));
           const previous = button("← Previous source links", () => {sourcePage -= 1; paintSources();});
           const next = button("Next source links →", () => {sourcePage += 1; paintSources();});
           previous.disabled = sourcePage === 0; next.disabled = end >= sourceIds.length;
           controls.append(previous, element("span", sourceIds.length ? `${start + 1}–${end} of ${sourceIds.length} source records` : "No source links captured"), next);
+          const size = choices([10, 50, 100, 200, 500].map(value => [String(value), String(value)]), String(sourcePageSize));
+          size.setAttribute("aria-label", "Source links per page");
+          size.addEventListener("change", () => {sourcePageSize = Number(size.value); sourcePage = 0; paintSources();});
+          controls.append(label("Source links per page", size));
         }
         paintSources(); details.append(links, controls);
       }
@@ -240,7 +244,7 @@
       root.setAttribute("aria-busy", "true");
       status.className = "classification-status";
       status.textContent = "Reading classifications from the imported source…";
-      const query = new URLSearchParams({category: category.value, migration: migration.value, query: search.value, page: String(page)});
+      const query = new URLSearchParams({category: category.value, migration: migration.value, query: search.value, page: String(page), page_size: String(pageSize)});
       try {
         const result = await options.api("/api/classification?" + query);
         if (request !== serial) return;
@@ -253,7 +257,7 @@
         category.value = selected;
         const registry = new Map((result.categories || []).map(item => [item.id, item]));
         description.textContent = registry.get(category.value)?.description || "A source association can have multiple function categories. Filtered results include your saved category and migration decisions.";
-        const total = Number(result.total || 0), pagesCount = Math.max(1, Number(result.pages || Math.ceil(total / (result.page_size || 25))));
+        const total = Number(result.total || 0), pagesCount = Math.max(1, Number(result.pages || Math.ceil(total / (result.page_size || 50))));
         status.textContent = `${total.toLocaleString()} detected groups match · page ${page} of ${pagesCount}`;
         const counts = result.coverage || {};
         if (Number.isFinite(counts.source_rungs) && Number.isFinite(counts.represented_rungs)) {
@@ -271,6 +275,10 @@
         const next = button("Next →", () => {page += 1; return refresh();});
         previous.disabled = page <= 1; next.disabled = page >= pagesCount;
         pages.append(previous, element("span", `Page ${page} of ${pagesCount}`), next);
+        const size = choices([10, 50, 100, 200, 500].map(value => [String(value), String(value)]), String(pageSize));
+        size.setAttribute("aria-label", "Groups per page");
+        size.addEventListener("change", () => {pageSize = Number(size.value); page = 1; return refresh();});
+        pages.append(label("Groups per page", size));
       } catch (error) {
         if (request !== serial) return;
         status.textContent = error.message || "Classifications could not be loaded.";

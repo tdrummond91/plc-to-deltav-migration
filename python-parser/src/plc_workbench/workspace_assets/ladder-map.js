@@ -3,7 +3,7 @@
   "use strict";
   const NS = "http://www.w3.org/2000/svg";
   const CARD_W = 250, CARD_H = 104, STEP_X = 390, STEP_Y = 180;
-  const MAX_NODES = 80, MAX_EDGES = 320, LIST_SIZE = 25, CACHE_SIZE = 80;
+  const MAX_NODES = 80, MAX_EDGES = 320, CACHE_SIZE = 80;
   const el = (tag, text, cls = "") => {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = String(text);
@@ -41,7 +41,7 @@
     const prefix = `ladder-map-${++serial}`;
     let destroyed = false, active = true, generation = 0, linkGeneration = 0, detailGeneration = 0, selectionGeneration = 0;
     let runId = "", items = [], byId = new Map(), positions = new Map(), total = 0, selected = "";
-    let columns = 1, listPage = 1, signalPage = 1, signalPages = 1, queryTimer, linkTimer, hoverTimer, frame;
+    let columns = 1, listPage = 1, listSize = 25, signalPage = 1, signalSize = 80, signalPages = 1, queryTimer, linkTimer, hoverTimer, frame;
     let transform = { x: 24, y: 24, scale: 1 }, drag = null, lastDragged = "", visible = [], signals = [];
     let linksKey = "", visibleKey = "", loadedKey = "", loadPromise = Promise.resolve(), fitted = false, pinned = false, resizeObserver;
     let connectionAvailable = null, connectionNotice = "", connectionCoverage = null;
@@ -126,8 +126,12 @@
     const next = btn("Next rungs", () => { listPage++; renderList(); });
     const pageInput = el("input", undefined, "ladder-map-list-page"); pageInput.type = "number"; pageInput.min = "1"; pageInput.value = "1";
     const listStatus = el("span");
-    pageInput.addEventListener("change", () => { listPage = Math.max(1, Math.min(Math.ceil(total / LIST_SIZE) || 1, Number(pageInput.value) || 1)); renderList(); });
-    listNav.append(previous, labeled("Rung list page", pageInput), next, listStatus); listToggle.append(listNav, list);
+    pageInput.addEventListener("change", () => { listPage = Math.max(1, Math.min(Math.ceil(total / listSize) || 1, Number(pageInput.value) || 1)); renderList(); });
+    const listSizeSelect = el("select");
+    [10, 25, 50, 100, 200, 500].forEach(value => { const option = el("option", String(value)); option.value = String(value); listSizeSelect.append(option); });
+    listSizeSelect.value = String(listSize); listSizeSelect.setAttribute("aria-label", "Map rungs per page");
+    listSizeSelect.addEventListener("change", () => {listSize = Number(listSizeSelect.value); listPage = 1; renderList();});
+    listNav.append(previous, labeled("Rung list page", pageInput), next, labeled("Rungs per page", listSizeSelect), listStatus); listToggle.append(listNav, list);
     const signalSection = el("details", undefined, "ladder-map-signal-section");
     signalSection.append(el("summary", "Signals connected to the visible rungs"));
     const signalStatus = el("p", undefined, "ladder-map-signal-status"); signalStatus.setAttribute("role", "status");
@@ -135,7 +139,11 @@
     const signalNav = el("div", undefined, "ladder-map-pagination");
     const prevSignals = btn("Previous signals", () => { signalPage--; queueLinks(true); });
     const nextSignals = btn("Next signals", () => { signalPage++; queueLinks(true); });
-    signalNav.append(prevSignals, nextSignals); signalSection.append(signalStatus, signalNav, signalList);
+    const signalSizeSelect = el("select");
+    [10, 25, 50, 80, 100].forEach(value => {const option = el("option", String(value)); option.value = String(value); signalSizeSelect.append(option);});
+    signalSizeSelect.value = String(signalSize); signalSizeSelect.setAttribute("aria-label", "Map signals per page");
+    signalSizeSelect.addEventListener("change", () => {signalSize = Number(signalSizeSelect.value); signalPage = 1; queueLinks(true);});
+    signalNav.append(prevSignals, nextSignals, labeled("Signals per page", signalSizeSelect)); signalSection.append(signalStatus, signalNav, signalList);
     toolbar.append(labeled("Search all captured rungs", search), labeled("Routine", routine), labeled("Function family", family), labeled("Connections", direction));
     root.className += " ladder-map";
     root.replaceChildren(toolbar, filterNote, status, coverageStatus, error, viewControls, viewSettings, help, stage, viewNote, legend, signalSection, listToggle);
@@ -274,11 +282,11 @@
       catch (cause) { if (token === selectionGeneration && isCurrent(current)) showError(cause, () => inspectSource(id)); return false; }
     }
     function renderList() {
-      list.replaceChildren(); const pages = Math.max(1, Math.ceil(total / LIST_SIZE));
+      list.replaceChildren(); const pages = Math.max(1, Math.ceil(total / listSize));
       listPage = Math.max(1, Math.min(listPage, pages)); pageInput.value = String(listPage); pageInput.max = String(pages);
       previous.disabled = listPage <= 1; next.disabled = listPage >= pages;
       listStatus.textContent = `Page ${listPage} of ${pages} · ${total.toLocaleString()} matching rungs`;
-      const rows = items.slice((listPage - 1) * LIST_SIZE, listPage * LIST_SIZE);
+      const rows = items.slice((listPage - 1) * listSize, listPage * listSize);
       rows.forEach(item => {
         const row = btn(`${rungName(item)} · ${item.path}`, () => select(item.id, true), `ladder-map-list-row${item.id === selected ? " is-selected" : ""}`);
         row.title = item.comment_preview || ""; row.addEventListener("focus", () => queueDetail(item.id)); list.append(row);
@@ -328,14 +336,14 @@
       if (!active || destroyed) return;
       const currentVisible = `${runId}|${visible.map(item => item.id).sort().join(",")}|${direction.value}`;
       if (currentVisible !== visibleKey) { signalPage = 1; visibleKey = currentVisible; }
-      const key = `${runId}|${visible.map(item => item.id).sort().join(",")}|${direction.value}|${signalPage}`;
+      const key = `${runId}|${visible.map(item => item.id).sort().join(",")}|${direction.value}|${signalPage}|${signalSize}`;
       if (!force && key === linksKey) return;
       clearTimeout(linkTimer); linksKey = key; const token = ++linkGeneration, current = generation;
       signals = []; signalList.replaceChildren(); edgeLayer.replaceChildren(); signalLayer.replaceChildren();
       if (!visible.length || connectionAvailable === false) { signalStatus.textContent = connectionAvailable === false ? "Connections are unavailable for this saved analysis; the captured rung index is still available." : "Zoom in to load connections for the visible rungs. No full-project diagram is downloaded."; prevSignals.disabled = nextSignals.disabled = true; return; }
       signalStatus.textContent = "Loading recorded signal connections…";
       linkTimer = setTimeout(async () => {
-        const params = new URLSearchParams({ run_id: runId, ids: visible.map(item => item.id).join(","), page: String(signalPage), direction: direction.value || "both" });
+        const params = new URLSearchParams({ run_id: runId, ids: visible.map(item => item.id).join(","), page: String(signalPage), page_size: String(signalSize), direction: direction.value || "both" });
         try {
           const response = await options.api(`/api/ladder-map/links?${params}`);
           if (!isCurrent(current) || token !== linkGeneration || response.run_id !== runId) return;

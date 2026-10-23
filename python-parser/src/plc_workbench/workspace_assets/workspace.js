@@ -13,6 +13,11 @@
     view: "home",
     page: 1,
     objectPage: 1,
+    rungPageSize: 50,
+    objectPageSize: 50,
+    rungPreviewObserver: null,
+    rungPreviewQueue: [],
+    rungPreviewLoading: 0,
     routine: "",
     selected: new Set(),
     source: null,
@@ -242,14 +247,16 @@
     }
     return true;
   }
-  function switchView(view, skipCheck = false) {
+  function switchView(view, skipCheck = false, connectionRung = '') {
     if (!skipCheck && !discard()) return false;
     window.PLCInstructionHelp?.close?.();
     if (state.view === 'map' && view !== 'map') ladderMap.deactivate?.();
     if (state.view === 'routines' && view !== 'routines') routineBrowser.deactivate();
     if (state.view === 'field-io' && view !== 'field-io') fieldIOBrowser.deactivate();
-    if (view === "connections" && state.source?.source?.instructions)
-      state.connectionRung = state.source.source.id;
+    if (view === "connections") {
+      if (connectionRung) state.connectionRung = connectionRung;
+      else if (state.source?.source?.instructions) state.connectionRung = state.source.source.id;
+    }
     if (view !== state.view) {
       // Hidden forms must not outlive the source revision that populated them.
       state.source = null;
@@ -472,7 +479,14 @@
     $("selection-count").textContent =
       count + " source" + (count === 1 ? "" : "s") + " selected";
   }
-  function pagination(target, result, callback) {
+  function pageSizeControl(value, change, label = "Items per page") {
+    const control = select([...new Set([10, 50, 100, 200, 500, Number(value)])].sort((a,b) => a-b)
+      .map(size => [String(size), String(size)]), String(value));
+    control.setAttribute("aria-label", label);
+    control.addEventListener("change", () => change(Number(control.value)));
+    return field(label, control);
+  }
+  function pagination(target, result, callback, resize) {
     clear(target);
     const total = Number(result.total || 0),
       size = Number(result.page_size || 50),
@@ -483,8 +497,11 @@
     prev.disabled = page <= 1;
     next.disabled = page >= pages;
     target.append(prev, node("span", `Page ${page} of ${pages}`), next);
+    if (resize) target.append(pageSizeControl(size, resize));
   }
   async function loadRungs() {
+    state.rungPreviewObserver?.disconnect();
+    state.rungPreviewQueue = [];
     const serial = ++state.listSerial;
     const detailSerial = state.detailSerial;
     const params = new URLSearchParams({
@@ -494,6 +511,7 @@
       family: $('rung-family-filter').value,
       status: $("status-filter").value,
       page: String(state.page),
+      page_size: String(state.rungPageSize || 50),
     });
     const result = await api("/api/rungs?" + params);
     if (serial !== state.listSerial || state.view !== "rungs") return;
@@ -564,21 +582,20 @@
         renderSelection();
       });
       const body = node("div", null, "list-body");
-      body.append(
-        button(
-          "Rung " + (r.number ?? "unnumbered"),
-          () => run(() => openSource(r.id, "rung-detail")),
-          "list-title",
-        ),
-        node("div", r.path, "list-path"),
-      );
-      body.append(renderRungPreview(r));
-      body.append(button("Open rung & connections →", () => run(() => openSource(r.id, "rung-detail")), "text-button rung-open"));
+      const heading = node("div", null, "rung-card-heading");
+      const tools = node("div", null, "rung-card-tools");
+      tools.append(button("Connections", () => openConnections(r.id), "text-button"),
+        button("Open rung", () => run(() => openSource(r.id, "rung-detail")), "text-button"));
+      heading.append(node("strong", "Rung " + (r.number ?? "unnumbered"), "rung-card-number"),
+        node("div", r.path, "rung-card-hierarchy"), tools);
+      body.append(heading);
       if (r.comment) {
         const prose = node("div", null, "source-preview");
         window.PLCTranslation.renderProse(prose, r.comment, r.wording?.comment, result.presentation_mode);
         body.append(prose);
       }
+      if (!r.comment) body.append(node("p", "No comment", "rung-card-no-comment"));
+      body.append(renderRungPreview(r, serial));
       const badges = node("div", null, "chips");
       badges.append(
         chip(
@@ -619,6 +636,8 @@
     pagination($("rung-pagination"), result, (page) => {
       state.page = page;
       run(loadRungs);
+    }, size => {
+      state.rungPageSize = size; state.page = 1; run(loadRungs);
     });
     renderSelection();
     // Only fill an untouched empty pane. An explicit/deep-linked selection or
@@ -627,35 +646,65 @@
         detailSerial === state.detailSerial && result.items?.length)
       await openSource(result.items[0].id, "rung-detail", true);
   }
-  function renderRungPreview(row) {
-    const root = node("div", null, "rung-preview");
-    const preview = row.preview || {};
-    const colors = window.PLCSourceColors?.create(preview.instructions || []);
-    const occurrences = new Map((preview.calculations?.occurrences || []).map((item) => [item.id, item]));
-    const nodes = new Map((preview.calculations?.nodes || []).map((item) => [item.id, item]));
-    (preview.instructions || []).forEach((inst) => {
-      const card = node("div", null, "rung-preview-expression");
-      const opcode = node("span", inst.opcode, "eyebrow");
-      colors?.paint(opcode, inst.opcode, "operator");
-      const equation = instructionEquation(inst, occurrences.get(inst.id), nodes, colors);
-      card.setAttribute("aria-description", equation.help);
-      card.append(opcode, equation.math);
-      window.PLCInstructionHelp?.attach?.(card, inst);
-      root.append(card);
-    });
-    if (!preview.instructions?.length)
-      root.append(node("p", "Source structure needs inspection. Open the rung for its complete text.", "muted"));
-    const extra = Math.max(0, (preview.instruction_count || 0) - (preview.instructions?.length || 0));
-    const context = [];
-    if (extra) context.push(`${extra} more instruction${extra === 1 ? "" : "s"}`);
-    if (preview.branch_count) context.push(`${preview.branch_count} parallel branch${preview.branch_count === 1 ? "" : "es"} · open flow to follow paths`);
-    if (context.length) root.append(node("p", context.join(" · "), "preview-context"));
+  function pumpRungPreviews() {
+    while (state.rungPreviewLoading < 3 && state.rungPreviewQueue.length) {
+      const load = state.rungPreviewQueue.shift();
+      state.rungPreviewLoading++;
+      Promise.resolve().then(load).finally(() => {
+        state.rungPreviewLoading--; pumpRungPreviews();
+      });
+    }
+  }
+  function renderRungPreview(row, serial = state.listSerial) {
+    const root = node("div", null, "rung-preview rung-ladder-preview");
+    const expectedRun = state.project?.active_run, expectedProject = state.project?.project_path;
+    let loading = false;
+    const current = () => serial === state.listSerial && state.view === "rungs"
+      && state.project?.active_run === expectedRun && state.project?.project_path === expectedProject;
+    const load = async () => {
+      if (loading || !current()) return;
+      loading = true; root.setAttribute("aria-busy", "true");
+      root.replaceChildren(node("p", "Loading full ladder…", "muted"));
+      try {
+        const result = state.source?.source?.id === row.id && state.source.run_id === expectedRun
+          ? state.source : await api("/api/source?" + new URLSearchParams({id: row.id, run_id: expectedRun}));
+        if (!current()) return;
+        if (result.run_id !== expectedRun || result.source?.id !== row.id)
+          throw new Error("The source changed while this rung was loading. Refresh the rung list.");
+        const zoom = node("div", null, "rung-card-zoom");
+        root.replaceChildren(zoom, window.PLCLadderDiagram.render(result.source, {
+          sourceQualified: result.source_qualified === true,
+          compact: true, controlsTarget: zoom, helpContext: {runId: expectedRun},
+          onInstruction: instruction => {
+            if (!current()) throw new Error("Refresh this rung before inspecting its instructions.");
+            return popupWorkspace(instruction.id, "source");
+          },
+        }));
+      } catch (error) {
+        if (!current()) return;
+        loading = false;
+        root.replaceChildren(node("p", error.message || "The ladder could not be loaded.", "warning-panel"),
+          button("Retry ladder", enqueue));
+      } finally { root.removeAttribute("aria-busy"); }
+    };
+    const enqueue = () => { state.rungPreviewQueue.push(load); pumpRungPreviews(); };
+    root.append(node("p", "Full ladder loads as it comes into view.", "muted"));
+    if (window.IntersectionObserver) {
+      if (!state.rungPreviewObserver) state.rungPreviewObserver = new window.IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          state.rungPreviewObserver?.unobserve(entry.target);
+          entry.target.loadLadder?.();
+        });
+      }, {root: $("rung-list"), rootMargin: "180px"});
+      root.loadLadder = enqueue;
+      state.rungPreviewObserver.observe(root);
+    } else root.append(button("Load full ladder", enqueue));
     return root;
   }
   function openConnections(rungId) {
     if (!discard()) return;
-    state.connectionRung = rungId;
-    switchView("connections", true);
+    switchView("connections", true, rungId);
   }
   function renderConnections() {
     const root = $("connection-map");
@@ -685,6 +734,7 @@
           query: $("object-search").value,
           kind: $("object-kind").value,
           page: String(state.objectPage),
+          page_size: String(state.objectPageSize || 50),
         }),
     );
     if (serial !== state.listSerial) return;
@@ -719,6 +769,8 @@
     pagination($("object-pagination"), result, (page) => {
       state.objectPage = page;
       run(loadObjects);
+    }, size => {
+      state.objectPageSize = size; state.objectPage = 1; run(loadObjects);
     });
   }
   async function openSource(id, target = "rung-detail", skipCheck = false) {
@@ -935,6 +987,7 @@
       root.append(button('Pop out connections', () => popupWorkspace(s.id, 'connections')));
       renderRungLogic(root, s, data.calculations || {}, {
         operands: data.operands || [], sourceQualified: data.source_qualified === true,
+        helpContext: {runId: data.run_id},
       });
     }
     const editor = section(
@@ -1061,7 +1114,7 @@
   }
   function renderRungLogic(root, source, calculations, explanationOptions = {}) {
     const area = section(root, "Rung logic",
-      "Start with Logic summary for inputs, conditions and outputs. Rung flow shows the connected paths; Equations and Original text provide the detail. These views describe captured logic, not live values or confirmed equipment consequences.");
+      "The ladder shows the captured paths and instructions. Hover over a block for its explanation; use the other views for summaries, equations and original text.");
     const tabs = node("div", null, "logic-tabs");
     tabs.setAttribute("role", "tablist");
     tabs.setAttribute("aria-label", "Rung display");
@@ -1070,7 +1123,7 @@
     const occurrences = new Map((calculations.occurrences || []).map((c) => [c.id, c]));
     const nodes = new Map((calculations.nodes || []).map((n) => [n.id, n]));
     const panels = [], controls = [];
-    const names = ["Logic summary", "Rung flow", "Equations", "Branch structure", "Original text"];
+    const names = ["Logic summary", "Full ladder", "Equations", "Branch structure", "Original text"];
     const activate = (index) => {
       window.PLCInstructionHelp?.close?.();
       panels.forEach((panel, i) => { panel.hidden = i !== index; });
@@ -1098,28 +1151,15 @@
       panels.push(panel); controls.push(control); tabs.append(control);
     });
     area.append(tabs, ...panels);
-    activate(0);
+    activate(1);
     panels[0].append(window.PLCRungExplanation.render(source, {...explanationOptions, calculations}));
     if (calculations.status === "unavailable")
       area.prepend(node("p", "Saved expression structure could not be verified. CPT instructions retain their original expressions.", "warning-panel"));
     if (source.structure) {
       const positions = new Map(source.instructions.map((i, index) => [i.id, index + 1]));
-      panels[1].append(window.PLCRungFlow.render(source, {
-        instruction: (inst) => {
-          const card = node("div", null, "flow-instruction");
-          const equation = instructionEquation(inst, occurrences.get(inst.id), nodes, colors);
-          const content = node("div", null, "instruction-help-target");
-          content.setAttribute("aria-description", equation.help);
-          const opcode = node("strong", `${positions.get(inst.id)} · ${inst.opcode}`, "flow-opcode");
-          colors?.paint(opcode, inst.opcode, "operator");
-          content.append(opcode, node("span", equation.label, "flow-kind"));
-          const display = node("div", null, "equation-display");
-          display.append(equation.math);
-          content.append(display);
-          window.PLCInstructionHelp?.attach?.(content, inst);
-          card.append(content, link("Instruction evidence ↗", inst.id));
-          return card;
-        },
+      panels[1].append(window.PLCLadderDiagram.render(source, {
+        sourceQualified: explanationOptions.sourceQualified === true,
+        compact: true, helpContext: explanationOptions.helpContext,
         onInstruction: inst => popupWorkspace(inst.id, 'source'),
       }), button("Select individual instructions to group", () => activate(3), "text-button"));
       panels[2].append(renderEquationTree(source.structure, byId, occurrences, nodes, positions, 0, colors));
@@ -1867,10 +1907,10 @@
       const controls = node("div", null, "pagination");
       disclosure.append(node("summary", "Linked source records"), members, controls);
       const sourceMembers = g.members || g.member_ids || [];
-      let memberPage = 0, built = false;
+      let memberPage = 0, memberPageSize = 50, built = false;
       function paintMembers() {
         clear(members); clear(controls);
-        const start = memberPage * 50, end = Math.min(start + 50, sourceMembers.length);
+        const start = memberPage * memberPageSize, end = Math.min(start + memberPageSize, sourceMembers.length);
         sourceMembers.slice(start, end).forEach(m => {
           const id = typeof m === "string" ? m : m.id;
           const label = typeof m === "string" ? m : m.path || m.label || id;
@@ -1884,6 +1924,7 @@
         const previous = button("Previous members", () => {memberPage -= 1; paintMembers();});
         const next = button("Next members", () => {memberPage += 1; paintMembers();});
         previous.disabled = memberPage === 0; next.disabled = end >= sourceMembers.length;
+        controls.append(pageSizeControl(memberPageSize, size => {memberPageSize = size; memberPage = 0; paintMembers();}, "Members per page"));
         controls.append(previous, node("span", sourceMembers.length ? `${start + 1}–${end} of ${sourceMembers.length}` : "No members"), next);
       }
       disclosure.addEventListener("toggle", () => {
@@ -1924,11 +1965,11 @@
         );
         const container = node("div"), pages = node("div", null, "pagination");
         const memberLabels = new Map((group.members || []).map(m => [m.id, m.path || m.label || m.id]));
-        let page = 0;
+        let page = 0, memberPageSize = 50;
         function paint() {
           clear(container); clear(pages);
-          page = Math.min(page, Math.max(0, Math.ceil(members.size / 50) - 1));
-          const start = page * 50, end = Math.min(start + 50, members.size);
+          page = Math.min(page, Math.max(0, Math.ceil(members.size / memberPageSize) - 1));
+          const start = page * memberPageSize, end = Math.min(start + memberPageSize, members.size);
           [...members].slice(start, end).forEach((id) => {
             const row = node("div", null, "member-row");
             row.append(
@@ -1944,6 +1985,7 @@
           const previous = button("Previous members", () => {page -= 1; paint();});
           const next = button("Next members", () => {page += 1; paint();});
           previous.disabled = page === 0; next.disabled = end >= members.size;
+          pages.append(pageSizeControl(memberPageSize, size => {memberPageSize = size; page = 0; paint();}, "Members per page"));
           pages.append(previous, node("span", members.size ? `${start + 1}–${end} of ${members.size}` : "No members"), next);
           if (!members.size)
             container.append(
@@ -2892,6 +2934,7 @@
     api, getState: () => state.project, reportLink: link,
     review: (routineId, sourceId) => run(() => openRoutineRungs(routineId, sourceId)),
     inspect: instruction => popupWorkspace(instruction.id, 'source'),
+    connections: openConnections,
   });
   const fieldIOBrowser = window.PLCFieldSignals.mount($('field-io-browser'), {
     api, getState: () => state.project,

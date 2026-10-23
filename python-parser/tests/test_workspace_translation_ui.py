@@ -299,6 +299,48 @@ for(const mode of ['english','both']) for(const entry of [null,{status:'needs_re
 }
 """)
 
+    def test_saved_incomplete_results_are_not_presented_as_pending_or_restarted(self) -> None:
+        self.run_js(r"""
+respond=async()=>state({enabled:true,presentation_mode:'english',state:'complete',total:6701,completed:6701,
+  cached:6701,partial:678,failed:1,interrupted:1,unchanged:1,cached_incomplete:679,needs_review:679,new_texts:0,retry_texts:0});
+const controller=window.PLCTranslation.mount(container,api); await controller.refresh();
+assert.ok(status().textContent.includes('6701 reused from before this pass'));
+assert.ok(status().textContent.includes('678 partial'));
+assert.ok(status().textContent.includes('1 interrupted'));
+assert.ok(status().textContent.includes('nothing will retry automatically'));
+assert.ok(!status().textContent.includes('pending'));
+assert.equal(retry().hidden,false); assert.equal(retry().textContent,'Retry incomplete translations');
+assert.equal(timers.size,0); assert.ok(calls.every(call=>!call.body));
+await controller.refresh(); assert.ok(calls.every(call=>!call.body));
+""")
+
+    def test_interrupted_attempt_and_unchanged_wording_have_explicit_saved_labels(self) -> None:
+        self.run_js(r"""
+const root=new Element('section');
+window.PLCTranslation.renderProse(root,'Pompe en marche',{status:'needs_review',text:'Pompe en marche',failed:true,interrupted:true},'english');
+assert.ok(root.textContent.includes('translation interrupted, retry manually'));
+assert.equal(byClass(root,'source-comment')[0].textContent,'Pompe en marche');
+window.PLCTranslation.renderProse(root,'Pompe\nPression',{status:'needs_review',text:'Pump\nPression',failed:false,partial:true,interrupted:true},'english');
+assert.ok(root.textContent.includes('Saved wording · retry interrupted'));
+assert.equal(byClass(root,'source-comment')[0].textContent,'Pump\nPression');
+window.PLCTranslation.renderProse(root,'Pump running',{status:'translated',text:'Pump running',failed:false,unchanged:true},'english');
+assert.ok(root.textContent.includes('Wording unchanged · saved locally'));
+window.PLCTranslation.renderProse(root,'Pompe\nPression',{status:'needs_review',text:'Pump\nPression',failed:false,partial:true,last_attempt_failed:true},'english');
+assert.ok(root.textContent.includes('Saved wording · latest retry failed'));
+assert.equal(byClass(root,'source-comment')[0].textContent,'Pump\nPression');
+""")
+
+    def test_interrupted_generation_refreshes_views_and_failed_retry_stays_explicit(self) -> None:
+        self.run_js(r"""
+let generation=2;const changes=[];
+respond=async()=>state({enabled:true,presentation_mode:'english',state:'complete',completed:2,write_generation:generation,retry_failed:1});
+const controller=window.PLCTranslation.mount(container,api,value=>changes.push(value));await controller.refresh();
+assert.ok(status().textContent.includes('retries failed; saved wording retained'));assert.equal(retry().hidden,false);
+generation++;await controller.refresh();assert.equal(changes.length,1);
+generation++;await controller.refresh();assert.equal(changes.length,2);
+assert.equal(timers.size,0);
+""")
+
     def test_completed_batch_missing_wording_does_not_claim_it_is_still_queued(self) -> None:
         self.run_js(r"""
 respond = async () => state({presentation_mode: 'english', enabled: true, state: 'complete', completed: 2});

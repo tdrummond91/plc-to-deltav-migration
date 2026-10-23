@@ -17,6 +17,14 @@ class VariableHelpContentTests(unittest.TestCase):
                                 capture_output=True, encoding='utf-8', timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_alias_description_target_and_access_remain_visible_with_backing_values(self) -> None:
+        self.run_js(r"""
+const root=window.PLCVariableHelpContent.render({...variableData(),
+ source_declaration:{name:'InputAlias',tag_type:'Alias',alias_for:'Local:3:I.Ch2Data',description:'Invented level input',external_access:'Read Only'},
+ captured_values:[{envelope:'Data',value_present:true,value:'1.5',radix:'Float'}]});
+for(const value of ['InputAlias','Alias for','Local:3:I.Ch2Data','Invented level input','Read Only','Radix: Float']) assert.ok(root.textContent.includes(value),value);
+""")
+
     def test_meaning_scope_value_alternatives_and_historical_writer_links(self) -> None:
         self.run_js(r"""
 const data={...variableData(),historical:true,

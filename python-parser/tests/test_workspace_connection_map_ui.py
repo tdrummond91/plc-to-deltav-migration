@@ -72,6 +72,19 @@ assert.equal(calls.at(-1).signal_id,'');
 assert.equal(findButton(root,'Show all signals'),undefined);
 """)
 
+    def test_graph_page_sizes_preserve_focus_direction_and_expanded_signal(self) -> None:
+        self.run_js(r"""
+const calls=[];
+const root=window.PLCConnections.render({rungId:data.focus_id,
+  load:async query=>{calls.push({...query});return clone(query.signal_id?data.focused:data.all);},openRung:()=>{}});
+await flush();await changeSelect(selectOf(root,'Connections'),'outputs');
+await changeSelect(selectOf(root,'Signals per page'),'50');
+assert.equal(calls.at(-1).page_size,50);assert.equal(calls.at(-1).page,1);assert.equal(calls.at(-1).direction,'outputs');
+await click(findButton(root,'B'));await changeSelect(selectOf(root,'Connected rungs per page'),'25');
+assert.equal(calls.at(-1).signal_id,data.signal_id);assert.equal(calls.at(-1).id,data.focus_id);
+assert.equal(calls.at(-1).endpoint_page_size,25);assert.equal(calls.at(-1).endpoint_page,1);
+""")
+
     def test_neighbor_refocus_back_and_open_focused_rung_preserve_navigation(self) -> None:
         self.run_js(r"""
 const calls=[],focuses=[],opened=[];

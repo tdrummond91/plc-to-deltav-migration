@@ -11,11 +11,12 @@
 .routine-directory-entry > summary > strong { color: var(--ink); margin-inline: .5rem 1rem; }
 .routine-directory-path { color: var(--muted); overflow-wrap: anywhere; margin-right: 1rem; }
 .routine-directory-body { padding: .5rem; min-width: 0; }
-.routine-actions, .routine-rung-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
+.routine-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
 .routine-rung { margin: .65rem 0; border: 1px solid var(--border); border-radius: 8px; padding: .55rem .65rem; min-width: 0; background: var(--bg); }
-.routine-rung-heading { align-items: flex-start; margin-bottom: .4rem; }
+.routine-rung-heading { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .5rem; margin-bottom: .25rem; }
+.routine-rung-hierarchy { text-align: center; color: var(--muted); font-size: .75rem; overflow-wrap: anywhere; min-width: 0; }
 .routine-rung-heading h2 { flex: 0 0 auto; margin: .15rem 0; font-size: .95rem; color: var(--accent); }
-.routine-rung-comment { flex: 1 1 220px; min-width: 0; margin: .1rem .4rem; overflow-wrap: anywhere; }
+.routine-rung-comment { min-width: 0; margin: .15rem 0 .35rem; overflow-wrap: anywhere; }
 .routine-rung-comment[hidden] { display: none; }
 .routine-rung-no-comment { color: var(--muted); font-style: italic; }
 .routine-rung-comment-text { font-size: .86rem; line-height: 1.5; max-height: calc(4.5em + .5rem); overflow: hidden; }
@@ -29,13 +30,14 @@
 .routine-rung-tools > button { font-size: .8rem; padding: .3rem .55rem; }
 .routine-rung-zoom .ladder-diagram-controls { margin: 0; justify-content: flex-end; }
 .routine-rung-pagination { justify-content: space-between; }
+.routine-rung-pagination label { display: flex; align-items: center; gap: .4rem; }
 @media (max-width: 700px) {
   .routine-directory-filters { grid-template-columns: minmax(0, 1fr); }
   .routine-directory-filters select { max-width: 100%; }
   .routine-directory-entry > summary > .routine-directory-path { display: block; margin-top: .4rem; }
   .routine-directory-body, .routine-rung { padding: .5rem; }
-  .routine-rung-comment { flex-basis: calc(100% - 6rem); margin-right: 0; }
-  .routine-rung-tools { width: 100%; }
+  .routine-rung-heading { grid-template-columns: auto minmax(0, 1fr); }
+  .routine-rung-hierarchy { grid-row: 2; grid-column: 1 / -1; }
 }
 @media print {
   .routine-rung-comment-text { max-height: none; overflow: visible; }

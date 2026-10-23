@@ -236,6 +236,129 @@ class TranslationServiceTests(unittest.TestCase):
         self.complete(service)
         self.assertEqual(len(self.calls), 2)
 
+    def test_interrupted_batch_is_saved_without_silently_repeating_inference(self):
+        source = "Commentaire interrompu"
+        service = self.service()
+        # This is the durable state after a process exits during model inference.
+        service._begin_attempt((source,), "test-fr-en-v1")
+        self.assertIsNone(service.lookup(source))  # Still active, not a completed failure.
+        service.close()
+        reopened = self.service()
+        state = reopened.start([source])
+        self.assertEqual((state["state"], state["cached"], state["interrupted"]), ("complete", 1, 1))
+        self.assertEqual((state["new_texts"], state["retry_texts"], state["cached_incomplete"]), (0, 0, 1))
+        self.assertEqual(self.calls, [])
+        entry = reopened.lookup(source)
+        self.assertEqual(entry["text"], source)
+        self.assertTrue(entry["interrupted"])
+        self.assertIn("Retry incomplete", entry["warning"])
+        reopened.start([source], retry=True)
+        state = self.complete(reopened)
+        self.assertEqual((state["retry_texts"], state["interrupted"], state["failed"]), (1, 0, 0))
+        self.assertEqual(self.calls, [source])
+        self.assertFalse(reopened.lookup(source)["interrupted"])
+
+    def test_interrupted_retry_preserves_previous_partial_wording_and_model_partition(self):
+        source, composite = "Pompe marche. Pression 2 bar.", "Pump running. Pression 2 bar."
+        service = self.service(callback=lambda _: {
+            "text": composite, "status": "needs_review", "translated_segments": 1, "retained_segments": 1,
+        })
+        service.start([source])
+        self.complete(service)
+        service._begin_attempt((source,), "test-fr-en-v1")
+        service.close()
+        reopened = self.service()
+        state = reopened.start([source])
+        self.assertEqual((state["partial"], state["interrupted"], state["cached"]), (1, 1, 1))
+        self.assertEqual(reopened.lookup(source)["text"], composite)
+        self.assertEqual(len(self.calls), 1)
+        upgraded = self.service(model_id="test-fr-en-v2")
+        self.assertIsNone(upgraded.lookup(source))
+        upgraded.start([source])
+        state = self.complete(upgraded)
+        self.assertEqual((state["new_texts"], state["cached"], state["interrupted"]), (1, 0, 0))
+        self.assertEqual(reopened.lookup(source)["text"], composite)
+
+    def test_unchanged_output_is_saved_labeled_and_retried_only_by_choice(self):
+        source = "Pump running"
+        service = self.service(callback=lambda text: {"text": text, "status": "translated"})
+        service.start([source])
+        state = self.complete(service)
+        self.assertEqual((state["unchanged"], state["failed"]), (1, 0))
+        service.close()
+        reopened = self.service()
+        state = reopened.start([source])
+        self.assertEqual((state["cached"], state["unchanged"], state["retry_texts"]), (1, 1, 0))
+        self.assertTrue(reopened.lookup(source)["unchanged"])
+        self.assertEqual(len(self.calls), 1)
+        reopened.start([source], retry=True)
+        state = self.complete(reopened)
+        self.assertEqual((state["unchanged"], state["retry_texts"], len(self.calls)), (0, 1, 2))
+
+    def test_failed_cache_write_leaves_recoverable_attempt_without_leaking_input(self):
+        service = self.service()
+        before = service.status()['cache_signature']
+        with patch.object(service, "_save_many", side_effect=OSError("Private source details")):
+            service.start(["Texte prive"])
+            state = self.complete(service)
+        self.assertEqual(state["state"], "error")
+        self.assertNotIn("Private", state["message"])
+        self.assertTrue(service.lookup("Texte prive")["interrupted"])
+        self.assertNotEqual(service.status()['cache_signature'], before)
+        service.close()
+        reopened = self.service()
+        self.assertEqual(reopened.start(["Texte prive"])["interrupted"], 1)
+        self.assertEqual(self.calls, ["Texte prive"])
+
+    def test_failed_explicit_retry_preserves_partial_text_and_records_attempt_outcome(self):
+        source, saved = 'Pompe en marche. Pression haute.', 'Pump running. Pression haute.'
+        fail = False
+
+        def translate(_):
+            if fail:
+                raise RuntimeError('Private model failure')
+            return {'text': saved, 'status': 'needs_review', 'translated_segments': 1, 'retained_segments': 1}
+
+        service = self.service(callback=translate)
+        service.start([source])
+        self.complete(service)
+        fail = True
+        service.start([source], retry=True)
+        state = self.complete(service)
+        self.assertEqual((state['partial'], state['failed'], state['retry_failed']), (1, 0, 1))
+        entry = service.lookup(source)
+        self.assertEqual(entry['text'], saved)
+        self.assertTrue(entry['partial'])
+        self.assertTrue(entry['last_attempt_failed'])
+        self.assertFalse(entry['failed'])  # Saved English remains usable in the view.
+        self.assertIn('latest local retry failed', entry['warning'])
+        service.close()
+        reopened = self.service()
+        state = reopened.start([source])
+        self.assertEqual((state['cached'], state['retry_failed'], len(self.calls)), (1, 1, 2))
+        self.assertEqual(reopened.lookup(source)['text'], saved)
+        reopened.start([source], retry=True)
+        state = self.complete(reopened)
+        self.assertEqual((state['partial'], state['retry_failed']), (0, 0))
+        self.assertFalse(reopened.lookup(source)['last_attempt_failed'])
+
+    def test_attempt_start_and_interrupted_transition_each_invalidate_cached_views(self):
+        service = self.service()
+        source = 'Pompe en marche'
+        service.start([source])
+        self.complete(service)
+        before = service.status()['cache_signature']
+        service._begin_attempt((source,), 'test-fr-en-v1')
+        active = service.status()['cache_signature']
+        self.assertNotEqual(active, before)
+        self.assertFalse(service.lookup(source)['interrupted'])
+        service._fail('Saved test interruption')
+        interrupted = service.status()['cache_signature']
+        self.assertNotEqual(interrupted, active)
+        self.assertTrue(service.lookup(source)['interrupted'])
+        service.close()
+        self.assertEqual(self.service().status()['cache_signature'], interrupted)
+
     def test_malformed_partial_metadata_does_not_certify_generic_candidate(self):
         result = TranslationService._validated_output({
             "text": "Candidate wording", "status": "needs_review", "partial": True,
@@ -361,7 +484,7 @@ class TranslationServiceTests(unittest.TestCase):
         self.complete(service)
         with closing(sqlite3.connect(self.cache)) as connection:
             tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        self.assertEqual(tables, {"translation_settings", "english_translations"})
+        self.assertEqual(tables, {"translation_settings", "english_translations", "english_translation_attempts"})
 
     def test_presentation_mode_is_persisted_separate_from_preparation(self):
         service = self.service()
@@ -393,7 +516,7 @@ class TranslationServiceTests(unittest.TestCase):
             state = self.complete(service)
         self.assertEqual([len(batch) for batch in self.calls], [16, 16, 1])
         self.assertEqual(writes.call_count, 3)
-        self.assertEqual((state["completed"], state["failed"], state["write_generation"]), (33, 0, 3))
+        self.assertEqual((state["completed"], state["failed"], state["write_generation"]), (33, 0, 6))
         self.assertNotEqual(before, state["cache_signature"])
         self.assertEqual(self.service().status()["cache_signature"], state["cache_signature"])
         self.assertEqual(state["remaining_seconds"], 0)
@@ -403,7 +526,7 @@ class TranslationServiceTests(unittest.TestCase):
         self.assertEqual(set(entries), set(texts))
         service.set_mode("english")
         self.assertEqual(service.status()["cache_signature"], state["cache_signature"])
-        self.assertEqual(service.start(texts)["write_generation"], 3)
+        self.assertEqual(service.start(texts)["write_generation"], 6)
 
     def test_batch_visibility_change_does_not_cancel_and_estimate_requires_measurement(self):
         first = threading.Event()

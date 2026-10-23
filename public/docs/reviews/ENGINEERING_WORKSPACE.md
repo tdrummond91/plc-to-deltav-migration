@@ -99,6 +99,16 @@ channels on the same card can have different names and packages. Filter DI,
 DO, AI or AO and search original wording, an alias/address, a saved DeltaV name,
 or a package name. FR / EN controls the displayed source wording.
 
+Controller headings collapse their signal rows. **Expand all / Collapse all**
+applies across the current filtered directory, including subsequent pages.
+Choose **Signals per page** (10/50/100/200/500) for the directory and **Rungs per
+candidate section** for related logic. Filters still search the entire source.
+Descriptions wrap within the row rather than being forced into narrow lines.
+The proposed DeltaV name is the source alias, or its exact address when no alias
+is captured. It is labeled unreviewed until saved; a saved name is preserved.
+Expand **Original source wording and evidence** for alias target, datatype,
+captured radix and external access.
+
 1. Select a signal. Enter its **DeltaV name**, reviewed description and field
    type, then save. The original L5X name, address and description stay intact.
 2. Choose an existing package or create one, then include this signal. A package
@@ -123,6 +133,9 @@ capacity never creates invented wired signals. Known controller/network,
 configuration, status and output-echo records are excluded from the signal list.
 A missing field channel therefore remains a recognition gap, not proof it is
 absent from the plant. The hardware popup retains catalog documentation.
+For an unrecognized card, a qualified floating channel member and its I/O
+direction can suggest AI/AO. The suggestion stays unreviewed and does not
+establish physical wiring or approve a target class.
 
 Related-rung suggestions follow a bounded, one-step shared-address connection
 from a direct field use; this can reach another routine. They do not prove
@@ -147,13 +160,20 @@ emitting PCSD/FHX remain later steps.
 
 ### Reading rungs and saved variable settings
 
+**Rungs** shows the full ladder on each card, with the source hierarchy centered
+and **Connections / Open rung** at the right. Drawings load as they approach the
+viewport. **Items per page** changes the number of cards without dropping selected
+records on other pages. Opening a rung starts on **Full ladder**; other source
+representations remain available when needed. Hovering an alias variable shows
+its original name, target, description and access alongside the backing data.
+
 Open a rung in **Full source analysis / Engineering review** to see the same
 ladder drawing as **Programs & routines**. Zoom, Fit width, colored variables,
 branch paths and block help work the same way. **Original rung text (complete)**
 keeps the captured source available below the drawing. Reports opened through
 the workspace use the current drawing tools even when their analysis is older.
 The report's **Ladder** directory, **Routine ladder** source page and related-rung
-lists also use these drawings, ten per page. Hover or focus the rung number for
+lists also use these drawings, initially ten per page with a page-size selector. Hover or focus the rung number for
 its scope and comment; its color indicates parse status.
 
 Timer and counter blocks show exported preset and accumulator values when
@@ -188,8 +208,9 @@ Choose **Programs & routines** from Home or the header's Page selector.
 Filter by program or AOI, routine type, or a name/path search at the top.
 Same-named routines retain their full scope, including separate AOI definitions.
 Expand the arrow beside a routine to load its ladder; opening another routine
-closes the previous one. Large directories have pages of 50 routines. Expanded
-ladders have pages of 20 captured rungs, in source order. The page controls keep
+closes the previous one. Routine directories and expanded ladders have their
+own page-size controls. Choose 10, 50, 100, 200 or 500 entries; the existing
+20-rung default is also available for expanded ladders. Source order is retained. The page controls keep
 all captured rungs reachable without drawing an entire export at once.
 
 The drawing uses contacts, coils and instruction blocks. Nested branches split
@@ -413,11 +434,15 @@ reading features. The source-analysis report follows the selected language, with
 its own Original/English/Both control. Reopen the report to include translations
 completed since it was opened. **Comments & descriptions** provides a searchable
 index of captured wording and links back to its source context.
-After updating from an older version, use **Retry missing translations** under
-**Project tools → Source language** once to retry previously failed or partial
-comments. Successfully completed comments remain cached; retry rechecks each
-failed/partial comment as a whole. The original is readable immediately, before
-retry finishes. No new model download or L5X analysis is required for this update.
+Partial, failed, unchanged and interrupted translations are retained across
+reopening and later analyses with identical wording and model/rule versions.
+They do not automatically run again. **Reused from before this pass** stays
+fixed while new/retried counts increase; saved gaps are listed separately.
+Use **Retry incomplete translations** under **Project tools → Source language**
+when you want another attempt. It rechecks each incomplete comment as a whole;
+a failed retry preserves any useful English from the earlier result and marks
+the failed attempt. The original remains readable throughout. No new model
+download or L5X analysis is required for this update.
 
 To prepare an English review phase before browsing, close the workspace, then run:
 

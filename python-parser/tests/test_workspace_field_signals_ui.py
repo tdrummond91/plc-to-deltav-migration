@@ -31,7 +31,7 @@ const all=root=>[root,...root.children.flatMap(all)],byClass=(root,cls)=>all(roo
 const findButton=(root,text)=>all(root).find(item=>item.tagName==='button'&&item.textContent===text);
 const findLink=(root,text)=>all(root).find(item=>item.tagName==='a'&&item.textContent===text);
 const root=new Element('section');document.body.append(root);
-const page=(items=[],size=24,changes={})=>({items,total:items.length,page:1,pages:1,page_size:size,...changes});
+const page=(items=[],size=50,changes={})=>({items,total:items.length,page:1,pages:1,page_size:size,...changes});
 const binding=(id='address-1')=>({run_id:'run-1',snapshot_id:'snapshot-1',root_id:'module-root',suffix:'.Data.'+(id==='address-1'?'0':'1'),address_id:id,evidence_signature:'a'.repeat(64)});
 const sourceRow=(id='address-1',changes={})=>({id,address:id==='address-1'?'Local:3:I.Data.0':'Local:3:I.Data.1',root_id:'module-root',suffix:binding(id).suffix,
  module_id:'module-1',direction:'input',field_type:'di',candidate_field_types:[],mapping_status:'documented_member_layout',mapping_reason:'exact_catalog_direction_member_and_captured_profile_type',
@@ -43,11 +43,12 @@ let project={project_path:'invented.sqlite',active_run:'run-1',revision:1,signal
 const savedSignal=(changes={})=>({id:'signal-1',binding:binding(),target_name:'LS_001',description:'Engineering words',field_type:'di',active:true,needs_revalidation:false,...changes});
 const group=(changes={})=>({id:'group-1',name:'Existing package',member_ids:['existing-rung'],signal_ids:['other-signal'],member_roles:{'existing-rung':'alarm'},migration_status:'unreviewed',...changes});
 function result(path){const query=new URL(path,'http://localhost').searchParams;
+ const detailSize=Number(query.get('detail_page_size')||10);
  const live=rows.map(row=>({...row,saved_signal:project.signals.find(item=>item.binding.address_id===row.id&&item.binding.run_id===project.active_run)||null}));
  const row=live.find(row=>row.id===query.get('signal_id'));
- return {available:true,run_id:project.active_run,revision:project.revision,snapshot_id:'snapshot-1',presentation_mode:'original',signals:page(live),coverage:{},limitations:['No physical wiring is inferred.'],
- selected_signal:row?{...row,direct_rungs:page([rung()],12),direct_uses:page([],12),related_rungs:page([rung('rung-2',{candidate_role:'scaling',association_reason:'shared_address_with_direct_use_rung',
- associations:[{address:'CalculatedValue',from_rung_id:'rung-1'}]})],12)}:null};}
+ return {available:true,run_id:project.active_run,revision:project.revision,snapshot_id:'snapshot-1',presentation_mode:'original',signals:page(live,Number(query.get('page_size')||50)),coverage:{},limitations:['No physical wiring is inferred.'],
+ selected_signal:row?{...row,direct_rungs:page([rung()],detailSize),direct_uses:page([],detailSize),related_rungs:page([rung('rung-2',{candidate_role:'scaling',association_reason:'shared_address_with_direct_use_rung',
+ associations:[{address:'CalculatedValue',from_rung_id:'rung-1'}]})],detailSize)}:null};}
 let response=async path=>path==='/api/state'?structuredClone(project):result(path),mutationHook=null;
 const options={getState:()=>project,api:async path=>{calls.push(path);return response(path);},openSource:(...args)=>opened.push(args),
  mutate:async(command,revision)=>{writes.push({command:structuredClone(command),revision});
@@ -81,7 +82,7 @@ class FieldSignalsUiTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn('FIELD_SIGNALS_TEST_COMPLETE', completed.stdout)
 
-    def test_flat_source_table_keeps_hardware_out_of_rows_and_candidates_explicit(self) -> None:
+    def test_controller_sections_keep_signal_rows_and_candidates_explicit(self) -> None:
         self.run_js(r"""
 rows.push(sourceRow('address-2',{field_type:'unknown',candidate_field_types:['ai'],mapping_status:'review_mapping'}));
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
@@ -89,7 +90,58 @@ const table=byClass(root,'field-signals-table')[0];
 assert.ok(table.textContent.includes('Type Source alias / address Source description DeltaV name Package status Info'));
 assert.ok(table.textContent.includes('LevelSwitch'));assert.ok(table.textContent.includes('Local:3:I.Data.0'));assert.ok(table.textContent.includes('Niveau haut'));
 assert.ok(table.textContent.includes('AI Candidate'));assert.equal(table.textContent.includes('1756-IB16'),false);assert.equal(table.textContent.includes('Local rack'),false);
+assert.equal(byClass(root,'field-signals-controller').length,1);assert.ok(byClass(root,'field-signals-controller')[0].textContent.includes('Invented controller'));
 assert.equal(writes.length,0);assert.equal(controller.hasUnsavedChanges(),false);
+""")
+
+    def test_controller_disclosures_and_expand_all_preserve_state_after_refresh(self) -> None:
+        self.run_js(r"""
+rows.push(sourceRow('address-2',{hardware:{controller:{id:'controller-2',name:'Second controller'}}}));
+response=async path=>({...result(path),controller_counts:[{controller_id:'Invented controller',total:60},{controller_id:'controller-2',total:12}]});
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();let panels=byClass(root,'field-signals-controller');
+assert.equal(panels.length,2);assert.equal(panels.every(panel=>panel.open),true);assert.ok(panels[0].textContent.includes('1 shown · 60 matching signals'));
+panels[0].open=false;await panels[0].fire('toggle');await controller.refresh();panels=byClass(root,'field-signals-controller');assert.equal(panels[0].open,false);assert.equal(panels[1].open,true);
+await findButton(root,'Collapse all').fire('click');assert.equal(panels.every(panel=>!panel.open),true);
+await findButton(root,'Expand all').fire('click');assert.equal(panels.every(panel=>panel.open),true);
+assert.equal(writes.length,0);
+""")
+
+    def test_page_size_changes_request_and_keeps_unsaved_signal_edits(self) -> None:
+        self.run_js(r"""
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+assert.equal(new URL(calls[0],'http://localhost').searchParams.get('page_size'),'50');
+await edit('field-signals-target-name','Retain my draft');
+const selector=byClass(root,'field-signals-page-size')[0];assert.deepEqual(selector.children.map(option=>option.value),['10','50','100','200','500']);
+for(const size of ['10','100','200','500']){await edit('field-signals-page-size',size,'change');const request=new URL(calls.at(-1),'http://localhost');assert.equal(request.searchParams.get('page_size'),size);assert.equal(request.searchParams.get('page'),'1');}
+assert.equal(controller.hasUnsavedChanges(),true);assert.equal(byClass(root,'field-signals-target-name')[0].value,'Retain my draft');assert.equal(writes.length,0);
+""")
+
+    def test_proposed_names_are_visible_and_saved_only_explicitly_with_source_metadata(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{suggested_target_name:'XS_Example',source_metadata:{tag_type:'Alias',alias_for:'Local:3:I.Data.0',base_name:'ModuleInput',data_type:'BOOL',radix:'Decimal',external_access:'Read/Write'}})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();assert.ok(byClass(root,'field-signals-name')[0].textContent.includes('XS_Example Proposed · unreviewed'));
+await controller.openSignal('address-1');assert.equal(byClass(root,'field-signals-target-name')[0].value,'XS_Example');assert.equal(controller.hasUnsavedChanges(),false);assert.equal(writes.length,0);
+const facts=byClass(root,'field-signals-source-facts')[0];assert.ok(facts.textContent.includes('Tag type Alias'));assert.ok(facts.textContent.includes('Alias for Local:3:I.Data.0'));assert.ok(facts.textContent.includes('External access Read/Write'));
+await findButton(root,'Save signal').fire('click');assert.equal(writes[0].command.target_name,'XS_Example');
+""")
+
+    def test_candidate_and_package_page_sizes_preserve_explicit_membership(self) -> None:
+        self.run_js(r"""
+project.signals=[savedSignal()];project.groups=[group({member_ids:Array.from({length:61},(_,i)=>'existing-'+i),member_roles:{},signal_ids:['signal-1']})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');await choosePackage();
+assert.equal(byClass(root,'field-signals-member').length,10);await edit('field-signals-members-page-size','50','change');assert.equal(byClass(root,'field-signals-member').length,50);
+const check=byClass(root,'field-signals-candidate-check')[1];check.checked=true;await check.fire('change');
+await edit('field-signals-detail-page-size','100','change');const request=new URL(calls.at(-1),'http://localhost');assert.equal(request.searchParams.get('detail_page_size'),'100');assert.equal(request.searchParams.get('rung_page'),'1');assert.equal(request.searchParams.get('related_page'),'1');
+assert.equal(byClass(root,'field-signals-candidate-check')[1].checked,true);assert.equal(byClass(root,'field-signals-members-page-size')[0].value,'50');
+await findButton(root,'Save package').fire('click');assert.equal(writes[0].command.member_ids.length,62);assert.ok(writes[0].command.member_ids.includes('rung-2'));assert.deepEqual(writes[0].command.signal_ids,['signal-1']);
+""")
+
+    def test_saved_empty_name_is_not_overwritten_by_proposal_and_candidate_type_is_editable(self) -> None:
+        self.run_js(r"""
+project.signals=[savedSignal({target_name:''})];rows=[sourceRow('address-1',{suggested_target_name:'IgnoredProposal'})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');assert.equal(byClass(root,'field-signals-target-name')[0].value,'');
+project.signals=[];rows.push(sourceRow('address-2',{aliases:[],suggested_target_name:'Remote:10:I.Ch1Data',field_type:'unknown',suggested_field_type:'ai',candidate_field_types:['ai'],mapping_status:'review_mapping'}));
+await controller.refresh();await controller.openSignal('address-2');assert.equal(byClass(root,'field-signals-target-name')[0].value,'Remote:10:I.Ch1Data');assert.equal(byClass(root,'field-signals-reviewed-type')[0].value,'ai');assert.equal(controller.hasUnsavedChanges(),false);
 """)
 
     def test_signal_save_uses_exact_binding_revision_and_does_not_change_source(self) -> None:
@@ -233,7 +285,7 @@ assert.ok(root.textContent.includes('Review a newer saved version'));
         self.run_js(r"""
 project.signals=[savedSignal()];project.groups=[group()];
 response=async path=>{const value=result(path),q=new URL(path,'http://localhost').searchParams;if(value.selected_signal){
- value.selected_signal.direct_rungs=page([rung(q.get('rung_page')==='2'?'rung-3':'rung-1')],12,{page:Number(q.get('rung_page')||1),pages:2,total:13});
+ value.selected_signal.direct_rungs=page([rung(q.get('rung_page')==='2'?'rung-3':'rung-1')],10,{page:Number(q.get('rung_page')||1),pages:2,total:11});
  value.selected_signal.related_rungs.total_is_lower_bound=true;value.selected_signal.related_rungs.traversal={truncated:true};}return value;};
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');await choosePackage();
 const check=byClass(root,'field-signals-candidate-check')[0];check.checked=true;await check.fire('change');
@@ -255,7 +307,7 @@ await findButton(root,'Confirm signal mapping').fire('click');assert.equal(write
 
     def test_invalid_pages_and_network_failure_have_retry_without_writes(self) -> None:
         self.run_js(r"""
-response=async path=>({...result(path),signals:page(Array.from({length:25},()=>sourceRow()))});
+response=async path=>({...result(path),signals:page(Array.from({length:51},()=>sourceRow()))});
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();assert.ok(root.textContent.includes('page bounds'));assert.ok(findButton(root,'Retry signals'));
 response=async path=>result(path);await findButton(root,'Retry signals').fire('click');
 response=async()=>{throw new Error('Local service unavailable');};await controller.openSignal('address-1');

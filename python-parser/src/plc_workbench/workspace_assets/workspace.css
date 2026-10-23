@@ -592,6 +592,22 @@ main {
   overflow-wrap: anywhere;
 }
 .rung-preview { display: grid; gap: 0.6rem; margin: 0.7rem 0; }
+.rung-card-heading { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .55rem; }
+.rung-card-number { color: var(--accent); white-space: nowrap; font-size: .86rem; }
+.rung-card-hierarchy { min-width: 0; text-align: center; overflow-wrap: anywhere; color: var(--muted); font-size: .72rem; }
+.rung-card-tools { display: flex; justify-content: flex-end; align-items: center; gap: .35rem; flex-wrap: wrap; }
+.rung-card-tools > button { padding: .25rem .4rem; font-size: .75rem; }
+.rung-card-no-comment { color: var(--muted); font-size: .77rem; margin-block: .3rem; }
+.rung-ladder-preview { min-height: 105px; min-width: 0; gap: .15rem; margin-block: .25rem; }
+.rung-card-zoom { display: flex; justify-content: flex-end; }
+.rung-card-zoom .ladder-diagram-controls { margin: 0; }
+.pagination { flex-wrap: wrap; }
+.pagination > label { display: flex; align-items: center; gap: .4rem; }
+.pagination select { width: auto; min-width: 4.5rem; }
+@media (max-width: 600px) {
+  .rung-card-heading { grid-template-columns: auto minmax(0, 1fr); }
+  .rung-card-hierarchy { grid-row: 2; grid-column: 1 / -1; }
+}
 .rung-preview-expression { overflow-x: auto; padding: 0.55rem; background: var(--bg); border-radius: 6px; }
 .rung-preview-expression .eyebrow { font-size: 0.65rem; margin-bottom: 0.4rem; }
 .rung-preview-expression math { font: 1.05rem "Cambria Math", "STIX Two Math", math; margin: 0; }

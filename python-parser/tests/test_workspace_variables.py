@@ -69,7 +69,8 @@ class WorkspaceVariableTests(unittest.TestCase):
         self.assertEqual(inspect(captured, 'T.ACC')['display_value']['value'], '42')
 
     def test_local_shadow_and_alias_declaration_scope_do_not_cross_programs(self) -> None:
-        declarations = tag(data=decorated('100')) + '<Tag Name="Alias" TagType="Alias" AliasFor="T.PRE"/>'
+        declarations = tag(data=decorated('100')) + ('<Tag Name="Alias" TagType="Alias" AliasFor="T.PRE" '
+            'ExternalAccess="Read/Write"><Description>Invented alias description</Description></Tag>')
         programs = program('One', ('TON(T,?,?)MOV(1,T.PRE)MOV(Alias,T.ACC);',), tag(data=decorated('200')))
         programs += program('Two', ('MOV(2,T.PRE);',), tag(data=decorated('300')))
         captured = inputs(declarations=declarations, programs=programs)
@@ -82,6 +83,11 @@ class WorkspaceVariableTests(unittest.TestCase):
         self.assertEqual(alias['declaration']['scope_kind'], 'controller')
         self.assertEqual(alias['binding']['suffix'], '.PRE')
         self.assertEqual(len(alias['binding']['alias_chain']), 1)
+        self.assertEqual(alias['source_declaration']['name'], 'Alias')
+        self.assertEqual(alias['source_declaration']['alias_for'], 'T.PRE')
+        self.assertEqual(alias['source_declaration']['description'], 'Invented alias description')
+        self.assertEqual(alias['source_declaration']['external_access'], 'Read/Write')
+        self.assertIsNone(local['source_declaration'])
 
     def test_duplicate_decorated_values_and_ancestors_withhold_display(self) -> None:
         for data in (decorated('100') + decorated('200'),

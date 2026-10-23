@@ -26,6 +26,7 @@ import webbrowser
 
 from .project_store import ProjectError, ProjectStore, RevisionConflict, rung_pattern
 from .storage import StorageError, _workspace_path
+from .workspace_paging import page_size as selected_page_size
 
 ASSETS = Path(__file__).with_name("workspace_assets")
 PAGE_SIZE = 50
@@ -399,7 +400,8 @@ class Workspace:
                              needs_revalidation=stale,
                              effective_category_ids=functions, effective_migration_status=disposition))
         result = self._page(rows, query)
-        result.update(pages=max(1, (len(rows) + PAGE_SIZE - 1) // PAGE_SIZE),
+        size = result['page_size']
+        result.update(pages=max(1, (len(rows) + size - 1) // size),
                       categories=definitions, coverage=projection['coverage'],
                       limitations=projection['limitations'], run_id=state['active_run'])
         # Human labels are resolved only for the visible page; canonical IDs stay
@@ -451,13 +453,14 @@ class Workspace:
 
     @staticmethod
     def _page(items: list, query: dict) -> dict:
+        size = selected_page_size(query, PAGE_SIZE, error=ProjectError)
         try:
             page = max(1, int(query.get("page", "1")))
         except (ValueError, TypeError):
             raise ProjectError("Page must be a positive number.") from None
-        page = min(page, max(1, (len(items) + PAGE_SIZE - 1) // PAGE_SIZE))
-        return {"items": items[(page - 1) * PAGE_SIZE:page * PAGE_SIZE], "total": len(items),
-                "page": page, "page_size": PAGE_SIZE}
+        page = min(page, max(1, (len(items) + size - 1) // size))
+        return {"items": items[(page - 1) * size:page * size], "total": len(items),
+                "page": page, "page_size": size}
 
     def rungs(self, query: dict) -> dict:
         from .workspace_map import family_filter
@@ -553,7 +556,7 @@ class Workspace:
             raise ProjectError('Choose a valid routine page.')
 
         rungs = [row for row in self._rungs if row.get('parent_id') == identifier]
-        page_size = 20
+        page_size = selected_page_size(query, 20, error=ProjectError)
         pages = max(1, (len(rungs) + page_size - 1) // page_size)
         page = min(page, pages)
         visible = rungs[(page - 1) * page_size:page * page_size]
@@ -639,8 +642,12 @@ class Workspace:
             rung_id = self._rung_for.get(identifier, identifier)
             return index.view(rung_id, scope=query.get('scope', 'all'),
                               signal_id=query.get('signal_id', ''), direction=query.get('direction', 'both'),
-                              page=page, endpoint_page=endpoint_page)
-        except (EvidenceError, ValueError, TypeError) as exc:
+                              page=page, endpoint_page=endpoint_page,
+                              page_size=selected_page_size(query, 12, graph=True, error=ProjectError),
+                              endpoint_page_size=selected_page_size(query, 8, key='endpoint_page_size', graph=True, error=ProjectError))
+        except EvidenceError as exc:
+            raise ProjectError(str(exc)) from None
+        except (ValueError, TypeError) as exc:
             raise ProjectError('Choose a captured rung and valid connection filters.') from exc
 
     def _map_qualification(self) -> tuple[dict, dict, Any]:
@@ -830,7 +837,7 @@ class Workspace:
                         'needs_revalidation': group.get('needs_revalidation', False)})
             extra_search = {address: ' '.join([row['target_name'], row['description'],
                 *(group['name'] for group in packages[row['id']])]) for address, row in saved.items()}
-            result = index.view(selected, extra_search=extra_search) if index else unavailable()
+            result = index.view(selected, extra_search=extra_search) if index else unavailable(selected['page_size'])
             visible = list(result['signals']['items'])
             if result['selected_signal']:
                 visible.append(result['selected_signal'])
@@ -854,7 +861,7 @@ class Workspace:
                 row['wording'] = {'description': _preview(entry) if type(entry) is dict else None}
             result.update(run_id=run_id, revision=state['revision'], presentation_mode=mode, historical=False)
             if len(_json(result)) > MAX_RESPONSE_BYTES:
-                raise FieldSignalError('The selected signal package exceeds the display limit. Reduce its membership before reopening it.')
+                raise FieldSignalError('This field I/O view exceeds the display limit. Choose fewer signals or candidate rungs per page, or narrow the filters.')
             return result
         except FieldSignalError as exc:
             raise ProjectError(str(exc)) from None
@@ -907,6 +914,7 @@ class Workspace:
         identifiers = selection.split(',') if selection else []
         direction = query_text(query, 'direction', 16) or 'both'
         page = page_number(query)
+        size = selected_page_size(query, 80, graph=True, error=ProjectError)
         if (len(identifiers) > 80 or len(set(identifiers)) != len(identifiers)
                 or any(len(identifier) > MAX_ID or identifier not in metadata.rungs for identifier in identifiers)
                 or direction not in {'both', 'inputs', 'outputs'}):
@@ -914,10 +922,10 @@ class Workspace:
         index = self._map_connection_index()
         if index is None:
             return {'available': False, 'notice': self._connection_notice(index), 'signals': [],
-                    'total': 0, 'page': 1, 'pages': 1, 'page_size': 80, 'omitted_signals': 0,
+                    'total': 0, 'page': 1, 'pages': 1, 'page_size': size, 'omitted_signals': 0,
                     'run_id': self._run, 'revision': state['revision']}
         try:
-            result = index.map_links(identifiers, direction=direction, page=page)
+            result = index.map_links(identifiers, direction=direction, page=page, page_size=size)
         except EvidenceError as exc:
             raise ProjectError(str(exc)) from exc
         return dict(result, run_id=self._run, revision=state['revision'])

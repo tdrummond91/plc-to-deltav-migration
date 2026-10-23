@@ -149,6 +149,22 @@ assert.equal(requests.length,0);assert.equal(popups.length,0);
 navigate('objects');assert.equal(page.querySelector('.instruction-help-panel'),null);
 """)
 
+    def test_report_page_size_choices_reset_page_without_losing_records(self):
+        inputs = fixture(tuple('XIC(A)OTE(B);' for _ in range(65)))
+        data = build_review_data(*inputs)
+        self.run_ui(render_review_html(data, source=inputs[0].data), r"""
+navigate('ladder');
+let size=content.querySelectorAll('select').find(n=>(n.getAttribute('aria-label')||'').startsWith('Rows per page:'));
+assert.ok(size);assert.deepEqual(size.childNodes.map(n=>n.value),['10','50','100','200','500']);
+size.value='10';size.events.change();
+assert.ok(content.querySelector('.pager').textContent.includes('1–10 of 65'));
+clickText(content,'Next');assert.ok(content.querySelector('.pager').textContent.includes('11–20 of 65'));
+size=content.querySelectorAll('select').find(n=>(n.getAttribute('aria-label')||'').startsWith('Rows per page:'));
+size.value='500';size.events.change();
+assert.ok(content.querySelector('.pager').textContent.includes('1–65 of 65'));
+assert.equal(content.querySelector('tbody').childNodes.length,65);
+""")
+
     def test_unqualified_and_oversized_rungs_show_complete_original_not_partial_diagram(self):
         for text, foreign in (('XIC(A)OTE(B);', True), ('XIC(A)' * 161 + ';', False)):
             source, data = captured(text, foreign_text=foreign)

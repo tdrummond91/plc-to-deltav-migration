@@ -176,10 +176,12 @@ class LadderMapIndex:
                  and (not family or family in row['families'])
                  and (not search or search in self.search[row['id']])
                  and (signal_rungs is None or row['id'] in signal_rungs)]
-        pages = max(1, (len(items) + PAGE_SIZE - 1) // PAGE_SIZE)
+        from .workspace_paging import page_size
+        size = page_size(query, PAGE_SIZE, error=ProjectError)
+        pages = max(1, (len(items) + size - 1) // size)
         page = min(page, pages)
-        return {'items': items[(page - 1) * PAGE_SIZE:page * PAGE_SIZE], 'total': len(items),
-                'page': page, 'pages': pages, 'page_size': PAGE_SIZE,
+        return {'items': items[(page - 1) * size:page * size], 'total': len(items),
+                'page': page, 'pages': pages, 'page_size': size,
                 'routines': self.routines,
                 'families': self.family_choices()}
 

@@ -23,17 +23,25 @@
     root.setAttribute('aria-label', 'Variable help');
     root.append(el('h2', text(data.variable, 'Variable')));
     if (data.notice) root.append(el('p', data.notice, 'instruction-help-caveat'));
-    const declaration = data.declaration, member = data.member;
+    const declaration = data.declaration, member = data.member, source = data.source_declaration;
     const fields = el('dl', undefined, 'variable-help-fields');
     const field = (name, value) => fields.append(el('dt', name), el('dd', value));
     field('Binding', readable(data.binding?.status, {root_bound: 'Scoped tag found',
       unsupported_address: 'Only part of this address could be resolved', ambiguous: 'More than one matching declaration',
       missing_symbol: 'No matching declaration', alias_cycle: 'Alias references form a cycle'}));
+    if (source) {
+      field('Source name', text(source.name));
+      field('Tag type', text(source.tag_type));
+      if (source.alias_for) field('Alias for', source.alias_for);
+      if (source.external_access) field('External access', source.external_access);
+    }
     if (declaration) {
       field('Declared object', text(declaration.path, text(declaration.name)));
       const scope = readable(declaration.scope_kind, {controller: 'Controller-wide / global', program: 'Program', aoi: 'AOI'}, 'Scope unresolved');
       field('Scope', `${scope} · ${text(declaration.scope_path, text(declaration.scope_name, 'Path not captured'))}`);
       field('Declared type', text(declaration.datatype, 'Type unresolved'));
+      if (!source && declaration.attributes?.ExternalAccess) field('External access', declaration.attributes.ExternalAccess);
+      if (declaration.attributes?.Radix) field('Declared radix', declaration.attributes.Radix);
     } else field('Declaration', 'No verified declaration available');
     if (member) {
       field('Member', text(member.path, text(member.name)));
@@ -41,6 +49,9 @@
       if (member.units) field('Units', member.units);
     }
     root.append(fields);
+    if (source?.description) root.append(el('p', source.description, 'variable-help-description'));
+    if (source?.description_truncated || source?.path_truncated)
+      root.append(el('p', 'The source alias preview is shortened.', 'instruction-help-caveat'));
     root.append(el('h3', 'Meaning'), el('p', text(member?.meaning,
       'No verified member meaning is available. A matching suffix alone does not establish its type or purpose.')));
     if (declaration?.description) root.append(el('p', declaration.description, 'variable-help-description'));
@@ -65,6 +76,7 @@
         : value.envelope === 'Data' ? 'Data · captured export value' : `${text(value.envelope, 'Unknown envelope')} · captured alternative`;
       card.append(el('strong', envelope), el('p', [value.path, value.datatype, value.format].filter(Boolean).join(' · '), 'instruction-help-caveat'));
       card.append(el('code', value.value_present === true ? String(value.value ?? '') : 'Value not captured'));
+      if (value.radix) card.append(el('p', `Radix: ${value.radix}`, 'instruction-help-caveat'));
       if (value.value_truncated || value.path_truncated)
         card.append(el('p', 'This stored value or path is a shortened preview; it is not the complete captured entry.', 'instruction-help-caveat'));
       if (value.ambiguous) card.append(el('p', 'Ambiguous evidence: this entry is not selected as the effective value.', 'instruction-help-caveat'));

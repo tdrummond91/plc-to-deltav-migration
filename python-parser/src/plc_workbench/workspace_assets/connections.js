@@ -47,7 +47,7 @@
     status.setAttribute("role", "status");
     const body = element("div");
     root.append(status, body);
-    const state = { id: rungId, scope: "all", direction: "both", signal: "", page: 1, endpointPage: 1 };
+    const state = { id: rungId, scope: "all", direction: "both", signal: "", page: 1, endpointPage: 1, pageSize: 12, endpointPageSize: 8 };
     const history = [];
     let serial = 0;
     const markerId = `connection-arrow-${++nextMap}`;
@@ -76,7 +76,8 @@
       body.replaceChildren();
       try {
         const data = await load({ id: state.id, scope: state.scope, direction: state.direction,
-          signal_id: state.signal, page: state.page, endpoint_page: state.endpointPage });
+          signal_id: state.signal, page: state.page, endpoint_page: state.endpointPage,
+          page_size: state.pageSize, endpoint_page_size: state.endpointPageSize });
         if (request !== serial) return;
         if (!data.available) {
           status.textContent = data.notice || "Saved connection evidence is unavailable.";
@@ -123,6 +124,8 @@
       prev.disabled = pages.page <= 1;
       next.disabled = pages.page >= pages.pages;
       pager.append(prev, element("span", `${pages.total} signals · page ${pages.page} of ${Math.max(1, pages.pages)}`), next);
+      pager.append(choice("Signals per page", [10, 12, 25, 50, 100].map(size => [String(size), String(size)]),
+        String(state.pageSize), value => change({pageSize: Number(value)})));
       body.append(pager);
       const viewport = element("div", undefined, "connection-viewport");
       viewport.tabIndex = 0;
@@ -270,13 +273,15 @@
         if (signal.counts.unknown_uses) item.append(element("p", `${signal.counts.unknown_uses} other rungs have unknown-role uses of this address.`));
         signal.unknown_uses.forEach(endpoint => item.append(button(`${rungLabel(endpoint)} · ${endpoint.path || endpoint.id} · unknown role`, () => focus(endpoint.id))));
         const endpointPage = signal.endpoints;
-        if (endpointPage.pages > 1) {
+        if (endpointPage.pages > 1 || state.signal) {
           const nav = element("div", undefined, "connection-pager");
           const prev = button("Previous connected rungs", () => change({ signal: signal.id, endpointPage: endpointPage.page - 1 }));
           const next = button("Next connected rungs", () => change({ signal: signal.id, endpointPage: endpointPage.page + 1 }));
           prev.disabled = endpointPage.page <= 1;
           next.disabled = endpointPage.page >= endpointPage.pages;
           nav.append(prev, element("span", `Connections page ${endpointPage.page} of ${endpointPage.pages} · up to ${endpointPage.page_size} rungs per role`), next);
+          nav.append(choice("Connected rungs per page", [8, 10, 25, 50, 100].map(size => [String(size), String(size)]),
+            String(state.endpointPageSize), value => change({signal: signal.id, endpointPageSize: Number(value)})));
           item.append(nav);
         }
         section.append(item);

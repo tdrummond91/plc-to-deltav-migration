@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 
 from plc_workbench.workspace_translation import TranslationService
 from plc_workbench.workspace import Workspace
+from plc_workbench.workspace_report import refresh_report
 from test_prepare_english import report_overlay, saved_prose_analysis
 from test_workspace import running_workspace, saved_analysis
 from test_workspace_translation import FakeEngine
@@ -32,10 +33,11 @@ class WorkspaceTranslationApiTests(unittest.TestCase):
         self.project = Path(self.temp.name) / 'project.sqlite'
         self.calls = []
         self.available = True
+        self.callback = None
 
         def service(path):
             return TranslationService(path,
-                engine_factory=lambda _: FakeEngine(self.calls),
+                engine_factory=lambda _: FakeEngine(self.calls, callback=self.callback),
                 availability_provider=lambda _: {'available': self.available,
                     'model_id': 'test-fr-en-v1', 'message': 'Install local translation' if not self.available else 'Ready'})
 
@@ -101,6 +103,39 @@ class WorkspaceTranslationApiTests(unittest.TestCase):
             self.assertFalse(result['available'])
             self.assertTrue(result['fields']['comment']['text'])
             self.assertEqual(client.get('/api/state')['revision'], state['revision'])
+
+    def test_incomplete_wording_is_not_pending_after_new_import_or_restart(self):
+        def incomplete(text):
+            if text == 'Arreter la pompe':
+                return {'text': text, 'status': 'needs_review', 'translated_segments': 0, 'retained_segments': 1}
+            if text == 'Niveau bas':
+                return {'text': 'Low niveau', 'status': 'needs_review', 'translated_segments': 1, 'retained_segments': 1}
+            return {'text': text, 'status': 'translated'}
+
+        self.callback = incomplete
+        with running_workspace(self.project, self.runs) as client:
+            first = client.post('/api/import', {'path': str(self.prose), 'expected_revision': 0})
+            client.post('/api/translation', {'presentation_mode': 'english', 'prepare': True, 'run_id': first['active_run']})
+            status = self.complete(client)
+            self.assertEqual((status['failed'], status['partial']), (1, 1))
+            calls = self.calls.copy()
+            client.post('/api/import', {'path': str(self.prose_second), 'expected_revision': first['revision']})
+            status = self.complete(client)
+            self.assertEqual((status['cached'], status['completed']), (status['total'], status['total']))
+            self.assertEqual((status['cached_incomplete'], status['new_texts'], status['retry_texts']), (2, 0, 0))
+            self.assertEqual(self.calls, calls)
+        with running_workspace(self.project, self.runs) as client:
+            status = self.complete(client)
+            self.assertEqual((status['cached'], status['completed']), (status['total'], status['total']))
+            self.assertEqual((status['failed'], status['partial'], status['cached_incomplete']), (1, 1, 2))
+            self.assertEqual(self.calls, calls)
+            client.post('/api/translation', {'presentation_mode': 'english', 'prepare': True, 'run_id': status['run_id']})
+            self.complete(client)
+            self.assertEqual(self.calls, calls)
+            client.post('/api/translation', {'presentation_mode': 'english', 'prepare': True, 'retry': True, 'run_id': status['run_id']})
+            status = self.complete(client)
+            self.assertEqual(status['retry_texts'], status['total'])
+            self.assertEqual(len(self.calls), len(calls) * 2)
 
     def test_routes_require_session_and_assets_stay_local(self):
         with running_workspace(self.project, self.runs) as client:
@@ -172,6 +207,30 @@ class WorkspaceTranslationApiTests(unittest.TestCase):
             self.assertEqual(client.get('/analysis?language=original'), after)
             self.assertEqual(report_overlay(client.get('/analysis?language=english'))['language'], 'english')
             self.assertEqual(client.request('/analysis?language=invalid')[0], 400)
+
+    def test_report_cache_refreshes_when_a_retry_becomes_interrupted(self):
+        self.callback = lambda text: {'text': f'English portion. {text}', 'status': 'needs_review',
+            'translated_segments': 1, 'retained_segments': 1}
+        with running_workspace(self.project, self.runs) as client:
+            imported = client.post('/api/import', {'path': str(self.prose), 'expected_revision': 0})
+            client.post('/api/translation', {'presentation_mode': 'english', 'prepare': True,
+                'run_id': imported['active_run']})
+            self.complete(client)
+            service = client.server.workspace._translator()
+            source = 'Arreter la pompe'
+            with patch('plc_workbench.workspace_report.refresh_report', wraps=refresh_report) as render:
+                client.get('/analysis?language=english')
+                client.get('/analysis?language=english')
+                self.assertEqual(render.call_count, 1)
+                service._begin_attempt((source,), 'test-fr-en-v1')
+                client.get('/analysis?language=english')
+                self.assertEqual(render.call_count, 2)
+                self.assertFalse(render.call_args.kwargs['translations'][source]['interrupted'])
+                service._fail('Saved test interruption')
+                client.get('/analysis?language=english')
+                self.assertEqual(render.call_count, 3)
+                self.assertTrue(render.call_args.kwargs['translations'][source]['interrupted'])
+                self.assertEqual(render.call_args.kwargs['translations'][source]['text'], f'English portion. {source}')
 
     def test_report_navigation_uses_saved_language_without_a_query_override(self):
         with running_workspace(self.project, self.runs) as client:

@@ -76,10 +76,65 @@ class WorkspaceFieldSignalTests(unittest.TestCase):
         self.assertTrue(index.signals)
         for row in index.signals.values():
             self.assertEqual(row['hardware']['name'], 'Unknown')
-            self.assertEqual(row['candidate_field_types'], [])
+            expected = ['ai'] if row['suffix'] == '.Ch0Data' and row['direction'] == 'input' else (
+                ['ao'] if row['suffix'] == '.Ch0Data' and row['direction'] == 'output' else [])
+            self.assertEqual(row['candidate_field_types'], expected)
             self.assertIsNone(row['channel'])
             self.assertEqual(row['field_type'], 'unknown')
-        self.assertEqual(index.view(query(field_type='ai'))['signals']['total'], 0)
+        self.assertEqual(index.view(query(field_type='ai'))['signals']['total'], 1)
+
+    def test_alias_name_and_channel_metadata_are_unsaved_source_proposals(self) -> None:
+        data = '<DataValueMember Name="Ch2Data" DataType="REAL" Radix="Float" Value="1.5"/>'
+        card = module('Unknown', 1, 'UNKNOWN', data=data).replace('<InputTag>', '<InputTag ExternalAccess="Read/Write">')
+        alias = ('<Tag Name="LevelInput" TagType="Alias" AliasFor="Local:1:I.Ch2Data" '
+                 'ExternalAccess="Read Only"><Description>Invented level input</Description></Tag>')
+        index = build(field_inputs(('MOV(LevelInput,InternalReal);',), modules=card, extra_tags=alias))
+        row = find(index, 'Local:1:I.Ch2Data')
+        self.assertEqual(row['suggested_target_name'], 'LevelInput')
+        self.assertEqual(row['target_name_basis'], 'alias')
+        self.assertEqual(row['suggested_field_type'], 'ai')
+        self.assertEqual(row['mapping_reason'], 'qualified_floating_channel_requires_review')
+        self.assertEqual(row['mapping_status'], 'review_mapping')
+        self.assertEqual(row['field_type'], 'unknown')
+        metadata = row['source_metadata']
+        self.assertEqual(metadata['tag_type'], 'Alias')
+        self.assertEqual(metadata['alias_for'], 'Local:1:I.Ch2Data')
+        self.assertEqual(metadata['data_type'], 'REAL')
+        self.assertEqual(metadata['radix'], 'Float')
+        self.assertEqual(metadata['external_access'], 'Read Only')
+        output = find(index, 'Local:1:O.Ch2Data')
+        self.assertEqual(output['suggested_target_name'], output['address'])
+        self.assertEqual(output['target_name_basis'], 'base_address')
+        self.assertEqual(output['suggested_field_type'], 'ao')
+
+    def test_floating_channel_hint_rejects_conflicts_status_and_ambiguous_values(self) -> None:
+        leaf = '<DataValueMember Name="Ch0Data" DataType="REAL" Radix="Float" Value="1.5"/>'
+        for data in (leaf.replace('REAL', 'DINT'), leaf.replace('Float', 'Hex'), leaf + leaf,
+                     leaf.replace('Ch0Data', 'Status'), leaf.replace('Ch0Data', 'Fault')):
+            with self.subTest(data=data):
+                index = build(field_inputs((), modules=module('Unknown', 1, 'UNKNOWN', data=data)), related=False)
+                self.assertFalse(any(row['suggested_field_type'] in {'ai', 'ao'} for row in index.signals.values()))
+        card = module('Unknown', 1, 'UNKNOWN', data=leaf).replace('</InputTag>',
+            '<Data Format="Decorated"><Structure DataType="OtherProfile"/></Data></InputTag>')
+        index = build(field_inputs((), modules=card), related=False)
+        self.assertEqual(find(index, 'Local:1:I.Ch0Data')['suggested_field_type'], 'unknown')
+
+    def test_selected_page_sizes_cover_controller_rows_and_detail_rungs(self) -> None:
+        notes = ''.join(f'<Comment Operand="Ch{i}Data">Point {i}</Comment>' for i in range(51))
+        card = module('Hart', 1, '1756-IF8IH').replace('<InputTag>', '<InputTag><Comments>' + notes + '</Comments>')
+        index = build(field_inputs(('MOV(Local:1:I.Ch0Data,InternalReal);',) * 23, modules=card))
+        first = index.view(query(field_type='ai', page_size='10'))
+        count = first['signals']['total']
+        pages = [index.view(query(field_type='ai', page_size=10, page=page))['signals']['items']
+                 for page in range(1, first['signals']['pages'] + 1)]
+        self.assertEqual(len({row['id'] for page in pages for row in page}), count)
+        self.assertEqual(first['controller_counts'][0]['total'], count)
+        self.assertEqual(first['controller_counts'][0]['controller_name'], 'C')
+        self.assertEqual(len(index.view(query(field_type='ai', page_size=500))['signals']['items']), count)
+        row = find(index, 'Local:1:I.Ch0Data')
+        detail = index.view(query(signal_id=row['id'], detail_page_size=10, rung_page=3))['selected_signal']
+        self.assertEqual((detail['direct_rungs']['page_size'], len(detail['direct_rungs']['items'])), (10, 3))
+        self.assertEqual(index.view(query(signal_id=row['id'], detail_page_size=50))['selected_signal']['direct_uses']['total'], 23)
 
     def test_saved_binding_is_exact_detached_and_independent_of_presentation(self) -> None:
         index = build()

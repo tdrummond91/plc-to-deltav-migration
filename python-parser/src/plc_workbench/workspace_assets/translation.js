@@ -52,12 +52,16 @@
       const text = el("div", entry.text, "source-comment");
       if (entry.status === 'translated') text.lang = "en";
       english.append(text);
-      caption.textContent = entry.partial === true ? 'English partial · untranslated portions kept in original wording'
+      caption.textContent = entry.interrupted === true ? 'Saved wording · retry interrupted'
+        : entry.last_attempt_failed === true ? 'Saved wording · latest retry failed'
+        : entry.partial === true ? 'English partial · untranslated portions kept in original wording'
+        : entry.unchanged === true ? 'Wording unchanged · saved locally'
         : entry.status === 'needs_review' ? 'English wording · review required' : 'English · review wording';
     } else {
       // Missing wording must not hide the comment behind another disclosure.
       english.append(source);
-      caption.textContent = entry?.failed === true ? 'Original shown · English unavailable'
+      caption.textContent = entry?.interrupted === true ? 'Original shown · translation interrupted, retry manually'
+        : entry?.failed === true ? 'Original shown · English unavailable, attempt saved'
         : 'Original shown · English not ready';
       caption.className += ' translation-gap';
     }
@@ -122,7 +126,7 @@
     const prepare = el("button", "Prepare all English", "translation-prepare");
     prepare.type = "button";
     prepare.disabled = true;
-    const retry = el("button", "Retry missing translations", "translation-retry");
+    const retry = el("button", "Retry incomplete translations", "translation-retry");
     retry.type = "button";
     retry.hidden = true;
     const retryStatus = el("button", "Retry status", "translation-retry-status");
@@ -138,8 +142,8 @@
     help.append(el("summary", "How English analysis works"),
       coverageDetails,
       el("p", "Prepare all English translates every available comment and description in this imported L5X analysis on this PC. The first pass can take several minutes. You can keep reviewing or switch to FR / French while preparation continues. No full parser rerun is needed."),
-      el("p", "FR / French shows source wording, including any English or mixed-language comments already present. EN / English shows accepted translations and retains original portions where translation is unavailable, with a visible note. Show both languages keeps complete versions together. Names, addresses, logic, and saved review decisions stay as entered. Retry missing translations retries failed or partial notes and reuses complete cached translations."),
-      el("p", "Unchanged wording is translated once and reused from the local cache, including after later exports. New or changed wording is prepared separately. Review translations against their originals; abbreviations and mixed-language comments may need correction."),
+      el("p", "FR / French shows source wording, including any English or mixed-language comments already present. EN / English shows accepted translations and retains original portions where translation is unavailable, with a visible note. Show both languages keeps complete versions together. Names, addresses, logic, and saved review decisions stay as entered. Retry incomplete translations retries partial, unavailable, interrupted and unchanged wording; complete cached translations are reused."),
+      el("p", "Every attempted text is saved locally, including partial results and original wording retained after a failed attempt. These are not pending work and do not restart automatically. New or changed wording is prepared separately; changing the model or translation rules starts a new cache version. Wording that already was English may correctly remain unchanged. Review translations against their originals; abbreviations and mixed-language comments may need correction."),
       el("p", "First use: close the workspace and run this once from the repository in Git Bash. Setup downloads the translation software and French-to-English model. It does not send your comments anywhere."),
       el("code", "bash ./setup-translation.sh", "translation-command"),
       el("p", "Then reopen with bash ./open-workbench.sh. Your usual run-work-check.sh also opens this workspace. Translation runs locally without an internet connection after setup. The analysis report follows your selected language; reopen it to include newly prepared wording."));
@@ -155,18 +159,22 @@
       paintMode(modeOf(result));
       const running = result.state === "running";
       prepare.disabled = configuring || running || !result.available || !result.run_id;
-      retry.hidden = !result.available || running || !(result.failed || result.partial || result.state === "error");
+      retry.hidden = !result.available || running || !(result.failed || result.partial || result.interrupted || result.unchanged || result.retry_failed || result.state === "error");
       const total = Number(result.total || 0), completed = Number(result.completed || 0);
       const remaining = Math.max(0, total - completed);
       const counts = `${completed} / ${total} unique texts`;
-      const notes = [result.cached ? `${result.cached} reused` : "", remaining ? `${remaining} pending` : "",
-        result.needs_review ? `${result.needs_review} need wording review` : "", result.partial ? `${result.partial} partial` : "", result.failed ? `${result.failed} failed` : ""].filter(Boolean);
+      const notes = [result.cached ? `${result.cached} reused from before this pass` : "", remaining ? `${remaining} pending` : "",
+        result.new_texts ? `${result.new_texts} new this pass` : "", result.retry_texts ? `${result.retry_texts} explicitly retried` : "",
+        result.needs_review ? `${result.needs_review} need wording review` : "", result.partial ? `${result.partial} partial` : "",
+        result.failed ? `${result.failed} unavailable` : "", result.interrupted ? `${result.interrupted} interrupted` : "",
+        result.retry_failed ? `${result.retry_failed} retries failed; saved wording retained` : "",
+        result.unchanged ? `${result.unchanged} wording unchanged` : ""].filter(Boolean);
       const elapsed = duration(result.elapsed_seconds), eta = duration(result.remaining_seconds);
       const timing = [elapsed && `elapsed ${elapsed}`, running && (eta ? `about ${eta} remaining` : "estimating remaining time")].filter(Boolean);
       status.textContent = !result.available ? result.message || "Install the local translation model to prepare English."
         : running ? `Preparing English locally · ${counts}${notes.length ? " · " + notes.join(" · ") : ""}${timing.length ? " · " + timing.join(" · ") : ""}. You can keep reviewing.`
-        : result.state === "error" ? result.message || "Translation stopped. Retry missing translations to continue."
-        : result.state === "complete" ? `Prepared · ${counts}${notes.length ? " · " + notes.join(" · ") : ""}${elapsed ? " · elapsed " + elapsed : ""}.`
+        : result.state === "error" ? result.message || "Translation stopped. Retry incomplete translations to continue."
+        : result.state === "complete" ? `Pass complete · ${counts}${notes.length ? " · " + notes.join(" · ") : ""}${elapsed ? " · elapsed " + elapsed : ""}. All results are saved, including incomplete wording; nothing will retry automatically.`
         : "Choose Prepare all English to translate this imported analysis once. Original wording is always retained.";
       const catalog = result.catalog_coverage;
       if (catalog && typeof catalog === "object") {

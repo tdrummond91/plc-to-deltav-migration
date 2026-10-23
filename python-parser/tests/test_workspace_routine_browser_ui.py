@@ -96,6 +96,22 @@ assert.equal(calls.length,1);assert.ok(calls[0].includes('routine=routine-100'))
 assert.ok(calls[0].includes('run_id=run-1'));assert.equal(diagrams.length,20);
 """)
 
+    def test_page_size_controls_reset_to_first_page_and_keep_directory_filters(self):
+        self.run_js(r"""
+const controller=mount();const program=cls('routine-directory-program')[0];
+program.value='alpha';program.fire('change');button('Next routines').fire('click');
+const directorySize=all(root).find(n=>n.attributes['aria-label']==='Routines per page');
+directorySize.value='100';directorySize.fire('change');
+assert.equal(program.value,'alpha');assert.equal(cls('routine-directory-entry').length,53);
+assert.equal(cls('routine-directory-page')[0].value,'1');
+open(cls('routine-directory-entry')[0]);await flush();
+const rungSize=all(root).find(n=>n.attributes['aria-label']==='Rungs per page');
+rungSize.value='200';rungSize.fire('change');await flush();
+const latest=new URL(calls.at(-1),'http://local');
+assert.equal(latest.searchParams.get('page'),'1');assert.equal(latest.searchParams.get('page_size'),'200');
+assert.equal(latest.searchParams.get('routine'),'routine-0');assert.equal(program.value,'alpha');
+""")
+
     def test_only_one_expansion_renders_and_paging_preserves_captured_order(self):
         self.run_js(r"""
 mount();const first=cls('routine-directory-entry')[0],second=cls('routine-directory-entry')[1];
@@ -204,12 +220,12 @@ delayed.resolve(payload(new URL(calls.at(-2),'http://local'),{presentation_mode:
 assert.equal(commentText(firstComment),'Original comment 0');assert.equal(diagrams.length,before);
 """)
 
-    def test_compact_headers_put_comments_beside_rung_number_and_pass_right_side_controls_target(self):
+    def test_compact_headers_center_hierarchy_keep_comments_and_pass_right_side_controls_target(self):
         self.run_js(r"""
 const controller=mount();open(cls('routine-directory-entry')[0]);await flush();
 const headings=cls('routine-rung-heading'),comments=cls('routine-rung-comment');
 headings.forEach((heading,index)=>{
-  assert.equal(heading.children[0].tagName,'h2');assert.equal(comments[index].parent,heading);
+  assert.equal(heading.children[0].tagName,'h2');assert.ok(comments[index].parent===heading.parent);assert.equal(heading.children[1].className,'routine-rung-hierarchy');
   const zoom=diagrams[index].options.controlsTarget;
   assert.equal(diagrams[index].options.compact,true);assert.equal(zoom.className,'routine-rung-zoom');
   assert.equal(zoom.parent.className,'routine-rung-tools');assert.equal(zoom.parent.parent,heading);
@@ -218,7 +234,7 @@ headings.forEach((heading,index)=>{
 assert.ok(cls('routine-directory-help')[0].textContent.includes('Drawings start at 85%'));
 const firstComment=comments[0],zoomTarget=diagrams[0].options.controlsTarget,drawCount=diagrams.length;
 respond=async url=>payload(url,{presentation_mode:'english'});controller.wordingChanged();await flush();
-assert.equal(firstComment.parent,headings[0]);assert.equal(commentText(firstComment),'English comment 0');
+assert.ok(firstComment.parent===headings[0].parent);assert.equal(commentText(firstComment),'English comment 0');
 assert.equal(diagrams.length,drawCount);assert.equal(diagrams[0].options.controlsTarget,zoomTarget);
 """)
 
@@ -289,7 +305,7 @@ respond=async url=>payload(url,{items:comments.map((comment,i)=>({...rung(i),num
 const controller=mount();open(cls('routine-directory-entry')[0]);await flush();
 cls('routine-rung-heading').forEach((heading,i)=>{
   assert.equal(heading.children[0].textContent,'Rung '+i);
-  const comment=heading.querySelectorAll('.routine-rung-comment')[0];
+  const comment=heading.parent.querySelectorAll('.routine-rung-comment')[0];
   assert.equal(comment.hidden,false);assert.equal(commentText(comment),'— No comment');
   assert.equal(comment.querySelectorAll('.routine-comment-toggle')[0].hidden,true);
   assert.equal(comment.querySelectorAll('.translation-caption').length,0);
@@ -344,7 +360,7 @@ assert.equal(observers[0].targets.size,0);current.forEach(comment=>assert.equal(
         self.run_js(r"""
 respond=async url=>payload(url,{items:[{...rung(0),source_qualified:false}]});mount();open(cls('routine-directory-entry')[0]);await flush();
 assert.equal(diagrams[0].options.sourceQualified,false);
-button('Open rung review').fire('click');assert.deepEqual(reviews,[['routine-0','rung-0']]);
+button('Open rung').fire('click');assert.deepEqual(reviews,[['routine-0','rung-0']]);
 const instruction=diagrams[0].source.instructions[0];diagrams[0].options.onInstruction(instruction);assert.equal(inspections[0],instruction);
 project={...project,project_path:'different-project.sqlite'};
 assert.throws(()=>diagrams[0].options.onInstruction(instruction),/active analysis changed/);

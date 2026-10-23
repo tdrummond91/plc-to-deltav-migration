@@ -10,6 +10,7 @@ from test_calculations import capture
 from test_workspace_ui import ASSETS, DOM, NODE, function
 from test_workspace_rung_flow_ui import FLOW_DOM, SCRIPT as FLOW_SCRIPT
 from test_workspace_rung_explanation_ui import SCRIPT as EXPLANATION_SCRIPT
+from test_workspace_ladder_diagram_ui import SCRIPT as LADDER_SCRIPT
 
 
 MATH_FUNCTIONS = ["mathNode", "mathAtom", "mathFence", "mathExpression", "instructionEquation"]
@@ -44,7 +45,7 @@ class WorkspaceEquationTests(unittest.TestCase):
         code += (ASSETS / "source-colors.js").read_text(encoding="utf-8")
         code += EXPLANATION_SCRIPT
         if "renderRungLogic" in names:
-            code += FLOW_DOM + FLOW_SCRIPT
+            code += FLOW_DOM + FLOW_SCRIPT + LADDER_SCRIPT
         code += "\n" + "\n".join(function(name) for name in names)
         code += "\nconst data=" + json.dumps(payload) + ";\n"
         code += "\n(async()=>{\n" + checks + "\n})().catch(error=>{console.error(error);process.exitCode=1;});"
@@ -253,10 +254,10 @@ for(const instruction of data.source.instructions)
 const root=node('div');renderRungLogic(root,data.source,data,{sourceQualified:true});
 const tabs=descendants(root).filter(n=>n.attributes.role==='tab');
 const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
-assert.deepEqual(tabs.map(exactText),['Logic summary','Rung flow','Equations','Branch structure','Original text']);
-assert.deepEqual(panels.map(p=>p.hidden),[false,true,true,true,true]);
-assert.deepEqual(tabs.map(t=>t.attributes['aria-selected']),['true','false','false','false','false']);
-assert.deepEqual(tabs.map(t=>t.tabIndex),[0,-1,-1,-1,-1]);
+assert.deepEqual(tabs.map(exactText),['Logic summary','Full ladder','Equations','Branch structure','Original text']);
+assert.deepEqual(panels.map(p=>p.hidden),[true,false,true,true,true]);
+assert.deepEqual(tabs.map(t=>t.attributes['aria-selected']),['false','true','false','false','false']);
+assert.deepEqual(tabs.map(t=>t.tabIndex),[-1,0,-1,-1,-1]);
 for(let i=0;i<5;i++) {
   assert.equal(tabs[i].attributes['aria-controls'],panels[i].id);
   assert.equal(panels[i].attributes['aria-labelledby'],tabs[i].id);
@@ -265,8 +266,8 @@ assert.equal(css(panels[0],'rung-explanation-step').length,data.source.instructi
 assert.ok(exactText(panels[0]).includes('Inputs & constants'));
 assert.ok(exactText(panels[0]).includes('Logic paths'));
 assert.ok(exactText(panels[0]).includes('Outputs & stored state'));
-assert.equal(css(panels[1],'rung-flow-card').length,data.source.instructions.length);
-assert.equal(tags(panels[1],'mfrac').length,1);
+assert.equal(tags(panels[1],'g').filter(n=>hasClass(n,'ladder-diagram-instruction')).length,data.source.instructions.length);
+assert.ok(tags(panels[1],'svg').length);
 const raw=tags(panels[4],'pre')[0];assert.equal(raw.textContent,data.source.text);
 tabs[4].events.click();assert.deepEqual(panels.map(p=>p.hidden),[true,true,true,true,false]);
 let prevented=0;
@@ -301,7 +302,7 @@ renderDetail({source:data.source,calculations:data,source_qualified:true,review,
 const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
 assert.equal(css(panels[0],'rung-explanation-step').length,data.source.instructions.length);
 assert.ok(exactText(panels[0]).includes('Saved expression syntax is parsed'));
-assert.equal(tags(panels[1],'mfrac').length,1);
+assert.ok(tags(panels[1],'svg').length);
 assert.equal(tags(panels[2],'mfrac').length,1);
 assert.equal(editorCall.id,data.source.id);
 assert.equal(editorCall.review,review);
@@ -310,33 +311,15 @@ assert.ok(exactText(root).includes('Save review'));
 assert.equal(tags(root,'pre').find(n=>n.textContent===data.source.text).textContent,data.source.text);
 """, parsed("A/B"))
 
-    def test_rung_list_preview_typesets_available_expressions_and_explains_remaining_paths(self) -> None:
-        self.run_js([*MATH_FUNCTIONS, "renderRungPreview"], r"""
-const preview={preview:{instructions:data.source.instructions.slice(0,2),
-  instruction_count:data.source.instructions.length,branch_count:2,calculations:data}};
-const root=renderRungPreview(preview);
-assert.equal(tags(root,'math').length,2);
-assert.equal(tags(root,'mfrac').length,1);
-assert.ok(exactText(root).includes('Incoming condition AND (Ready is TRUE)'));
-assert.ok(exactText(root).includes('1 more instruction'));
-assert.ok(exactText(root).includes('2 parallel branches'));
-assert.ok(exactText(root).includes('open flow to follow paths'));
-assert.equal(exactText(root).includes(data.source.text),false);
-const unavailable=renderRungPreview({});
-assert.equal(tags(unavailable,'math').length,0);
-assert.ok(exactText(unavailable).includes('complete text'));
-""", parsed(text="XIC(Ready)CPT(D,(A+B)/C)OTE(Output);"))
-
     def test_variable_identity_colors_are_shared_across_equations_flow_branches_and_list(self) -> None:
-        self.run_js([*RUNG_FUNCTIONS, "renderInstructions", "renderRungPreview"], r"""
+        self.run_js([*RUNG_FUNCTIONS, "renderInstructions"], r"""
 const root=node('div');renderRungLogic(root,data.source,data,{sourceQualified:true});
 const list=node('div');renderInstructions(list,data.source.instructions,[]);
-const preview=renderRungPreview({preview:{instructions:data.source.instructions,calculations:data}});
 const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
 for(const text of ['Flow.PV','Sum','Result','Device.Ready']) {
   const colors=[...variableColors(panels[1],text),...variableColors(panels[2],text),
-    ...variableColors(panels[3],text),...variableColors(list,text),...variableColors(preview,text)];
-  assert.ok(colors.length>=5,text+' appears in each source view');
+    ...variableColors(panels[3],text),...variableColors(list,text)];
+  assert.ok(colors.length>=4,text+' appears in each source view');
   assert.equal(new Set(colors).size,1,text+' retains one presentation color');
 }
 assert.notEqual(variableColors(panels[2],'Flow.PV')[0],variableColors(panels[2],'Sum')[0]);
@@ -382,11 +365,10 @@ assert.ok(tags(rendered.math,'mtext').every(n=>n.namespaceURI==='http://www.w3.o
 """)
 
     def test_help_attaches_to_instruction_content_without_native_titles_or_review_control_targets(self) -> None:
-        self.run_js([*RUNG_FUNCTIONS, "renderInstructions", "renderRungPreview"], r"""
+        self.run_js([*RUNG_FUNCTIONS, "renderInstructions"], r"""
 const attached=[];window.PLCInstructionHelp={attach:(anchor,instruction,context)=>attached.push({anchor,instruction,context}),close:()=>{}};
 const root=node('div');renderRungLogic(root,data.source,data,{sourceQualified:true});
 const list=node('div'),context={runId:'saved-list-run'};renderInstructions(list,data.source.instructions,[],context);
-const preview=renderRungPreview({preview:{instructions:data.source.instructions,calculations:data}});
 const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
 const math=tags(panels[2],'math');
 for(let index=0;index<data.source.instructions.length;index++) {
@@ -394,8 +376,8 @@ for(let index=0;index<data.source.instructions.length;index++) {
   assert.ok(help.length>instruction.opcode.length);
   assert.equal(math[index].attributes['aria-description'],help);
   assert.equal(math[index].attributes['aria-label'],instruction.opcode+'('+instruction.arguments.join(', ')+')');
-  const targets=attached.filter(item=>item.instruction===instruction).map(item=>item.anchor);
-  assert.equal(targets.length,6+instruction.arguments.length,'Flow, equations, branch, list header/arguments and preview get help');
+  const targets=attached.filter(item=>item.instruction===instruction && !hasClass(item.anchor,'ladder-diagram-instruction')).map(item=>item.anchor);
+  assert.equal(targets.length,4+instruction.arguments.length,'Equations, branch and list header/arguments get help');
   const listTargets=attached.filter(item=>item.instruction===instruction&&item.context===context);
   assert.equal(listTargets.length,1+instruction.arguments.length,'Each argument keeps its explicit saved-run identity');
   targets.forEach(anchor=>{
@@ -404,7 +386,7 @@ for(let index=0;index<data.source.instructions.length;index++) {
       'Help must not intercept review checkboxes or evidence links');
   });
 }
-for(const surface of [root,list,preview]) for(const item of [surface,...descendants(surface)]) {
+for(const surface of [root,list]) for(const item of [surface,...descendants(surface)]) {
   assert.equal(Boolean(item.title),false,'No competing native tooltip');
   assert.equal(item.attributes.title,undefined,'MathML also uses the shared help');
 }

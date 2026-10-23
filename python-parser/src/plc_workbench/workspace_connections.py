@@ -27,6 +27,7 @@ ENDPOINT_PAGE_SIZE = 8
 EVIDENCE_PREVIEW_SIZE = 40
 MAX_RECORDS = 250_000
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
+MAX_VIEW_BYTES = 8 * 1024 * 1024
 _NOTICE = (
     'Connections show possible explicit reads and writes to the same exact '
     'address in this export. They do not establish execution order, which write '
@@ -380,7 +381,7 @@ class ConnectionIndex:
         return frozenset(identifier for bucket in self._map_buckets[signal_id].values()
                          for identifier in bucket)
 
-    def map_links(self, rung_ids: list[str], *, direction: str = 'both', page: int = 1) -> dict:
+    def map_links(self, rung_ids: list[str], *, direction: str = 'both', page: int = 1, page_size: int = 80) -> dict:
         """Bound a bipartite rung/signal view while retaining offscreen counts.
 
         Direction selects signals used as inputs/outputs by visible rungs. Each
@@ -393,6 +394,8 @@ class ConnectionIndex:
                 or type(direction) is not str or direction not in {'both', 'inputs', 'outputs'}
                 or type(page) is not int or not 1 <= page <= 1_000_000):
             raise ConnectionError('Choose at most 80 captured rungs and a valid connection page.')
+        from .workspace_paging import page_size as select_size
+        page_size = select_size({'page_size': page_size}, 80, graph=True, error=ConnectionError)
         notice = self.map_notice()
         visible = set(rung_ids)
         identifiers = dict.fromkeys(identifier for rung_id in rung_ids
@@ -401,10 +404,10 @@ class ConnectionIndex:
             role = 'readers' if direction == 'inputs' else 'writers'
             identifiers = {identifier: None for identifier in identifiers
                            if visible.intersection(self._map_buckets[identifier][role])}
-        pages = max(1, (len(identifiers) + 79) // 80)
+        pages = max(1, (len(identifiers) + page_size - 1) // page_size)
         page = min(page, pages)
         signals = []
-        for identifier in list(identifiers)[(page - 1) * 80:page * 80]:
+        for identifier in list(identifiers)[(page - 1) * page_size:page * page_size]:
             signal = self._signals[identifier]
             row = {key: signal[key] for key in ('id', 'target_id')}
             row.update(label=signal['label'][:512], target_path=signal['target_path'][:1024],
@@ -416,7 +419,7 @@ class ConnectionIndex:
                 row['outside_counts'][role] = len(endpoints) - len(row[role])
             signals.append(row)
         return {'available': True, 'signals': signals, 'total': len(identifiers), 'page': page,
-                'pages': pages, 'page_size': 80, 'omitted_signals': len(identifiers) - len(signals),
+                'pages': pages, 'page_size': page_size, 'omitted_signals': len(identifiers) - len(signals),
                 'coverage': {**self._map_coverage,
                              'unqualified_visible_rungs': len(visible.intersection(self._map_unqualified_rungs)),
                              'unqualified_visible_uses': sum(self._map_rejected_by_rung.get(rung_id, 0) for rung_id in visible)},
@@ -454,13 +457,17 @@ class ConnectionIndex:
                 'evidence_truncated': len(identifiers) > EVIDENCE_PREVIEW_SIZE or len(instructions) > EVIDENCE_PREVIEW_SIZE}
 
     def view(self, rung_id: str, *, scope: str = 'all', signal_id: str = '',
-             direction: str = 'both', page: int = 1, endpoint_page: int = 1) -> dict:
+             direction: str = 'both', page: int = 1, endpoint_page: int = 1,
+             page_size: int = SIGNAL_PAGE_SIZE, endpoint_page_size: int = ENDPOINT_PAGE_SIZE) -> dict:
         if (type(rung_id) is not str or rung_id not in self._rungs
                 or type(scope) is not str or scope not in {'all', 'routine'}
                 or type(direction) is not str or direction not in {'both', 'inputs', 'outputs'} or type(signal_id) is not str
                 or type(page) is not int or type(endpoint_page) is not int
                 or not 1 <= page <= 1_000_000 or not 1 <= endpoint_page <= 1_000_000):
             raise ConnectionError('Choose a valid rung, scope, direction, and connection page.')
+        from .workspace_paging import page_size as select_size
+        page_size = select_size({'page_size': page_size}, SIGNAL_PAGE_SIZE, graph=True, error=ConnectionError)
+        endpoint_page_size = select_size({'page_size': endpoint_page_size}, ENDPOINT_PAGE_SIZE, graph=True, error=ConnectionError)
         identifiers = []
         for identifier in self._rung_signals.get(rung_id, []):
             buckets = self._signals[identifier]['buckets']
@@ -471,21 +478,25 @@ class ConnectionIndex:
             if signal_id not in identifiers:
                 raise ConnectionError('The selected signal does not belong to this rung and direction.')
             identifiers = [signal_id]
-        pages = max(1, (len(identifiers) + SIGNAL_PAGE_SIZE - 1) // SIGNAL_PAGE_SIZE)
+        pages = max(1, (len(identifiers) + page_size - 1) // page_size)
         page = min(page, pages)
-        signals = [self._signal_view(self._signals[identifier], rung_id, scope, endpoint_page)
-                   for identifier in identifiers[(page - 1) * SIGNAL_PAGE_SIZE:page * SIGNAL_PAGE_SIZE]]
-        return deepcopy({
+        signals = [self._signal_view(self._signals[identifier], rung_id, scope, endpoint_page, endpoint_page_size)
+                   for identifier in identifiers[(page - 1) * page_size:page * page_size]]
+        result = {
             'available': True, 'focus': self._endpoints[rung_id], 'scope': scope, 'direction': direction,
             'selected_signal_id': signal_id, 'signals': signals,
-            'pagination': {'page': page, 'pages': pages, 'page_size': SIGNAL_PAGE_SIZE,
+            'pagination': {'page': page, 'pages': pages, 'page_size': page_size,
                            'total': len(identifiers), 'has_more': page < pages},
             'coverage': {**self._coverage, 'focus': dict(self._rung_gaps.get(rung_id, {})),
                          'focus_parse_status': self._rungs[rung_id].parse_status},
             'notice': _NOTICE,
-        })
+        }
+        if len(json.dumps(result, ensure_ascii=False).encode('utf-8')) > MAX_VIEW_BYTES:
+            raise ConnectionError('This connection view is too large. Choose fewer signals or connected rungs per page.')
+        return deepcopy(result)
 
-    def _signal_view(self, signal: dict, rung_id: str, scope: str, endpoint_page: int) -> dict:
+    def _signal_view(self, signal: dict, rung_id: str, scope: str, endpoint_page: int,
+                     endpoint_page_size: int = ENDPOINT_PAGE_SIZE) -> dict:
         groups = {}
         outside = {}
         totals = {}
@@ -498,9 +509,9 @@ class ConnectionIndex:
             groups[name] = included
             totals[name] = len(included)
             outside[name] = all_totals[name] - totals[name]
-        pages = max(1, max((count + ENDPOINT_PAGE_SIZE - 1) // ENDPOINT_PAGE_SIZE for count in totals.values()))
+        pages = max(1, max((count + endpoint_page_size - 1) // endpoint_page_size for count in totals.values()))
         endpoint_page = min(endpoint_page, pages)
-        offset = (endpoint_page - 1) * ENDPOINT_PAGE_SIZE
+        offset = (endpoint_page - 1) * endpoint_page_size
         buckets = signal['buckets']
         reads = buckets['readers'].get(rung_id, [])
         writes = buckets['writers'].get(rung_id, [])
@@ -516,10 +527,10 @@ class ConnectionIndex:
                        'unknown_use_ids': unknown[:EVIDENCE_PREVIEW_SIZE], 'reads': len(reads),
                        'writes': len(writes), 'unknown': len(unknown),
                        'evidence_truncated': max(len(reads), len(writes), len(unknown)) > EVIDENCE_PREVIEW_SIZE},
-            endpoints={'page': endpoint_page, 'pages': pages, 'page_size': ENDPOINT_PAGE_SIZE,
+            endpoints={'page': endpoint_page, 'pages': pages, 'page_size': endpoint_page_size,
                        'offset': offset, 'totals': totals, 'has_more': endpoint_page < pages,
-                       'bucket_has_more': {name: offset + ENDPOINT_PAGE_SIZE < count for name, count in totals.items()}},
+                       'bucket_has_more': {name: offset + endpoint_page_size < count for name, count in totals.items()}},
         )
         for name, rows in groups.items():
-            result[name] = [self._endpoint(identifier, uses) for identifier, uses in rows[offset:offset + ENDPOINT_PAGE_SIZE]]
+            result[name] = [self._endpoint(identifier, uses) for identifier, uses in rows[offset:offset + endpoint_page_size]]
         return result

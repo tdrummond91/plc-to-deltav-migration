@@ -43,7 +43,7 @@ const result = (changes = {}) => ({
     basis:'A declared BOOL destination links these uses.', limitations:['Runtime behavior still needs review.'],
     parameters:[{name:'Preset', value:'250', source_id:'tag-one'}], migration_hint:'Preserve the Boolean behavior.',
     effective_migration_status:'unreviewed', effective_category_ids:['dc']}],
-  total:1, page:1, page_size:25, pages:1, categories, coverage:{},
+  total:1, page:1, page_size:50, pages:1, categories, coverage:{},
   limitations:['A source association is not an approved module.'], run_id:'invented-run', ...changes,
 });
 const calls = [], opened = [], adopted = [], edited = [];
@@ -96,6 +96,17 @@ assert.deepEqual(opened,[['rung-one','rung'],['tag-one','object']]);
 assert.ok(all(root).find(node => node.tagName === 'a').href.includes('language=english'));
 assert.equal(byClass(root,'classification-migration-filter')[0].value,'');
 assert.ok(root.textContent.includes('Unknown and uncertain items stay visible'));
+""")
+
+    def test_group_page_size_preserves_filter_and_resets_first_page(self) -> None:
+        self.run_js(r"""
+const controller=window.PLCClassification.mount(root,options);await controller.refresh();
+const category=byClass(root,'classification-category-filter')[0];category.value='dc';await category.fire('change');
+assert.equal(new URL(calls[0],'http://local').searchParams.get('page_size'),'50');
+const size=all(root).find(n=>n.attributes['aria-label']==='Groups per page');size.value='200';await size.fire('change');
+const query=new URL(calls.at(-1),'http://local').searchParams;
+assert.equal(query.get('category'),'dc');assert.equal(query.get('page'),'1');assert.equal(query.get('page_size'),'200');
+assert.deepEqual(adopted,[]);assert.deepEqual(edited,[]);
 """)
 
     def test_category_migration_query_and_pagination_reach_backend(self) -> None:
@@ -237,7 +248,7 @@ const discard=()=>true;let saved,modalBody,command,modalDirty=false;
 const state={project:{classification_categories:categories}};
 const modal=(title,build,save)=>{modalBody=node('div');build(modalBody);saved=save;};
 const mutate=async value=>{command=value;};const notify=()=>{};
-""" + function("groupEditor")
+""" + "const select=(items,value)=>{const element=node('select');element.value=value;return element;};\n" + function("pageSizeControl") + function("groupEditor")
         self.run_js(r"""
 groupEditor({id:'saved-1',name:'Test group',member_ids:['tag-one'],function_categories:['dc'],migration_status:'retain',migration_note:'Preserve function',proposal_id:'proposal-1'});
 await saved();assert.equal(command.op,'group');assert.equal(command.id,'saved-1');

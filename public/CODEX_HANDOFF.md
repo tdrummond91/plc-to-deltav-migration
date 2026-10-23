@@ -1,5 +1,52 @@
 # Current handoff: PLC analysis workbench
 
+## Controller sections, full rung cards and retained translations (2026-10-23)
+
+Field I/O keeps individual channel rows inside collapsible controller sections,
+with Expand all/Collapse all and filtered controller totals. Source descriptions
+wrap inside their cells. Original alias/base metadata includes alias target,
+datatype, captured radix and external access; variable hovers also retain the
+referenced alias description beside the resolved backing declaration. Unsaved
+DeltaV names start from the source alias, otherwise its exact address. Proposals
+remain unreviewed; existing saved names, including deliberate blanks, win.
+
+An exact floating channel member with a qualified, unique decorated Data
+representation and an input/output direction can suggest AI/AO even without a
+documented card layout. Conflicts, ambiguous representations, status/configuration
+and known output echo remain excluded. This does not certify a wired point:
+source field type remains unresolved until documented or explicitly reviewed.
+
+Rungs now use complete shared ladder drawings loaded near the viewport (at most
+three requests concurrently), instead of truncated instruction previews. Card
+headers put the rung at left, hierarchy in the center, and Connections/Open rung
+at right. Page-size controls cover workspace directories, routines, source
+members and report tables: 10/50/100/200/500 for ordinary lists; connection
+diagrams use smaller choices and retain graph node/edge bounds. Existing API
+defaults remain compatible. Field-signal and connection responses have 8 MiB
+limits. Page changes preserve filters, drafts and off-page selections.
+
+Completed translation results already persisted, including partial/failure
+results. Interrupted inference now records an attempt in the local sidecar;
+unchanged incomplete entries require **Retry incomplete translations** rather
+than silently running again. Failed retries preserve earlier usable English.
+Attempt changes invalidate rendered translation caches. Progress distinguishes
+prior reuse from new/retried wording and saved gaps. The work-PC's reported
+6022/6701 recurrence was not reproduced against its private cache; interruption
+is a tested gap, not a confirmed diagnosis of that specific count.
+
+After a manual pull, stop and reopen with `bash ./open-workbench.sh`. Existing
+saved analysis is sufficient; no L5X rerun or model download is required. The
+normal work-check entry point remains available. No automatic Git transport or
+listener was added. UI proof uses invented source only.
+
+Validation: all 700 workspace/project-store/related review tests passed;
+translation service, API, UI, preparation and local-engine checks separately
+passed 115 tests with one optional skip. Independent reviews found and fixed
+retry wording loss, attempt-state cache invalidation, ambiguous profile hints,
+the classification page-size default and stale connection focus. Browser DOM
+checks verified controller collapse/expand, page sizes, retained saved names
+and complete ladder loading. Screenshot capture was unavailable in this session.
+
 ## Individual field signals and editable DeltaV packages (2026-10-22)
 
 Field I/O now starts with individual captured channel rows: type, alias/address,

@@ -17,13 +17,14 @@ from .rung_analysis import _FAMILIES
 from .workspace_connections import ConnectionIndex
 from .workspace_field_io import FieldIOIndex, _page, _preview
 from .workspace_variables import _member_key
+from .workspace_paging import page_size
 
 PAGE_SIZE = 24
 DETAIL_PAGE_SIZE = 12
 MAX_PREVIEW_ITEMS = 8
 MAX_SIGNALS = 100_000
 MAX_INDEX_BYTES = 24 * 1024 * 1024
-MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 MAX_DIRECT_EXPANSION = 32
 MAX_BRIDGES = 128
 MAX_BRIDGE_FANOUT = 64
@@ -40,7 +41,7 @@ _CANDIDATE_MEMBER = re.compile(
     r'|\.Channel\[(?:0|[1-9][0-9]{0,3})\]\.Data)', re.ASCII | re.IGNORECASE)
 _LIMITATIONS = (
     'Rows identify captured module addresses, not verified field wiring or installed devices.',
-    'Review-mapping candidates retain unknown type and channel; the card type only suggests which field category to review.',
+    'Review-mapping candidates retain unknown type and channel; catalog or qualified channel datatype/direction can suggest a field category to review.',
     'No rows are invented from catalog capacity. Missing rows can mean absent member evidence or an unsupported member layout.',
     'Exact member aliases share one source identity. Whole-word, array-range, dynamic-index and implicit instruction effects are not expanded.',
     'Related rungs are optional one-hop shared-address candidates. They do not prove dataflow, execution order, scaling, shutdown behavior or package membership.',
@@ -76,11 +77,13 @@ def validate_query(query: dict) -> dict:
         if type(value) not in {int, str} or not re.fullmatch(r'[1-9][0-9]{0,5}', str(value)):
             raise FieldSignalError('Choose a positive bounded field signal page.')
         result[key] = int(value)
+    result['page_size'] = page_size(query, PAGE_SIZE, error=FieldSignalError)
+    result['detail_page_size'] = page_size(query, DETAIL_PAGE_SIZE, key='detail_page_size', error=FieldSignalError)
     return result
 
 
-def unavailable() -> dict:
-    return {'available': False, 'snapshot_id': None, 'signals': _page([], 1),
+def unavailable(size: int = PAGE_SIZE) -> dict:
+    return {'available': False, 'snapshot_id': None, 'signals': _page([], 1, size),
             'selected_signal': None, 'coverage': {}, 'limitations': list(_LIMITATIONS),
             'notice': 'Saved field signal evidence could not be verified. Original source remains available.'}
 
@@ -140,12 +143,17 @@ class FieldSignalIndex:
                 continue
             if len(self.signals) >= MAX_SIGNALS:
                 _invalid()
+            metadata = self._source_metadata(address)
+            hinted = self._analogue_hint(address, candidates or []) if not documented else address['field_type']
+            if not documented and hinted != 'unknown':
+                candidates = [hinted]
             status = 'documented_member_layout' if documented else 'review_mapping'
             row = {key: address[key] for key in ('id', 'root_id', 'suffix', 'address', 'direction',
                 'field_type', 'channel', 'datatype', 'description', 'description_basis',
                 'point_basis', 'point_reference', 'channel_status', 'configuration_status')}
             row.update(module_id=module_id, source_qualified=True, mapping_status=status,
                 mapping_reason=('exact_catalog_direction_member_and_captured_profile_type' if documented
+                    else 'qualified_floating_channel_requires_review' if hinted != 'unknown'
                     else 'captured_member_layout_requires_review' if candidates
                     else 'captured_member_and_catalog_require_review'), candidate_field_types=candidates,
                 aliases=address['aliases'][:MAX_PREVIEW_ITEMS], aliases_total=len(address['aliases']),
@@ -154,6 +162,11 @@ class FieldSignalIndex:
                 source_annotations_total=len(address['source_annotations']),
                 source_annotations_truncated=len(address['source_annotations']) > MAX_PREVIEW_ITEMS,
                 use_count=len(address['uses']), rung_count=len({use['rung_id'] for use in address['uses']}))
+            alias_name = metadata['name'] if metadata['tag_type'] == 'Alias' else None
+            row.update(source_metadata=metadata, suggested_target_name=alias_name or address['address'],
+                target_name_basis='alias' if alias_name else 'base_address', suggested_field_type=hinted,
+                suggested_type_basis='documented_member_layout' if documented else
+                    'qualified_floating_channel_and_direction' if hinted != 'unknown' else 'catalog_direction_candidate')
             source_metadata = {key: row[key] for key in ('root_id', 'module_id', 'direction', 'field_type',
                 'candidate_field_types', 'mapping_status', 'channel', 'datatype', 'point_basis')}
             source_metadata.update(snapshot_id=self.snapshot_id, suffix=_member_key(row['suffix']),
@@ -200,6 +213,53 @@ class FieldSignalIndex:
             'related_connections_available': self.connections is not None,
             'capacity_expansion': False, 'implicit_effects_available': False, 'member_overlap_available': False}
 
+    def _source_metadata(self, row: dict) -> dict:
+        """Keep authored alias settings beside the exact backing channel settings."""
+        root = self.base._entities[row['root_id']]
+        alias = self.base._entities[row['aliases'][0]['id']] if row['aliases'] else None
+        selected = alias or root
+        values = self.base._values.get((root.id, _member_key(row['suffix'])), [])
+        qualified = [value for value in values if value['status'] == 'qualified'
+                     and value['envelope'] == 'Data' and value['format'] == 'decorated']
+        radices = {value['radix'] for value in qualified if value.get('radix')}
+        return {'source_id': selected.id, 'name': selected.name or row['root_name'],
+            'base_name': row['root_name'], 'tag_type': selected.attributes.get('TagType') or ('Alias' if alias else 'Base'),
+            'alias_for': selected.attributes.get('AliasFor') if alias else None,
+            'data_type': row['datatype'] or selected.attributes.get('DataType'),
+            'radix': next(iter(radices)) if len(radices) == 1 else selected.attributes.get('Radix'),
+            'external_access': selected.attributes.get('ExternalAccess', root.attributes.get('ExternalAccess'))}
+
+    def _analogue_hint(self, row: dict, catalog_hints: list[str]) -> str:
+        """A typed input/output channel can suggest analogue without a card profile.
+
+        Keep the physical mapping unreviewed. A floating internal tag, status,
+        configuration or output echo cannot enter this channel-only projection.
+        """
+        kind = {'input': 'ai', 'output': 'ao'}.get(row['direction'])
+        if not kind or catalog_hints and kind not in catalog_hints:
+            return 'unknown'
+        if not re.fullmatch(r'\.Ch(?:0|[1-9][0-9]{0,3})(?:Data|\.Data)|\.Channel\[(?:0|[1-9][0-9]{0,3})\]\.Data',
+                            row['suffix'], re.ASCII | re.IGNORECASE):
+            return 'unknown'
+        contents = [value for value in self.base._contents.get(row['root_id'], [])
+                    if value['xml_name'] == 'Data' and value['format_kind'] == 'decorated']
+        if len(contents) != 1:
+            return 'unknown'
+        key = _member_key(row['suffix'])
+        values = [value for value in self.base._values.get((row['root_id'], key), [])
+                  if value['envelope'] == 'Data' and value['format'] == 'decorated']
+        if len(values) != 1 or values[0]['status'] != 'qualified':
+            return 'unknown'
+        value = values[0]
+        if any(gap == '' or key == gap or key.startswith(gap + '.') or key.startswith(gap + '[')
+               for gap in self.base._ambiguous.get((row['root_id'], value['content_id']), ())):
+            return 'unknown'
+        floating = value['datatype'] in {'REAL', 'LREAL'}
+        radix_only = not value['datatype'] and value.get('radix') == 'Float'
+        if not (floating or radix_only) or value.get('radix') not in {None, 'Float'}:
+            return 'unknown'
+        return kind
+
     @staticmethod
     def _hardware(module: dict) -> dict:
         return {key: module[key] for key in ('id', 'name', 'path', 'description', 'catalog_number',
@@ -230,14 +290,14 @@ class FieldSignalIndex:
             'candidate_roles': roles or ['reference'], 'role_basis': 'captured_opcode_family_only',
             'role_notice': 'Suggested review role only; a calculation is not necessarily scaling and alarm consequence is unknown.'}
 
-    def _related(self, signal_id: str, page: int) -> dict:
+    def _related(self, signal_id: str, page: int, size: int = DETAIL_PAGE_SIZE) -> dict:
         direct_ids = sorted(self._direct[signal_id], key=self.base._order.__getitem__)
         traversal = {'direct_rungs_total': len(direct_ids), 'direct_rungs_examined': 0,
             'bridges_examined': 0, 'high_fanout_bridges_skipped': 0, 'omitted_endpoint_visits': 0,
             'truncated': False, 'max_direct_rungs': MAX_DIRECT_EXPANSION, 'max_bridges': MAX_BRIDGES,
             'max_bridge_fanout': MAX_BRIDGE_FANOUT, 'max_related_rungs': MAX_RELATED,
             'hop_count': 1, 'paths_per_rung_limit': MAX_RELATED_PATHS}
-        result = {'available': self.connections is not None, **_page([], page, DETAIL_PAGE_SIZE),
+        result = {'available': self.connections is not None, **_page([], page, size),
                   'traversal': traversal, 'association_basis': 'one_hop_shared_exact_address',
                   'total_is_lower_bound': False}
         if self.connections is None:
@@ -295,7 +355,7 @@ class FieldSignalIndex:
         traversal['bridges_examined'] = len(examined)
         traversal['truncated'] |= len(direct_ids) > traversal['direct_rungs_examined']
         rows = sorted(related.values(), key=lambda row: self.base._order[row['id']])
-        return {**result, **_page(rows, page, DETAIL_PAGE_SIZE),
+        return {**result, **_page(rows, page, size),
                 'total_is_lower_bound': traversal['truncated']}
 
     def detail(self, signal_id: str, query: dict) -> dict:
@@ -304,14 +364,14 @@ class FieldSignalIndex:
         row = self.signals[signal_id]
         direct = self._direct[signal_id]
         rung_ids = sorted(direct, key=self.base._order.__getitem__)
-        page = _page(rung_ids, query.get('rung_page', 1), DETAIL_PAGE_SIZE)
+        page = _page(rung_ids, query.get('rung_page', 1), query['detail_page_size'])
         page['items'] = [{**self._rung(identifier), 'association_reason': 'direct_exact_address_use',
             'use_count': len(direct[identifier]),
             'instruction_ids': list(dict.fromkeys(use['instruction_id'] for use in direct[identifier]))[:MAX_PREVIEW_ITEMS],
             'instruction_ids_truncated': len({use['instruction_id'] for use in direct[identifier]}) > MAX_PREVIEW_ITEMS}
             for identifier in page['items']]
-        return {**deepcopy(row), 'direct_uses': _page(self._uses[signal_id], query.get('use_page', 1), DETAIL_PAGE_SIZE),
-                'direct_rungs': page, 'related_rungs': self._related(signal_id, query.get('related_page', 1)),
+        return {**deepcopy(row), 'direct_uses': _page(self._uses[signal_id], query.get('use_page', 1), query['detail_page_size']),
+                'direct_rungs': page, 'related_rungs': self._related(signal_id, query.get('related_page', 1), query['detail_page_size']),
                 'grouping_scope': 'exact_module_member', 'automatic_membership': False}
 
     def view(self, query: dict, *, extra_search: dict[str, str] | None = None) -> dict:
@@ -336,7 +396,14 @@ class FieldSignalIndex:
                     or needle and needle not in self._search[identifier] and needle not in extras.get(identifier, '').casefold()):
                 continue
             rows.append(row)
-        result = {'available': True, 'snapshot_id': self.snapshot_id, 'signals': _page(rows, query['page'], PAGE_SIZE),
+        controllers = {}
+        for row in rows:
+            controller = row['hardware']['controller']
+            identifier = controller['id'] or controller['name'] or 'unassigned'
+            entry = controllers.setdefault(identifier, {'controller_id': identifier, 'controller_name': controller['name'], 'total': 0})
+            entry['total'] += 1
+        result = {'available': True, 'snapshot_id': self.snapshot_id, 'signals': _page(rows, query['page'], query['page_size']),
+            'controller_counts': list(controllers.values()),
             'selected_signal': self.detail(query['signal_id'], query) if query['signal_id'] else None,
             'coverage': self.coverage, 'limitations': list(_LIMITATIONS),
             'notice': 'Captured channel addresses and mapping candidates. Select a row to review its source, related logic and saved migration decisions.'}
@@ -347,5 +414,5 @@ class FieldSignalIndex:
             item['binding'] = self.anchor(item['id'])
             item['suffix'] = self.signals[item['id']]['suffix']
         if len(json.dumps(result, ensure_ascii=False, separators=(',', ':')).encode('utf-8')) > MAX_RESPONSE_BYTES:
-            _invalid()
+            raise FieldSignalError('This field I/O view exceeds the display limit. Choose fewer signals or candidate rungs per page, or narrow the filters.')
         return deepcopy(result)

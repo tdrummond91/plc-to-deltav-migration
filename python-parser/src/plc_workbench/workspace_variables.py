@@ -282,7 +282,8 @@ class VariableIndex:
             if row['xml_name'] in {'DataValue', 'DataValueMember', 'Element'}:
                 record = {'element_id': row['id'], 'content_id': row['content_id'], 'owner_id': row['owner_id'],
                     'envelope': content['xml_name'], 'format': content['format_kind'], 'path': path,
-                    'datatype': attrs.get('DataType'), 'value': attrs.get('Value'), 'value_present': 'Value' in attrs,
+                    'datatype': attrs.get('DataType'), 'radix': attrs.get('Radix'),
+                    'value': attrs.get('Value'), 'value_present': 'Value' in attrs,
                     'status': 'qualified' if okay and row['id'] not in children else 'shape_or_namespace_gap',
                     'locator': content['locator'], 'ambiguous': False}
                 # IDs and the content locator identify exact stored evidence;
@@ -412,8 +413,17 @@ class VariableIndex:
             limitations.append('Repeated or structurally ambiguous decorated evidence prevents a single inline value.')
         if member and member['status'] != 'known':
             limitations.append('This member has no unambiguous documented meaning in the current type catalogue; no meaning is inferred from its name.')
+        referenced = self._entities.get(binding.get('symbol_id'))
+        source_declaration = None
+        if referenced and referenced.id != owner.id:
+            source_declaration = {'id': referenced.id, 'name': referenced.name,
+                'path': self._path(referenced.id), 'description': referenced.description,
+                'tag_type': referenced.attributes.get('TagType'),
+                'alias_for': referenced.attributes.get('AliasFor'),
+                'external_access': referenced.attributes.get('ExternalAccess')}
         result = {'available': True, 'notice': 'Captured declaration, saved representations, and possible source writers.',
             'binding': binding,
+            'source_declaration': source_declaration,
             'declaration': {'id': owner.id, 'name': owner.name, 'kind': owner.kind, 'path': self._path(owner.id),
                 'scope_id': owner.scope_id, 'scope_kind': scope.kind if scope else None,
                 'scope_name': scope.name if scope else None, 'scope_path': self._path(owner.scope_id),
@@ -432,7 +442,8 @@ class VariableIndex:
     def _bounded(result: dict) -> dict:
         # Retain source-linked previews. Full source remains available through
         # /api/source; a large value must not turn a hover into an unbounded dump.
-        for row in [result['declaration'], *result['captured_values'], *result['writers'], *result['representations']]:
+        for row in [result['declaration'], result.get('source_declaration'), *result['captured_values'],
+                    *result['writers'], *result['representations']]:
             if row is None:
                 continue
             for key, value in list(row.items()):

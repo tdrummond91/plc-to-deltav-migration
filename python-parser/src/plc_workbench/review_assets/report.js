@@ -480,8 +480,10 @@
   function roleIds(root,role) { return root[role+'_operand_ids'] || []; }
   const accessRoles=['read','write','read_write','unknown'];
   function table(headers, rows, rowFn, caption, options={}) {
-    const pageSize=Number.isInteger(options.pageSize)?Math.max(1,Math.min(PAGE_SIZE,options.pageSize)):PAGE_SIZE;
+    const defaultSize=Number.isInteger(options.pageSize)?Math.max(1,Math.min(PAGE_SIZE,options.pageSize)):PAGE_SIZE;
     const pageKey=(state.detail?state.detail.type+':'+state.detail.id+':'+(state.contentId||''):state.view)+':'+caption;
+    const sizes=state.listSizes || (state.listSizes={});
+    let pageSize=sizes[pageKey] || defaultSize;
     const wrap=node('div'); let page=Math.min(state.listPages[pageKey]||0,Math.max(0,Math.ceil(rows.length/pageSize)-1));
     const render=() => {
       wrap.replaceChildren();
@@ -497,7 +499,12 @@
       t.tabIndex=-1;
       const prev=button('Previous',()=>change(-1));prev.disabled=page===0;prev.dataset.prev='';prev.setAttribute('aria-label','Previous page: '+caption);
       const next=button('Next',()=>change(1));next.disabled=(page+1)*pageSize>=rows.length;next.dataset.next='';next.setAttribute('aria-label','Next page: '+caption);
-      actions.append(prev,node('span','','Page '+(page+1)+' / '+Math.ceil(rows.length/pageSize)),next);pager.append(status,actions);wrap.append(pager);
+      const sizeLabel=node('label','page-size-label','Rows per page'), sizeSelect=node('select');
+      [...new Set([10,50,100,200,500,defaultSize])].sort((a,b)=>a-b).forEach(value=>{const option=node('option','',String(value));option.value=String(value);sizeSelect.append(option);});
+      sizeSelect.value=String(pageSize);sizeSelect.setAttribute('aria-label','Rows per page: '+caption);
+      sizeSelect.addEventListener('change',()=>{closeRungContext();window.PLCInstructionHelp?.close();pageSize=Number(sizeSelect.value);sizes[pageKey]=pageSize;page=0;state.listPages[pageKey]=0;render();wrap.querySelector('select')?.focus();});
+      sizeLabel.append(sizeSelect);
+      actions.append(prev,node('span','','Page '+(page+1)+' / '+Math.ceil(rows.length/pageSize)),next,sizeLabel);pager.append(status,actions);wrap.append(pager);
     }; render();return wrap;
   }
   function openDetail(type,id,extra={}) { backStack.push({...state});state={...state,detail:{type,id},focusOperand:null,focusInstruction:null,focusCalculationNode:null,focusConditionNode:null,...(type==='pid'?{pidMemberQuery:'',pidMemberGroup:'all'}:{}),...extra};render(true); }

@@ -478,6 +478,18 @@ assert.equal(state.source,null);assert.equal(state.detailSerial,9);
 for(const panel of panels.values()){assert.equal(panel.children.length,1);assert.ok(contents(panel).includes('Select a source record'));assert.equal(panel.inert,false);}
 """)
 
+    def test_explicit_card_connections_win_and_page_menu_uses_new_selected_rung(self) -> None:
+        self.run_js(['switchView', 'openConnections'], r"""
+const panels=new Map();$=id=>{if(!panels.has(id))panels.set(id,node('section'));return panels.get(id);};
+document.querySelectorAll=()=>[];run=()=>{};
+const focused=[];renderConnections=()=>focused.push(state.connectionRung);
+state.view='rungs';state.source={source:{id:'rung-a',instructions:[]}};state.connectionRung='previous';
+openConnections('rung-b');assert.equal(state.connectionRung,'rung-b');assert.deepEqual(focused,['rung-b']);
+switchView('rungs',true);state.source={source:{id:'rung-c',instructions:[]}};
+switchView('connections');assert.equal(state.connectionRung,'rung-c');assert.deepEqual(focused,['rung-b','rung-c']);
+discard=()=>false;openConnections('discarded');assert.equal(state.connectionRung,'rung-c');
+""")
+
     def test_help_closes_for_accepted_navigation_but_not_a_declined_dirty_transition(self) -> None:
         self.run_js(["switchView", "openSource"], r"""
 const panel=node('section');$=()=>panel;document.querySelectorAll=()=>[];
@@ -766,7 +778,7 @@ await loadRungs();
 assert.deepEqual(visible,['first']);assert.equal(state.source.source.id,'first');
 assert.equal(calls.filter(url=>url.startsWith('/api/source')).length,1);
 assert.equal($('rung-detail').inert,false);
-assert.ok(contents($('rung-list')).includes('Open rung & connections'));
+assert.ok(contents($('rung-list')).includes('Open rung') && contents($('rung-list')).includes('Connections'));
 """)
 
     def test_manual_rung_click_wins_over_an_outstanding_inventory_response(self) -> None:
@@ -774,7 +786,7 @@ assert.ok(contents($('rung-list')).includes('Open rung & connections'));
 state.source={source:{id:'previous'}};
 const items=rungResult(rungRow('first',1),rungRow('chosen',2));
 api=async()=>items;await loadRungs();
-const choice=descendants($('rung-list')).find(n=>n.tagName==='button'&&n.textContent==='Rung 2');
+const choice=descendants($('rung-list')).filter(n=>n.tagName==='button'&&n.textContent==='Open rung')[1];
 state.source=null;
 let resolveList,resolveSource;const sourceRequests=[];
 api=url=>url.startsWith('/api/rungs?')?new Promise(done=>resolveList=done)
