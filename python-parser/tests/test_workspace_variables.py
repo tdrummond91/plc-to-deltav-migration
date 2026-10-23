@@ -172,6 +172,77 @@ class WorkspaceVariableTests(unittest.TestCase):
         self.assertEqual(static['display_value']['value'], '12')
         self.assertEqual(static['writers'][0]['relation'], 'possible_overlap')
 
+    def test_scalar_array_elements_inherit_exact_immediate_type_and_radix(self) -> None:
+        for data, variable, dtype, extra in (
+            ('<Array DataType="SINT" Radix="Decimal" Dimensions="2"><Element Index="[1]" Value="-12"/></Array>',
+             'T[1]', 'SINT', 'Dimensions="2"'),
+            ('<Structure DataType="Packet"><ArrayMember Name="Bytes" DataType="SINT" Radix="Hex" Dimensions="2,3">'
+             '<Element Index="[1,2]" Value="16#12"/></ArrayMember></Structure>', 'T.Bytes[1,2]', 'Packet', ''),
+            ('<Array DataType="Packet" Dimensions="2"><Element Index="[0]"><Structure DataType="Packet">'
+             '<ArrayMember Name="Bytes" DataType="SINT" Radix="Decimal" Dimensions="2">'
+             '<Element Index="[1]" Value="12"/></ArrayMember></Structure></Element></Array>',
+             'T[0].Bytes[1]', 'Packet', 'Dimensions="2"'),
+        ):
+            with self.subTest(variable=variable):
+                captured = inputs((f'MOV({variable},Sink);',),
+                    tag(data=f'<Data Format="Decorated">{data}</Data>', datatype=dtype, extra=extra))
+                view = inspect(captured, variable)
+                value = view['captured_values'][0]
+                parent = next(row for row in analyze_tag_data(captured[0], captured[1]).elements
+                              if row['id'] == value['datatype_source_id'])
+                self.assertEqual((value['datatype'], value['datatype_basis']), ('SINT', 'immediate_array'))
+                self.assertEqual(value['radix_source_id'], parent['id'])
+                self.assertEqual(value['radix'], parent['attributes']['Radix'])
+                self.assertIn(parent['xml_name'], {'Array', 'ArrayMember'})
+                self.assertEqual(value['metadata_status'], 'qualified')
+                self.assertIsNone(value['declared_datatype'])
+                self.assertEqual(view['display_value']['datatype'], 'SINT')
+                self.assertNotIn('DataType', next(row for row in analyze_tag_data(captured[0], captured[1]).elements
+                                                if row['id'] == value['element_id'])['attributes'])
+
+    def test_array_element_conflicts_are_explicit_and_withhold_single_value(self) -> None:
+        for attrs in ('DataType="DINT"', 'Radix="Hex"', 'DataType="DINT" Radix="Hex"'):
+            with self.subTest(attrs=attrs):
+                data = ('<Data Format="Decorated"><Array DataType="SINT" Radix="Decimal">'
+                        f'<Element Index="[0]" Value="12" {attrs}/></Array></Data>')
+                view = inspect(inputs(('MOV(T[0],Sink);',), tag(data=data, datatype='SINT', extra='Dimensions="1"')), 'T[0]')
+                value = view['captured_values'][0]
+                self.assertIsNone(view['display_value'])
+                self.assertEqual((value['metadata_status'], value['status']), ('conflict', 'metadata_conflict'))
+                self.assertEqual(value['parent_datatype'], 'SINT')
+                if 'DataType' in attrs:
+                    self.assertIsNone(value['datatype'])
+                    self.assertEqual(value['declared_datatype'], 'DINT')
+                    self.assertEqual(value['datatype_basis'], 'conflict_with_array')
+                if 'Radix' in attrs:
+                    self.assertIsNone(value['radix'])
+                    self.assertEqual(value['declared_radix'], 'Hex')
+
+    def test_array_inheritance_does_not_cross_representations_or_unsupported_shape(self) -> None:
+        def array(dtype: str, value: str, envelope: str = 'Data', extra: str = '') -> str:
+            return (f'<{envelope} Format="Decorated"><Array DataType="{dtype}" Radix="Decimal" {extra}>'
+                    f'<Element Index="[0]" Value="{value}"/></Array></{envelope}>')
+        data = '<Data Format="L5K">[99]</Data>' + array('SINT', '12') + array('DINT', '42', 'DefaultData')
+        view = inspect(inputs(('MOV(T[0],Sink);',), tag(data=data, datatype='SINT', extra='Dimensions="1"')), 'T[0]')
+        self.assertEqual(view['display_value']['datatype'], 'SINT')
+        self.assertEqual([(row['envelope'], row['datatype']) for row in view['captured_values']],
+                         [('Data', 'SINT'), ('DefaultData', 'DINT')])
+        for data in (array('SINT', '12') + array('SINT', '12'),
+                     array('SINT', '12', extra='xmlns:x="urn:foreign" x:Flag="1"'),
+                     array('SINT', '12').replace('<Array ', '<Array xmlns="urn:foreign" ')):
+            with self.subTest(data=data):
+                result = inspect(inputs(('MOV(T[0],Sink);',), tag(data=data, datatype='SINT', extra='Dimensions="1"')), 'T[0]')
+                self.assertIsNone(result['display_value'])
+                if 'foreign' in data:
+                    self.assertIsNone(result['captured_values'][0]['datatype'])
+                    self.assertIsNone(result['captured_values'][0]['array_source_id'])
+        structured = ('<Data Format="Decorated"><Array DataType="Packet" Radix="Decimal">'
+                      '<Element Index="[0]"><Structure DataType="Packet"><DataValueMember Name="Byte" DataType="SINT" '
+                      'Value="12"/></Structure></Element></Array></Data>')
+        result = inspect(inputs(('MOV(T[0],Sink);',), tag(data=structured, datatype='Packet', extra='Dimensions="1"')), 'T[0]')
+        self.assertIsNone(result['captured_values'][0]['datatype'])
+        self.assertIsNone(result['display_value'])
+
     def test_actual_cpt_leaves_and_unknown_instruction_arguments_are_eligible(self) -> None:
         captured = inputs(('CPT(T.PRE,T.ACC+4);', 'Custom(T.PRE);'))
         self.assertEqual(inspect(captured, 'T.ACC')['display_value']['value'], '42')

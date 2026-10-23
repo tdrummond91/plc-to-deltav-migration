@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from plc_workbench.workspace_field_io import CATALOG_TYPES, FIELD_TYPE_REASONS, FieldIOError, FieldIOIndex, validate_query
+from plc_workbench.workspace_io_comments import MAX_DESCRIPTION_CANDIDATES
 from plc_workbench.workspace_variables import VariableError, VariableIndex
 from test_workspace_connections import multi_routine
 from test_workspace_variables import program, wire
@@ -93,7 +94,8 @@ class WorkspaceFieldIOTests(unittest.TestCase):
         self.assertIsNone(address(selected(index, 'DiscreteIn'), '.Fault.0')['channel'])
         self.assertIsNone(address(selected(index, 'Unlisted'), '.Ch0Data')['channel'])
         self.assertEqual(di['aliases'][0]['name'], 'InputAlias')
-        self.assertEqual(di['description_basis'], 'backing_declaration')
+        self.assertEqual(di['description_basis'], 'exact_alias_description')
+        self.assertEqual(di['description'], 'Invented field alias description')
         self.assertEqual(di['uses'][0]['role'], 'read')
         self.assertEqual(do['uses'][0]['role'], 'write')
         self.assertEqual(ai['uses_total'], 2)  # Direct operand and CPT expression.
@@ -207,6 +209,76 @@ class WorkspaceFieldIOTests(unittest.TestCase):
         self.assertEqual((len(row['source_annotations']), row['source_annotations_total'], row['source_annotations_truncated']),
                          (8, 12, True))
         self.assertTrue(all(note['kind'] == 'member_comment' for note in row['source_annotations']))
+
+    def test_description_selection_prefers_exact_point_and_exposes_conflicts(self) -> None:
+        card = module('Card', 1, '1756-IB16').replace('<InputTag>', '<InputTag>'
+            '<Description>Entire input payload</Description><Comments>'
+            '<Comment Operand="Data.0">Point zero authored comment</Comment>'
+            '<Comment Operand="Data.1">Same text</Comment><Comment Operand="Data.1">Same text</Comment>'
+            '<Comment Operand="Data.2">Point two wording A</Comment>'
+            '<Comment Operand="Data.2">Point two wording B</Comment></Comments>')
+        index = build(field_inputs(('XIC(InputAlias)XIC(Local:1:I.Data.3);',), modules=card))
+        first = address(selected(index, 'Card'), '.Data.0')
+        selection = first['description_selection']
+        self.assertEqual(first['description'], 'Point zero authored comment')
+        self.assertEqual(selection['basis'], 'exact_member_comment')
+        self.assertEqual(selection['status'], 'review_required')  # The exact alias has different wording.
+        self.assertTrue(selection['conflict'])
+        self.assertEqual(selection['candidate_count'], 4)
+        self.assertEqual([note['description_scope'] for note in selection['candidates']],
+                         ['exact_member_comment', 'exact_alias_description', 'backing_description', 'module_description'])
+        self.assertTrue(all(note.get('owner_id') and note.get('locator') for note in selection['candidates']))
+        self.assertEqual(index.annotation_texts[selection['preferred_annotation_id']], first['description'])
+        second = address(selected(index, 'Card'), '.data.1')
+        self.assertFalse(second['description_selection']['conflict'])
+        third = address(selected(index, 'Card'), '.data.2')
+        self.assertEqual(third['description_selection']['conflicting_annotation_count'], 2)
+        fourth = address(selected(index, 'Card'), '.Data.3')
+        self.assertEqual(fourth['description'], 'Entire input payload')
+        self.assertEqual(fourth['description_basis'], 'backing_description')
+        self.assertEqual(fourth['source_annotations'], [])  # Fallback is not relabeled point prose.
+
+    def test_explicit_languages_are_alternatives_but_same_language_conflicts_are_visible(self) -> None:
+        for duplicate, conflict in (('', False), ('<LocalizedComment Lang="fr-FR">Autre entree</LocalizedComment>', True)):
+            with self.subTest(conflict=conflict):
+                card = module('Card', 1, '1756-IB16').replace('<InputTag>', '<InputTag><Comments>'
+                    '<Comment Operand="Data.1"><LocalizedComment Lang="fr-FR">Entree un</LocalizedComment>'
+                    '<LocalizedComment Lang="en-US">Input one</LocalizedComment>' + duplicate + '</Comment></Comments>')
+                row = address(selected(build(field_inputs(('XIC(InputAlias);',), modules=card)), 'Card'), '.data.1')
+                selection = row['description_selection']
+                self.assertEqual(selection['conflict'], conflict)
+                self.assertEqual(row['description'], 'Entree un')
+                self.assertEqual(selection['candidate_count'], 3 + bool(duplicate))  # Includes explicit module fallback.
+                self.assertEqual({note['language'] for note in selection['candidates'][:2]}, {'fr-FR', 'en-US'})
+
+    def test_sint_array_types_are_consistent_between_variable_and_io_views(self) -> None:
+        data = '<ArrayMember Name="Data" DataType="SINT" Radix="Decimal" Dimensions="4"><Element Index="[2]" Value="12"/></ArrayMember>'
+        captured = field_inputs(('MOV(Local:1:I.Data[2],InternalReal);',), modules=module('Bytes', 1, 'INVENTED', data=data))
+        index = build(captured)
+        row = address(selected(index, 'Bytes'), '.Data[2]')
+        self.assertEqual(row['datatype'], 'SINT')
+        self.assertIsNone(row['channel'])
+        value = index.base.view(captured[1].rungs[0].instructions[0].id, 'Local:1:I.Data[2]')['captured_values'][0]
+        self.assertEqual((value['datatype'], value['radix']), ('SINT', 'Decimal'))
+        self.assertEqual(value['datatype_basis'], 'immediate_array')
+
+    def test_description_conflicts_use_full_text_and_keep_bounded_origin_links(self) -> None:
+        prefix = 'Shared preview prose ' * 40
+        notes = ''.join(f'<Comment Operand="Data.1">{prefix} distinct ending {number}</Comment>'
+                        for number in range(MAX_DESCRIPTION_CANDIDATES + 2))
+        card = module('Card', 1, '1756-IB16').replace('<InputTag>', '<InputTag><Comments>' + notes + '</Comments>')
+        index = build(field_inputs(('XIC(InputAlias);',), modules=card))
+        row = address(selected(index, 'Card'), '.data.1')
+        selection = row['description_selection']
+        self.assertTrue(selection['conflict'])
+        self.assertTrue(selection['candidates_truncated'])
+        self.assertEqual(selection['conflicting_annotation_count'], MAX_DESCRIPTION_CANDIDATES + 2)
+        self.assertEqual(len(selection['candidates']), MAX_DESCRIPTION_CANDIDATES)
+        self.assertEqual(selection['candidate_count'], MAX_DESCRIPTION_CANDIDATES + 3)
+        self.assertEqual(len(row['description']), 512)
+        self.assertTrue(row['description_truncated'])
+        self.assertTrue(index.annotation_texts[selection['preferred_annotation_id']].endswith('ending 0'))
+        self.assertTrue(all('text' not in note for note in selection['candidates']))
 
     def test_note_search_uses_full_text_and_notes_beyond_the_display_limit(self) -> None:
         notes = '<Comment Operand="Data.5">' + 'Repeated prose ' * 50 + 'UniqueTailMatch</Comment>'

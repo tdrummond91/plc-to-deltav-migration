@@ -76,6 +76,7 @@ class Workspace:
         self._map_qualification_cache: tuple[Any, Any] = (_UNLOADED, None)
         self._variable_cache: dict[str, Any] = {}
         self._field_io_cache: dict[str, Any] = {}
+        self._application_cache: dict[str, Any] = {}
         self._field_signal_cache: tuple[Any, Any] = (_UNLOADED, None)
         self._translation_service: Any = None
         self._translation_run: str | None = None
@@ -694,6 +695,7 @@ class Workspace:
                 expired = next(iter(self._variable_cache))
                 self._variable_cache.pop(expired)
                 self._field_io_cache.pop(expired, None)
+                self._application_cache.pop(expired, None)
                 if self._field_signal_cache[0] == expired:
                     self._field_signal_cache = (_UNLOADED, None)
             self._variable_cache[run_id] = index
@@ -742,6 +744,10 @@ class Workspace:
             visible += [alias for row in result['addresses']['items'] for alias in row['aliases']]
             originals = {}
             for row in visible:
+                preferred = (row.get('description_selection') or {}).get('preferred_annotation_id')
+                if index and preferred in index.annotation_texts:
+                    originals[row['id']] = index.annotation_texts[preferred]
+                    continue
                 entity = evidence._entities.get(row.get('root_id', row.get('id'))) if evidence else None
                 if entity and entity.description:
                     originals[row['id']] = entity.description
@@ -761,6 +767,54 @@ class Workspace:
         except FieldIOError as exc:
             raise ProjectError(str(exc)) from None
         return {**result, 'run_id': run_id, 'historical': run_id != state.get('active_run')}
+
+    def application(self, query: dict) -> dict:
+        """Read the configured application without changing the selected run or reviews."""
+        from .workspace_application import (MAX_RESPONSE_BYTES, ApplicationError,
+                                             ApplicationIndex, unavailable, validate_query)
+        from .workspace_field_io import FieldIOError, FieldIOIndex, _preview
+        try:
+            selected = validate_query(query)
+            run_id = selected['run_id']
+            state = self.store.state()
+            evidence = self._variable_index(run_id)
+            if run_id not in self._field_io_cache:
+                try:
+                    self._field_io_cache[run_id] = FieldIOIndex(evidence) if evidence else None
+                except FieldIOError:
+                    self._field_io_cache[run_id] = None
+            if run_id not in self._application_cache:
+                field = self._field_io_cache[run_id]
+                try:
+                    self._application_cache[run_id] = ApplicationIndex(field) if field else None
+                except ApplicationError:
+                    self._application_cache[run_id] = None
+            index = self._application_cache[run_id]
+            result = index.view(selected) if index else unavailable(selected['page_size'])
+            visible = [*result['modules']['items'], *result['registers']['items']]
+            visible += [row for row in (result['selected_module'], result['selected_register']) if row]
+            # Cached wording is presentation only: browsing never starts a translation job.
+            originals = {row['id']: index.annotation_texts.get(
+                (row.get('description_selection') or {}).get('preferred_annotation_id'),
+                row.get('description')) for row in visible} if index else {}
+            notes = [note for row in visible for note in row.get('source_annotations', [])]
+            note_originals = {note['id']: index.annotation_texts.get(note['id'], note.get('text'))
+                              for note in notes} if index else {}
+            mode, wording = self._wording([{'text': value} for value in
+                                          [*originals.values(), *note_originals.values()]], 'text')
+            for row in visible:
+                entry = wording.get(originals.get(row['id']))
+                row['wording'] = {'description': _preview(entry) if type(entry) is dict else None}
+            for note in notes:
+                entry = wording.get(note_originals.get(note['id']))
+                note['wording'] = _preview(entry) if type(entry) is dict else None
+            result.update(presentation_mode=mode, run_id=run_id,
+                          historical=run_id != state.get('active_run'))
+            if len(_json(result)) > MAX_RESPONSE_BYTES:
+                raise ApplicationError('Saved application evidence exceeds its response limit. Narrow the selection.')
+            return result
+        except ApplicationError as exc:
+            raise ProjectError(str(exc)) from None
 
     def _field_signal_index(self, run_id: str, state: dict) -> Any:
         """Only the active authenticated source can receive migration decisions."""
@@ -851,7 +905,9 @@ class Workspace:
                         revalidation_reasons=sorted(set(record['revalidation_reasons'] + ['signal_evidence_changed'])))
             notes = [note for row in visible for note in row.get('source_annotations', [])]
             originals = {note['id']: index.field_io.annotation_texts[note['id']] for note in notes} if index else {}
-            descriptions = {row['id']: index.signals[row['id']]['description'] for row in visible}
+            descriptions = {row['id']: index.field_io.annotation_texts.get(
+                (row.get('description_selection') or {}).get('preferred_annotation_id'),
+                index.signals[row['id']]['description']) for row in visible}
             mode, wording = self._wording([{'text': value} for value in [*originals.values(), *descriptions.values()]], 'text')
             for note in notes:
                 entry = wording.get(originals[note['id']])
@@ -1247,6 +1303,7 @@ class Workspace:
         self._map_qualification_cache = (_UNLOADED, None)
         self._variable_cache = {}
         self._field_io_cache = {}
+        self._application_cache = {}
         self._field_signal_cache = (_UNLOADED, None)
         self._historical_labels = {}
         return self.state()
@@ -1371,6 +1428,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._json(200, workspace.variable(query))
             elif url.path == '/api/field-io':
                 self._json(200, workspace.field_io(query))
+            elif url.path == '/api/application':
+                self._json(200, workspace.application(query))
             elif url.path == '/api/field-signals':
                 self._json(200, workspace.field_signals(query))
             elif url.path == '/api/ladder-map':
@@ -1402,6 +1461,7 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                               "/variable-help-content.js",
                               "/field-io.js", "/field-io.css",
                               "/field-signals.js", "/field-signals.css",
+                              "/application-map.js", "/application-map.css",
                               "/rung-flow.js", "/rung-flow.css", "/rung-explanation.js", "/rung-explanation.css",
                               "/routine-browser.js", "/routine-browser.css", "/ladder-diagram.js", "/ladder-diagram.css",
                               "/connections.js", "/connections.css",

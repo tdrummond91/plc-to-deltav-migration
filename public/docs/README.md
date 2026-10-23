@@ -10,6 +10,7 @@ records preserve why the implementation works as it does; older status and
 |---|---|
 | First use; learn what to inspect | [Offline start page and learning checklist](../../START-HERE.html) |
 | Browse all source and save classifications, groups and properties | [Editable engineering workspace](reviews/ENGINEERING_WORKSPACE.md) |
+| Inspect hardware, registers and extraction coverage | [Application map and L5X re-audit](reviews/APPLICATION_MAP_REAUDIT.md) |
 | Understand the start page, progress and themes | [First-use implementation](reviews/GETTING_STARTED_REVIEW.md) |
 | Resume development | [Project README](../../README.md) and [current handoff](../CODEX_HANDOFF.md) |
 | Synchronize main and open the accepted report | [Work-PC instructions](reviews/WORK_MACHINE_REFERENCES_RUN.md) |

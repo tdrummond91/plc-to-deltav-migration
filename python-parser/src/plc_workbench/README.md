@@ -15,6 +15,9 @@ the table is a navigation guide, not a new execution order. Start with the
 | [storage.py](storage.py) | Fresh private run directories, artifact serialization and final manifests. |
 | [project_store.py](project_store.py) | Private SQLite projects: immutable imported artifacts, reviewed decisions, categories/groups/rules, revision checks, history and portable backups. |
 | [workspace.py](workspace.py), [workspace_assets/](workspace_assets/) | Explicitly launched loopback editor, source browsing, structured review controls and restore workflow. |
+| [workspace_application.py](workspace_application.py) | Read-only application map: configured routes, declarations, raw register containment, datatype provenance, exact uses and extraction gaps. |
+| [workspace_variables.py](workspace_variables.py), [workspace_field_io.py](workspace_field_io.py), [workspace_io_comments.py](workspace_io_comments.py) | Authenticated source/value indexes, documented module layouts, original annotation provenance and description selection. |
+| [workspace_field_signals.py](workspace_field_signals.py) | Field-channel candidates and source bindings for separate saved DeltaV names and packages. |
 | [workspace_report.py](workspace_report.py) | Refresh saved evidence views with current navigation while preserving original artifacts. |
 | [review_html.py](review_html.py), [review_assets/](review_assets/) | Offline HTML rendering, JavaScript navigation and CSS. |
 | [review_assets/review_guide.js](review_assets/review_guide.js) | Embedded reviewer checklists, response guidance, glossary and selectable feedback template. |

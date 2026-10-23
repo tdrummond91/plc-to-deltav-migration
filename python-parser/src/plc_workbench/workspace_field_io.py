@@ -14,7 +14,7 @@ from typing import Any
 
 from .references import _ADDRESS
 from .module_catalog import CATALOG_TYPES, lookup_catalog
-from .workspace_io_comments import collect_io_annotations
+from .workspace_io_comments import collect_io_annotations, select_description
 from .workspace_variables import VariableIndex, _member_key
 
 PAGE_SIZE = 24
@@ -330,11 +330,13 @@ class FieldIOIndex:
                 if address is not None:
                     self._annotations(address, notes, 'alias')
         for row in self.addresses.values():
+            self._select_description(row)
             values = base._values.get((row['root_id'], _member_key(row['suffix'])), [])
             types = {value['datatype'] for value in values if value['status'] == 'qualified' and value['datatype']}
             row['datatype'] = next(iter(types)) if len(types) == 1 else None
             self._point(row)
         for identifier, module in self.modules.items():
+            self._select_description(module)
             self.by_module[identifier].sort(key=lambda key: (
                 self.addresses[key]['channel'] is None, self.addresses[key]['direction'],
                 self.addresses[key]['channel'] if self.addresses[key]['channel'] is not None else -1,
@@ -389,6 +391,38 @@ class FieldIOIndex:
             if note['id'] not in self.annotation_texts:
                 self._retain(note['text'])
                 self.annotation_texts[note['id']] = note['text']
+
+    def _select_description(self, row: dict) -> None:
+        """Keep exact annotations apart from explicit backing/module fallbacks."""
+        candidates = []
+        is_address = 'root_id' in row
+        for note in row['source_annotations']:
+            scope = ('exact_member_comment' if note['kind'] == 'member_comment' else
+                     'exact_alias_description' if note['via'] == 'alias' and row.get('suffix') else
+                     'backing_alias_description' if note['via'] == 'alias' else
+                     'module_description' if note['via'] == 'module' else 'backing_description')
+            candidates.append(dict(note, description_scope=scope))
+        if is_address:
+            root_key = self._keys.get((row['root_id'], ''))
+            root = self.addresses.get(root_key) if root_key else None
+            if root is not None and root is not row:
+                candidates.extend(dict(note, description_scope=('backing_alias_description'
+                    if note['via'] == 'alias' else 'backing_description'))
+                    for note in root['source_annotations'])
+            module = self.modules[self._root_module[row['root_id']]]
+            candidates.extend(dict(note, description_scope='module_description')
+                              for note in module['source_annotations'])
+        selection = select_description(candidates, text_lookup=self.annotation_texts)
+        row['description_selection'] = selection
+        row['description_basis'] = selection['basis']
+        identifier = selection['preferred_annotation_id']
+        if identifier:
+            text = self.annotation_texts[identifier]
+            row['description'] = text[:MAX_PREVIEW]
+            row['description_truncated'] = len(text) > MAX_PREVIEW
+        else:
+            row['description'] = None
+        self._retain(selection)
 
     @staticmethod
     def _annotation_preview(row: dict) -> dict:

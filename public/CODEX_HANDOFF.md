@@ -1,5 +1,43 @@
 # Current handoff: PLC analysis workbench
 
+## Application map and representative-export re-audit (2026-10-23)
+
+New **Application map** Home/Page entry separates Phase 1 source evidence from
+editable migration interpretation: Hardware route, Registers & data, Coverage.
+It shares authenticated saved-run indexes and supports historical read-only
+requests without changing the selected run, review revision or saved decisions.
+Connection attributes, parent-port attachments, raw payload containment, scoped
+declarations, types, access sites and exact expressions remain traceable.
+
+Scalar array elements now inherit qualified parent datatype/radix. Duplicate
+paths and contradictory declaration/data metadata remain unresolved. Static
+in-bounds arrays and UDT members resolve from declarations without fabricating
+missing values. Exact description candidates, UDT definitions, backing/module
+fallbacks and conflicts remain distinct. Cached translations use full original
+text even when the visible preview is bounded. Field I/O labels physical layout
+separately from numeric candidates; prior names and packages are preserved.
+
+Re-audit used fourteen pinned public Rockwell exports plus invented route,
+payload, namespace, alias and metadata-conflict fixtures. All public files
+construct successfully, but several intentionally expose unsupported/protected
+regions or noncanonical AOI wrappers; success is not semantic completeness.
+ST/FBD, indirect addresses, copy ranges, AOI side effects, generic drive decoding
+and comment-derived equipment conflicts remain explicitly limited. See the
+[audit, evidence matrix and start path](docs/reviews/APPLICATION_MAP_REAUDIT.md).
+
+After a manual pull, stop/reopen with `bash ./open-workbench.sh`, then choose
+Application map. Existing imported source is sufficient; the normal
+`bash ./run-work-check.sh` remains available for a fresh local analysis. No
+work-PC automatic Git transport, listener, external translation, source artifact
+schema or bounded return-envelope change was introduced.
+
+Validation: 770 broad workspace/store/review tests and 193 focused integration
+checks passed, followed by targeted checks for the final UDT-description changes.
+Independent review found no remaining blockers after reproducing and closing
+the metadata/description defects. All fourteen public exports were rerun through
+the final projection and every register detail was checked. Browser interactions
+and DOM layout bounds passed on invented data; screenshot capture timed out.
+
 ## Controller sections, full rung cards and retained translations (2026-10-23)
 
 Field I/O keeps individual channel rows inside collapsible controller sections,

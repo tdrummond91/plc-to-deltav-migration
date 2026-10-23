@@ -211,6 +211,7 @@
     renderGroups();
     if (state.view === "groups") classificationBrowser.refresh();
     if (state.view === "field-io") fieldIOBrowser.refresh();
+    if (state.view === "application") applicationBrowser.update(state.project);
     if (state.view === "map") ladderMap.refresh();
     renderChanges();
     renderGuide();
@@ -253,6 +254,7 @@
     if (state.view === 'map' && view !== 'map') ladderMap.deactivate?.();
     if (state.view === 'routines' && view !== 'routines') routineBrowser.deactivate();
     if (state.view === 'field-io' && view !== 'field-io') fieldIOBrowser.deactivate();
+    if (state.view === 'application' && view !== 'application') applicationBrowser.deactivate();
     if (view === "connections") {
       if (connectionRung) state.connectionRung = connectionRung;
       else if (state.source?.source?.instructions) state.connectionRung = state.source.source.id;
@@ -285,6 +287,7 @@
       .forEach((n) => (n.hidden = n.id !== "view-" + view));
     if (view === "routines") routineBrowser.refresh();
     if (view === "field-io") fieldIOBrowser.refresh();
+    if (view === "application") applicationBrowser.update(state.project);
     if (view === "rungs") run(loadRungs);
     if (view === "objects") run(loadObjects);
     if (view === "groups") {
@@ -334,6 +337,7 @@
       node('p', p?.active_run ? `${Number(s.rung_count || 0).toLocaleString()} captured rungs · ${Number(s.instruction_count || 0).toLocaleString()} instructions · project revision ${p.revision}` : 'Open a completed analysis to begin. Your existing saved project can be reopened without analyzing the L5X again.'),
       node('p', 'Choose or change the source under Project tools → Choose analysis run.'));
     const pages = [
+      ['application','Application map','Inspect configured hardware routes, raw payloads, tag declarations and the logic that reads or writes them. Check which evidence is captured or unresolved.','Read-only source map · registers · data direction · datatype · coverage'],
       ['patterns','Patterns','Compare rungs grouped by instruction and branch structure, then open each occurrence to inspect its source. Save categorization in Rungs or Classification & groups.','Repeated and single-occurrence structures · Opens in a new window · Uses the selected source language'],
       ['field-io','Field I/O','Name individual field signals for DeltaV and package their scaling, alarms and references across rungs. Hover over a signal for its hardware connection.','DI · DO · AI · AO · DeltaV names · related logic · packages'],
       ['analysis','Full source analysis','Browse the complete saved evidence report: inventory, logic patterns, references, calculations, alarms and unresolved findings.','Opens in a new window · Uses the selected source language'],
@@ -372,6 +376,7 @@
   function pageAccessNote(view, compact = false) {
     const access = {
       home: ['Read only', 'Page directory and current source summary.'],
+      application: ['Read only', 'Configured hardware and captured register evidence. This page does not change source data or saved engineering decisions.'],
       patterns: ['Read only', 'Source structure groups do not establish equivalent behavior. Save categorization in Rungs or Classification & groups.'],
       'field-io': ['Read & write', 'Name individual field signals for DeltaV and package selected scaling, alarms and references. Original source evidence stays read-only.'],
       analysis: ['Read only', 'Saved source evidence and analysis; review decisions are edited in the workspace.'],
@@ -2854,7 +2859,7 @@
     const view = parameters.get("view");
     const source = parameters.get("source") || "";
     if (
-      !["home", "field-io", "routines", "rungs", "objects", "map", "connections", "groups", "changes", "guide"].includes(view) ||
+      !["home", "application", "field-io", "routines", "rungs", "objects", "map", "connections", "groups", "changes", "guide"].includes(view) ||
       source.length > 256 ||
       /[\x00-\x1f\x7f]/.test(source)
     )
@@ -2870,6 +2875,7 @@
     if (state.view === "objects") run(loadObjects);
     if (state.view === "routines") routineBrowser.wordingChanged();
     if (state.view === "field-io") fieldIOBrowser.refresh();
+    if (state.view === "application") applicationBrowser.wordingChanged();
   }
   async function openLocation(skipCheck = false) {
     const location = requestedLocation();
@@ -2944,6 +2950,19 @@
       const view = kind === 'rung' ? 'rungs' : 'objects';
       switchView(view, true);
       await openSource(id, view === 'rungs' ? 'rung-detail' : 'object-detail', true);
+    }),
+  });
+  const applicationBrowser = window.PLCApplicationMap.mount($('application-browser'), {
+    api, getState: () => state.project,
+    onSource: id => run(async () => {
+      if (!discard()) return;
+      switchView('objects', true);
+      await openSource(id, 'object-detail', true);
+    }),
+    onRung: id => run(async () => {
+      if (!discard()) return;
+      switchView('rungs', true);
+      await openSource(id, 'rung-detail', true);
     }),
   });
   const translations = window.PLCTranslation.mount($("translation-controls"), api, translationChanged, $("header-language"));

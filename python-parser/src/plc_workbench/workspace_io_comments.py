@@ -19,6 +19,11 @@ _OWNERS = {'module', 'module_input_tag', 'module_output_tag', 'module_config_tag
            'tag', 'aoi_local_tag', 'aoi_parameter'}
 _PART = r'(?:\.[A-Za-z_][A-Za-z0-9_]*|\.(?:0|[1-9][0-9]*)|\[(?:0|[1-9][0-9]*)(?:,(?:0|[1-9][0-9]*))*\])'
 _SUFFIX = re.compile(_PART + '+', re.ASCII)
+_DESCRIPTION_PRIORITY = {'exact_member_comment': 0, 'exact_alias_description': 0,
+                         'declared_member_description': 5,
+                         'backing_description': 10, 'backing_alias_description': 10,
+                         'module_description': 20}
+MAX_DESCRIPTION_CANDIDATES = 24
 
 
 class IOCommentError(ValueError):
@@ -38,6 +43,58 @@ def _member(operand: str | None) -> str | None:
     if not _SUFFIX.fullmatch(suffix):
         return None
     return re.sub(r'\.[A-Za-z_][A-Za-z0-9_]*', lambda match: match.group().lower(), suffix)
+
+
+def select_description(notes: list[dict], *, text_lookup: dict[str, str] | None = None) -> dict:
+    """Select source prose by declared specificity and expose alternatives.
+
+    Callers supply an explicit description_scope for every candidate. Different
+    same-priority wording requires review unless the source explicitly gives
+    different languages. No language detection, translation, or prose merging
+    is performed. Full annotations remain with their owning source records;
+    this bounded projection supplies links, precedence, and conflict counts.
+    """
+    candidates = []
+    seen = set()
+    for note in notes:
+        scope = note.get('description_scope')
+        text = (text_lookup or {}).get(note['id'], note.get('text', ''))
+        if scope not in _DESCRIPTION_PRIORITY or not text.strip() or note['id'] in seen:
+            continue
+        seen.add(note['id'])
+        candidates.append((note, text, _DESCRIPTION_PRIORITY[scope]))
+    candidates.sort(key=lambda entry: entry[2])  # Source order breaks equal priority; no invented consensus.
+    if not candidates:
+        return {'preferred_annotation_id': None, 'basis': 'missing', 'status': 'missing',
+                'conflict': False, 'alternative_count': 0, 'candidate_count': 0,
+                'candidates': [], 'candidates_truncated': False,
+                'conflicting_annotation_ids': [], 'conflicting_annotation_count': 0}
+    highest = [entry for entry in candidates if entry[2] == candidates[0][2]]
+    # Hash/group by explicit language and exact text, avoiding quadratic work
+    # for large comment sets. An unspecified language can conflict with any.
+    language_texts: dict[str | None, set[str]] = defaultdict(set)
+    for note, text, _ in highest:
+        language_texts[note.get('language') or None].add(text)
+    all_texts = set().union(*language_texts.values())
+    unspecified = language_texts.get(None, set())
+    conflicts = []
+    for note, text, _ in highest:
+        language = note.get('language') or None
+        same_language = language_texts[language]
+        if (len(same_language) > 1 or (language is None and len(all_texts) > 1)
+                or (language is not None and unspecified
+                    and (len(unspecified) > 1 or text not in unspecified))):
+            conflicts.append(note['id'])
+    origins = [{key: value for key, value in note.items() if key != 'text'}
+               for note, _, _ in candidates[:MAX_DESCRIPTION_CANDIDATES]]
+    return {'preferred_annotation_id': candidates[0][0]['id'],
+            'basis': candidates[0][0]['description_scope'],
+            'status': 'review_required' if conflicts else 'selected',
+            'conflict': bool(conflicts), 'alternative_count': len(candidates) - 1,
+            'candidate_count': len(candidates), 'candidates': origins,
+            'candidates_truncated': len(candidates) > MAX_DESCRIPTION_CANDIDATES,
+            'conflicting_annotation_ids': conflicts[:MAX_DESCRIPTION_CANDIDATES],
+            'conflicting_annotation_count': len(conflicts)}
 
 
 def collect_io_annotations(source: bytes, inventory: InventoryResult,

@@ -151,6 +151,14 @@ class FieldSignalIndex:
             row = {key: address[key] for key in ('id', 'root_id', 'suffix', 'address', 'direction',
                 'field_type', 'channel', 'datatype', 'description', 'description_basis',
                 'point_basis', 'point_reference', 'channel_status', 'configuration_status')}
+            row['description_selection'] = address.get('description_selection', {})
+            row['logical_signal'] = {
+                'kind': 'numeric' if address['datatype'] in {'REAL', 'LREAL'} else
+                        'boolean' if address['datatype'] == 'BOOL' else 'unresolved',
+                'direction': address['direction'],
+                'basis': 'captured_datatype_and_module_direction',
+                'physical_layout_documented': documented,
+            }
             row.update(module_id=module_id, source_qualified=True, mapping_status=status,
                 mapping_reason=('exact_catalog_direction_member_and_captured_profile_type' if documented
                     else 'qualified_floating_channel_requires_review' if hinted != 'unknown'

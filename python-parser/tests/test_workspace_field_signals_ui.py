@@ -87,9 +87,9 @@ class FieldSignalsUiTests(unittest.TestCase):
 rows.push(sourceRow('address-2',{field_type:'unknown',candidate_field_types:['ai'],mapping_status:'review_mapping'}));
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
 const table=byClass(root,'field-signals-table')[0];
-assert.ok(table.textContent.includes('Type Source alias / address Source description DeltaV name Package status Info'));
+assert.ok(table.textContent.includes('Physical channel Source alias / address Source description DeltaV name Package status Info'));
 assert.ok(table.textContent.includes('LevelSwitch'));assert.ok(table.textContent.includes('Local:3:I.Data.0'));assert.ok(table.textContent.includes('Niveau haut'));
-assert.ok(table.textContent.includes('AI Candidate'));assert.equal(table.textContent.includes('1756-IB16'),false);assert.equal(table.textContent.includes('Local rack'),false);
+assert.ok(table.textContent.includes('Unresolved AI candidate'));assert.equal(table.textContent.includes('1756-IB16'),false);assert.equal(table.textContent.includes('Local rack'),false);
 assert.equal(byClass(root,'field-signals-controller').length,1);assert.ok(byClass(root,'field-signals-controller')[0].textContent.includes('Invented controller'));
 assert.equal(writes.length,0);assert.equal(controller.hasUnsavedChanges(),false);
 """)
@@ -104,6 +104,26 @@ panels[0].open=false;await panels[0].fire('toggle');await controller.refresh();p
 await findButton(root,'Collapse all').fire('click');assert.equal(panels.every(panel=>!panel.open),true);
 await findButton(root,'Expand all').fire('click');assert.equal(panels.every(panel=>panel.open),true);
 assert.equal(writes.length,0);
+""")
+
+    def test_preferred_description_and_conflicts_do_not_follow_annotation_order(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{description:'Preferred alias description',description_selection:{preferred_annotation_id:'preferred',basis:'exact_alias_description',status:'review_required',conflict:true,candidate_count:2,candidates:[{id:'preferred',owner_id:'alias-1',kind:'description',owner_name:'AliasName'}]},
+ source_annotations:[{id:'backing',text:'Broad backing description'},{id:'preferred',text:'Preferred alias description'}]})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+assert.equal(byClass(root,'field-signals-wording-preview')[0].textContent,'Preferred alias description');
+assert.ok(byClass(root,'field-signals-source-description')[0].textContent.includes('Conflicting source wording'));
+await controller.openSignal('address-1');assert.ok(root.textContent.includes('Description selection evidence'));assert.equal(writes.length,0);
+rows=[sourceRow('address-1',{description:'Preferred module fallback',description_selection:{preferred_annotation_id:'outside-preview',basis:'module_description',status:'selected',conflict:false}})];
+await controller.refresh();assert.equal(byClass(root,'field-signals-wording-preview')[0].textContent,'Preferred module fallback');
+""")
+
+    def test_numeric_payload_hint_is_not_presented_as_documented_physical_ai(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{field_type:'unknown',candidate_field_types:['ai'],mapping_status:'review_mapping',suggested_type_basis:'qualified_floating_channel_and_direction',direction:'input'})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();const table=byClass(root,'field-signals-table')[0];
+assert.ok(table.textContent.includes('Unresolved Numeric input candidate'));assert.equal(table.textContent.includes('AI Source-mapped'),false);
+assert.equal(writes.length,0);assert.equal(controller.hasUnsavedChanges(),false);
 """)
 
     def test_page_size_changes_request_and_keeps_unsaved_signal_edits(self) -> None:

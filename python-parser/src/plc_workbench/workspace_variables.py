@@ -32,6 +32,8 @@ MAX_INDEX_BYTES = 64 * 1024 * 1024
 _NAME = re.compile(r'[A-Za-z_][A-Za-z0-9_]*', re.ASCII)
 _INDEX = re.compile(r'\[\s*[0-9]+(?:\s*,\s*[0-9]+)*\s*\]', re.ASCII)
 _TIMER_OPS = frozenset({'TON', 'TOF', 'RTO', 'CTU', 'CTD'})
+_SCALAR_ARRAY_TYPES = frozenset({'BOOL', 'SINT', 'INT', 'DINT', 'LINT',
+                                'USINT', 'UINT', 'UDINT', 'ULINT', 'REAL', 'LREAL'})
 _MEMBER_LABELS = {
     'TIMER': {
         'PRE': 'Preset time: the target duration compared with accumulated time, in milliseconds for a standard TIMER.',
@@ -156,6 +158,7 @@ class VariableIndex:
         self._has_access = access_result is not None
         self._access = access_result
         self._has_data = tag_data is not None
+        self._data_evidence: TagDataResult | None = None
         self._contents: dict[str, list[dict]] = defaultdict(list)
         self._values: dict[tuple[str, str], list[dict]] = defaultdict(list)
         self._types: dict[tuple[str, str], set[str]] = defaultdict(set)
@@ -231,9 +234,11 @@ class VariableIndex:
                 for identifier in identifiers))
 
     def _data(self, data: TagDataResult) -> None:
+        self._data_evidence = data  # Authenticated above; shared read-only hierarchy.
         paths: dict[str, str | None] = {}
         qualified: dict[str, bool] = {}
         contents = {row['id']: row for row in data.contents}
+        elements = {row['id']: row for row in data.elements}
         occurrences: Counter = Counter()
         children = {row['parent_id'] for row in data.elements}
         for row in data.contents:
@@ -277,19 +282,64 @@ class VariableIndex:
                     self._ambiguous[identity].add(key)
             if not okay:
                 self._ambiguous[identity].add(key)
-            if okay and attrs.get('DataType'):
+            if okay and attrs.get('DataType') and row['xml_name'] not in {'DataValue', 'DataValueMember', 'Element'}:
                 self._types[row['owner_id'], key].add(attrs['DataType'])
             if row['xml_name'] in {'DataValue', 'DataValueMember', 'Element'}:
+                metadata = self._scalar_metadata(row, elements.get(row['parent_id']),
+                    qualified, okay and row['id'] not in children)
                 record = {'element_id': row['id'], 'content_id': row['content_id'], 'owner_id': row['owner_id'],
                     'envelope': content['xml_name'], 'format': content['format_kind'], 'path': path,
-                    'datatype': attrs.get('DataType'), 'radix': attrs.get('Radix'),
+                    **metadata,
                     'value': attrs.get('Value'), 'value_present': 'Value' in attrs,
-                    'status': 'qualified' if okay and row['id'] not in children else 'shape_or_namespace_gap',
+                    'status': ('metadata_conflict' if metadata['metadata_status'] == 'conflict' else
+                               'qualified' if okay and row['id'] not in children else 'shape_or_namespace_gap'),
                     'locator': content['locator'], 'ambiguous': False}
+                # _types describes containing structures for member meanings.
+                # Scalar metadata stays representation-specific in _values;
+                # merging Data/DefaultData here would conflate their types.
                 # IDs and the content locator identify exact stored evidence;
                 # no invented validated member address or default is persisted.
                 self._retain(record)
                 self._values[row['owner_id'], key].append(record)
+
+    @staticmethod
+    def _scalar_metadata(row: dict, parent: dict | None, qualified: dict[str, bool], scalar: bool) -> dict:
+        """Resolve only a scalar Element's immediate decorated array declaration.
+
+        Every effective value names the exact evidence node. A structure-valued
+        Element never gains a scalar datatype from its array; unrelated tags,
+        sibling representations, L5K text and outer arrays are not consulted.
+        """
+        attrs = row['attributes']
+        array = (parent if scalar and row['xml_name'] == 'Element' and parent is not None
+                 and parent['xml_name'] in {'Array', 'ArrayMember'}
+                 and qualified.get(parent['id'], False)
+                 and parent['owner_id'] == row['owner_id']
+                 and parent['content_id'] == row['content_id'] else None)
+        result: dict[str, Any] = {'metadata_status': 'qualified' if scalar else 'unqualified'}
+        for field, attribute in (('datatype', 'DataType'), ('radix', 'Radix')):
+            explicit = attrs.get(attribute)
+            inherited = array['attributes'].get(attribute) if array else None
+            result['declared_' + field] = explicit
+            result['parent_' + field] = inherited
+            result[field] = explicit
+            result[field + '_basis'] = 'explicit' if attribute in attrs else 'missing'
+            result[field + '_source_id'] = row['id'] if attribute in attrs else None
+            if explicit and inherited and _upper(explicit) != _upper(inherited):
+                result[field] = None
+                result[field + '_basis'] = 'conflict_with_array'
+                result[field + '_source_id'] = None
+                result['metadata_status'] = 'conflict'
+            elif attribute not in attrs and array:
+                # A custom structure type on an Array is not a scalar storage
+                # declaration, even if an unfamiliar Element contains Value.
+                parent_type = _upper(array['attributes'].get('DataType', ''))
+                if inherited and parent_type in _SCALAR_ARRAY_TYPES:
+                    result[field] = inherited
+                    result[field + '_basis'] = 'immediate_array'
+                    result[field + '_source_id'] = array['id']
+        result['array_source_id'] = array['id'] if array else None
+        return result
 
     def _member(self, owner: Any, suffix: str, values: list[dict]) -> dict | None:
         if not suffix:
@@ -411,6 +461,8 @@ class VariableIndex:
             limitations.append('Other Data/DefaultData representations are retained separately and have not been reconciled.')
         if ambiguous_values or len(data_contents) > 1:
             limitations.append('Repeated or structurally ambiguous decorated evidence prevents a single inline value.')
+        if any(row.get('metadata_status') == 'conflict' for row in candidates):
+            limitations.append('An Element datatype or radix conflicts with its immediate array declaration; both source values are retained and no single inline value is selected.')
         if member and member['status'] != 'known':
             limitations.append('This member has no unambiguous documented meaning in the current type catalogue; no meaning is inferred from its name.')
         referenced = self._entities.get(binding.get('symbol_id'))

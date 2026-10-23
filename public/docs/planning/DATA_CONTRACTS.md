@@ -1,5 +1,28 @@
 # Data contracts, traceability, and checkpoints
 
+## Read-only application projection (2026-10-23)
+
+`/api/application` requires an imported `run_id` and supports active or historical
+source without changing the active run or review revision. It shares the bounded
+authenticated VariableIndex and FieldIOIndex caches. The projection has a
+100,000-register / 96 MiB index bound and 8 MiB response bound; directories and
+uses offer 10/50/100/200/500 rows with independent pages. Cache eviction and
+backup restoration also invalidate dependent application indexes.
+
+Projection IDs identify register rows; captured `source_id` and `root_id` identify
+the source declaration. Neither replaces durable editable signal/group IDs.
+Hardware, declaration kind, datatype, direction, logic access, physical layout,
+unknown signal meaning and transport are separate dimensions with field-specific
+states and provenance. UDT declarations do not fabricate missing values. Raw
+representations and ambiguous/conflicting metadata remain distinct. Description
+selection records its preferred annotation and alternative provenance; cached
+English uses the full original annotation as its lookup key.
+
+This is an additive workspace view, not a schema/analysis-artifact/work-report
+version change. Existing names, classifications and package decisions are not
+rewritten. See the [implementation and re-audit](../reviews/APPLICATION_MAP_REAUDIT.md)
+for source coverage and remaining interpretation limits.
+
 ## Editable field signals and packages (2026-10-22)
 
 Project SQLite schema 2 adds a `signals(id, record)` table. The schema-1 upgrade

@@ -182,12 +182,12 @@ class WorkspacePageTests(unittest.TestCase):
         self.assertNotIn('project-navigation', page.parents)
         self.assertNotIn('routine-tree', page.parents)
 
-    def test_page_menu_puts_patterns_first_and_keeps_full_analysis_separate(self) -> None:
+    def test_page_menu_starts_with_application_and_keeps_full_analysis_separate(self) -> None:
         html = (ASSETS / 'index.html').read_text(encoding='utf-8')
         menu = re.search(r'<select id="page-select">(.*?)</select>', html, re.DOTALL)
         self.assertIsNotNone(menu)
         values = re.findall(r'<option value="([^"]+)"', menu.group(1))
-        self.assertEqual(values, ['home', 'patterns', 'field-io', 'analysis', 'routines', 'rungs',
+        self.assertEqual(values, ['home', 'application', 'patterns', 'field-io', 'analysis', 'routines', 'rungs',
                                   'map', 'connections', 'groups', 'objects'])
         self.assertNotIn('view-patterns', page_ids := [attrs.get('id') for _, attrs in Page().elements])
         self.assertNotIn('view-analysis', page_ids)
@@ -622,26 +622,26 @@ importDialog=()=>{};state.project={active_run:'invented',revision:3,source:{name
 const visits=[];navigateWorkspace=view=>visits.push(view);
 renderHome();assert.ok(contents($('home-source')).includes('Invented.L5X'));
 const links=descendants($('home-pages')).filter(n=>n.tagName==='a');
-assert.equal(links.length,9);
+assert.equal(links.length,10);
 assert.deepEqual($('home-pages').children,links);
 links.forEach(link=>link.events.click({preventDefault(){}}));
-assert.deepEqual(visits,['patterns','field-io','analysis','routines','rungs','map','connections','groups','objects']);
-for(const card of [links[0],links[2]]){
+assert.deepEqual(visits,['application','patterns','field-io','analysis','routines','rungs','map','connections','groups','objects']);
+for(const card of [links[1],links[3]]){
   for(const modifiers of [{ctrlKey:true},{metaKey:true},{shiftKey:true},{button:1}]){
     card.events.click({...modifiers,preventDefault(){throw new Error('Keep native new-window navigation');}});
   }
   assert.equal(card.target,'_blank');assert.equal(card.rel,'noopener');
 }
-assert.equal(visits.length,9);
+assert.equal(visits.length,10);
 // No language override: server applies the saved preference, even before UI status loads.
-assert.equal(links[0].href,'/analysis#view=patterns');assert.equal(links[0].id,'patterns-card');
-assert.equal(links[1].href,'#view=field-io');assert.equal(links[1].children[0].textContent,'Field I/O');
-assert.equal(links[2].href,'/analysis#view=overview');assert.equal(links[2].id,'full-analysis-card');
-assert.equal(links[0].children[0].textContent,'Patterns');
-assert.ok(contents(links[0]).includes('Save categorization in Rungs or Classification & groups'));
-assert.ok(links[0].children[1].title.includes('do not establish equivalent behavior'));
+assert.equal(links[1].href,'/analysis#view=patterns');assert.equal(links[1].id,'patterns-card');
+assert.equal(links[2].href,'#view=field-io');assert.equal(links[2].children[0].textContent,'Field I/O');
+assert.equal(links[3].href,'/analysis#view=overview');assert.equal(links[3].id,'full-analysis-card');
+assert.equal(links[1].children[0].textContent,'Patterns');
+assert.ok(contents(links[1]).includes('Save categorization in Rungs or Classification & groups'));
+assert.ok(links[1].children[1].title.includes('do not establish equivalent behavior'));
 assert.deepEqual(links.map(card=>card.children[1].textContent),
-  ['Read only','Read & write','Read only','Read only','Read & write','Read & write','Read only','Read & write','Read & write']);
+  ['Read only','Read only','Read & write','Read only','Read only','Read & write','Read & write','Read only','Read & write','Read & write']);
 assert.ok(contents($('home-pages')).includes('AI, AO, DI, DO, DC, AC, PID'));
 """)
 
@@ -679,6 +679,18 @@ document.querySelectorAll=()=>[];let refreshes=0,exits=0;
 fieldIOBrowser={refresh:()=>refreshes++,deactivate:()=>exits++};state.view='home';
 assert.equal(switchView('field-io'),true);assert.equal(refreshes,1);assert.equal($('page-select').value,'field-io');
 assert.equal(switchView('home'),true);assert.equal(exits,1);assert.equal(state.view,'home');
+""")
+
+    def test_application_navigation_initializes_run_and_reactivates_after_exit(self) -> None:
+        self.run_js(['switchView'], r"""
+const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
+document.querySelectorAll=()=>[];let updates=0,exits=0;
+applicationBrowser={update:value=>{updates++;assert.equal(value,state.project);},deactivate:()=>exits++};
+state.view='home';
+assert.equal(switchView('application'),true);assert.equal(updates,1);
+assert.equal($('page-select').value,'application');
+assert.equal(switchView('home'),true);assert.equal(exits,1);
+assert.equal(switchView('application'),true);assert.equal(updates,2);
 """)
 
     def test_changed_analysis_clears_unavailable_routine_filter(self) -> None:

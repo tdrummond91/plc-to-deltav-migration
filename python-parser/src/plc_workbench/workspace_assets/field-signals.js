@@ -6,7 +6,7 @@
   const ROLES = {scaling: 'Scaling', alarm: 'Alarm', reference: 'Reference', logic: 'Logic'};
   const MAPPING = {exact_catalog_direction_member_and_captured_profile_type: 'Catalog, data direction, member layout and captured datatype match the documented profile.',
     captured_member_layout_requires_review: 'The module type is recognized, but this member layout still needs review.',
-    qualified_floating_channel_requires_review: 'The captured floating-point channel and input/output direction suggest AI/AO. Its physical mapping still needs review.',
+    qualified_floating_channel_requires_review: 'A floating-point payload and input/output direction are captured. They suggest a numeric signal; its physical channel mapping remains unresolved.',
     captured_member_and_catalog_require_review: 'The member layout and module catalog both need review.'};
   const el = (tag, text, cls = '') => {
     const item = document.createElement(tag); item.className = cls;
@@ -34,7 +34,10 @@
     .every(key => left[key] === right[key]);
   const sameEvidence = (left, right) => left && right && ['snapshot_id', 'root_id', 'suffix', 'address_id', 'evidence_signature']
     .every(key => left[key] === right[key]);
-  const textOf = row => row.source_annotations?.[0]?.text || row.description || '';
+  const preferredNote = row => row.preferred_annotation || row.source_annotations?.find(note => note.id === row.description_selection?.preferred_annotation_id);
+  const textOf = row => preferredNote(row)?.text || (row.description_selection ? row.description : row.source_annotations?.[0]?.text || row.description) || '';
+  const wordingOf = row => preferredNote(row)?.wording || row.wording?.description;
+  const descriptionNotice = row => row.description_selection?.conflict ? 'Conflicting source wording · review alternatives' : '';
   const labelOf = row => row.aliases?.[0]?.name || row.address || row.id;
   const proposedName = row => row.suggested_target_name ?? row.aliases?.[0]?.name ?? row.source_metadata?.base_name ?? '';
   const controllerOf = row => {
@@ -50,7 +53,7 @@
     const section = select([['all', 'Signals and candidates'], ['signals', 'Documented signals'], ['candidates', 'Mapping candidates']], 'all', 'field-signals-section');
     const pageSize = select(PAGE_SIZES.map(size => [String(size), String(size)]), '50', 'field-signals-page-size');
     const submit = el('button', 'Search'); submit.type = 'submit';
-    filters.append(field('Find alias, address, DeltaV name, package or source wording', query), field('Field type', type), field('Evidence', section), field('Signals per page', pageSize), submit);
+    filters.append(field('Find alias, address, DeltaV name, package or source wording', query), field('Physical type / candidate', type), field('Evidence', section), field('Signals per page', pageSize), submit);
     const status = el('p', undefined, 'field-signals-status'); status.setAttribute('role', 'status');
     const draftsNotice = el('div', undefined, 'field-signals-drafts');
     const layout = el('div', undefined, 'field-signals-layout');
@@ -180,19 +183,23 @@
     }
     function signalTable(rows, result, expected) {
       const table = el('table', undefined, 'field-signals-table'), head = el('thead'), header = el('tr');
-      ['Type', 'Source alias / address', 'Source description', 'DeltaV name', 'Package status', 'Info'].forEach(label => header.append(el('th', label)));
+      ['Physical channel', 'Source alias / address', 'Source description', 'DeltaV name', 'Package status', 'Info'].forEach(label => header.append(el('th', label)));
       head.append(header); const body = el('tbody');
       rows.forEach(row => {
         const tr = el('tr'); if (row.id === selectedId) tr.className = 'is-current';
         const mapped = row.mapping_status === 'documented_member_layout';
-        const typeLabel = mapped ? TYPES[row.field_type] || TYPES.unknown
-          : (row.candidate_field_types || []).map(value => TYPES[value]).filter(Boolean).join(' / ') || TYPES.unknown;
-        const category = el('td'); category.append(el('strong', typeLabel), el('small', mapped ? 'Source-mapped' : 'Candidate', 'muted'));
+        const typeLabel = mapped ? TYPES[row.field_type] || TYPES.unknown : TYPES.unknown;
+        const candidates = (row.candidate_field_types || []).map(value => TYPES[value]).filter(Boolean).join(' / ');
+        const numeric = row.suggested_type_basis === 'qualified_floating_channel_and_direction' || row.mapping_reason === 'qualified_floating_channel_requires_review';
+        const detailLabel = mapped ? 'Source-mapped' : numeric ? 'Numeric ' + (row.direction === 'output' ? 'output' : 'input') + ' candidate'
+          : candidates ? candidates + ' candidate · mapping unresolved' : 'Mapping unresolved';
+        const category = el('td'); category.append(el('strong', typeLabel), el('small', detailLabel, 'muted'));
         const source = el('td'); source.append(button(labelOf(row), async () => { if (requireCurrent(expected)) { await openRow(row); revealEditor(); } }, 'field-signals-open'));
         if (labelOf(row) !== row.address) source.append(el('code', row.address));
         if (row.aliases_total > 1) source.append(el('small', row.aliases_total + ' captured aliases', 'muted'));
         const description = el('td', undefined, 'field-signals-source-description'), wording = el('div', undefined, 'field-signals-wording-preview');
-        prose(wording, textOf(row), row.source_annotations?.[0]?.wording || row.wording?.description, result.presentation_mode); description.append(wording);
+        prose(wording, textOf(row), wordingOf(row), result.presentation_mode); description.append(wording);
+        if (descriptionNotice(row)) description.append(el('small', descriptionNotice(row), 'field-signals-description-conflict'));
         const saved = row.saved_signal, names = el('td', undefined, 'field-signals-name');
         names.append(el('span', (saved ? saved.target_name : proposedName(row)) || 'Not assigned'));
         if (!saved && proposedName(row)) names.append(el('small', 'Proposed · unreviewed', 'muted'));
@@ -541,6 +548,23 @@
         if (value !== undefined && value !== null && value !== '') facts.append(el('dt', label), el('dd', value));
       });
       if (facts.children.length) source.append(facts);
+      if (row.description_selection) {
+        const selection = row.description_selection, preferred = el('article'), wording = el('div');
+        preferred.append(el('strong', 'Preferred source wording')); prose(wording, textOf(row), wordingOf(row), draft.payload.presentation_mode);
+        preferred.append(wording, el('small', 'Selection: ' + (selection.basis || 'Not captured').replaceAll('_', ' ') + ' · ' + (selection.status || 'unknown').replaceAll('_', ' '), 'muted'));
+        if (descriptionNotice(row)) preferred.append(el('p', descriptionNotice(row) + '. Source alternatives remain unchanged.', 'field-signals-description-conflict'));
+        source.append(preferred);
+        const choices = selection.candidates || [];
+        if (choices.length) {
+          const alternatives = el('details'); alternatives.append(el('summary', 'Description selection evidence'));
+          choices.forEach(candidate => {
+            const entry = el('p', [candidate.kind, candidate.basis, candidate.owner_name].filter(Boolean).map(value => String(value).replaceAll('_', ' ')).join(' · ') || 'Source wording candidate');
+            if (candidate.owner_id) entry.append(sourceLink('Open candidate source', candidate.owner_id, 'objects', draft.context)); alternatives.append(entry);
+          });
+          if (selection.candidates_truncated || selection.candidate_count > choices.length) alternatives.append(el('small', `Showing ${choices.length} of ${selection.candidate_count} description candidates.`, 'muted'));
+          source.append(alternatives);
+        }
+      }
       const notes = row.source_annotations || [];
       if (notes.length) notes.slice(0, 8).forEach(note => {
         const entry = el('article'), text = el('div');

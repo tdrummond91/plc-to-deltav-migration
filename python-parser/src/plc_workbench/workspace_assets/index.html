@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="/translation.css" />
     <link rel="stylesheet" href="/classification.css" />
     <link rel="stylesheet" href="/field-signals.css" />
+    <link rel="stylesheet" href="/application-map.css" />
     <link rel="stylesheet" href="/ladder-map.css" />
     <link rel="stylesheet" href="/rung-explanation.css" />
     <link rel="stylesheet" href="/ladder-diagram.css" />
@@ -25,6 +26,7 @@
     <script defer src="/translation.js"></script>
     <script defer src="/classification.js"></script>
     <script defer src="/field-signals.js"></script>
+    <script defer src="/application-map.js"></script>
     <script defer src="/ladder-map.js"></script>
     <script defer src="/rung-explanation.js"></script>
     <script defer src="/instruction-help-content.js"></script>
@@ -51,6 +53,7 @@
         <label>Page<select id="page-select">
           <option value="" disabled>Choose a page</option>
           <option value="home">Home / page guide</option>
+          <option value="application">Application map</option>
           <option value="patterns">Patterns ↗</option>
           <option value="field-io">Field I/O</option>
           <option value="analysis">Full source analysis ↗</option>
@@ -111,6 +114,11 @@
           <section class="panel home-reference"><h2>Arrange your workspace</h2>
           <p>Use Page for engineering views, including Programs &amp; routines. How to review opens the checkable guide. Project tools contains source selection, Source language, backups and Changes &amp; reconciliation. Drag a source divider, or hide its pane. Pop out a saved source to free its original pane; Show source restores it. Separate windows have independent selections. Save, then use Project tools → Refresh saved data in the other window.</p>
           <p><strong>To finish:</strong> save your edits, then use Stop workspace in the main window or Ctrl+C in its Bash terminal. Chrome’s X closes that window only; the local server and any translation work continue.</p></section>
+        </section>
+        <section id="view-application" class="view" hidden>
+          <div class="page-heading"><div><span class="eyebrow">SOURCE EVIDENCE</span><h1>Application map</h1>
+          <p>Explore configured hardware, raw registers and their captured logic uses. Physical channels, datatype and process-data direction are shown separately.</p></div></div>
+          <div id="application-browser"></div>
         </section>
         <section id="view-field-io" class="view" hidden>
           <div class="page-heading"><div><span class="eyebrow">FIELD SIGNALS AND DELTAV PACKAGES</span>
