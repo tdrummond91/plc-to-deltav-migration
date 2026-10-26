@@ -78,7 +78,7 @@ class BindingContextWorkflowTests(unittest.TestCase):
             self.assertEqual((manifest['review_schema_version'], manifest['review_version']), (11, 'engineering-review-11'))
             self.assertEqual((manifest['binding_context_schema_version'], manifest['binding_context_analyzer_version']),
                              (1, 'binding-context-1'))
-            self.assertEqual((current / 'review.html').read_bytes(), render_review_html(data).encode())
+            self.assertEqual((current / 'review.html').read_bytes(), render_review_html(data, source=parts[0].data).encode())
             self.assertFalse((current / 'binding-context.json').exists())
             for name, details in manifest['artifacts'].items():
                 value = (current / name).read_bytes()
@@ -166,7 +166,7 @@ class BindingContextWorkflowTests(unittest.TestCase):
                 from test_engineering_assemblies_rack_workflow import captured as latest_captured, options as latest_options
                 latest = latest_captured(SOURCE)
                 data = build_review_data(*latest[:4], **latest_options(latest))
-                self.assertEqual((saved / 'review.html').read_bytes(), render_review_html(data).encode())
+                self.assertEqual((saved / 'review.html').read_bytes(), render_review_html(data, source=latest[0].data).encode())
                 with patch.object(work_check, 'save_run', return_value=root / 'saved') as save:
                     outcome = work_check._analyze(root, input_path, root, REVISION)
                 self.assertIsNone(outcome['failure_code'])

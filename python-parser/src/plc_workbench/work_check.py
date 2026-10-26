@@ -2030,8 +2030,14 @@ def run_check(root: Path, supplied_source: str | None, *, review_debug: bool = F
         with timings.phase(f"{suite}_tests"):
             results[suite] = _run_suite(root, logs, suite)
         result = results[suite]
-        count = result["counts"]["tests_run"] if result["counts"] is not None else 0
-        print(f"{suite} tests: {result['status']} ({count} run).", flush=True)
+        counts = result["counts"]
+        detail = f"{counts['tests_run']} run" if counts is not None else "counts unavailable"
+        if result["status"] != "passed" and counts is not None:
+            detail += (f"; {counts['failures']} failures, {counts['errors']} errors, "
+                       f"{counts['unexpected_successes']} unexpected successes")
+        print(f"{suite} tests: {result['status']} ({detail}).", flush=True)
+        if result["status"] != "passed":
+            print(f"Local test log: {logs / f'{suite}-tests.log'}", flush=True)
     revision = {"commit": commit, "worktree": "clean"}
     if all(result["status"] == "passed" for result in results.values()):
         print("Analyzing source and saving private results...", flush=True)
@@ -2044,6 +2050,8 @@ def run_check(root: Path, supplied_source: str | None, *, review_debug: bool = F
                             **({"on_saved_run": saved_runs.append} if open_workspace else {}),
                             **({"review_debug": True} if review_debug else {}))
     else:
+        print("Analysis was NOT run because parser tests did not pass. No new analysis was saved.", flush=True)
+        print("The workspace was not updated; an open workspace still shows its previous analysis.", flush=True)
         analysis = {"status": "not_run", "failure_code": None, "private_run_saved": False,
                     "reference_summary": None, "sfc_structure_summary": None, "access_summary": None,
                     "tag_data_summary": None, "pid_summary": None, "pid_member_summary": None, "calculation_summary": None, "rung_analysis_summary": None, "relationship_summary": None, "condition_summary": None,
@@ -2094,6 +2102,8 @@ def run_check(root: Path, supplied_source: str | None, *, review_debug: bool = F
     print("Nothing was pulled or pushed. Review the report, then run git push when ready.", flush=True)
     print(f"Check status: {status}. Raw logs and engineering records remain under confidential/.", flush=True)
     if status == "failed":
+        if analysis["status"] == "not_run":
+            print("Only a test-result report was saved. There is no new analysis run to select.", flush=True)
         return 1
     if open_workspace:
         if (len(saved_runs) != 1 or not analysis["private_run_saved"]

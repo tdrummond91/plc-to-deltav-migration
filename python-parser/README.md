@@ -25,6 +25,11 @@ the existing window. You do not need to analyze the L5X again. After updating
 the application code, use **Stop workspace**, then `bash ./open-workbench.sh` so
 the server also uses the new code.
 
+If work-check reports failed tests and **Analysis was NOT run**, it saves a feedback
+report but creates no new source analysis. The workspace keeps its previous run
+date. Fix/update the failing code before rerunning `bash ./run-work-check.sh`;
+reopening the editor cannot create the missing analysis.
+
 The editor has adjustable equation text (75% by default), a resizable rung/source
 split, and optional offline English views of French/mixed comments and descriptions.
 Run `bash ./setup-translation.sh` once, then choose **English** or **Both languages**

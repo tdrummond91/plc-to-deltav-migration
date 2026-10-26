@@ -1,5 +1,37 @@
 # Current handoff: PLC analysis workbench
 
+## October 26 analysis blocked by preflight report tests (2026-10-26)
+
+Returned work checks `20261026T162024Z-df5db8f5` and
+`20261026T172248Z-e9e0a13c` both report sixteen application test failures,
+`analysis.status = not_run`, `private_run_saved = false`, and no analysis/save
+timings. No new October 26 analysis was created by those attempts; the workspace
+therefore continued to show its earlier imported run. The previously reproduced
+Application map capacity defect was real but did not explain these two runs.
+
+The failures were stale exact-HTML expectations: `save_run` renders with captured
+source bytes to qualify ladder drawings, while the expected reports in historical
+workflow tests rendered without those bytes. Sixteen assertions now pass the
+independently captured original fixture bytes, preserving full byte equality,
+source-mutation checks, mismatched-source rejection and the normal test gate.
+Parser evidence, display qualification and artifact contracts are unchanged.
+
+Failed preflight output now explicitly states that analysis was skipped and no
+new analysis was saved, distinguishes the feedback report from an analysis run,
+and prints failure/error counts plus private log locations. It never opens the
+workspace after a failed gate. The public feedback schema and manual Git transport
+remain unchanged. Independent review found no blockers.
+
+Validation: the exact work-machine application selection passed all 2,156 tests
+(two skips), and all 139 helper tests passed. Both runners exited successfully.
+The sixteen originally failing tests also passed independently after the fix.
+
+A complete synthetic analysis using the same work-check analysis options saved
+a new October 26 manifest and imported it into a temporary project with the
+matching run timestamp and fourteen captured rungs. After pulling this fix, stop
+the old workspace and run `bash ./run-work-check.sh` once: unlike reopening an
+existing completed analysis, these failed attempts require a fresh run.
+
 ## Visible analysis identity and large application maps (2026-10-26)
 
 The sticky header, Project tools and Home now show the selected manifest's

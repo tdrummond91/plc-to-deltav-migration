@@ -182,7 +182,7 @@ class SignalPatternsWorkflowTests(unittest.TestCase):
             from test_engineering_assemblies_rack_workflow import captured as current_captured, options as current_options
             current_parts = current_captured(SOURCE)
             expected = review.build_review_data(*current_parts[:4], **current_options(current_parts))
-            self.assertEqual((saved / 'review.html').read_bytes(), review_html.render_review_html(expected).encode())
+            self.assertEqual((saved / 'review.html').read_bytes(), review_html.render_review_html(expected, source=current_parts[0].data).encode())
 
 
 if __name__ == '__main__':

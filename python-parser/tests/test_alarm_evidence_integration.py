@@ -212,7 +212,7 @@ class AlarmEvidenceIntegrationTests(unittest.TestCase):
             from test_engineering_assemblies_rack_workflow import captured as latest_captured, options as latest_options
             latest = latest_captured(SOURCE)
             current = review.build_review_data(*latest[:4], **latest_options(latest))
-            self.assertEqual((saved/'review.html').read_bytes(), review_html.render_review_html(current).encode())
+            self.assertEqual((saved/'review.html').read_bytes(), review_html.render_review_html(current, source=latest[0].data).encode())
 
     def test_cli_failure_is_source_free_and_allocates_nothing(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

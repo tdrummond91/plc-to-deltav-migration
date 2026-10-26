@@ -72,7 +72,8 @@ class CompletedRunCallbackTests(unittest.TestCase):
 class WorkspaceHandoffTests(unittest.TestCase):
     def workflow(self, root: Path, *, status: str = "partial", saved: bool = True,
                  handoffs: int = 1, suite_status: str = "passed",
-                 corrupt_commit: bool = False, open_workspace: bool = True):
+                 corrupt_commit: bool = False, open_workspace: bool = True,
+                 suite_results: list[dict] | None = None, output: io.StringIO | None = None):
         """Isolate orchestration; parser callbacks are exercised with real data above."""
         source = root / "invented.L5X"
         source.write_bytes(SOURCE)
@@ -132,14 +133,15 @@ class WorkspaceHandoffTests(unittest.TestCase):
             events.append("opened")
             return 0
 
-        output = io.StringIO()
+        output = output if output is not None else io.StringIO()
         errors = io.StringIO()
         with ExitStack() as stack:
             stack.enter_context(patch.object(work_check, "_git", side_effect=git))
             stack.enter_context(patch.object(work_check, "_branch", return_value=BRANCH))
             stack.enter_context(patch.object(work_check, "_check_pinned"))
             stack.enter_context(patch.object(work_check, "_remember_source"))
-            stack.enter_context(patch.object(work_check, "_run_suite", side_effect=[test_result(suite_status), test_result()]))
+            stack.enter_context(patch.object(work_check, "_run_suite", side_effect=(
+                suite_results if suite_results is not None else [test_result(suite_status), test_result()])))
             analyzed = stack.enter_context(patch.object(work_check, "_analyze", side_effect=analyze))
             opened = stack.enter_context(patch.object(work_check, "_open_completed_workspace", side_effect=launch))
             stack.enter_context(patch.object(work_check, "render_work_check_report", side_effect=json.dumps))
@@ -176,6 +178,47 @@ class WorkspaceHandoffTests(unittest.TestCase):
                 self.assertEqual(reports[0]["status"], "failed")
                 if "suite_status" in options:
                     analyzed.assert_not_called()
+
+    def test_failed_preflight_explains_unchanged_workspace_and_private_log(self) -> None:
+        failed = test_result("failed")
+        failed["counts"].update(tests_run=1700, failures=16, errors=2, unexpected_successes=1)
+        for application in (failed, work_check.unavailable_result("runner_error")):
+            with self.subTest(status=application["status"]), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder).resolve()
+                output = io.StringIO()
+                result, opened, analyzed, reports, errors, calls = self.workflow(
+                    root, suite_results=[application, test_result()], output=output)
+                text = output.getvalue()
+                self.assertEqual(result, 1)
+                opened.assert_not_called()
+                analyzed.assert_not_called()
+                self.assertEqual(reports[0]["analysis"]["status"], "not_run")
+                self.assertFalse(reports[0]["analysis"]["private_run_saved"])
+                self.assertIn("Analysis was NOT run", text)
+                self.assertIn("No new analysis was saved", text)
+                self.assertIn("workspace still shows its previous analysis", text)
+                self.assertIn("Only a test-result report was saved", text)
+                self.assertIn("There is no new analysis run to select", text)
+                self.assertIn(str(root / "confidential" / "work-checks"), text)
+                self.assertIn("application-tests.log", text)
+                self.assertNotIn("helpers-tests.log", text)
+                self.assertNotIn("Analyzing source and saving", text)
+                if application["counts"] is None:
+                    self.assertIn("application tests: runner_error (counts unavailable)", text)
+                else:
+                    self.assertIn("1700 run; 16 failures, 2 errors, 1 unexpected successes", text)
+                self.assertFalse(any(call[0] in {"fetch", "pull", "push"} for call in calls))
+
+    def test_success_does_not_claim_analysis_was_skipped(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            output = io.StringIO()
+            result, opened, analyzed, reports, errors, calls = self.workflow(
+                Path(folder).resolve(), output=output)
+        self.assertEqual(result, 0)
+        opened.assert_called_once()
+        self.assertIn("application tests: passed (3 run)", output.getvalue())
+        self.assertNotIn("No new analysis", output.getvalue())
+        self.assertNotIn("Only a test-result report", output.getvalue())
 
     def test_absent_ambiguous_or_unsaved_handoff_never_selects_latest_run(self) -> None:
         for options in ({"handoffs": 0}, {"handoffs": 2}, {"saved": False}):
