@@ -275,10 +275,31 @@ class WorkspaceFieldSignalTests(unittest.TestCase):
                 index.view(query(**values))
         with self.assertRaises(FieldSignalError):
             FieldSignalIndex(field_io(), connections(field_inputs(('XIC(InternalBool);',))))
-        with patch('plc_workbench.workspace_field_signals.MAX_INDEX_BYTES', 1), self.assertRaises(FieldSignalError):
-            build(related=False)
+        for setting, value, reason in (('MAX_INDEX_BYTES', 1, 'index_bytes_limit'),
+                                      ('MAX_SIGNALS', 0, 'signal_count_limit')):
+            with self.subTest(setting=setting), \
+                    patch('plc_workbench.workspace_field_signals.' + setting, value), \
+                    self.assertRaises(FieldSignalError) as caught:
+                build(related=False)
+            self.assertEqual(caught.exception.diagnostic['stage'], 'field_signals')
+            self.assertEqual(caught.exception.diagnostic['reason'], reason)
+            self.assertEqual(caught.exception.diagnostic['limit'], value)
+            self.assertGreater(caught.exception.diagnostic['actual'], value)
         with patch('plc_workbench.workspace_field_signals.MAX_RESPONSE_BYTES', 1), self.assertRaises(FieldSignalError):
             index.view(query())
+
+    def test_projection_failure_diagnostic_retains_no_source_exception(self) -> None:
+        field = field_io()
+        with patch.object(FieldSignalIndex, '_build', side_effect=ValueError('PRIVATE_CHANNEL_DESCRIPTION')), \
+                self.assertRaises(FieldSignalError) as caught:
+            FieldSignalIndex(field)
+        self.assertEqual(caught.exception.diagnostic,
+                         {'stage': 'field_signals', 'reason': 'projection_failed'})
+        self.assertNotIn('PRIVATE_CHANNEL_DESCRIPTION', str(caught.exception))
+        with self.assertRaises(FieldSignalError) as invalid:
+            FieldSignalIndex(None)
+        self.assertEqual(invalid.exception.diagnostic,
+                         {'stage': 'field_signals', 'reason': 'invalid_evidence'})
 
 
 if __name__ == '__main__':

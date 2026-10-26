@@ -12,6 +12,7 @@ import re
 
 from .models import InventoryResult
 from .source import _read_nodes, snapshot_from_bytes
+from .workspace_evidence import diagnostic
 
 MAX_ANNOTATIONS = 25_000
 MAX_ANNOTATION_CHARS = 4_000_000
@@ -29,9 +30,16 @@ MAX_DESCRIPTION_CANDIDATES = 24
 class IOCommentError(ValueError):
     """Fixed, source-free error for annotation evidence failures."""
 
+    def __init__(self, message: str, *, reason: str = 'invalid_evidence',
+                 actual: int | None = None, limit: int | None = None) -> None:
+        super().__init__(message)
+        self.diagnostic = diagnostic('io_annotations', reason, actual, limit)
 
-def _invalid() -> None:
-    raise IOCommentError('Saved I/O annotation evidence is inconsistent or exceeds its limits.')
+
+def _invalid(reason: str = 'invalid_evidence', *, actual: int | None = None,
+             limit: int | None = None) -> None:
+    raise IOCommentError('Saved I/O annotation evidence is inconsistent or exceeds its limits.',
+                         reason=reason, actual=actual, limit=limit) from None
 
 
 def _member(operand: str | None) -> str | None:
@@ -133,8 +141,10 @@ def collect_io_annotations(source: bytes, inventory: InventoryResult,
             return
         count += 1
         chars += len(node.text)
-        if count > MAX_ANNOTATIONS or chars > MAX_ANNOTATION_CHARS:
-            _invalid()
+        if count > MAX_ANNOTATIONS:
+            _invalid('annotation_count_limit', actual=count, limit=MAX_ANNOTATIONS)
+        if chars > MAX_ANNOTATION_CHARS:
+            _invalid('annotation_chars_limit', actual=chars, limit=MAX_ANNOTATION_CHARS)
         identifier = hashlib.sha256(f'{snapshot.id}\0{node.locator}\0{kind}'.encode()).hexdigest()
         result[owner_id, suffix].append({
             'id': 'io_annotation_' + identifier, 'owner_id': owner_id, 'suffix': suffix,

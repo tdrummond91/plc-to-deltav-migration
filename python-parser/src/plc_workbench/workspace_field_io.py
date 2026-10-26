@@ -14,7 +14,8 @@ from typing import Any
 
 from .references import _ADDRESS
 from .module_catalog import CATALOG_TYPES, lookup_catalog
-from .workspace_io_comments import collect_io_annotations, select_description
+from .workspace_evidence import diagnostic
+from .workspace_io_comments import IOCommentError, collect_io_annotations, select_description
 from .workspace_variables import VariableIndex, _member_key
 
 PAGE_SIZE = 24
@@ -52,9 +53,16 @@ _LIMITATIONS = (
 class FieldIOError(ValueError):
     """Fixed source-free projection or selection failure."""
 
+    def __init__(self, message: str, *, reason: str = 'invalid_evidence',
+                 actual: int | None = None, limit: int | None = None) -> None:
+        super().__init__(message)
+        self.diagnostic = diagnostic('field_io', reason, actual, limit)
 
-def _invalid() -> None:
-    raise FieldIOError('Saved field I/O evidence is inconsistent or exceeds its limits.') from None
+
+def _invalid(reason: str = 'invalid_evidence', *, actual: int | None = None,
+             limit: int | None = None) -> None:
+    raise FieldIOError('Saved field I/O evidence is inconsistent or exceeds its limits.',
+                       reason=reason, actual=actual, limit=limit) from None
 
 
 def _page(rows: list, page: int, size: int = PAGE_SIZE) -> dict:
@@ -133,13 +141,18 @@ class FieldIOIndex:
             self._build()
         except FieldIOError:
             raise
+        except IOCommentError as exc:
+            error = FieldIOError('Saved field I/O evidence is inconsistent or exceeds its limits.')
+            error.diagnostic = diagnostic(exc.diagnostic['stage'], exc.diagnostic['reason'],
+                                          exc.diagnostic.get('actual'), exc.diagnostic.get('limit'))
+            raise error from None
         except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
-            _invalid()
+            _invalid('projection_failed')
 
     def _retain(self, value: Any) -> None:
         self._budget += len(json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
         if self._budget > MAX_INDEX_BYTES:
-            _invalid()
+            _invalid('index_bytes_limit', actual=self._budget, limit=MAX_INDEX_BYTES)
 
     def _add(self, root_id: str, suffix: str) -> dict | None:
         if (root_id not in self._root_module or not self.base._entity_ok.get(root_id)
@@ -150,7 +163,7 @@ class FieldIOIndex:
         if key in self._keys:
             return self.addresses[self._keys[key]]
         if len(self.addresses) >= MAX_ADDRESSES:
-            _invalid()
+            _invalid('address_count_limit', actual=len(self.addresses) + 1, limit=MAX_ADDRESSES)
         entity = self.base._entities[root_id]
         name = self.base._resolver.name(entity)
         if not name or len(name) > 4096:

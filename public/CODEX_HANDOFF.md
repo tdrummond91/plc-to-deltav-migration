@@ -1,5 +1,42 @@
 # Current handoff: PLC analysis workbench
 
+## Diagnose unavailable Field I/O and Application map (2026-10-26)
+
+The returned screenshots confirm the October 26, 14:53:44 CDT analysis is loaded:
+Home and Rungs show 4,606 captured rungs, and the source report and routine ladders
+render. The earlier preflight/date problem is resolved for this attempt. Field
+I/O and Application map still report unavailable saved evidence. Their shared
+variable/field indexes can fail before the Application map is built; the old
+generic message does not identify which check failed. The actual failing check
+on the work machine is **not yet established**.
+
+Loading failures now expose a fixed `[stage/reason]` diagnostic, with measured
+size/count and limit when a known guard is reached. Missing/malformed artifacts,
+source verification, variable data, field addresses, annotations and signal
+projections have distinct stages. Only allowlisted identifiers and integer
+measurements are returned: no exception messages, paths, source names or values.
+Failures share the same cache lifetime as their evidence and clear on restore.
+Field I/O no longer claims that filters have no matches when loading failed.
+Original source, saved decisions, validation rules and capacity limits are retained.
+
+A complete save/import/API check with over 52,000 independently invented registers
+loads Application map, Field I/O and signals successfully. Separate invented
+100-card/11,200-channel cases reproduce field/signal projection capacity failures,
+including a Field I/O failure with short channel comments. These establish test
+cases, not the cause on the private export; stored-data contents are not a count
+of wired channels. No capacity guard was increased to hide a failure.
+
+Next work-PC step: Stop workspace, manually pull, then run
+`bash ./open-workbench.sh`. Keep the existing October 26 analysis. Open Application
+map and return its bracketed diagnostic (plus measured/limit numbers if shown).
+No full analysis or translation rerun is needed for this diagnostic update.
+Use the result to fix the specific loading defect before declaring these pages
+ready for engineering review.
+
+Validation: all 687 workspace tests passed, including HTTP failure reporting,
+browser-module rendering, shared cache behavior and restore. Independent review
+found no remaining blockers for this diagnostic update.
+
 ## October 26 analysis blocked by preflight report tests (2026-10-26)
 
 Returned work checks `20261026T162024Z-df5db8f5` and

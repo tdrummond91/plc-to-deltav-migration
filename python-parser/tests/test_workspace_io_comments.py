@@ -66,12 +66,18 @@ class WorkspaceIOCommentsTests(unittest.TestCase):
     def test_unqualified_owners_wrong_snapshot_and_limits_fail_safely(self):
         source, inventory, qualified = fixture('<Tags><Tag Name="T"><Description>PRIVATE_TEXT</Description></Tag></Tags>')
         self.assertEqual(collect_io_annotations(source, inventory, {}), {})
-        with self.assertRaises(IOCommentError):
+        with self.assertRaises(IOCommentError) as invalid:
             collect_io_annotations(source + b' ', inventory, qualified)
-        for limit in ('MAX_ANNOTATIONS', 'MAX_ANNOTATION_CHARS'):
+        self.assertEqual(invalid.exception.diagnostic,
+                         {'stage': 'io_annotations', 'reason': 'invalid_evidence'})
+        for limit, reason, actual in (('MAX_ANNOTATIONS', 'annotation_count_limit', 1),
+                                     ('MAX_ANNOTATION_CHARS', 'annotation_chars_limit', len('PRIVATE_TEXT'))):
             with patch('plc_workbench.workspace_io_comments.' + limit, 0), self.assertRaisesRegex(
-                    IOCommentError, '^Saved I/O annotation evidence is inconsistent or exceeds its limits.$'):
+                    IOCommentError, '^Saved I/O annotation evidence is inconsistent or exceeds its limits.$') as caught:
                 collect_io_annotations(source, inventory, qualified)
+            self.assertEqual(caught.exception.diagnostic, {'stage': 'io_annotations',
+                'reason': reason, 'actual': actual, 'limit': 0})
+            self.assertNotIn('PRIVATE_TEXT', repr(caught.exception.diagnostic))
 
     def test_owner_filter_applies_before_budgets_without_bypassing_qualification(self):
         internal = ''.join(f'<Tag Name="Internal{i}"><Comments><Comment Operand=".Value">'

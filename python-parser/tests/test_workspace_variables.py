@@ -49,6 +49,27 @@ def inspect(captured, variable: str, rung: int = 0, instruction: int = 0) -> dic
 
 
 class WorkspaceVariableTests(unittest.TestCase):
+    def test_invalid_companions_identify_the_failed_stage_without_source_text(self) -> None:
+        original = wire(inputs())
+        for position, stage in ((1, 'inventory'), (2, 'references'), (3, 'access'),
+                                (4, 'tag_data'), (5, 'calculations')):
+            modified = deepcopy(original)
+            modified[position]['analyzer_version' if position != 1 else 'parser_version'] = 'PRIVATE_SOURCE'
+            with self.subTest(stage=stage), self.assertRaises(VariableError) as failure:
+                VariableIndex(*modified)
+            self.assertEqual(failure.exception.diagnostic['stage'], stage)
+            self.assertNotIn('PRIVATE_SOURCE', str(failure.exception.diagnostic))
+
+    def test_variable_capacity_is_measured_and_separate_from_invalid_evidence(self) -> None:
+        captured = wire(inputs())
+        with patch('plc_workbench.workspace_variables.MAX_INDEX_BYTES', 1), \
+                self.assertRaises(VariableError) as failure:
+            VariableIndex(*captured)
+        detail = failure.exception.diagnostic
+        self.assertEqual((detail['stage'], detail['reason'], detail['limit']),
+                         ('variable_index', 'index_bytes_limit', 1))
+        self.assertGreater(detail['actual'], detail['limit'])
+
     def test_timer_placeholders_resolve_saved_members_and_keep_other_formats(self) -> None:
         captured = inputs(('TON(T,?,?);', 'MOV(500,T.PRE);', 'RES(T);', 'CPT(T.PRE,400+100);', 'Custom(T);'),
                           tag(data='<Data Format="L5K">[0,2500,42]</Data>' + decorated()))

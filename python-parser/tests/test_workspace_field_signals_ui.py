@@ -74,6 +74,19 @@ const deferred=()=>{let resolve;const promise=new Promise(done=>resolve=done);re
 
 @unittest.skipUnless(NODE, 'Node is optional developer tooling')
 class FieldSignalsUiTests(unittest.TestCase):
+    def test_failed_loading_does_not_claim_filters_have_no_matches(self) -> None:
+        self.run_js(r"""
+response=async path=>({...result(path),available:false,signals:page([]),notice:'Limit reached [field_io/index_bytes_limit]'});
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+assert.ok(root.textContent.includes('Limit reached [field_io/index_bytes_limit]'));
+assert.ok(root.textContent.includes('This does not mean the analysis has no I/O'));
+assert.equal(root.textContent.includes('No individual signals match'),false);
+assert.equal(writes.length,0);
+response=async path=>result(path);await controller.refresh();
+assert.ok(root.textContent.includes('LevelSwitch'));
+assert.equal(root.textContent.includes('The field signal list could not be loaded'),false);
+""")
+
     def run_js(self, checks: str) -> None:
         code = DOM + SCRIPT + '\n(async()=>{\n' + checks + '\n})()'
         code += ".then(()=>process.stdout.write('FIELD_SIGNALS_TEST_COMPLETE\\n'))"

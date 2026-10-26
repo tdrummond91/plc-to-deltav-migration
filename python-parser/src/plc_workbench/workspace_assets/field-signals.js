@@ -219,6 +219,13 @@
       el('span', 'Controllers on this page · search and type filters apply to every page', 'muted'));
     function paintList(result) {
       closeHardware(); tableWrap.replaceChildren(); controllerPanels = [];
+      controllerTools.hidden = result.available === false;
+      pager.hidden = result.available === false;
+      if (result.available === false) {
+        pager.replaceChildren();
+        tableWrap.append(el('p', 'The field signal list could not be loaded. This does not mean the analysis has no I/O. Your saved names and packages are retained; rungs and the full source report remain available.', 'warning-panel'));
+        return;
+      }
       const expected = key, groups = new Map();
       result.signals.items.forEach(row => {
         const controller = controllerOf(row);
@@ -246,7 +253,7 @@
         if (!current(expected) || serial !== listSerial) return;
         checkResult(result, expectedRun, expectedPageSize); page = result.signals.page; paintList(result);
         message(result.available === false ? result.notice || 'Signal evidence is unavailable.'
-          : `${result.signals.total} source signal addresses match. Candidate mappings and related logic require your review.`);
+          : `${result.signals.total} source signal addresses match. Candidate mappings and related logic require your review.`, result.available === false);
       } catch (error) {
         if (!current(expected) || serial !== listSerial) return;
         message(error.message || 'The signal list could not be loaded.', true);

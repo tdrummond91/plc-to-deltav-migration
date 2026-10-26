@@ -15,6 +15,7 @@ from typing import Any
 
 from .rung_analysis import _FAMILIES
 from .workspace_connections import ConnectionIndex
+from .workspace_evidence import diagnostic
 from .workspace_field_io import FieldIOIndex, _page, _preview
 from .workspace_variables import _member_key
 from .workspace_paging import page_size
@@ -51,9 +52,16 @@ _LIMITATIONS = (
 class FieldSignalError(ValueError):
     """Source-free invalid projection or query error."""
 
+    def __init__(self, message: str, *, reason: str = 'invalid_evidence',
+                 actual: int | None = None, limit: int | None = None) -> None:
+        super().__init__(message)
+        self.diagnostic = diagnostic('field_signals', reason, actual, limit)
 
-def _invalid() -> None:
-    raise FieldSignalError('Saved field signal evidence is inconsistent or exceeds its limits.') from None
+
+def _invalid(reason: str = 'invalid_evidence', *, actual: int | None = None,
+             limit: int | None = None) -> None:
+    raise FieldSignalError('Saved field signal evidence is inconsistent or exceeds its limits.',
+                           reason=reason, actual=actual, limit=limit) from None
 
 
 def validate_query(query: dict) -> dict:
@@ -114,12 +122,12 @@ class FieldSignalIndex:
         except FieldSignalError:
             raise
         except (AttributeError, KeyError, TypeError, ValueError, OverflowError, RecursionError):
-            _invalid()
+            _invalid('projection_failed')
 
     def _retain(self, value: Any) -> None:
         self._budget += len(json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
         if self._budget > MAX_INDEX_BYTES:
-            _invalid()
+            _invalid('index_bytes_limit', actual=self._budget, limit=MAX_INDEX_BYTES)
 
     def _candidate(self, row: dict, module: dict) -> list[str] | None:
         if (row['direction'] not in _DIRECTION_TYPES or not row['suffix']
@@ -142,7 +150,7 @@ class FieldSignalIndex:
                 excluded['non_signal_addresses'] += 1
                 continue
             if len(self.signals) >= MAX_SIGNALS:
-                _invalid()
+                _invalid('signal_count_limit', actual=len(self.signals) + 1, limit=MAX_SIGNALS)
             metadata = self._source_metadata(address)
             hinted = self._analogue_hint(address, candidates or []) if not documented else address['field_type']
             if not documented and hinted != 'unknown':

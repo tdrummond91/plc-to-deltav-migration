@@ -79,6 +79,52 @@ class WorkspaceApplicationAPITests(unittest.TestCase):
         self.assertEqual(first['reason'], 'evidence_unavailable')
         self.assertEqual(constructor.call_count, 0)
 
+    def test_shared_failure_is_identified_on_both_pages_and_keeps_saved_state(self) -> None:
+        before = self.workspace.store.state()
+        original = self.workspace.store.artifact('snapshot.L5X')
+        db = self.workspace.store.connection
+        db.execute('UPDATE artifacts SET data=? WHERE run_id=? AND name=?',
+                   (b'{"PRIVATE_TAG_DATA":', self.run_id, 'tag-data.json'))
+        db.commit()
+        for method in (self.workspace.application, self.workspace.field_signals, self.workspace.field_io):
+            result = method(self.query)
+            self.assertFalse(result['available'])
+            self.assertEqual(result['diagnostic'], {'stage': 'tag_data', 'reason': 'invalid_evidence'})
+            self.assertIn('[tag_data/invalid_evidence]', result['notice'])
+            self.assertNotIn('PRIVATE_TAG_DATA', str(result))
+        self.assertEqual(self.workspace.store.state(), before)
+        self.assertEqual(self.workspace.store.artifact('snapshot.L5X'), original)
+
+    def test_shared_capacity_failure_survives_cached_reads_and_does_not_change_run(self) -> None:
+        before = self.workspace.store.state()
+        with patch('plc_workbench.workspace_variables.MAX_INDEX_BYTES', 1):
+            first = self.workspace.application(self.query)
+        second = self.workspace.field_signals(self.query)
+        self.assertFalse(first['available'])
+        self.assertFalse(second['available'])
+        self.assertEqual(first['diagnostic'], second['diagnostic'])
+        self.assertEqual(first['diagnostic']['stage'], 'variable_index')
+        self.assertEqual(first['diagnostic']['reason'], 'index_bytes_limit')
+        self.assertEqual(first['diagnostic']['limit'], 1)
+        self.assertGreater(first['diagnostic']['actual'], 1)
+        self.assertEqual(self.workspace.store.state(), before)
+
+    def test_http_reports_shared_loader_stage_without_exception_or_source_text(self) -> None:
+        db = self.workspace.store.connection
+        db.execute('UPDATE artifacts SET data=? WHERE run_id=? AND name=?',
+                   (b'{"PRIVATE_TAG_DATA":', self.run_id, 'tag-data.json'))
+        db.commit()
+        with running_workspace(self.project, self.runs) as client:
+            before = client.get('/api/state')
+            for route in ('/api/application?', '/api/field-signals?', '/api/field-io?'):
+                result = client.get(route + urlencode(self.query))
+                self.assertFalse(result['available'])
+                self.assertEqual(result['diagnostic'], {'stage': 'tag_data', 'reason': 'invalid_evidence'})
+                self.assertNotIn('PRIVATE_TAG_DATA', str(result))
+                self.assertIn('[tag_data/invalid_evidence]', result['notice'])
+            self.assertEqual(client.get('/api/state'), before)
+
+
     def test_projection_capacity_is_cached_and_explained_without_altering_the_run(self) -> None:
         before = self.workspace.store.state()
         with patch('plc_workbench.workspace_application.MAX_INDEX_BYTES', 1), \
@@ -107,6 +153,18 @@ class WorkspaceApplicationAPITests(unittest.TestCase):
             self.workspace.restore(backup.name, self.workspace.store.state()['revision'])
             self.workspace.application(self.query)
         self.assertEqual(constructor.call_count, 2)
+
+    def test_restore_clears_failure_before_a_different_layer_fails_on_the_same_run(self) -> None:
+        backup = Path(self.workspace.backup()['path'])
+        with patch('plc_workbench.workspace_variables.MAX_INDEX_BYTES', 1):
+            failed = self.workspace.application(self.query)
+        self.assertEqual(failed['diagnostic']['stage'], 'variable_index')
+        self.workspace.restore(backup.name, self.workspace.store.state()['revision'])
+        self.assertFalse(self.workspace._evidence_failures)
+        with patch('plc_workbench.workspace_field_io.MAX_INDEX_BYTES', 1):
+            failed = self.workspace.application(self.query)
+        self.assertEqual(failed['diagnostic']['stage'], 'field_io')
+        self.assertEqual(failed['diagnostic']['reason'], 'index_bytes_limit')
 
     def test_translation_is_cached_wording_and_does_not_mutate_evidence(self) -> None:
         class CachedTranslator:

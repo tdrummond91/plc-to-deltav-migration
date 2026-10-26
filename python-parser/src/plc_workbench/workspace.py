@@ -28,6 +28,7 @@ from .project_store import (MAX_MANIFEST_BYTES, ProjectError, ProjectStore,
                             RevisionConflict, _analysis_time, _read_bounded, rung_pattern)
 from .storage import StorageError, _workspace_path
 from .workspace_paging import page_size as selected_page_size
+from .workspace_evidence import diagnostic, evidence_notice
 
 ASSETS = Path(__file__).with_name("workspace_assets")
 PAGE_SIZE = 50
@@ -76,6 +77,7 @@ class Workspace:
         self._ladder_map_cache: tuple[Any, Any] = (_UNLOADED, None)
         self._map_qualification_cache: tuple[Any, Any] = (_UNLOADED, None)
         self._variable_cache: dict[str, Any] = {}
+        self._evidence_failures: dict[tuple[str, str], dict] = {}
         self._field_io_cache: dict[str, Any] = {}
         self._application_cache: dict[str, Any] = {}
         self._field_signal_cache: tuple[Any, Any] = (_UNLOADED, None)
@@ -666,8 +668,11 @@ class Workspace:
         # Historical calls never mutate _run, loaded source lists, or selection.
         self.store._run(run_id)
         if run_id not in self._variable_cache:
-            inventory = self.store.inventory(run_id)
+            stage = 'inventory'
             def companion(name: str, *, optional: bool = False) -> dict | None:
+                nonlocal stage
+                stage = {'references.json': 'references', 'access.json': 'access',
+                         'tag-data.json': 'tag_data', 'calculations.json': 'calculations'}[name]
                 try:
                     raw = self.store.artifact(name, run_id)
                 except ProjectError:
@@ -675,7 +680,9 @@ class Workspace:
                         return None
                     raise
                 if len(raw) > MAX_ARTIFACT_BYTES:
-                    raise ValueError('Variable companion exceeds its limit.')
+                    error = VariableError('Variable companion exceeds its limit.')
+                    error.diagnostic = diagnostic(stage, 'artifact_bytes_limit', len(raw), MAX_ARTIFACT_BYTES)
+                    raise error
                 def unique(pairs: list[tuple[str, Any]]) -> dict:
                     result = {}
                     for key, value in pairs:
@@ -685,10 +692,18 @@ class Workspace:
                     return result
                 return json.loads(raw, object_pairs_hook=unique)
             try:
-                index = VariableIndex(self.store.artifact('snapshot.L5X', run_id), inventory,
+                inventory = self.store.inventory(run_id)
+                stage = 'source'
+                source = self.store.artifact('snapshot.L5X', run_id)
+                index = VariableIndex(source, inventory,
                     companion('references.json'), companion('access.json', optional=True),
                     companion('tag-data.json', optional=True), companion('calculations.json', optional=True))
-            except (ProjectError, VariableError, ValueError, TypeError, KeyError, RecursionError, OverflowError):
+            except (ProjectError, VariableError, ValueError, TypeError, KeyError, RecursionError, OverflowError) as exc:
+                failure = getattr(exc, 'diagnostic', diagnostic(stage,
+                    'artifact_unavailable' if isinstance(exc, ProjectError) else 'invalid_evidence'))
+                self._evidence_failures[run_id, 'variables'] = diagnostic(**{
+                    'stage': failure.get('stage'), 'code': failure.get('reason'),
+                    'actual': failure.get('actual'), 'limit': failure.get('limit')})
                 index = None
             # Two immutable indexes cover active and historical popup use without
             # retaining every imported project snapshot in memory.
@@ -697,10 +712,34 @@ class Workspace:
                 self._variable_cache.pop(expired)
                 self._field_io_cache.pop(expired, None)
                 self._application_cache.pop(expired, None)
+                for key in [key for key in self._evidence_failures if key[0] == expired]:
+                    self._evidence_failures.pop(key)
                 if self._field_signal_cache[0] == expired:
                     self._field_signal_cache = (_UNLOADED, None)
             self._variable_cache[run_id] = index
         return self._variable_cache[run_id]
+
+    def _evidence_unavailable(self, result: dict, run_id: str, *layers: str) -> dict:
+        """Expose a fixed failure stage, never exception text or source data."""
+        if not result.get('available'):
+            failure = next((self._evidence_failures[run_id, layer] for layer in layers
+                            if (run_id, layer) in self._evidence_failures), None)
+            if failure:
+                result['diagnostic'] = dict(failure)
+                result['notice'] = evidence_notice(failure)
+        return result
+
+    def _field_io_index(self, run_id: str) -> Any:
+        """Share field evidence and its failure category across both pages."""
+        from .workspace_field_io import FieldIOError, FieldIOIndex
+        evidence = self._variable_index(run_id)
+        if run_id not in self._field_io_cache:
+            try:
+                self._field_io_cache[run_id] = FieldIOIndex(evidence) if evidence else None
+            except FieldIOError as exc:
+                self._evidence_failures[run_id, 'field_io'] = exc.diagnostic
+                self._field_io_cache[run_id] = None
+        return self._field_io_cache[run_id]
 
     def variable(self, query: dict) -> dict:
         """Inspect one immutable run without switching the active workspace."""
@@ -715,6 +754,7 @@ class Workspace:
         try:
             result = (index.view(instruction_id, variable) if index is not None else
                       unavailable('Saved variable evidence is missing or could not be verified. Original source remains available.'))
+            self._evidence_unavailable(result, run_id, 'variables')
         except VariableError as exc:
             raise ProjectError(str(exc)) from None
         return {**result, 'run_id': run_id, 'instruction_id': instruction_id, 'variable': variable,
@@ -722,20 +762,16 @@ class Workspace:
 
     def field_io(self, query: dict) -> dict:
         """Read catalog-qualified module cards without changing review state."""
-        from .workspace_field_io import (MAX_RESPONSE_BYTES, FieldIOError, FieldIOIndex,
+        from .workspace_field_io import (MAX_RESPONSE_BYTES, FieldIOError,
                                          _preview, unavailable, validate_query)
         try:
             selected = validate_query(query)
             run_id = selected['run_id']
             state = self.store.state()
             evidence = self._variable_index(run_id)
-            if run_id not in self._field_io_cache:
-                try:
-                    self._field_io_cache[run_id] = FieldIOIndex(evidence) if evidence else None
-                except FieldIOError:
-                    self._field_io_cache[run_id] = None
-            index = self._field_io_cache[run_id]
+            index = self._field_io_index(run_id)
             result = index.view(selected) if index else unavailable()
+            self._evidence_unavailable(result, run_id, 'variables', 'field_io')
             # Lookup cached derived wording for visible original descriptions;
             # browsing never starts translation or changes the selected run.
             visible = list(result['modules']['items']) + list(result['addresses']['items'])
@@ -773,19 +809,13 @@ class Workspace:
         """Read the configured application without changing the selected run or reviews."""
         from .workspace_application import (MAX_RESPONSE_BYTES, ApplicationCapacityError, ApplicationError,
                                              ApplicationIndex, unavailable, validate_query)
-        from .workspace_field_io import FieldIOError, FieldIOIndex, _preview
+        from .workspace_field_io import _preview
         try:
             selected = validate_query(query)
             run_id = selected['run_id']
             state = self.store.state()
-            evidence = self._variable_index(run_id)
-            if run_id not in self._field_io_cache:
-                try:
-                    self._field_io_cache[run_id] = FieldIOIndex(evidence) if evidence else None
-                except FieldIOError:
-                    self._field_io_cache[run_id] = None
+            field = self._field_io_index(run_id)
             if run_id not in self._application_cache:
-                field = self._field_io_cache[run_id]
                 try:
                     self._application_cache[run_id] = ApplicationIndex(field) if field else None
                 except ApplicationError as exc:
@@ -799,6 +829,7 @@ class Workspace:
             failure = cached if isinstance(cached, str) else 'evidence_unavailable'
             index = None if isinstance(cached, str) else cached
             result = index.view(selected) if index else unavailable(selected['page_size'], failure)
+            self._evidence_unavailable(result, run_id, 'variables', 'field_io')
             visible = [*result['modules']['items'], *result['registers']['items']]
             visible += [row for row in (result['selected_module'], result['selected_register']) if row]
             # Cached wording is presentation only: browsing never starts a translation job.
@@ -826,22 +857,16 @@ class Workspace:
 
     def _field_signal_index(self, run_id: str, state: dict) -> Any:
         """Only the active authenticated source can receive migration decisions."""
-        from .workspace_field_io import FieldIOError, FieldIOIndex
         from .workspace_field_signals import FieldSignalError, FieldSignalIndex
         if run_id != state.get('active_run'):
             raise RevisionConflict('The source analysis changed. Reload the field signals.')
         self._load(state)
         if self._field_signal_cache[0] != run_id:
-            evidence = self._variable_index(run_id)
-            if run_id not in self._field_io_cache:
-                try:
-                    self._field_io_cache[run_id] = FieldIOIndex(evidence) if evidence else None
-                except FieldIOError:
-                    self._field_io_cache[run_id] = None
-            field = self._field_io_cache[run_id]
+            field = self._field_io_index(run_id)
             try:
                 index = FieldSignalIndex(field, self._map_connection_index()) if field else None
-            except FieldSignalError:
+            except FieldSignalError as exc:
+                self._evidence_failures[run_id, 'field_signals'] = exc.diagnostic
                 index = None
             self._field_signal_cache = (run_id, index)
         return self._field_signal_cache[1]
@@ -900,6 +925,7 @@ class Workspace:
             extra_search = {address: ' '.join([row['target_name'], row['description'],
                 *(group['name'] for group in packages[row['id']])]) for address, row in saved.items()}
             result = index.view(selected, extra_search=extra_search) if index else unavailable(selected['page_size'])
+            self._evidence_unavailable(result, run_id, 'variables', 'field_io', 'field_signals')
             visible = list(result['signals']['items'])
             if result['selected_signal']:
                 visible.append(result['selected_signal'])
@@ -1335,6 +1361,7 @@ class Workspace:
         self._ladder_map_cache = (_UNLOADED, None)
         self._map_qualification_cache = (_UNLOADED, None)
         self._variable_cache = {}
+        self._evidence_failures = {}
         self._field_io_cache = {}
         self._application_cache = {}
         self._field_signal_cache = (_UNLOADED, None)

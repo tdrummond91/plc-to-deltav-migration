@@ -21,6 +21,7 @@ from .stateful_objects import _declaration
 from .tag_data import TagDataResult, _capture, _strict_match, render_tag_data_json
 from .workspace_classification import _qualify_source
 from .workspace_connections import _inventory, _plain
+from .workspace_evidence import diagnostic
 
 MAX_VARIABLE = 4096
 MAX_TEXT = 4096
@@ -105,21 +106,32 @@ class VariableIndex:
     def __init__(self, source: bytes, inventory: dict, references: dict,
                  access: dict | None = None, tag_data: dict | None = None,
                  calculations: dict | None = None) -> None:
+        self._validation_stage = 'source'
         try:
             self._build(source, inventory, references, access, tag_data, calculations)
-        except VariableError:
+        except VariableError as exc:
+            if not hasattr(exc, 'diagnostic'):
+                exc.diagnostic = diagnostic(self._validation_stage, 'invalid_evidence')
             raise
         except (AttributeError, KeyError, TypeError, ValueError, RecursionError, OverflowError):
-            _invalid()
+            error = VariableError('Saved variable evidence is inconsistent or exceeds its limits.')
+            error.diagnostic = diagnostic(self._validation_stage, 'projection_failed')
+            raise error from None
 
     def _build(self, source: bytes, inventory: dict, references: dict,
                access: dict | None, tag_data: dict | None, calculations: dict | None) -> None:
-        if type(source) is not bytes or len(source) > MAX_SOURCE_BYTES:
+        if type(source) is not bytes:
             _invalid()
+        if len(source) > MAX_SOURCE_BYTES:
+            error = VariableError('Saved variable evidence is inconsistent or exceeds its limits.')
+            error.diagnostic = diagnostic('source', 'source_bytes_limit', len(source), MAX_SOURCE_BYTES)
+            raise error
         snapshot = snapshot_from_bytes(source)
+        self._validation_stage = 'inventory'
         captured = _inventory(inventory)
         if not _strict_match(analyze_snapshot(snapshot), captured):
             _invalid()
+        self._validation_stage = 'references'
         refs = ReferenceResult(**_plain(references))
         validate_references(captured, refs)
         # Shared, authenticated immutable records also support the field-I/O
@@ -132,17 +144,21 @@ class VariableIndex:
         self._instructions = {item.id: item for row in captured.rungs for item in row.instructions}
         self._instruction_rung = {item.id: row for row in captured.rungs for item in row.instructions}
         self._order = {row.id: index for index, row in enumerate(captured.rungs)}
+        self._validation_stage = 'source'
         self._entity_ok, self._rung_ok, self._namespace = _qualify_source(source, inventory)
+        self._validation_stage = 'references'
         self._reference_uses = {row['id']: row for row in refs.operands}
         self._access_instructions: dict[str, dict] = {}
         self._expression_variables: dict[str, set[str]] = defaultdict(set)
         access_result = None
         if access is not None:
+            self._validation_stage = 'access'
             access_result = AccessResult(**_plain(access))
             if type(access_result.schema_version) is not int or access_result.schema_version not in {2, 3, 4}:
                 _invalid()
             calculation_result = None
             if access_result.schema_version == 4:
+                self._validation_stage = 'calculations'
                 if calculations is None:
                     _invalid()
                 calculation_result = CalculationResult(**_plain(calculations))
@@ -152,6 +168,7 @@ class VariableIndex:
                 for row in calculation_result.nodes:
                     if row['kind'] == 'reference':
                         self._expression_variables[row['instruction_id']].add(row['raw_text'])
+            self._validation_stage = 'access'
             if not _strict_match(_derive_access(captured, refs, access_result.schema_version, calculation_result), access_result):
                 _invalid()
             self._access_instructions = {row['id']: row for row in access_result.instructions}
@@ -166,12 +183,15 @@ class VariableIndex:
         self._paths: dict[str, str] = {}
         self._budget = 0
         if tag_data is not None:
+            self._validation_stage = 'tag_data'
             data = TagDataResult(**_plain(tag_data))
             expected = _capture(snapshot, captured)
             render_tag_data_json(expected)
             if not _strict_match(expected, data):
                 _invalid()
+            self._validation_stage = 'variable_index'
             self._data(data)
+        self._validation_stage = 'variable_index'
         self._writers: dict[str, list[dict]] = defaultdict(list)
         if access_result is not None:
             for use in access_result.operands:
@@ -191,7 +211,9 @@ class VariableIndex:
     def _retain(self, row: Any) -> None:
         self._budget += len(json.dumps(row, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
         if self._budget > MAX_INDEX_BYTES:
-            _invalid()
+            error = VariableError('Saved variable evidence is inconsistent or exceeds its limits.')
+            error.diagnostic = diagnostic('variable_index', 'index_bytes_limit', self._budget, MAX_INDEX_BYTES)
+            raise error
 
     def _path(self, identifier: str | None) -> str:
         if identifier in self._paths:

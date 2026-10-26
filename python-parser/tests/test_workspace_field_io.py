@@ -317,10 +317,15 @@ class WorkspaceFieldIOTests(unittest.TestCase):
             self.assertEqual(address(view, '.data.1')['source_annotations'][0]['text'], 'Field point one')
             self.assertEqual(address(view, '.Data.0')['source_annotations'][0]['via'], 'alias')
             self.assertEqual(len(index.annotation_texts), 3)
-        for setting, limit in (('MAX_ANNOTATIONS', 2), ('MAX_ANNOTATION_CHARS', 1)):
+        for setting, limit, reason in (('MAX_ANNOTATIONS', 2, 'annotation_count_limit'),
+                                       ('MAX_ANNOTATION_CHARS', 1, 'annotation_chars_limit')):
             with self.subTest(setting=setting), patch('plc_workbench.workspace_io_comments.' + setting, limit), \
-                    self.assertRaisesRegex(FieldIOError, '^Saved field I/O evidence is inconsistent or exceeds its limits.$'):
+                    self.assertRaisesRegex(FieldIOError, '^Saved field I/O evidence is inconsistent or exceeds its limits.$') as caught:
                 FieldIOIndex(evidence)
+            self.assertEqual(caught.exception.diagnostic['stage'], 'io_annotations')
+            self.assertEqual(caught.exception.diagnostic['reason'], reason)
+            self.assertEqual(caught.exception.diagnostic['limit'], limit)
+            self.assertGreater(caught.exception.diagnostic['actual'], limit)
 
     def test_wrong_missing_duplicate_or_foreign_profile_types_do_not_map_points(self) -> None:
         for data in ('', '<DataValueMember Name="Data" DataType="BOOL" Value="0"/>',
@@ -426,10 +431,15 @@ class WorkspaceFieldIOTests(unittest.TestCase):
 
     def test_source_free_limits_and_strict_queries(self) -> None:
         evidence = VariableIndex(*wire(field_inputs()))
-        for setting, value in (('MAX_INDEX_BYTES', 10), ('MAX_ADDRESSES', 0)):
+        for setting, value, reason in (('MAX_INDEX_BYTES', 10, 'index_bytes_limit'),
+                                       ('MAX_ADDRESSES', 0, 'address_count_limit')):
             with self.subTest(setting=setting), patch('plc_workbench.workspace_field_io.' + setting, value):
-                with self.assertRaisesRegex(FieldIOError, '^Saved field I/O evidence is inconsistent or exceeds its limits.$'):
+                with self.assertRaisesRegex(FieldIOError, '^Saved field I/O evidence is inconsistent or exceeds its limits.$') as caught:
                     FieldIOIndex(evidence)
+                self.assertEqual(caught.exception.diagnostic['stage'], 'field_io')
+                self.assertEqual(caught.exception.diagnostic['reason'], reason)
+                self.assertEqual(caught.exception.diagnostic['limit'], value)
+                self.assertGreater(caught.exception.diagnostic['actual'], value)
         for values in ({'run_id': ''}, {'page': True}, {'page': '0'}, {'query': 'x' * 257},
                        {'field_type': 'BOOL'}, {'direction': 'di'}, {'address_id': 'invented'}):
             with self.subTest(values=values), self.assertRaises(FieldIOError):
@@ -437,6 +447,19 @@ class WorkspaceFieldIOTests(unittest.TestCase):
         index = FieldIOIndex(evidence)
         with patch('plc_workbench.workspace_field_io.MAX_RESPONSE_BYTES', 10), self.assertRaises(FieldIOError):
             index.view(query())
+
+    def test_projection_failure_diagnostic_retains_no_source_exception(self) -> None:
+        evidence = VariableIndex(*wire(field_inputs()))
+        with patch.object(FieldIOIndex, '_build', side_effect=KeyError('PRIVATE_SOURCE_TAG')), \
+                self.assertRaises(FieldIOError) as caught:
+            FieldIOIndex(evidence)
+        self.assertEqual(caught.exception.diagnostic,
+                         {'stage': 'field_io', 'reason': 'projection_failed'})
+        self.assertNotIn('PRIVATE_SOURCE_TAG', str(caught.exception))
+        with self.assertRaises(FieldIOError) as invalid:
+            FieldIOIndex(None)
+        self.assertEqual(invalid.exception.diagnostic,
+                         {'stage': 'field_io', 'reason': 'invalid_evidence'})
 
     def test_forged_evidence_is_rejected_before_projection(self) -> None:
         values = wire(field_inputs())
