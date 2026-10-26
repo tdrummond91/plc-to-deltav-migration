@@ -5,7 +5,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from plc_workbench.workspace_application import ApplicationError, ApplicationIndex, validate_query
+from plc_workbench.workspace_application import (ApplicationCapacityError, ApplicationError,
+                                                ApplicationIndex, MAX_INDEX_BYTES, validate_query)
 from plc_workbench.workspace_field_io import FieldIOIndex
 from plc_workbench.workspace_variables import VariableIndex
 from test_workspace_connections import multi_routine
@@ -46,6 +47,57 @@ def raw_inputs():
 
 
 class ApplicationEvidenceTests(unittest.TestCase):
+    def test_large_saved_register_population_keeps_late_pages_search_and_values(self) -> None:
+        # Independently invented structured values exceed the former expanded
+        # JSON-copy budget at a scale comparable to returned aggregate counts.
+        # Do not lift the capacity bound or drop members to make this pass.
+        members = ''.join(f'<DataValueMember Name="M{i}" DataType="REAL" Radix="Float" Value="{i}.0"/>'
+                          for i in range(7))
+        tags = ''.join(f'<Tag Name="Record{i:04}" DataType="Invented"><Data Format="Decorated">'
+                       f'<Structure DataType="Invented">{members}</Structure></Data></Tag>' for i in range(6600))
+        index = build(field_inputs(extra_tags=tags))
+        self.assertGreater(len(index.registers), 52_000)
+        self.assertLess(index._budget, MAX_INDEX_BYTES)
+        first = index.view({'run_id': 'invented-run', 'page_size': 500})
+        last = index.view({'run_id': 'invented-run', 'page_size': 500,
+                           'page': first['registers']['pages']})
+        self.assertGreater(last['registers']['page'], 100)
+        self.assertTrue(last['registers']['items'])
+        self.assertFalse({row['id'] for row in first['registers']['items']} &
+                         {row['id'] for row in last['registers']['items']})
+        found = index.view({'run_id': 'invented-run', 'query': 'Record6599.M6'})
+        self.assertEqual(found['registers']['total'], 1)
+        selected = index.view({'run_id': 'invented-run',
+                               'register_id': found['registers']['items'][0]['id']})['selected_register']
+        self.assertEqual((selected['datatype'], selected['values_total'], selected['values'][0]['value']),
+                         ('REAL', 1, '6.0'))
+        self.assertFalse(selected['values'][0]['ambiguous'])
+        self.assertTrue(selected['provenance']['datatype_source_ids'])
+        self.assertEqual(selected['provenance']['source_id'], selected['source_id'])
+        self.assertTrue(selected['provenance']['locator'])
+        selected['values'][0]['value'] = 'Changed response only'
+        self.assertEqual(detail(index, 'Record6599.M6')['values'][0]['value'], '6.0')
+
+    def test_response_edits_cannot_modify_shared_scope_or_owner_member_provenance(self) -> None:
+        index = build(raw_inputs())
+        addresses = ('Local:7:I.Data[1]', 'Local:7:I.Data[2]', 'Local:7:I.Data', 'Local:7:I')
+        original = {address: detail(index, address) for address in addresses}
+        changed = detail(index, addresses[0])
+        changed['scope']['name'] = 'Changed returned scope'
+        changed['provenance']['locator'] = 'Changed returned locator'
+        changed['provenance']['datatype_source_ids'].append('Changed returned member evidence')
+        for address in addresses:
+            with self.subTest(address=address):
+                self.assertEqual(detail(index, address), original[address])
+
+    def test_capacity_failure_is_distinct_from_unverifiable_evidence(self) -> None:
+        for constant, bound in (('MAX_INDEX_BYTES', 'index_bytes'), ('MAX_REGISTERS', 'register_count')):
+            with self.subTest(constant=constant), patch('plc_workbench.workspace_application.' + constant, 1):
+                with self.assertRaises(ApplicationCapacityError) as failure:
+                    build()
+                self.assertEqual(failure.exception.bound, bound)
+                self.assertIn('saved source analysis', str(failure.exception))
+
     def test_raw_bytes_containment_and_diagnostics_remain_visible_without_physical_guess(self) -> None:
         index = build(raw_inputs())
         byte = register(index, 'Local:7:I.Data[1]')

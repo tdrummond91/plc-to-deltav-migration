@@ -113,6 +113,15 @@ appResponse=async()=>({available:false,run_id:'run-1',notice:'Snapshot missing'}
 controller.destroy();assert.equal(root.children.length,0);assert.equal(writes.length,0);
 """)
 
+    def test_capacity_failure_is_visible_as_a_display_error_not_empty_source(self) -> None:
+        self.run_js(r"""
+appResponse=async()=>({available:false,run_id:'run-1',reason:'application_capacity',notice:'The saved analysis is still present. Re-running unchanged analysis will not resolve this display limit.'});
+const controller=window.PLCApplicationMap.mount(root,appOptions);await controller.update(project);
+assert.ok(root.textContent.includes('Application map display limit'));assert.ok(root.textContent.includes('saved analysis is still present'));
+assert.ok(byClass(root,'application-status')[0].className.includes('is-error'));
+assert.equal(root.textContent.includes('No records match'),false);assert.equal(writes.length,0);
+""")
+
     def test_source_wording_is_literal_and_description_candidates_are_retained(self) -> None:
         self.run_js(r"""
 applicationRows=[registerRow('register-1',{description:'<img src=x onerror=alert(1)>',source_annotations:[{id:'note',text:'<script>bad()</script>',owner_id:'source-root'}]})];

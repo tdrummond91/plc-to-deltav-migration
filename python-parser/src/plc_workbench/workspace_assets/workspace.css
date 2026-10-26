@@ -267,6 +267,7 @@ code,
   top: 0;
   z-index: 40;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -275,6 +276,31 @@ code,
   border-bottom: 2px solid var(--accent);
   box-shadow: 0 3px 0 var(--border), 0 8px 18px #0002;
 }
+.analysis-identity {
+  flex: 1 0 100%;
+  order: 4;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+.analysis-identity strong {
+  max-width: min(38vw, 36rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent);
+}
+.analysis-identity button {
+  margin-left: auto;
+  padding: 0.3rem 0.6rem;
+  font-size: inherit;
+}
+#source-run-id { overflow-wrap: anywhere; }
 .brand-with-language {
   display: flex;
   align-items: center;

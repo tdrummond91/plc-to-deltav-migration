@@ -359,7 +359,12 @@
         scope.append(el('span', 'Module scope: ' + (data?.selected_module?.name || view.module_id)), button('Show all modules and registers', () => chooseModule('', false)));
       }
       if (!data) return;
-      if (!data.available) { body.append(el('p', data.notice || 'Application evidence is unavailable for this saved analysis.', 'notice')); return; }
+      if (!data.available) {
+        const panel = el('section', undefined, 'notice');
+        panel.append(el('h3', data.reason === 'application_capacity' ? 'Application map display limit' : 'Application evidence unavailable'),
+          el('p', data.notice || 'Application evidence is unavailable for this saved analysis.'));
+        body.append(panel); return;
+      }
       if (view.tab === 'hardware') hardware(); else if (view.tab === 'registers') registers(); else coverage();
       revealSelection = false;
     }
@@ -377,7 +382,7 @@
         data = result;
         if (result.modules) view.module_page = result.modules.page;
         if (result.registers) view.page = result.registers.page;
-        render(); notice(result.available ? `${result.modules.total} configured modules · ${result.registers.total} matching declarations and members. Source data is read only.` : result.notice || 'Application evidence is unavailable.');
+        render(); notice(result.available ? `${result.modules.total} configured modules · ${result.registers.total} matching declarations and members. Source data is read only.` : result.notice || 'Application evidence is unavailable.', !result.available);
       } catch (error) {
         if (request !== serial || !current(expected)) return;
         data = null; body.replaceChildren(button('Retry application map', refresh)); notice(error.message || 'Application evidence could not load.', true);

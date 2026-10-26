@@ -16,6 +16,15 @@ another analysis. PCSD and FHX are later phases. Use the
 [project README](../README.md) for the normal user workflow and the
 [tracker](../public/docs/planning/PRE_TEAM_REVIEW_TRACKER.md) for current status.
 
+The header and **Project tools** show the selected analysis run's saved date/time
+in your computer's time zone. **Choose analysis run** lists dates and identifies
+the current run. A newer saved run is flagged when you return to the window or
+open Project tools; it is loaded only when you choose it. If work-check finishes
+while an older workspace still occupies the port, choose that completed run in
+the existing window. You do not need to analyze the L5X again. After updating
+the application code, use **Stop workspace**, then `bash ./open-workbench.sh` so
+the server also uses the new code.
+
 The editor has adjustable equation text (75% by default), a resizable rung/source
 split, and optional offline English views of French/mixed comments and descriptions.
 Run `bash ./setup-translation.sh` once, then choose **English** or **Both languages**

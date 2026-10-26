@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 
 from plc_workbench.project_store import ProjectError
 from plc_workbench.workspace import Workspace
-from plc_workbench.workspace_application import ApplicationIndex
+from plc_workbench.workspace_application import ApplicationError, ApplicationIndex
 from plc_workbench.workspace_variables import VariableIndex
 from test_workspace import running_workspace
 from test_workspace_field_io import field_inputs, module
@@ -76,7 +76,29 @@ class WorkspaceApplicationAPITests(unittest.TestCase):
         self.assertFalse(first['available'])
         self.assertFalse(second['available'])
         self.assertNotIn('PRIVATE_CORRUPTION', str(first))
+        self.assertEqual(first['reason'], 'evidence_unavailable')
         self.assertEqual(constructor.call_count, 0)
+
+    def test_projection_capacity_is_cached_and_explained_without_altering_the_run(self) -> None:
+        before = self.workspace.store.state()
+        with patch('plc_workbench.workspace_application.MAX_INDEX_BYTES', 1), \
+             patch('plc_workbench.workspace_application.ApplicationIndex', wraps=ApplicationIndex) as constructor:
+            first = self.workspace.application(self.query)
+            second = self.workspace.application(self.query)
+        self.assertFalse(first['available'])
+        self.assertEqual(first['reason'], 'application_capacity')
+        self.assertIn('saved analysis is still present', first['notice'])
+        self.assertIn('Re-running an unchanged analysis will not resolve', first['notice'])
+        self.assertEqual(second['reason'], first['reason'])
+        self.assertEqual(constructor.call_count, 1)
+        self.assertEqual(self.workspace.store.state(), before)
+
+    def test_invalid_projection_reason_does_not_leak_exception_content(self) -> None:
+        with patch('plc_workbench.workspace_application.ApplicationIndex',
+                   side_effect=ApplicationError('PRIVATE_SOURCE_DETAIL')):
+            result = self.workspace.application(self.query)
+        self.assertEqual(result['reason'], 'application_evidence_invalid')
+        self.assertNotIn('PRIVATE_SOURCE_DETAIL', str(result))
 
     def test_restore_invalidates_projection(self) -> None:
         with patch('plc_workbench.workspace_application.ApplicationIndex', wraps=ApplicationIndex) as constructor:

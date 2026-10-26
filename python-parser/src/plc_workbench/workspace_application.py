@@ -46,6 +46,15 @@ class ApplicationError(ValueError):
     """A bounded, source-free projection or selection failure."""
 
 
+class ApplicationCapacityError(ApplicationError):
+    """Verified evidence exceeds a local projection bound, not a corrupt export."""
+
+    def __init__(self, bound: str) -> None:
+        self.bound = bound
+        super().__init__('The application map exceeds its local display capacity. '
+                         'The saved source analysis is still available.')
+
+
 def _invalid() -> None:
     raise ApplicationError('Saved application evidence is inconsistent or exceeds its limits.') from None
 
@@ -109,9 +118,17 @@ def validate_query(query: dict) -> dict:
     return result
 
 
-def unavailable(size: int = 50) -> dict:
+def unavailable(size: int = 50, reason: str = 'evidence_unavailable') -> dict:
+    notices = {
+        'evidence_unavailable': 'Saved application evidence is missing or could not be verified. Original source remains available.',
+        'application_evidence_invalid': 'The application map could not verify the saved evidence. Original source remains available.',
+        'application_capacity': 'The application map exceeded its local display capacity. The saved analysis is still present; '
+            'this does not mean the export is empty. Re-running an unchanged analysis will not resolve this display limit. '
+            'Rungs and original source remain available.',
+    }
+    reason = reason if reason in notices else 'evidence_unavailable'
     return {'available': False, 'snapshot_id': None,
-            'notice': 'Saved application evidence is missing or could not be verified. Original source remains available.',
+            'reason': reason, 'notice': notices[reason],
             'modules': _page([], 1, size), 'registers': _page([], 1, size),
             'selected_module': None, 'selected_register': None,
             'coverage': {}, 'limitations': list(_LIMITATIONS)}
@@ -136,6 +153,7 @@ class ApplicationIndex:
         self._communications: dict[str, list] = defaultdict(list)
         self._definitions: dict[tuple, list] = defaultdict(list)
         self._controllers: dict[str, str | None] = {}
+        self._root_contexts: dict[str, dict] = {}
         self._declared_members: dict[tuple, dict] = {}
         self.annotation_texts: dict[str, str] = dict(field_io.annotation_texts)
         self._unresolved: list[dict] = []
@@ -150,9 +168,12 @@ class ApplicationIndex:
             _invalid()
 
     def _retain(self, value: Any) -> None:
+        # Bound this projection's additional retained content. Authenticated
+        # VariableIndex value records are borrowed, not copied or charged again.
+        # Shared root context is charged once; per-member entries remain bounded.
         self._budget += len(json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
         if self._budget > MAX_INDEX_BYTES:
-            _invalid()
+            raise ApplicationCapacityError('index_bytes')
 
     def _kind(self, entity: Any) -> str:
         if entity.kind in _DIRECTION:
@@ -171,18 +192,28 @@ class ApplicationIndex:
             if member_kind == 'container' and suffix:
                 row['member_kind'] = 'container'
             return row
-        if len(self.registers) >= MAX_REGISTERS or len(suffix) > 4096:
+        if len(self.registers) >= MAX_REGISTERS:
+            raise ApplicationCapacityError('register_count')
+        if len(suffix) > 4096:
             _invalid()
         owner = self.base._entities[owner_id]
-        name = self.base._resolver.name(owner) or owner.name
-        scope = self.base._entities.get(owner.scope_id)
+        if owner_id not in self._root_contexts:
+            scope = self.base._entities.get(owner.scope_id)
+            context = {'name': self.base._resolver.name(owner) or owner.name,
+                       'path': self.base._path(owner_id),
+                       'scope': {'id': owner.scope_id, 'name': scope.name if scope else None,
+                                 'path': self.base._path(owner.scope_id)},
+                       'provenance': {'source_id': owner_id, 'locator': owner.locator,
+                                      'name_basis': self.base._resolver.names.get(owner_id, {}).get('name_origin')}}
+            self._root_contexts[owner_id] = context
+            self._retain(context)
+        context = self._root_contexts[owner_id]
+        name = context['name']
         identifier = 'application_register_' + hashlib.sha256((owner_id + '\0' + key[1]).encode()).hexdigest()
         module_id = self.io._root_module.get(owner_id)
         row = {'id': identifier, 'source_id': owner_id, 'root_id': owner_id, 'module_id': module_id,
                'name': name, 'address': (name or '(unnamed declaration)') + suffix, 'suffix': suffix,
-               'parent_register_id': None, 'path': self.base._path(owner_id),
-               'scope': {'id': owner.scope_id, 'name': scope.name if scope else None,
-                         'path': self.base._path(owner.scope_id)},
+               'parent_register_id': None, 'path': context['path'], 'scope': context['scope'],
                'declaration_kind': self._kind(owner), 'io_direction': _DIRECTION.get(owner.kind, 'internal'),
                'member_kind': member_kind if suffix else 'declaration',
                'datatype': owner.attributes.get('DataType') if not suffix else None,
@@ -200,10 +231,11 @@ class ApplicationIndex:
                           'datatype': 'extracted' if not suffix and owner.attributes.get('DataType') else 'unknown',
                           'radix': 'extracted' if not suffix and owner.attributes.get('Radix') else 'unknown',
                           'direction': 'extracted' if module_id else 'unknown', 'physical': 'unknown'},
-               'provenance': {'source_id': owner_id, 'locator': owner.locator,
-                              'name_basis': self.base._resolver.names.get(owner_id, {}).get('name_origin'),
-                              'datatype_source_ids': [owner_id] if not suffix and owner.attributes.get('DataType') else [],
-                              'radix_source_ids': [owner_id] if not suffix and owner.attributes.get('Radix') else []}}
+               # Owner provenance is stored once in _root_contexts; expand only
+               # the requested page/detail, not every application register.
+               'provenance': {
+                   'datatype_source_ids': [owner_id] if not suffix and owner.attributes.get('DataType') else [],
+                   'radix_source_ids': [owner_id] if not suffix and owner.attributes.get('Radix') else []}}
         self.registers[identifier] = row
         self._keys[key] = identifier
         self._by_owner[owner_id].append(identifier)
@@ -544,7 +576,7 @@ class ApplicationIndex:
             for member in definition['members']:
                 work += 1
                 if work > MAX_REGISTERS * 4:
-                    _invalid()
+                    raise ApplicationCapacityError('declaration_expansion')
                 if member['status'] != 'extracted':
                     self._gaps['unresolved_datatype_members'] += 1
                     continue
@@ -679,10 +711,12 @@ class ApplicationIndex:
             if self.base._entities[owner_id].kind not in _ROOTS:
                 continue
             row = self._add(owner_id, values[0]['path'])
-            values = self._value_records(owner_id, values[0]['path'], values)
-            self._values[row['id']].extend(values)
-            self._retain(values)
-            qualified = ([] if any(value['ambiguous'] for value in values) else
+            # Reuse the immutable, authenticated upstream list. Ambiguity is a
+            # presentation field added only for the requested detail page.
+            self._values[row['id']] = values
+            self._retain([row['id'], [value['element_id'] for value in values]])
+            ambiguous = any(self._path_ambiguous(owner_id, values[0]['path'], value['content_id']) for value in values)
+            qualified = ([] if ambiguous else
                          [value for value in values if value['status'] == 'qualified'])
             for field in ('datatype', 'radix'):
                 choices = {value[field] for value in qualified if value.get(field)}
@@ -696,7 +730,7 @@ class ApplicationIndex:
                 elif len(choices) > 1:
                     row[field], row['states'][field] = None, 'unknown'
                     self._gaps['conflicting_' + field] += 1
-            row['states']['member'] = ('resolved' if qualified and all(value['status'] == 'qualified' and not value['ambiguous'] for value in values)
+            row['states']['member'] = ('resolved' if qualified and not ambiguous and all(value['status'] == 'qualified' for value in values)
                                        else 'unknown')
         self._references()
         self._declaration_members()
@@ -748,7 +782,7 @@ class ApplicationIndex:
             search = ' '.join(str(value or '') for value in (row['address'], row['description'], row['path'],
                     row['datatype'], row['alias_target'], *[alias['name'] for alias in self._aliases[row['id']]])).casefold()
             self._search[row['id']] = search
-            self._retain(row)
+            self._retain({key: value for key, value in row.items() if key not in {'name', 'path', 'scope'}})
             self._retain(search)
         self._coverage()
 
@@ -789,6 +823,10 @@ class ApplicationIndex:
             'totals_scope': 'captured_and_statically_associated_records_not_all_runtime_memory'}
         self._retain(self.coverage)
 
+    def _present_register(self, row: dict) -> dict:
+        """Expand shared owner provenance only for the bounded response page."""
+        return dict(row, provenance={**self._root_contexts[row['root_id']]['provenance'], **row['provenance']})
+
     def _detail(self, row: dict, query: dict) -> dict:
         owner = self.base._entities[row['root_id']]
         values = self._values[row['id']]
@@ -798,13 +836,14 @@ class ApplicationIndex:
         if definition:
             definition = dict(definition, members=definition['members'][:MAX_DETAIL],
                               members_truncated=definition['members_total'] > MAX_DETAIL)
-        result = dict(row, attributes=dict(owner.attributes),
+        result = dict(self._present_register(row), attributes=dict(owner.attributes),
                       datatype_definition=definition,
                       communications=self._communications[row['root_id']][:MAX_DETAIL],
                       communications_total=len(self._communications[row['root_id']]),
                       communications_truncated=len(self._communications[row['root_id']]) > MAX_DETAIL,
                       uses=_page(self._uses[row['id']], query['use_page'], query['page_size']),
-                      values=values[:MAX_DETAIL], values_total=len(values), values_truncated=len(values) > MAX_DETAIL,
+                      values=self._value_records(row['root_id'], row['suffix'], values[:MAX_DETAIL]),
+                      values_total=len(values), values_truncated=len(values) > MAX_DETAIL,
                       representations=contents[:MAX_DETAIL], representations_total=len(contents),
                       representations_truncated=len(contents) > MAX_DETAIL,
                       aliases=self._aliases[row['id']][:MAX_DETAIL],
@@ -841,13 +880,15 @@ class ApplicationIndex:
                        ' '.join(str(row[key] or '') for key in ('name', 'description', 'catalog_number')).casefold()]
         selected = self.registers.get(register_id)
         module = self.modules.get(module_id or (selected['module_id'] if selected else None))
+        registers = _page(rows, query['page'], query['page_size'])
+        registers['items'] = [self._present_register(row) for row in registers['items']]
         result = {'available': True, 'snapshot_id': self.base._captured.snapshot['id'],
             'notice': 'Configured hardware and captured application registers, with source facts and unresolved relationships kept separate.',
             'modules': _page(modules, query['module_page'], query['page_size']),
-            'registers': _page(rows, query['page'], query['page_size']),
+            'registers': registers,
             'selected_module': module, 'selected_register': self._detail(selected, query) if selected else None,
             'coverage': self.coverage, 'limitations': list(_LIMITATIONS)}
         result = _bounded(result)
         if len(json.dumps(result, ensure_ascii=False, separators=(',', ':')).encode('utf-8')) > MAX_RESPONSE_BYTES:
-            _invalid()
+            raise ApplicationError('Saved application evidence exceeds its response limit. Reduce rows per page or narrow the selection.')
         return deepcopy(result)

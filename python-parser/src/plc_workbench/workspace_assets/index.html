@@ -68,7 +68,9 @@
         <details id="project-tools" class="project-tools"><summary>Project tools</summary><div class="project-tools-body">
         <section class="source-card" aria-label="Current analysis source">
           <span class="eyebrow">YOUR SOURCE</span><strong id="source-name">Opening project…</strong>
+          <span id="source-analysis-time"></span><span id="source-run-id" class="mono muted"></span>
           <span id="source-count" class="muted"></span><span id="source-snapshot" class="mono muted"></span>
+          <span id="source-run-availability" class="muted"></span>
           <button id="import" type="button">Choose analysis run</button>
         </section>
         <label class="reviewer-label"
@@ -90,6 +92,11 @@
         <p class="muted">Closing a browser window leaves the local server running. Stop workspace ends all review windows and returns to Bash.</p>
         </div></details>
         <button id="stop" type="button" title="Stop the local server for all review windows">Stop workspace</button>
+      </div>
+      <div class="analysis-identity" aria-label="Active analysis">
+        <strong id="header-source-name">Opening project…</strong>
+        <span id="header-analysis-time"></span>
+        <button id="new-analysis" type="button" hidden>New saved analysis available · Choose run</button>
       </div>
     </header>
     <div

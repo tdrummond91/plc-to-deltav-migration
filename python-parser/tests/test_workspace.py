@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import closing, contextmanager
 import http.client
+import io
 import json
 import os
 from pathlib import Path
@@ -181,6 +182,48 @@ class WorkspaceIntegrationTests(unittest.TestCase):
             self.assertEqual(state['reviews'], {})
             self.assertEqual({row['path'] for row in client.get('/api/runs')['items']},
                              {str(self.first_run), str(self.rerun)})
+
+    def test_run_identity_and_new_saved_discovery_do_not_change_active_analysis(self) -> None:
+        first = json.loads((self.first_run / 'manifest.json').read_text(encoding='utf-8'))
+        second = json.loads((self.rerun / 'manifest.json').read_text(encoding='utf-8'))
+        with running_workspace(self.project, self.runs) as client:
+            state = self.import_run(client)
+            self.assertEqual(state['runs'][0]['created_utc'], first['created_utc'])
+            self.assertNotEqual(state['runs'][0]['created_utc'], state['runs'][0]['imported_utc'])
+            listing = client.get('/api/runs')
+            self.assertEqual(listing['active_run'], first['run_id'])
+            current, newer = ({row['run_id']: row for row in listing['items']}[run['run_id']]
+                              for run in (first, second))
+            self.assertTrue(current['current'])
+            self.assertFalse(current['newer'])
+            self.assertEqual(newer['created_utc'], second['created_utc'])
+            self.assertTrue(newer['newer'])
+            self.assertFalse(newer['imported'])
+            self.assertEqual(client.get('/api/state'), state)
+            state = self.import_run(client, self.rerun)
+            self.assertEqual(state['active_run'], second['run_id'])
+            self.assertEqual(state['runs'][-1]['created_utc'], second['created_utc'])
+            self.assertEqual(state['runs'][0]['snapshot_id'], state['runs'][-1]['snapshot_id'])
+            listing = client.get('/api/runs')
+            self.assertFalse(any(row['newer'] for row in listing['items']))
+            self.assertEqual(next(row['run_id'] for row in listing['items'] if row['current']), second['run_id'])
+
+    def test_run_listing_handles_missing_invalid_and_oversize_metadata(self) -> None:
+        runs = Path(self.temporary.name) / 'runs'
+        cases = [('legacy', {'run_id': 'legacy', 'status': 'partial'}),
+                 ('invalid-time', {'run_id': 'invalid-time', 'created_utc': '2026-02-31T10:00:00Z'}),
+                 ('naive-time', {'run_id': 'naive-time', 'created_utc': '2026-10-26T10:00:00'}),
+                 ('bad-shape', []), ('bad-json', '{broken'),
+                 ('too-large', 'x' * (2 * 1024 * 1024 + 1))]
+        for label, content in cases:
+            directory = runs / label
+            directory.mkdir(parents=True)
+            (directory / 'manifest.json').write_text(content if isinstance(content, str) else json.dumps(content))
+        with closing(Workspace(self.project, runs)) as workspace:
+            listing = workspace.available_runs()
+            self.assertEqual(len(listing['items']), len(cases))
+            self.assertTrue(all(row['created_utc'] is None and not row['newer'] for row in listing['items']))
+            self.assertIsNone(listing['active_run'])
 
     def test_every_rung_can_be_reached_across_pages_and_same_number_routines(self) -> None:
         with running_workspace(self.project, self.runs) as client:
@@ -650,17 +693,30 @@ class WorkspaceIntegrationTests(unittest.TestCase):
             before = workspace.state()
             before_bytes = self.project.read_bytes()
             with patch.object(Workspace, 'import_run') as import_run, \
-                    patch('plc_workbench.workspace.webbrowser.open') as browser:
+                    patch('plc_workbench.workspace.webbrowser.open') as browser, \
+                    patch('sys.stdout', new_callable=io.StringIO) as output:
                 self.assertEqual(main(['--project', str(self.project), '--runs', str(self.runs),
                                        '--import-run', str(self.first_run),
                                        '--port', str(server.server_address[1])]), 1)
                 import_run.assert_not_called()
                 browser.assert_not_called()
+                self.assertIn('completed analysis is saved', output.getvalue())
+                self.assertIn('Project tools > Choose analysis run', output.getvalue())
+                self.assertIn(str(self.first_run), output.getvalue())
             self.assertEqual(workspace.state(), before)
             self.assertEqual(self.project.read_bytes(), before_bytes)
         finally:
             server.server_close()
             workspace.close()
+
+    def test_browser_launch_failure_does_not_claim_successful_import_was_skipped(self) -> None:
+        with patch('plc_workbench.workspace.webbrowser.open', side_effect=OSError('browser unavailable')), \
+                patch('sys.stdout', new_callable=io.StringIO) as output:
+            self.assertEqual(main(['--project', str(self.project), '--runs', str(self.runs),
+                                   '--import-run', str(self.first_run), '--port', '0']), 1)
+        self.assertNotIn('was not loaded', output.getvalue())
+        with closing(Workspace(self.project, self.runs)) as workspace:
+            self.assertEqual(workspace.state()['active_run'], self.first_run.name)
 
     def test_automatic_invalid_selection_fails_before_creating_fallback(self) -> None:
         previous_directory = Path.cwd()

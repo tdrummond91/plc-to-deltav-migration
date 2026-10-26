@@ -101,6 +101,17 @@ def _private_path(path: Path) -> Path:
         raise ProjectError("Project files inside the checkout must stay beneath confidential/.") from exc
 
 
+def _analysis_time(value: Any) -> datetime | None:
+    """Manifest time only; importing or touching a directory is not an analysis."""
+    if not isinstance(value, str) or len(value) > 80:
+        return None
+    try:
+        stamp = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        return stamp.astimezone(timezone.utc) if stamp.tzinfo is not None else None
+    except (ValueError, OverflowError):
+        return None
+
+
 def _read_bounded(path: Path, limit: int) -> bytes:
     try:
         if path.is_symlink() or not path.is_file() or path.stat().st_size > limit:
@@ -621,8 +632,10 @@ class ProjectStore:
         runs = []
         for row in self.connection.execute("SELECT * FROM runs ORDER BY imported_utc,id"):
             manifest = json.loads(row["manifest"])
+            created = _analysis_time(manifest.get("created_utc"))
             runs.append({
                 "id": row["id"], "snapshot_id": row["snapshot_id"],
+                "created_utc": created.isoformat() if created else None,
                 "imported_utc": row["imported_utc"], "status": manifest["status"],
                 "parser_version": manifest.get("parser_version"), "source_run_id": manifest["run_id"],
             })

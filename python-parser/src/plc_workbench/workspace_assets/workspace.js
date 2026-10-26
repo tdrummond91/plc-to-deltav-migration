@@ -174,6 +174,61 @@
       state.saving = false;
     }
   }
+  function analysisTime(value) {
+    // An import date, directory timestamp or a timezone-free date is not the
+    // saved analysis time. Legacy runs can legitimately have no timestamp.
+    if (typeof value !== 'string' || value.length > 80 ||
+        !/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return 'Analysis time unavailable';
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return 'Analysis time unavailable';
+    return new Intl.DateTimeFormat(undefined, {year:'numeric', month:'short', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit', timeZoneName:'short'}).format(date);
+  }
+  function activeAnalysis(project) {
+    return (project?.runs || []).find(run => run.id === project.active_run) || {};
+  }
+  function renderAnalysisIdentity() {
+    const project = state.project, active = activeAnalysis(project);
+    const name = project?.active_run ? project.source?.name || 'Imported source' : 'No source selected';
+    const time = project?.active_run ? 'Analysis run · ' + analysisTime(active.created_utc) : 'Choose an analysis run to begin';
+    const detail = project?.active_run
+      ? `Run: ${active.source_run_id || project.active_run}\nSaved: ${active.created_utc || 'unavailable'}\nSnapshot: ${active.snapshot_id || 'unavailable'}` : '';
+    $('header-source-name').textContent = name;
+    $('header-source-name').title = name;
+    for (const id of ['header-analysis-time', 'source-analysis-time']) {
+      $(id).textContent = time; $(id).title = detail;
+    }
+    $('source-run-id').textContent = project?.active_run ? 'Run ' + (active.source_run_id || project.active_run) : '';
+  }
+  function analysisRunLabel(run) {
+    const selection = run.current ? ' · Current' : run.newer ? ' · Newer, not loaded' : run.imported ? ' · Previously imported' : '';
+    return `${analysisTime(run.created_utc)} · ${run.label || run.run_id || run.path} · ${run.status || 'unknown'}${selection}`;
+  }
+  async function refreshSavedRuns() {
+    if (!state.project) return;
+    const request = state.runDiscoverySerial = (state.runDiscoverySerial || 0) + 1;
+    const project = state.project;
+    try {
+      const result = await api('/api/runs');
+      if (request !== state.runDiscoverySerial || state.project !== project) return;
+      const changed = result.active_run !== project.active_run;
+      const newer = (result.items || []).filter(item => item.newer);
+      const hint = $('source-run-availability'), action = $('new-analysis');
+      action.hidden = !changed && !newer.length;
+      action.dataset.action = changed ? 'refresh' : 'choose';
+      action.textContent = changed ? 'Analysis changed · Refresh saved data' : 'New saved analysis available · Choose run';
+      hint.textContent = changed
+        ? 'Another window selected a different analysis. Copy any unsaved changes before using Refresh saved data; those edits belong to the previously selected run.'
+        : newer.length ? `${newer.length} newer saved ${newer.length === 1 ? 'analysis is' : 'analyses are'} available. Choose a run to load it; the current source stays selected until you do.`
+        : 'Showing the selected saved analysis. Choose analysis run to load a different result.';
+      if (newer.length && !changed) action.title = analysisRunLabel(newer[0]);
+      else action.title = '';
+    } catch {
+      if (request === state.runDiscoverySerial && state.project === project) {
+        $('source-run-availability').textContent = 'Could not check saved runs. Use Choose analysis run to retry.';
+      }
+    }
+  }
   function renderProject() {
     const p = state.project,
       s = p.source || {};
@@ -192,6 +247,9 @@
       ? "Snapshot " + snapshot.slice(0, 18)
       : "";
     $("source-snapshot").title = snapshot;
+    renderAnalysisIdentity();
+    $('new-analysis').hidden = true;
+    void refreshSavedRuns();
     $("rung-badge").textContent = hasSource
       ? Number(s.rung_count || 0).toLocaleString()
       : "";
@@ -335,6 +393,7 @@
     const p = state.project, s = p?.source || {};
     source.replaceChildren(node('h2', p?.active_run ? s.name || 'Imported source' : 'Choose your source'),
       node('p', p?.active_run ? `${Number(s.rung_count || 0).toLocaleString()} captured rungs · ${Number(s.instruction_count || 0).toLocaleString()} instructions · project revision ${p.revision}` : 'Open a completed analysis to begin. Your existing saved project can be reopened without analyzing the L5X again.'),
+      node('p', p?.active_run ? 'Analysis run · ' + analysisTime(activeAnalysis(p).created_utc) : ''),
       node('p', 'Choose or change the source under Project tools → Choose analysis run.'));
     const pages = [
       ['application','Application map','Inspect configured hardware routes, raw payloads, tag declarations and the logic that reads or writes them. Check which evidence is captured or unresolved.','Read-only source map · registers · data direction · datatype · coverage'],
@@ -2513,7 +2572,7 @@
           );
           chosen = select([
             ["", "Choose a run…"],
-            ...(result.items || []).map((r) => [r.path, r.label || r.path]),
+            ...(result.items || []).map((r) => [r.path, analysisRunLabel(r)]),
           ]);
           path = input("", "Or enter a local finalized run directory");
           body.append(
@@ -2658,6 +2717,15 @@
   $("new-group").addEventListener("click", () => groupEditor());
   $("categories").addEventListener("click", categoryManager);
   $("import").addEventListener("click", importDialog);
+  $('new-analysis').addEventListener('click', () => {
+    if ($('new-analysis').dataset.action === 'refresh') run(refreshProjectWindow);
+    else importDialog();
+  });
+  // Read-only discovery on user navigation; no timer, Git transport or implicit import.
+  $('project-tools').addEventListener('toggle', () => {
+    if ($('project-tools').open) void refreshSavedRuns();
+  });
+  window.addEventListener('focus', () => { void refreshSavedRuns(); });
   $("backup").addEventListener("click", () =>
     run(async () => {
       if (

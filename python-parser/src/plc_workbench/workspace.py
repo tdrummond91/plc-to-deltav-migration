@@ -24,7 +24,8 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 import webbrowser
 
-from .project_store import ProjectError, ProjectStore, RevisionConflict, rung_pattern
+from .project_store import (MAX_MANIFEST_BYTES, ProjectError, ProjectStore,
+                            RevisionConflict, _analysis_time, _read_bounded, rung_pattern)
 from .storage import StorageError, _workspace_path
 from .workspace_paging import page_size as selected_page_size
 
@@ -770,7 +771,7 @@ class Workspace:
 
     def application(self, query: dict) -> dict:
         """Read the configured application without changing the selected run or reviews."""
-        from .workspace_application import (MAX_RESPONSE_BYTES, ApplicationError,
+        from .workspace_application import (MAX_RESPONSE_BYTES, ApplicationCapacityError, ApplicationError,
                                              ApplicationIndex, unavailable, validate_query)
         from .workspace_field_io import FieldIOError, FieldIOIndex, _preview
         try:
@@ -787,10 +788,17 @@ class Workspace:
                 field = self._field_io_cache[run_id]
                 try:
                     self._application_cache[run_id] = ApplicationIndex(field) if field else None
-                except ApplicationError:
-                    self._application_cache[run_id] = None
-            index = self._application_cache[run_id]
-            result = index.view(selected) if index else unavailable(selected['page_size'])
+                except ApplicationError as exc:
+                    # Keep a source-free failure category rather than turning a
+                    # large valid export into an apparently empty/missing run.
+                    # Store only the category: an exception traceback would
+                    # retain the partially constructed large projection.
+                    self._application_cache[run_id] = ('application_capacity'
+                        if isinstance(exc, ApplicationCapacityError) else 'application_evidence_invalid')
+            cached = self._application_cache[run_id]
+            failure = cached if isinstance(cached, str) else 'evidence_unavailable'
+            index = None if isinstance(cached, str) else cached
+            result = index.view(selected) if index else unavailable(selected['page_size'], failure)
             visible = [*result['modules']['items'], *result['registers']['items']]
             visible += [row for row in (result['selected_module'], result['selected_register']) if row]
             # Cached wording is presentation only: browsing never starts a translation job.
@@ -1200,13 +1208,38 @@ class Workspace:
         return {"items": matches, "total": len(matches), "pattern": pattern}
 
     def available_runs(self) -> dict:
+        state = self.store.state()
+        imported = {run['id'] for run in state['runs']}
+        active = next((run for run in state['runs'] if run['id'] == state['active_run']), {})
+        active_time = _analysis_time(active.get('created_utc'))
         items = []
         if self.runs_path.is_dir():
             for path in sorted(self.runs_path.iterdir(), reverse=True):
                 if path.is_symlink() or not path.is_dir() or not (path / "manifest.json").is_file():
                     continue
-                items.append({"path": str(path), "label": path.name})
-        return {"items": items}
+                item = {"path": str(path), "label": path.name,
+                        "created_utc": None, "run_id": None, "status": "unknown",
+                        "current": False, "imported": False, "newer": False}
+                try:
+                    # Listing reads only bounded metadata. Full artifact integrity
+                    # and source compatibility are still checked by import_run.
+                    manifest = json.loads(_read_bounded(path / 'manifest.json', MAX_MANIFEST_BYTES))
+                    if not isinstance(manifest, dict):
+                        raise ValueError
+                    stamp = _analysis_time(manifest.get('created_utc'))
+                    run_id = manifest.get('run_id')
+                    if not isinstance(run_id, str) or not run_id or len(run_id) > 256:
+                        raise ValueError
+                    item.update(created_utc=stamp.isoformat() if stamp else None, run_id=run_id,
+                                status=manifest.get('status') if manifest.get('status') in
+                                ('complete', 'partial', 'failed') else 'unknown',
+                                current=run_id == state['active_run'], imported=run_id in imported,
+                                newer=bool(stamp and active_time and stamp > active_time and run_id not in imported))
+                except (ProjectError, OSError, ValueError, TypeError, RecursionError):
+                    pass
+                items.append(item)
+        items.sort(key=lambda item: item['created_utc'] or '', reverse=True)
+        return {"items": items, "active_run": state['active_run']}
 
     def report(self, language: str | None = None) -> bytes:
         from .workspace_report import refresh_report
@@ -1585,7 +1618,14 @@ def main(argv: list[str] | None = None) -> int:
         with_workspace = Workspace(project, args.runs)
         with_workspace.startup_notice = startup_notice
         try:
-            server = WorkspaceServer(("127.0.0.1", args.port), with_workspace)
+            try:
+                server = WorkspaceServer(("127.0.0.1", args.port), with_workspace)
+            except OSError:
+                if args.import_run is not None:
+                    print("The completed analysis is saved, but was not loaded into the open workspace. "
+                          "In that window, use Project tools > Choose analysis run and select:")
+                    print(str(args.import_run))
+                raise
             try:
                 # Binding first avoids changing the project if another editor
                 # already occupies the requested port. Import remains atomic.

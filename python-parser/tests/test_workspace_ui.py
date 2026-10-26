@@ -616,7 +616,7 @@ switchView('home',true);assert.equal($('source-window-access').hidden,true);
 """)
 
     def test_home_has_working_page_directory_and_existing_source_summary(self) -> None:
-        self.run_js(['renderHome', 'pageAccessNote'], r"""
+        self.run_js(['renderHome', 'pageAccessNote', 'analysisTime', 'activeAnalysis'], r"""
 const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
 importDialog=()=>{};state.project={active_run:'invented',revision:3,source:{name:'Invented.L5X',rung_count:9,instruction_count:20}};
 const visits=[];navigateWorkspace=view=>visits.push(view);
@@ -643,6 +643,54 @@ assert.ok(links[1].children[1].title.includes('do not establish equivalent behav
 assert.deepEqual(links.map(card=>card.children[1].textContent),
   ['Read only','Read only','Read & write','Read only','Read only','Read & write','Read & write','Read only','Read & write','Read & write']);
 assert.ok(contents($('home-pages')).includes('AI, AO, DI, DO, DC, AC, PID'));
+""")
+
+    def test_analysis_identity_uses_selected_manifest_time_not_import_or_last_run(self) -> None:
+        self.run_js(['analysisTime', 'activeAnalysis', 'renderAnalysisIdentity', 'analysisRunLabel'], r"""
+const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
+const first={id:'first',source_run_id:'first',snapshot_id:'same-source',created_utc:'2026-10-25T18:30:05+00:00',imported_utc:'2026-10-26T10:00:00Z'};
+const second={id:'second',source_run_id:'second',snapshot_id:'same-source',created_utc:'2026-10-26T02:10:06+00:00'};
+state.project={active_run:'first',source:{name:'Invented source'},runs:[first,second]};
+renderAnalysisIdentity();
+assert.equal($('header-source-name').textContent,'Invented source');
+assert.equal($('header-analysis-time').textContent,'Analysis run · '+analysisTime(first.created_utc));
+assert.equal($('source-analysis-time').textContent,$('header-analysis-time').textContent);
+assert.ok($('header-analysis-time').title.includes(first.created_utc));
+assert.ok(!$('header-analysis-time').title.includes(first.imported_utc));
+assert.equal($('source-run-id').textContent,'Run first');
+const old=$('header-analysis-time').textContent;
+state.project.active_run='second';renderAnalysisIdentity();
+assert.notEqual($('header-analysis-time').textContent,old);
+assert.equal($('source-run-id').textContent,'Run second');
+const expected=new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',timeZoneName:'short'}).format(new Date(second.created_utc));
+assert.equal(analysisTime(second.created_utc),expected);
+for(const bad of [undefined,null,{},'bad','2026-10-26','2026-10-26T10:00:00','invalidZ']) assert.equal(analysisTime(bad),'Analysis time unavailable');
+assert.match(analysisRunLabel({...second,label:'second',status:'partial',newer:true}),/Newer, not loaded/);
+assert.match(analysisRunLabel({...first,current:true}),/Current/);
+state.project.active_run=null;renderAnalysisIdentity();
+assert.equal($('header-source-name').textContent,'No source selected');
+assert.equal($('source-run-id').textContent,'');
+""")
+
+    def test_saved_run_discovery_preserves_edits_and_rejects_stale_responses(self) -> None:
+        self.run_js(['refreshSavedRuns', 'analysisRunLabel', 'analysisTime'], r"""
+const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
+state.project={active_run:'first',revision:7};state.dirty=true;state.source={source:{id:'editing'}};
+const original=state.project,source=state.source;
+api=async path=>{assert.equal(path,'/api/runs');return {active_run:'first',items:[{newer:true,label:'second',created_utc:'2026-10-26T10:00:00Z'}]};};
+await refreshSavedRuns();
+assert.equal(state.project,original);assert.equal(state.source,source);assert.equal(state.dirty,true);
+assert.equal($('new-analysis').hidden,false);assert.equal($('new-analysis').dataset.action,'choose');
+assert.match($('source-run-availability').textContent,/1 newer saved analysis/);
+api=async()=>({active_run:'second',items:[]});await refreshSavedRuns();
+assert.equal($('new-analysis').dataset.action,'refresh');assert.equal(state.project,original);
+let release;api=()=>new Promise(resolve=>{release=resolve;});const pending=refreshSavedRuns();
+state.project={active_run:'second',revision:8};
+$('source-run-availability').textContent='Current';release({active_run:'first',items:[{newer:true}]});
+await pending;assert.equal($('source-run-availability').textContent,'Current');
+api=async()=>({active_run:'second',items:[]});await refreshSavedRuns();assert.equal($('new-analysis').hidden,true);
+api=async()=>{throw new Error('offline');};await refreshSavedRuns();
+assert.match($('source-run-availability').textContent,/Could not check saved runs/);
 """)
 
     def test_analysis_windows_preserve_unsaved_form_and_recover_blocked_popups(self) -> None:

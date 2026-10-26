@@ -1,5 +1,40 @@
 # Current handoff: PLC analysis workbench
 
+## Visible analysis identity and large application maps (2026-10-26)
+
+The sticky header, Project tools and Home now show the selected manifest's
+analysis creation time in the browser's local time zone, including seconds and
+zone. Project tools retains the complete run ID and snapshot; the run chooser
+lists dated choices and marks Current / Newer, not loaded / Previously imported.
+Missing or invalid legacy dates remain explicitly unavailable. Import time and
+filesystem timestamps are not substituted for analysis time.
+
+Read-only saved-run discovery occurs on opening Project tools, returning focus
+to a workspace window and refreshing project state. It flags a newer saved run
+without switching source, changing revision or replacing pending edits. No
+timer, listener or Git operation is involved. An occupied workspace port still
+prevents automatic import; the terminal now explains how to select the already
+completed run. Other failures after successful import do not claim it was skipped.
+
+The Application map previously duplicated expanded value and owner provenance
+records, exceeding its 96 MiB projection limit at realistic export sizes. It now
+reuses authenticated values and owner context, expanding full provenance only
+for requested pages/details. The limit is unchanged. An independently invented
+6,600-owner / seven-member case exposes 52,852 register records and passes late
+pagination, exact search, values and provenance checks. Capacity failures now
+have a distinct visible explanation; missing/invalid evidence remains separate.
+This fixes a reproduced scale defect, not a confirmed diagnosis of the private
+work-machine symptom. Upstream evidence and response limits still apply.
+
+After a manual pull, Stop workspace and run `bash ./open-workbench.sh`. Choose
+the latest completed run under Project tools if needed; no parser rerun is
+required. Existing saved decisions and source artifacts are retained. Browser
+checks used invented source: current/newer run selection, timestamp change on
+import, matching header/tools/Home, and 680px/normal desktop layouts. All 709
+workspace/project-store tests passed, including the large-population regression.
+Independent review found no remaining blockers. No private plant data was used
+for the reproduction.
+
 ## Application map and representative-export re-audit (2026-10-23)
 
 New **Application map** Home/Page entry separates Phase 1 source evidence from
