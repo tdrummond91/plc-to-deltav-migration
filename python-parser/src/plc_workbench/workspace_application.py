@@ -19,6 +19,7 @@ from .stateful_objects import _declaration
 from .workspace_field_io import FieldIOIndex
 from .workspace_io_comments import collect_io_annotations, select_description
 from .workspace_paging import page_size
+from .workspace_sorting import natural_key
 from .workspace_variables import _member_key
 
 MAX_REGISTERS = 100_000
@@ -875,9 +876,9 @@ class ApplicationIndex:
                 and (not query['query'] or query['query'].casefold() in self._search[row['id']])
                 and (not query['logic_role'] or query['logic_role'] in row['logic_access']['roles']
                      or query['logic_role'] == 'unused' and not row['logic_access']['uses_total'])]
-        rows.sort(key=lambda row: (row['scope']['path'].casefold(), row['address'].casefold(), row['id']))
-        modules = sorted(self.modules.values(), key=lambda row: ((row['controller']['name'] or '').casefold(),
-                                                                 (row['name'] or '').casefold(), row['id']))
+        rows.sort(key=lambda row: (natural_key(row['scope']['path']), natural_key(row['address']), row['id']))
+        modules = sorted(self.modules.values(), key=lambda row: (natural_key(row['controller']['name']),
+                                                                 natural_key(row['name']), row['id']))
         if query['query']:
             matched_modules = {row['module_id'] for row in rows}
             modules = [row for row in modules if row['id'] in matched_modules or query['query'].casefold() in

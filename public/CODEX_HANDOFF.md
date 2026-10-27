@@ -1,5 +1,26 @@
 # Current handoff: PLC analysis workbench
 
+## Natural ordering for numbered navigation names (2026-10-27)
+
+Alphabetical navigation now treats digit runs as numbers: `Card8`, `Card9`,
+`Card10`, `Card11`, `Card119`, `Card120`. Field I/O module/address lists, grouped
+field signals, Application map scope/register/module lists, and Programs &
+routines navigation use numeric-aware, case-insensitive name ordering. Backend
+ordering occurs before pagination, so changing page size preserves one complete
+ordered result rather than sorting individual pages independently.
+
+Names, leading-zero spellings, source IDs, binding signatures and saved edits
+retain their original values. Routine navigation sorts a copy of its directory;
+rungs, instruction order, direct/related source traces and revision/date ordering
+remain unchanged. No analysis rerun is needed: Stop workspace, manually pull,
+and reopen with `bash ./open-workbench.sh` to use the existing saved analysis.
+
+Focused checks cover global order across page boundaries, exact bindings,
+multinumber addresses, padding/case ties, program/AOI filters and source-order
+preservation. All 218 affected field/application/paging/routine checks passed,
+including four new Python ordering checks and all 23 routine-browser UI checks.
+Independent review found no blockers.
+
 ## Size workspace projections for mixed module exports (2026-10-27)
 
 The work PC still reported the 32 MiB field-index limit after the prior fix,

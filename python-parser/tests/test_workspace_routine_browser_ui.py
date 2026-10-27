@@ -155,6 +155,47 @@ assert.deepEqual(cls('routine-directory-entry').map(entry=>entry.dataset.routine
 assert.equal(calls.length,0);
 """)
 
+    def test_numbered_navigation_names_sort_naturally_without_changing_source_order(self):
+        self.run_js(r"""
+const original=[100,11,8,10,9];
+project.routines=original.map(i=>({...routine(i),program_id:'scope-'+i,
+  program_name:'Unit '+i,program_path:'Controller / Unit '+i,type:'Type'+i}));
+const captured=project.routines;
+mount();const scope=cls('routine-directory-program')[0],type=cls('routine-directory-type')[0];
+assert.deepEqual(cls('routine-directory-entry').map(entry=>entry.dataset.routineId),
+  [8,9,10,11,100].map(i=>'routine-'+i));
+assert.deepEqual(scope.children.map(option=>option.value),['',...[8,9,10,11,100].map(i=>'scope-'+i)]);
+assert.deepEqual(type.children.map(option=>option.value),['',...[8,9,10,11,100].map(i=>'Type'+i)]);
+assert.equal(project.routines,captured);
+assert.deepEqual(project.routines.map(row=>row.id),original.map(i=>'routine-'+i));
+assert.equal(calls.length,0);
+scope.value='scope-10';scope.fire('change');
+assert.deepEqual(cls('routine-directory-entry').map(entry=>entry.dataset.routineId),['routine-10']);
+button('Clear routine filters').fire('click');
+open(cls('routine-directory-entry')[0]);await flush();
+assert.equal(new URL(calls[0],'http://local').searchParams.get('routine'),'routine-8');
+assert.deepEqual(cls('routine-rung-heading').map(heading=>heading.children[0].textContent),
+  Array.from({length:20},(_,i)=>'Rung '+(500-i)));
+assert.deepEqual(diagrams.map(item=>item.source.instructions[0].id),
+  Array.from({length:20},(_,i)=>'instruction-'+i));
+""")
+
+    def test_case_insensitive_multinumber_aoi_scope_and_routine_path_ties_keep_identity(self):
+        self.run_js(r"""
+const names=['Unit 2 / Widget 10','unit 10 / Widget 1','unit 2 / Widget 9'];
+project.routines=names.map((name,i)=>({...routine(i),name:i===2?'logic 8':'Logic 8',
+  program_id:'',program_name:'',program_path:'',scope_id:'aoi-'+i,scope_kind:'aoi',
+  scope_path:'Controller / '+name,path:'Controller / '+name+' / Logic 8'}));
+mount();const scope=cls('routine-directory-program')[0];
+assert.deepEqual(scope.children.map(option=>option.value),['','aoi-2','aoi-0','aoi-1']);
+assert.deepEqual(cls('routine-directory-entry').map(entry=>entry.dataset.routineId),
+  ['routine-2','routine-0','routine-1']);
+scope.value='aoi-0';scope.fire('change');
+assert.deepEqual(cls('routine-directory-entry').map(entry=>entry.dataset.routineId),['routine-0']);
+assert.deepEqual(project.routines.map(row=>row.id),['routine-0','routine-1','routine-2']);
+assert.equal(calls.length,0);
+""")
+
     def test_collapsing_or_filtering_discards_pending_response(self):
         self.run_js(r"""
 const pending=deferred();respond=async()=>pending.promise;mount();

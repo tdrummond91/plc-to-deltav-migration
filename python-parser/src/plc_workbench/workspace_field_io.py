@@ -16,6 +16,7 @@ from .references import _ADDRESS
 from .module_catalog import CATALOG_TYPES, lookup_catalog
 from .workspace_evidence import diagnostic
 from .workspace_io_comments import IOCommentError, collect_io_annotations, select_description
+from .workspace_sorting import natural_key
 from .workspace_variables import VariableIndex, _member_key
 
 PAGE_SIZE = 24
@@ -361,7 +362,7 @@ class FieldIOIndex:
             self.by_module[identifier].sort(key=lambda key: (
                 self.addresses[key]['channel'] is None, self.addresses[key]['direction'],
                 self.addresses[key]['channel'] if self.addresses[key]['channel'] is not None else -1,
-                self.addresses[key]['address'].casefold(), key))
+                natural_key(self.addresses[key]['address']), key))
             rows = [self.addresses[key] for key in self.by_module[identifier]]
             module.update(directions=sorted({row['direction'] for row in self.roots[identifier]
                                              if row['qualified'] and module['qualified']}),
@@ -529,6 +530,7 @@ class FieldIOIndex:
             if self._matches_type(row, query['field_type'])
             and (not query['direction'] or query['direction'] in row['directions'])
             and (not query['query'] or query['query'].casefold() in self._search[row['id']])]
+        rows.sort(key=lambda row: (natural_key(row['controller']['name']), natural_key(row['name']), row['id']))
         modules = _page(rows, query['page'])
         modules['items'] = [self._annotation_preview(row) for row in modules['items']]
         detail = None

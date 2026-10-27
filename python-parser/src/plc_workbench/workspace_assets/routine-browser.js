@@ -1,7 +1,8 @@
-/* Lazy routine directory. Source order and diagrams are read-only. */
+/* Name-sorted routine navigation. Captured rung and instruction order is unchanged. */
 (() => {
   'use strict';
   const PAGE_SIZES = [10, 50, 100, 200, 500];
+  const byName = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'}).compare;
   const el = (tag, text, cls = '') => {
     const node = document.createElement(tag); node.className = cls;
     if (text !== undefined) node.textContent = text;
@@ -234,11 +235,14 @@
       const state = options.getState() || {}, nextKey = projectKey();
       if (nextKey !== key) {
         key = nextKey; runId = state.active_run || ''; page = 1;
-        routines = state.routines || [];
+        // Sort a navigation copy; the captured project/source arrays retain
+        // their original order, including every routine's ladder instructions.
+        routines = [...(state.routines || [])].sort((a,b) => byName(a.name || a.id, b.name || b.id)
+          || byName(a.path || scopeLabel(a), b.path || scopeLabel(b)));
         query.value = ''; program.value = ''; type.value = '';
         const scopes = new Map(routines.map(routine => [scope(routine), scopeLabel(routine)]));
-        choices(program, [...scopes].sort((a,b) => a[1].localeCompare(b[1])), 'All programs / AOIs');
-        choices(type, [...new Set(routines.map(routineType))].sort().map(value => [value,value]), 'All routine types');
+        choices(program, [...scopes].sort((a,b) => byName(a[1], b[1])), 'All programs / AOIs');
+        choices(type, [...new Set(routines.map(routineType))].sort(byName).map(value => [value,value]), 'All routine types');
         renderDirectory();
       } else if (opened?.loading) load(opened, opened.requestedPage, opened.payload?.page === opened.requestedPage);
     }

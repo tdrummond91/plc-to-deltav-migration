@@ -19,6 +19,7 @@ from .workspace_evidence import diagnostic
 from .workspace_field_io import FieldIOIndex, _page, _preview
 from .workspace_variables import _member_key
 from .workspace_paging import page_size
+from .workspace_sorting import natural_key
 
 PAGE_SIZE = 24
 DETAIL_PAGE_SIZE = 12
@@ -205,10 +206,10 @@ class FieldSignalIndex:
             self._search[row['id']] = ' '.join(parts).casefold()
             self._retain(self._search[row['id']])
         self._ordered = sorted(self.signals, key=lambda identifier: (
-            self._hardware_by_module[self.signals[identifier]['module_id']]['controller']['path'] or '',
-            self._hardware_by_module[self.signals[identifier]['module_id']]['path'], self.signals[identifier]['direction'],
+            natural_key(self._hardware_by_module[self.signals[identifier]['module_id']]['controller']['path']),
+            natural_key(self._hardware_by_module[self.signals[identifier]['module_id']]['path']), self.signals[identifier]['direction'],
             self.signals[identifier]['channel'] is None, self.signals[identifier]['channel'] or 0,
-            self.signals[identifier]['address'].casefold(), identifier))
+            natural_key(self.signals[identifier]['address']), identifier))
         counts = Counter(row['field_type'] for row in self.signals.values()
                          if row['mapping_status'] == 'documented_member_layout')
         candidate_counts = Counter(kind for row in self.signals.values() if row['mapping_status'] == 'review_mapping'
