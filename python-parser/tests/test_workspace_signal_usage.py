@@ -71,17 +71,17 @@ class SignalUsageTests(unittest.TestCase):
         self.assertIn('supported captured ladder scan', result['notice'])
         self.assertIn('spare status are not established', result['notice'])
 
-    def test_parent_and_child_references_are_possible_not_exact_and_sibling_bits_do_not_overlap(self) -> None:
+    def test_whole_word_and_member_references_resolve_without_claiming_sibling_bits(self) -> None:
         index = build(field_inputs(('MOV(Local:1:I.Data,InternalReal);',)))
         member = index.summary(address(index, 'Local:1:I.Data.0'))
-        self.assertEqual(member['status'], 'possible_indirect')
+        self.assertEqual(member['status'], 'referenced')
         self.assertEqual(member['direct_count'], 0)
-        self.assertEqual(member['possible_uses'][0]['reason'], 'aggregate_parent')
-        self.assertEqual(member['possible_uses'][0]['variable'], 'Local:1:I.Data')
+        self.assertEqual(member['resolved_uses'][0]['reason'], 'whole_word')
+        self.assertEqual(member['resolved_uses'][0]['variable'], 'Local:1:I.Data')
         self.assertEqual(index.status(address(index, 'Local:1:I.Data')), 'referenced')
         index = build(field_inputs(('XIC(Local:1:I.Data.10);',)))
         root = index.summary(address(index, 'Local:1:I.Data'))
-        self.assertEqual(root['possible_uses'][0]['reason'], 'aggregate_child')
+        self.assertEqual(root['resolved_uses'][0]['reason'], 'aggregate_child')
         self.assertEqual(index.status(address(index, 'Local:1:I.Data.0')), 'not_found')
 
     def test_cop_cps_and_fll_ranges_do_not_claim_a_particular_channel_or_cross_roots(self) -> None:
@@ -135,7 +135,83 @@ class SignalUsageTests(unittest.TestCase):
                          ('Local:1:I.Data[Index]', 'read', 'dynamic_index'))
         self.assertIn(use['id'], {row['id'] for row in index.base._access.expression_uses})
 
-    def test_equivalent_numeric_spellings_are_possible_only_and_do_not_match_other_indices(self) -> None:
+    def test_dynamic_selector_explains_snapshot_external_access_and_writer_source(self) -> None:
+        leaves = ('<ArrayMember Name="Data" DataType="DINT" Dimensions="4">'
+                  '<Element Index="[0]" Value="0"/><Element Index="[1]" Value="0"/></ArrayMember>')
+        tags = ('<Tag Name="Index" DataType="DINT" ExternalAccess="Read/Write">'
+                '<Data Format="Decorated"><DataValue DataType="DINT" Value="0"/></Data></Tag>')
+        index = build(field_inputs(('MOV(1,Index);', 'MOV(Local:1:I.Data[Index],InternalReal);'),
+            modules=module('ArrayCard', 1, 'INVENTED', data=leaves), extra_tags=tags))
+        summary = index.summary(address(index, 'Local:1:I.Data[0]'))
+        self.assertEqual(summary['status'], 'possible_indirect')
+        self.assertEqual(summary['resolved_count'], 0)
+        use = summary['possible_uses'][0]
+        self.assertIn('Index (DINT)', use['explanation'])
+        self.assertIn('exported value 0 is a snapshot', use['explanation'])
+        self.assertIn('external access Read/Write', use['explanation'])
+        self.assertEqual(use['index_sources'][0]['rung_id'], index.base._captured.rungs[0].id)
+        self.assertIn('Rung 0', use['index_sources'][0]['path'])
+        self.assertEqual(summary['detail'], use['explanation'])
+
+    def test_fixed_copy_resolves_only_selected_elements_and_keeps_exact_occurrences(self) -> None:
+        leaves = ('<ArrayMember Name="Data" DataType="DINT" Dimensions="4">' +
+                  ''.join(f'<Element Index="[{i}]" Value="0"/>' for i in range(4)) + '</ArrayMember>')
+        index = build(field_inputs(('COP(Local:1:I.Data[1],Buffer[0],2);',),
+            modules=module('ArrayCard', 1, 'INVENTED', data=leaves),
+            extra_tags='<Tag Name="Buffer" DataType="DINT" Dimensions="4"/>'))
+        for i, status in ((0, 'not_found'), (1, 'referenced'), (2, 'referenced'), (3, 'not_found')):
+            with self.subTest(element=i):
+                self.assertEqual(index.status(address(index, f'Local:1:I.Data[{i}]')), status)
+        exact = index.summary(address(index, 'Local:1:I.Data[1]'))
+        selected = index.summary(address(index, 'Local:1:I.Data[2]'))
+        self.assertEqual((exact['direct_count'], exact['resolved_count']), (1, 0))
+        self.assertEqual((selected['direct_count'], selected['resolved_count']), (0, 1))
+        self.assertEqual(selected['resolved_uses'][0]['reason'], 'fixed_range')
+        self.assertEqual(selected['roles']['read'], 1)
+        self.assertEqual(selected['possible_count'], 0)
+        self.assertTrue(selected['resolved_uses'][0]['explanation'])
+
+    def test_dense_shared_copy_range_short_circuits_filters_but_keeps_full_selected_counts(self) -> None:
+        leaves = ('<ArrayMember Name="Data" DataType="DINT" Dimensions="64">' +
+                  ''.join(f'<Element Index="[{i}]" Value="0"/>' for i in range(64)) + '</ArrayMember>')
+        index = build(field_inputs(('COP(Local:1:I.Data[0],Buffer[0],64);',) * 60,
+            modules=module('DenseCard', 1, 'INVENTED', data=leaves),
+            extra_tags='<Tag Name="Buffer" DataType="DINT" Dimensions="64"/>'))
+        with patch.object(index._range_resolver, 'match', wraps=index._range_resolver.match) as match:
+            for i in range(64):
+                self.assertEqual(index.status(address(index, f'Local:1:I.Data[{i}]')), 'referenced')
+            self.assertEqual(match.call_count, 63)
+        row = address(index, 'Local:1:I.Data[1]')
+        summary = index.summary(row)
+        self.assertEqual((summary['resolved_count'], summary['resolved_rung_count']), (60, 60))
+        self.assertEqual(len(summary['resolved_uses']), 12)
+        self.assertTrue(summary['resolved_uses_truncated'])
+        self.assertEqual(len(list(index.resolved_references(row))), 60)
+
+    def test_unknown_parent_semantics_and_masked_operations_explain_parser_gap(self) -> None:
+        for text in ('Mystery(Local:1:I.Data);', 'MVM(InternalReal,0,Local:1:I.Data);'):
+            with self.subTest(text=text):
+                index = build(field_inputs((text,)))
+                result = index.summary(address(index, 'Local:1:I.Data.0'))
+                self.assertEqual(result['status'], 'possible_indirect')
+                self.assertEqual(result['resolved_count'], 0)
+                self.assertIn('parser has not established which members', result['detail'])
+                self.assertIn('Local:1:I.Data', result['detail'])
+
+    def test_dynamic_member_and_multidimensional_literal_parts_exclude_siblings(self) -> None:
+        from plc_workbench.workspace_signal_usage import _dynamic_matches
+        for source, target, expected in (
+                ('.Data[Index].Value', '.data[0].value', True),
+                ('.Data[Index].Value', '.data[0].status', False),
+                ('.Data[1,Index]', '.data[1,0]', True),
+                ('.Data[01,Index]', '.data[1,0]', True),
+                ('.Data[1,Index]', '.data[2,0]', False),
+                ('.Data[1,Index]', '.data[1]', False),
+                ('.Data[Index].Value', '.data[0]', True)):
+            with self.subTest(source=source, target=target):
+                self.assertEqual(_dynamic_matches(source, target), expected)
+
+    def test_equivalent_numeric_spellings_resolve_without_changing_source_or_matching_other_indices(self) -> None:
         leaves = ('<ArrayMember Name="Data" DataType="REAL" Dimensions="11">'
                   '<Element Index="[1]" Value="0"/><Element Index="[10]" Value="0"/></ArrayMember>')
         for spelling in ('[ 1 ]', '[01]'):
@@ -144,16 +220,16 @@ class SignalUsageTests(unittest.TestCase):
                     modules=module('ArrayCard', 1, 'INVENTED', data=leaves)))
                 before = deepcopy(index.io.addresses)
                 result = index.summary(address(index, 'Local:1:I.Data[1]'))
-                self.assertEqual(result['status'], 'possible_indirect')
+                self.assertEqual(result['status'], 'referenced')
                 self.assertEqual(result['direct_count'], 0)
-                self.assertEqual(result['possible_uses'][0]['reason'], 'equivalent_static_index')
-                self.assertEqual(result['possible_uses'][0]['variable'], f'Local:1:I.Data{spelling}')
+                self.assertEqual(result['resolved_uses'][0]['reason'], 'equivalent_static_index')
+                self.assertEqual(result['resolved_uses'][0]['variable'], f'Local:1:I.Data{spelling}')
                 self.assertEqual(index.status(address(index, 'Local:1:I.Data[10]')), 'not_found')
                 self.assertEqual(index.io.addresses, before)
         index = build(field_inputs(('XIC(Local:1:I.Data.01);',), extra_tags=(
             '<Tag Name="FirstBit" TagType="Alias" AliasFor="Local:1:I.Data.1"/>'
             '<Tag Name="TenthBit" TagType="Alias" AliasFor="Local:1:I.Data.10"/>')))
-        self.assertEqual(index.status(address(index, 'Local:1:I.Data.1')), 'possible_indirect')
+        self.assertEqual(index.status(address(index, 'Local:1:I.Data.1')), 'referenced')
         self.assertEqual(index.status(address(index, 'Local:1:I.Data.10')), 'not_found')
 
     def test_missing_access_or_unsupported_roles_do_not_hide_scan_results(self) -> None:
@@ -303,19 +379,19 @@ class SignalUsageTests(unittest.TestCase):
                 self.assertEqual(result['direct_count'], 0)
                 self.assertIn(reason, result['gap_reasons'])
 
-    def test_possible_previews_are_bounded_detached_and_counts_remain_complete(self) -> None:
+    def test_resolved_previews_are_bounded_detached_and_counts_remain_complete(self) -> None:
         index = build(field_inputs(('MOV(Local:1:I.Data,InternalReal);',) * 30))
         row = address(index, 'Local:1:I.Data.0')
         result = index.summary(row)
-        self.assertEqual((result['possible_count'], result['possible_rung_count']), (30, 30))
-        self.assertEqual(len(result['possible_uses']), 12)
-        self.assertTrue(result['possible_uses_truncated'])
+        self.assertEqual((result['resolved_count'], result['resolved_rung_count']), (30, 30))
+        self.assertEqual(len(result['resolved_uses']), 12)
+        self.assertTrue(result['resolved_uses_truncated'])
         self.assertEqual(result['possible_preview_limit'], 12)
-        self.assertEqual([item['rung_number'] for item in result['possible_uses']], [str(i) for i in range(12)])
-        result['possible_uses'][0]['variable'] = 'Changed'
-        self.assertEqual(index.summary(row)['possible_uses'][0]['variable'], 'Local:1:I.Data')
+        self.assertEqual([item['rung_number'] for item in result['resolved_uses']], [str(i) for i in range(12)])
+        result['resolved_uses'][0]['variable'] = 'Changed'
+        self.assertEqual(index.summary(row)['resolved_uses'][0]['variable'], 'Local:1:I.Data')
         with patch.object(index, 'summary', side_effect=AssertionError('summary materialized')):
-            self.assertEqual(index.status(row), 'possible_indirect')
+            self.assertEqual(index.status(row), 'referenced')
 
     def test_auxiliary_limit_fails_to_uncertainty_without_losing_exact_positives(self) -> None:
         captured = field_inputs(('XIC(InputAlias);',))

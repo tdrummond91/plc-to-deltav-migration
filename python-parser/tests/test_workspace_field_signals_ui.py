@@ -119,7 +119,7 @@ rows=['referenced','possible_indirect','not_found','unknown'].map((status,index)
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
 const cells=byClass(root,'field-signals-usage-cell');assert.equal(cells.length,4);
 assert.ok(cells[0].textContent.includes('Used in logic 3 exact references · 2 rungs'));
-assert.ok(cells[1].textContent.includes('Possible indirect use 2 possible references · 1 rung'));
+assert.ok(cells[1].textContent.startsWith('Indirect reference'));assert.ok(cells[1].textContent.includes('2 indirect references · 1 rung'));
 assert.ok(cells[2].textContent.includes('No references found Within scanned source'));
 assert.ok(cells[3].textContent.includes('Not checked Reference scan unavailable'));
 assert.equal(byClass(root,'field-signals-table')[0].textContent.match(/Input DI type candidate/g).length,4);
@@ -131,7 +131,7 @@ rows=[sourceRow('address-1',{usage:usageEvidence('referenced',{direct_count:1,di
  sourceRow('address-2',{usage:usageEvidence('possible_indirect',{possible_count:1,possible_rung_count:1})})];
 await controller.refresh();const singular=byClass(root,'field-signals-usage-cell');
 assert.ok(singular[0].textContent.includes('1 exact reference · 1 rung'));assert.equal(singular[0].textContent.includes('1 exact references'),false);
-assert.ok(singular[1].textContent.includes('1 possible reference · 1 rung'));assert.equal(singular[1].textContent.includes('1 possible references'),false);
+assert.ok(singular[1].textContent.includes('1 indirect reference · 1 rung'));assert.equal(singular[1].textContent.includes('1 indirect references'),false);
 await controller.openSignal('address-1');assert.ok(byClass(root,'field-signals-usage-count')[0].textContent.includes('1 exact reference · 1 rung'));
 """)
 
@@ -178,7 +178,7 @@ response=async path=>{const answer=result(path);answer.coverage.reference_scan=s
  {id:'use-1',rung_id:'rung-1',instruction_id:'inst/a?#',opcode:'XIC',role:'read',variable:'InputAlias',path:'Program / Routine / Exact'}],10);return answer;};
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
 await byClass(root,'field-signals-usage-open')[0].fire('click');const summary=byClass(root,'field-signals-usage-summary')[0];
-assert.ok(summary.textContent.includes('Exact source references'));assert.ok(summary.textContent.includes('Possible indirect references'));
+assert.ok(summary.textContent.includes('Exact source references'));assert.ok(summary.textContent.includes('References needing target resolution'));
 const scan=byClass(root,'field-signals-reference-scan')[0];assert.equal(byClass(root,'field-signals-reference-scan').length,1);
 assert.ok(scan.textContent.includes('99 / 100 rungs scanned; 1 not scanned'));assert.ok(scan.textContent.includes('source omissions'));
 assert.ok(scan.textContent.includes('Some routine languages are unsupported'));assert.ok(scan.textContent.includes('Some expressions were not analyzed'));
@@ -190,7 +190,7 @@ assert.equal(summary.textContent.includes('Coverage incomplete'),false);assert.e
 assert.ok(byClass(root,'field-signals-usage-cell')[0].textContent.startsWith('Used in logic'));assert.equal(byClass(root,'field-signals-usage-cell')[0].textContent.includes('incomplete'),false);
 await findButton(summary,'View reference scan scope').fire('click');assert.equal(scan.open,true);assert.equal(document.activeElement,scan);
 assert.ok(summary.textContent.includes('Equivalent numeric array index spelling'));
-assert.ok(summary.textContent.includes('A copy or fill range may include this member'));assert.ok(summary.textContent.includes('Read: 3'));
+assert.ok(summary.textContent.includes('The copy or fill range has not been resolved to individual members'));assert.ok(summary.textContent.includes('Read: 3'));
 assert.equal(findLink(summary,'Open instruction source').href,'/analysis#view=ladder&source=inst%2Fa%3F%23');
 assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/analysis#view=ladder&source=maybe-inst'));
 assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/analysis#view=ladder&source=maybe-rung'));
@@ -247,8 +247,91 @@ rows=[sourceRow('address-1',{usage:usageEvidence('possible_indirect',{possible_c
  possible_uses:Array.from({length:20},(_,i)=>({id:'use-'+i,instruction_id:'inst-'+i,rung_id:'rung-'+i,opcode:'MOV',role:'read',variable:'Data[Index]',reason:'dynamic_index'}))})})];
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
 const summary=byClass(root,'field-signals-usage-summary')[0];assert.equal(byClass(summary,'field-signals-usage-reference').length,12);
-assert.ok(summary.textContent.includes('Showing 12 of 20 possible references'));assert.ok(summary.textContent.includes('A variable index may select this member'));
+assert.ok(summary.textContent.includes('Showing 12 of 20 indirect references'));assert.ok(summary.textContent.includes('A variable index selects the member; its value is determined at runtime'));
 assert.equal(summary.textContent.includes('Exact source references'),false);assert.equal(writes.length,0);
+""")
+
+    def test_resolved_parent_reference_is_used_and_shows_concrete_evidence(self) -> None:
+        self.run_js(r"""
+const explanation='MOV reads Local:3:I.Data, which contains the bit Local:3:I.Data.0.';
+rows=[sourceRow('address-1',{usage:usageEvidence('referenced',{direct_count:0,direct_rung_count:0,resolved_count:1,resolved_rung_count:1,
+ roles:{read:1,write:0,read_write:0,unknown:0},resolved_uses:[{id:'resolved-1',rung_id:'parent-rung',instruction_id:'parent/inst?',opcode:'MOV',role:'read',
+ variable:'Local:3:I.Data',reason:'aggregate_parent',explanation}]})})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const cell=byClass(root,'field-signals-usage-cell')[0];assert.ok(cell.textContent.includes('Used in logic 1 resolved reference · 1 rung'));
+assert.equal(cell.textContent.includes('0 exact'),false);assert.equal(cell.textContent.includes('Indirect reference'),false);
+await byClass(root,'field-signals-usage-open')[0].fire('click');const summary=byClass(root,'field-signals-usage-summary')[0];
+assert.ok(summary.textContent.includes('Resolved source references'));assert.ok(summary.textContent.includes(explanation));
+assert.ok(summary.textContent.includes('Read: 1'));assert.equal(summary.textContent.includes('References needing target resolution'),false);
+assert.equal(byClass(summary,'field-signals-reference-explanation')[0].textContent,explanation);
+const link=findLink(summary,'Open instruction source');assert.equal(link.href,'/analysis#view=ladder&source=parent%2Finst%3F');
+project={...project,active_run:'run-2'};let prevented=false;await link.fire('click',{preventDefault(){prevented=true;}});
+assert.equal(prevented,true);assert.equal(writes.length,0);
+""")
+
+    def test_resolved_previews_are_bounded_and_do_not_sum_overlapping_rung_counts(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{usage:usageEvidence('referenced',{direct_count:3,direct_rung_count:2,resolved_count:20,resolved_rung_count:4,
+ resolved_uses_truncated:true,roles:{read:23,write:0,read_write:0,unknown:0},
+ resolved_uses:Array.from({length:20},(_,i)=>({id:'resolved-'+i,rung_id:'rung-'+i,instruction_id:'instruction-'+i,opcode:'COP',role:'read',
+ variable:'Local:3:I.Data[0]',reason:'range_resolved',explanation:'COP covers this element within the captured 4-element range.'}))})})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+const summary=byClass(root,'field-signals-usage-summary')[0],count=byClass(root,'field-signals-usage-count')[0].textContent;
+assert.equal(count,'3 exact references · 2 rungs; 20 resolved references · 4 rungs');assert.equal(count.includes('6 rungs'),false);
+assert.equal(byClass(summary,'field-signals-usage-reference').length,12);assert.ok(summary.textContent.includes('Showing 12 of 20 resolved references'));
+assert.ok(summary.textContent.includes('Read: 23'));assert.equal(summary.textContent.includes('References needing target resolution'),false);
+assert.equal(writes.length,0);
+""")
+
+    def test_indirect_references_show_specific_reason_as_plain_text(self) -> None:
+        self.run_js(r"""
+const short='Index Selection is chosen at runtime.',explanation='MOV uses Data[Selection]; Selection is an internal DINT with a runtime value. <img src=x onerror=alert(1)>';
+rows=[sourceRow('address-1',{usage:usageEvidence('possible_indirect',{detail:short,possible_count:1,possible_rung_count:1,
+ possible_uses:[{id:'runtime-use',rung_id:'index-rung',instruction_id:'index-inst',opcode:'MOV',role:'read',variable:'Data[Selection]',reason:'dynamic_index',explanation}]})})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const cell=byClass(root,'field-signals-usage-cell')[0];assert.ok(cell.textContent.startsWith('Indirect reference'));
+assert.equal(byClass(cell,'field-signals-usage-detail')[0].textContent,short);assert.ok(cell.textContent.includes('1 indirect reference · 1 rung'));
+assert.equal(byClass(cell,'field-signals-usage-detail')[0].title,short);
+assert.equal(root.textContent.includes('Possible indirect use'),false);
+await controller.openSignal('address-1');const summary=byClass(root,'field-signals-usage-summary')[0];
+assert.ok(summary.textContent.includes('References needing target resolution'));
+const description=byClass(summary,'field-signals-reference-explanation')[0];assert.equal(description.textContent,explanation);assert.equal(description.children.length,0);
+assert.equal(summary.textContent.includes('A variable index selects the member'),false);assert.equal(summary.textContent.includes('may include'),false);
+assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/analysis#view=ladder&source=index-inst'));
+await edit('field-signals-target-name','Preserved through resolution filter');await edit('field-signals-usage-filter','possible_indirect','change');
+assert.equal(new URL(calls.at(-1),'http://localhost').searchParams.get('usage'),'possible_indirect');
+assert.equal(byClass(root,'field-signals-target-name')[0].value,'Preserved through resolution filter');assert.equal(writes.length,0);
+""")
+
+    def test_index_sources_are_compact_deduplicated_and_guarded(self) -> None:
+        self.run_js(r"""
+const indexSource=index=>({variable:index===0?'Selection <img src=x>':'Selection'+index,instruction_id:index===1?'':'writer/'+index+'?',
+ rung_id:'writer-rung-'+index,opcode:index===0?'MOV <script>':'ADD',role:index===1?'unknown':index===2?'read_write':'write',path:'Main / Routine / Rung '+index});
+rows=[sourceRow('address-1',{usage:usageEvidence('possible_indirect',{detail:'Selection is written by captured logic.',possible_count:2,possible_rung_count:2,
+ possible_uses:[{id:'dynamic-1',rung_id:'use-1',instruction_id:'inst-1',opcode:'MOV',role:'read',variable:'Data[Selection]',explanation:'Selection is an externally writable DINT.',
+ index_sources:[0,1,2,3].map(indexSource)},
+ {id:'dynamic-2',rung_id:'use-2',instruction_id:'inst-2',opcode:'MOV',role:'read',variable:'Data[Selection2]',explanation:'Selection2 is assigned in ladder logic.',
+ index_sources:[0,4,5,6,7].map(indexSource)}]})})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+const sources=byClass(root,'field-signals-index-sources')[0],links=all(sources).filter(item=>item.tagName==='a');
+assert.equal(byClass(root,'field-signals-index-sources').length,1);assert.equal(links.length,3);
+assert.ok(sources.textContent.includes('Showing 3 of 8 index source references in these previews.'));
+assert.equal(links[0].textContent,'Index Selection <img src=x> written by MOV <script> · Main / Routine / Rung 0');
+assert.equal(links[0].children.length,0);assert.equal(links[0].href,'/analysis#view=ladder&source=writer%2F0%3F');
+assert.equal(links[1].textContent,'Index Selection1 accessed by ADD · Main / Routine / Rung 1');
+assert.equal(links[1].href,'/analysis#view=ladder&source=writer-rung-1');assert.ok(links[2].textContent.includes('written by ADD'));
+project={...project,active_run:'run-2'};let prevented=false;await links[0].fire('click',{preventDefault(){prevented=true;}});assert.equal(prevented,true);
+assert.equal(writes.length,0);
+""")
+
+    def test_index_source_preview_limits_are_explicit(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{usage:usageEvidence('possible_indirect',{possible_count:1,possible_rung_count:1,
+ possible_uses:[{id:'dynamic-1',rung_id:'use-1',opcode:'MOV',role:'read',variable:'Data[Selection]',explanation:'Selection has additional writer references.',
+ index_sources_truncated:true,index_sources:[{variable:'Selection',rung_id:'writer-rung',opcode:'ADD',role:'write',path:'Main / Routine / Rung 1'}]}]})})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+const sources=byClass(root,'field-signals-index-sources')[0];assert.ok(sources.textContent.includes('Showing 1 of 1 index source reference in these previews. Additional index sources are outside this preview.'));
+assert.equal(all(sources).filter(item=>item.tagName==='a').length,1);assert.equal(writes.length,0);
 """)
 
     def test_exact_reference_paging_retains_signal_drafts(self) -> None:

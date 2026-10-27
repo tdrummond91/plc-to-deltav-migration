@@ -139,6 +139,38 @@ class WorkspaceFieldSignalAPITests(unittest.TestCase):
         self.assertEqual(detail['binding'], used['binding'])
         self.assertEqual(self.workspace.store.state()['revision'], state['revision'])
 
+    def test_resolved_copy_range_filters_and_reopens_saved_names_without_source_changes(self) -> None:
+        leaves = ('<ArrayMember Name="Data" DataType="REAL" Dimensions="4">' +
+                  ''.join(f'<Element Index="[{i}]" Value="0"/>' for i in range(4)) + '</ArrayMember>')
+        inputs = field_inputs(('CPS(Local:8:I.Data[1],Buffer[0],2);',) * 13,
+            modules=module('ArrayCard', 8, 'INVENTED', data=leaves),
+            extra_tags='<Tag Name="Buffer" DataType="REAL" Dimensions="4"/>')
+        run = save_map_inputs(self.runs, inputs)
+        state = self.workspace.import_run(str(run), self.workspace.store.state()['revision'])
+        self.query = {'run_id': state['active_run']}
+        rows = self.rows(usage='referenced')
+        self.assertEqual({row['address'] for row in rows}, {'Local:8:I.Data[1]', 'Local:8:I.Data[2]'})
+        row = next(row for row in rows if row['address'] == 'Local:8:I.Data[2]')
+        self.assertEqual((row['usage']['direct_count'], row['usage']['resolved_count']), (0, 13))
+        saved = self.save(row, 'KEEP_RANGE_NAME')
+        source = self.workspace.store.artifact('snapshot.L5X')
+        before = self.workspace.store.state()
+        with closing(Workspace(self.project, self.runs)) as reopened:
+            detail = reopened.field_signals(dict(self.query, signal_id=row['id']))['selected_signal']
+            self.assertEqual(detail['binding'], row['binding'])
+            self.assertEqual(detail['saved_signal']['id'], saved['id'])
+            self.assertEqual(detail['saved_signal']['target_name'], 'KEEP_RANGE_NAME')
+            self.assertEqual(detail['usage']['resolved_uses'][0]['rung_id'], inputs[1].rungs[0].id)
+            self.assertEqual(detail['direct_uses']['total'], 0)
+            self.assertEqual(detail['direct_rungs']['total'], 13)
+            page2 = reopened.field_signals(dict(self.query, signal_id=row['id'], rung_page=2))['selected_signal']['direct_rungs']
+            self.assertEqual(len(page2['items']), 1)
+            self.assertEqual(page2['items'][-1]['id'], inputs[1].rungs[12].id)
+            self.assertEqual(detail['direct_rungs']['items'][0]['id'], inputs[1].rungs[0].id)
+            self.assertEqual(detail['direct_rungs']['items'][0]['association_reason'], 'statically_resolved_address_use')
+            self.assertEqual(reopened.store.state(), before)
+            self.assertEqual(reopened.store.artifact('snapshot.L5X'), source)
+
     def test_recovered_earlier_reference_preserves_existing_saved_signal_binding(self) -> None:
         inputs = field_inputs(('Mystery(Local:3:I.CH0DATA);',
                                'MOV(Local:3:I.Ch0Data,InternalReal);'))

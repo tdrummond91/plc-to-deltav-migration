@@ -130,14 +130,17 @@ links open the captured hardware or complete annotations separately.
 Click its status to see the evidence and open the supporting rungs. Use the
 usage filter to search all pages:
 
-- **Used in logic**: captured logic names this address directly or through
-  a resolved alias. Open the reference to see where it occurs. Read/write counts
-  describe known instruction roles; an unknown role does not erase the reference.
-- **Possible indirect use**: a whole structure, array, indexed address or bulk
-  operation could include this signal. Review the linked operation to determine
-  whether it actually includes the channel.
+- **Used in logic**: a direct reference, alias or resolved static relationship
+  establishes source use. Examples include a bit inside a referenced integer
+  word and an element inside a known copy/fill range. Exact and resolved counts
+  stay separate. Open the evidence to see the operation and covered addresses.
+  Read/write counts describe known roles; an unknown role does not erase a reference.
+- **Indirect reference**: the operand exists in source, but this particular
+  member's selection still needs resolution. The row gives the actual reason:
+  for example `Data[Index]`, a variable copy length, or a structure layout the
+  parser does not yet model. Expand the signal for details and source links.
 - **No references found**: the supported captured scan found neither direct nor
-  possible indirect references. This is a review candidate, not proof of a spare
+  related references. This is a review candidate, not proof of a spare
   or unused physical point.
 - **Not checked**: the source has no usable logic to scan, or a scan limit
   prevents checking this address. This is different from finding no references.
@@ -147,6 +150,26 @@ checked. Expand it for missing source or unsupported expressions and for separat
 instruction-role notes. A warning elsewhere in the analysis does not make a
 known reference uncertain. When only part of the source was scanned, **No
 references found** applies to that scanned portion.
+
+**Resolved source references** also appear in **Rungs using this signal**, so
+their rungs can be selected for a package. The twelve-reference evidence preview
+does not limit the full paginated rung list or automatically add package members.
+
+For an indexed operand, **Array index sources** links captured writers or
+unclassified accesses. The explanation includes the selector's datatype,
+exported value and external access when captured. An exported value is a saved
+snapshot; it does not by itself establish a constant for future executions.
+This view traces source occurrences, not a whole-program value-flow proof.
+
+Fixed copy/fill resolution currently covers qualified SINT, INT, DINT and REAL
+scalars and one-dimensional arrays. Length is measured using the destination
+element width, including when source and destination types differ. Operations
+that cross a known member boundary remain explained as requiring the enclosing
+layout; the range is not silently clipped. Structures, packed BOOL layouts,
+multidimensional arrays and variable lengths need further analysis. These are
+explicit parser limitations, separate from genuine runtime-selected values.
+The range rules follow Rockwell's [COP/CPS documentation](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/array-file-misc-instructions/copy-synchronous-copy-file--cps-.html)
+and [FLL documentation](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-00/contents-ditamap/instruction-set/array-file-misc-instructions/file-fill-fll.html).
 
 An **Input** or **Output** with **Channel type not classified** has a captured
 module address and direction; the parser has not identified its physical channel

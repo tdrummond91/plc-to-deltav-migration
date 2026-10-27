@@ -4,7 +4,7 @@
   const TYPES = {di: 'DI', do: 'DO', ai: 'AI', ao: 'AO', unknown: 'Unclassified'};
   const PAGE_SIZES = [10, 50, 100, 200, 500];
   const ROLES = {scaling: 'Scaling', alarm: 'Alarm', reference: 'Reference', logic: 'Logic'};
-  const USAGE = {referenced: 'Used in logic', possible_indirect: 'Possible indirect use',
+  const USAGE = {referenced: 'Used in logic', possible_indirect: 'Indirect reference',
     not_found: 'No references found', unknown: 'Not checked'};
   const USAGE_ROLES = {read: 'Read', write: 'Write', read_write: 'Read/write', unknown: 'Role unknown'};
   const USAGE_GAPS = {missing_access: 'Saved read/write roles are unavailable', unparsed_rungs: 'Some rungs were not parsed',
@@ -14,18 +14,29 @@
     unscanned_index_expressions: 'References inside some array index expressions have not been scanned',
     unsupported_instructions: 'Read/write roles are not classified for some instructions', unqualified_source: 'Some source could not be qualified',
     unresolved_references: 'Some source names could not be resolved', usage_index_limit: 'The usage scan reached its limits'};
-  const POSSIBLE_REASONS = {aggregate_parent: 'A containing word or structure is referenced',
-    aggregate_child: 'A member below this address is referenced', range_unresolved: 'A copy or fill range may include this member',
-    dynamic_index: 'A variable index may select this member', equivalent_static_index: 'Equivalent numeric array index spelling'};
+  const REFERENCE_REASONS = {aggregate_parent: 'A containing word or structure is referenced',
+    aggregate_child: 'A member below this address is referenced', range_unresolved: 'The copy or fill range has not been resolved to individual members',
+    dynamic_index: 'A variable index selects the member; its value is determined at runtime', equivalent_static_index: 'Equivalent numeric array index spelling'};
   const count = value => Number.isInteger(value) && value >= 0 ? value : 0;
   const usageOf = row => row.usage && Object.hasOwn(USAGE, row.usage.status) ? row.usage
     : {status: 'unknown', coverage_complete: false};
   const referenceCounts = (references, rungs, kind) =>
     `${count(references)} ${kind} reference${count(references) === 1 ? '' : 's'} · ${count(rungs)} rung${count(rungs) === 1 ? '' : 's'}`;
-  const usageCount = usage => usage.status === 'referenced'
-    ? referenceCounts(usage.direct_count, usage.direct_rung_count, 'exact')
-    : usage.status === 'possible_indirect' ? referenceCounts(usage.possible_count, usage.possible_rung_count, 'possible')
-    : usage.status === 'not_found' ? 'Within scanned source' : 'Reference scan unavailable';
+  const wording = value => typeof value === 'string' && value.trim() ? value : '';
+  const indirectDetail = usage => wording(usage.detail)
+    || wording(usage.possible_uses?.[0]?.explanation)
+    || REFERENCE_REASONS[usage.possible_uses?.[0]?.reason]
+    || 'Open the source reference for target-resolution details.';
+  const usageCount = usage => {
+    if (usage.status === 'referenced') {
+      const parts = [];
+      if (count(usage.direct_count) || !count(usage.resolved_count)) parts.push(referenceCounts(usage.direct_count, usage.direct_rung_count, 'exact'));
+      if (count(usage.resolved_count)) parts.push(referenceCounts(usage.resolved_count, usage.resolved_rung_count, 'resolved'));
+      return parts.join('; ');
+    }
+    return usage.status === 'possible_indirect' ? referenceCounts(usage.possible_count, usage.possible_rung_count, 'indirect')
+      : usage.status === 'not_found' ? 'Within scanned source' : 'Reference scan unavailable';
+  };
   const MAPPING = {exact_catalog_direction_member_and_captured_profile_type: 'Catalog, data direction, member layout and captured datatype match the documented profile.',
     captured_member_layout_requires_review: 'The module type is recognized, but this member layout still needs review.',
     qualified_floating_channel_requires_review: 'A floating-point payload and input/output direction are captured. They suggest a numeric signal; its physical channel mapping remains unresolved.',
@@ -259,7 +270,12 @@
           if (requireCurrent(expected)) { await openRow(row); revealEditor(); }
         }, 'field-signals-usage-open usage-' + use.status);
         usageButton.setAttribute('aria-label', USAGE[use.status] + ' for ' + labelOf(row) + '. Open source references.');
-        usageCell.append(usageButton, el('small', usageCount(use), 'muted'));
+        usageCell.append(usageButton);
+        if (use.status === 'possible_indirect') {
+          const explanation = el('small', indirectDetail(use), 'field-signals-usage-detail');
+          explanation.title = indirectDetail(use); usageCell.append(explanation);
+        }
+        usageCell.append(el('small', usageCount(use), 'muted'));
         const saved = row.saved_signal, names = el('td', undefined, 'field-signals-name');
         names.append(el('span', (saved ? saved.target_name : proposedName(row)) || 'Not assigned'));
         if (!saved && proposedName(row)) names.append(el('small', 'Proposed · unreviewed', 'muted'));
@@ -607,10 +623,11 @@
     }
     function paintUsage(draft) {
       const row = draft.row, usage = usageOf(row), section = el('section', undefined, 'field-signals-usage-summary');
+      const indexSources = new Map(); let indexSourcesTruncated = false;
       section.append(el('h4', 'Logic usage'), el('strong', USAGE[usage.status], 'usage-' + usage.status),
         el('p', usageCount(usage), 'field-signals-usage-count'),
         el('p', usage.status === 'referenced' ? 'This source address is used by the references listed below.'
-          : usage.status === 'possible_indirect' ? 'These references may select this address through a containing object, range or variable index.'
+          : usage.status === 'possible_indirect' ? indirectDetail(usage)
           : usage.status === 'not_found' ? 'No references to this address were found in the scanned source.'
           : 'The reference scan could not determine usage for this address.'));
       const roles = Object.entries(USAGE_ROLES).filter(([key]) => count(usage.roles?.[key]) > 0);
@@ -619,7 +636,7 @@
         if (!requireCurrent(draft.context)) return;
         referenceScan.open = true; referenceScan.scrollIntoView?.({block: 'start', behavior: 'smooth'}); referenceScan.focus({preventScroll: true});
       }, 'text-link'));
-      function references(title, rows, possible = false) {
+      function references(title, rows, kind = 'exact') {
         const list = el('details', undefined, 'field-signals-usage-references'); list.open = true;
         list.append(el('summary', title));
         rows.forEach(use => {
@@ -627,10 +644,18 @@
           entry.append(el('strong', [use.opcode || 'Instruction', USAGE_ROLES[use.role] || 'Role unknown'].join(' · ')));
           if (use.variable) entry.append(el('code', use.variable));
           if (use.path) entry.append(el('small', use.path, 'muted'));
-          if (possible) entry.append(el('p', (POSSIBLE_REASONS[use.reason] || 'An indirect source association needs review') +
-            '. Review the instruction before treating this as an exact member use.', 'muted'));
+          const explanation = wording(use.explanation) || REFERENCE_REASONS[use.reason];
+          if (explanation || kind !== 'exact') entry.append(el('p', explanation
+            || (kind === 'resolved' ? 'This source reference statically includes the address.'
+              : 'Target-resolution details were not saved for this reference.'), 'field-signals-reference-explanation muted'));
           if (use.instruction_id) entry.append(sourceLink('Open instruction source', use.instruction_id, 'ladder', draft.context));
           if (use.rung_id) entry.append(sourceLink('Open rung source', use.rung_id, 'ladder', draft.context));
+          const indices = Array.isArray(use.index_sources) ? use.index_sources : [];
+          indexSourcesTruncated ||= Boolean(use.index_sources_truncated) || indices.length > 12;
+          indices.slice(0, 12).forEach(source => {
+            if (!source || typeof source !== 'object' || (!wording(source.instruction_id) && !wording(source.rung_id))) return;
+            indexSources.set(JSON.stringify([source.variable, source.instruction_id, source.rung_id, source.role]), source);
+          });
           list.append(entry);
         });
         section.append(list);
@@ -643,10 +668,27 @@
           if (requireCurrent(draft.context)) return openRow(row, {use_page: String(next)});
         }); section.append(controls);
       }
+      const resolved = Array.isArray(usage.resolved_uses) ? usage.resolved_uses.slice(0, 12) : [];
+      if (resolved.length) references('Resolved source references', resolved, 'resolved');
+      if (usage.resolved_uses_truncated || count(usage.resolved_count) > resolved.length)
+        section.append(el('small', `Showing ${resolved.length} of ${count(usage.resolved_count)} resolved references; the preview is bounded.`, 'muted'));
       const possible = Array.isArray(usage.possible_uses) ? usage.possible_uses.slice(0, 12) : [];
-      if (possible.length) references('Possible indirect references', possible, true);
+      if (possible.length) references('References needing target resolution', possible, 'indirect');
       if (usage.possible_uses_truncated || count(usage.possible_count) > possible.length)
-        section.append(el('small', `Showing ${possible.length} of ${count(usage.possible_count)} possible references; the preview is bounded.`, 'muted'));
+        section.append(el('small', `Showing ${possible.length} of ${count(usage.possible_count)} indirect references; the preview is bounded.`, 'muted'));
+      if (indexSources.size) {
+        const sources = el('div', undefined, 'field-signals-index-sources'); sources.append(el('strong', 'Array index sources'));
+        [...indexSources.values()].slice(0, 3).forEach(source => {
+          const action = ['write', 'read_write'].includes(source.role) ? 'written' : 'accessed';
+          const label = `Index ${wording(source.variable) || 'value'} ${action} by ${wording(source.opcode) || 'instruction'}`
+            + (wording(source.path) ? ' · ' + source.path : '');
+          sources.append(sourceLink(label, wording(source.instruction_id) || source.rung_id, 'ladder', draft.context));
+        });
+        if (indexSources.size > 3 || indexSourcesTruncated)
+          sources.append(el('small', `Showing ${Math.min(3, indexSources.size)} of ${indexSources.size} index source reference${indexSources.size === 1 ? '' : 's'} in these previews.`
+            + (indexSourcesTruncated ? ' Additional index sources are outside this preview.' : ''), 'muted'));
+        section.append(sources);
+      } else if (indexSourcesTruncated) section.append(el('small', 'Index source references are outside the retained preview.', 'muted'));
       detail.append(section);
     }
     function paintEditor(draft) {

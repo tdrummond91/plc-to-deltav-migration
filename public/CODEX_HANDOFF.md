@@ -1,5 +1,52 @@
 # Current handoff: PLC analysis workbench
 
+## Resolve static I/O uses and explain remaining selectors (2026-10-27)
+
+The previous indirect-use category mixed provable address relationships with
+unfinished member-effect analysis and runtime selection. Field I/O now marks
+equivalent numeric index spellings, known whole-integer-word uses, referenced
+child members and supported fixed COP/CPS/FLL footprints as **Used in logic**.
+Exact operand occurrences and resolved references retain separate counts.
+Fixed ranges use destination element byte width, including mixed source and
+destination types, and exclude addresses outside a proven span.
+
+`workspace_usage_ranges.py` builds bounded, qualified storage metadata for
+SINT/INT/DINT/REAL scalars and one-dimensional arrays. It accepts static
+declarations and decorated layouts, never runtime constants inferred from saved
+values. Conflicts, foreign metadata, unsupported structures/BOOL packing,
+multidimensional layouts and requests beyond a member boundary remain explicit
+limitations. Copy/fill descriptors name the operands, covered element interval
+and byte count; unresolved descriptors name the failed operand or Length.
+
+**Indirect reference** now explains the actual relationship or parser gap.
+Dynamic index details include captured datatype, exported snapshot value,
+external access and bounded links to index writers/unclassified accesses.
+Static member names and literal dimensions surrounding a dynamic selector are
+matched rather than associating every descendant indiscriminately. This is
+source tracing, not complete inter-routine value-flow or execution analysis.
+The earlier `unscanned_index_expressions` source-extraction gap remains: an
+index's nested field references are not silently treated as fully scanned.
+
+Resolved rungs are selectable in **Rungs using this signal** and seed the
+existing related-rung traversal. Selected-signal expansion uses all resolved
+occurrences, independent of the twelve-reference preview cap. Expansion stays
+request-local to avoid retaining a range's fanout across every directory row.
+Source IDs, exact-use records, saved naming/package bindings and source files
+remain unchanged. Status filtering stops on the first proven relationship.
+
+Validation: the complete 760-test workspace suite passed, including both large
+saved/imported exports. After the final candidate-paging and filtering changes,
+all 115 affected range, usage, field-signal, API and UI tests passed. The new
+dense-range case checks 64 elements with 60 shared copy operations; the API
+regression checks saved-name reopening and all thirteen selectable rungs beyond
+the preview cap. Independent review additionally checked 144 mixed-width range
+combinations. Chrome verified fixed-range inclusion/exclusion, readable resolved
+evidence, selectable package rungs and an index-writer link opening its MOV rung.
+
+Work-PC step: **Stop workspace**, manually `git pull`, then
+`bash ./open-workbench.sh`. These projections use the saved analysis; no new
+L5X analysis or translation run is required.
+
 ## Keep reference findings separate from analysis limits (2026-10-27)
 
 The prior usage view copied whole-analysis gaps onto every signal. A missing

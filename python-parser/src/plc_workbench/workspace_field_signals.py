@@ -336,8 +336,10 @@ class FieldSignalIndex:
             'candidate_roles': roles or ['reference'], 'role_basis': 'captured_opcode_family_only',
             'role_notice': 'Suggested review role only; a calculation is not necessarily scaling and alarm consequence is unknown.'}
 
-    def _related(self, signal_id: str, page: int, size: int = DETAIL_PAGE_SIZE) -> dict:
-        direct_ids = sorted(self._direct[signal_id], key=self.base._order.__getitem__)
+    def _related(self, signal_id: str, page: int, size: int = DETAIL_PAGE_SIZE,
+                 known_rungs: dict | None = None) -> dict:
+        direct_ids = sorted(self._direct[signal_id] if known_rungs is None else known_rungs,
+                            key=self.base._order.__getitem__)
         traversal = {'direct_rungs_total': len(direct_ids), 'direct_rungs_examined': 0,
             'bridges_examined': 0, 'high_fanout_bridges_skipped': 0, 'omitted_endpoint_visits': 0,
             'truncated': False, 'max_direct_rungs': MAX_DIRECT_EXPANSION, 'max_bridges': MAX_BRIDGES,
@@ -408,16 +410,21 @@ class FieldSignalIndex:
         query = validate_query(query)
         self.anchor(signal_id)
         row = self.signals[signal_id]
-        direct = self._direct[signal_id]
+        # Expand only the selected signal, without retaining every copy range's
+        # fanout across the directory. Exact operand paging stays unchanged.
+        direct = {identifier: list(uses) for identifier, uses in self._direct[signal_id].items()}
+        for use in self.usage.resolved_references(self.field_io.addresses[signal_id]):
+            direct.setdefault(use['rung_id'], []).append(use)
         rung_ids = sorted(direct, key=self.base._order.__getitem__)
         page = _page(rung_ids, query.get('rung_page', 1), query['detail_page_size'])
-        page['items'] = [{**self._rung(identifier), 'association_reason': 'direct_exact_address_use',
+        page['items'] = [{**self._rung(identifier), 'association_reason': ('direct_exact_address_use'
+                if identifier in self._direct[signal_id] else 'statically_resolved_address_use'),
             'use_count': len(direct[identifier]),
             'instruction_ids': list(dict.fromkeys(use['instruction_id'] for use in direct[identifier]))[:MAX_PREVIEW_ITEMS],
             'instruction_ids_truncated': len({use['instruction_id'] for use in direct[identifier]}) > MAX_PREVIEW_ITEMS}
             for identifier in page['items']]
         return {**deepcopy(self._present(row)), 'direct_uses': _page(self._uses[signal_id], query.get('use_page', 1), query['detail_page_size']),
-                'direct_rungs': page, 'related_rungs': self._related(signal_id, query.get('related_page', 1), query['detail_page_size']),
+                'direct_rungs': page, 'related_rungs': self._related(signal_id, query.get('related_page', 1), query['detail_page_size'], direct),
                 'grouping_scope': 'exact_module_member', 'automatic_membership': False}
 
     def view(self, query: dict, *, extra_search: dict[str, str] | None = None) -> dict:
