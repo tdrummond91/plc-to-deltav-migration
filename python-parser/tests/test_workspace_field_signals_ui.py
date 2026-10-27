@@ -39,6 +39,10 @@ const sourceRow=(id='address-1',changes={})=>({id,address:id==='address-1'?'Loca
  description:'Captured source description',binding:binding(id),hardware:{name:'Rack input module',catalog_number:'1756-IB16',slot:'3',parent_module_name:'Local rack',controller:{name:'Invented controller'}},...changes});
 const rung=(id='rung-1',changes={})=>({id,rung_id:id,number:3,path:'Program / Routine / '+id,candidate_role:'reference',
  association_reason:'direct_exact_address_use',role_notice:'Suggested review role only; not proof of scaling or alarm consequence.',...changes});
+const usageEvidence=(status='referenced',changes={})=>({status,direct_count:status==='referenced'?3:0,direct_rung_count:status==='referenced'?2:0,
+ roles:{read:status==='referenced'?3:0,write:0,read_write:0,unknown:0},possible_count:status==='possible_indirect'?2:0,
+ possible_rung_count:status==='possible_indirect'?1:0,coverage_complete:status!=='unknown',gap_reasons:[],possible_uses:[],
+ possible_preview_limit:12,possible_uses_truncated:false,notice:'Captured source references only.',...changes});
 let project={project_path:'invented.sqlite',active_run:'run-1',revision:1,signals:[],groups:[]},rows=[sourceRow()],calls=[],writes=[],opened=[];
 const savedSignal=(changes={})=>({id:'signal-1',binding:binding(),target_name:'LS_001',description:'Engineering words',field_type:'di',active:true,needs_revalidation:false,...changes});
 const group=(changes={})=>({id:'group-1',name:'Existing package',member_ids:['existing-rung'],signal_ids:['other-signal'],member_roles:{'existing-rung':'alarm'},migration_status:'unreviewed',...changes});
@@ -100,11 +104,108 @@ assert.equal(root.textContent.includes('The field signal list could not be loade
 rows.push(sourceRow('address-2',{field_type:'unknown',candidate_field_types:['ai'],mapping_status:'review_mapping'}));
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
 const table=byClass(root,'field-signals-table')[0];
-assert.ok(table.textContent.includes('Physical channel Source alias / address Source description DeltaV name Package status Info'));
+assert.ok(table.textContent.includes('Physical channel Source alias / address Source description Logic usage DeltaV name Package status Info'));
 assert.ok(table.textContent.includes('LevelSwitch'));assert.ok(table.textContent.includes('Local:3:I.Data.0'));assert.ok(table.textContent.includes('Niveau haut'));
 assert.ok(table.textContent.includes('Unresolved AI candidate'));assert.equal(table.textContent.includes('1756-IB16'),false);assert.equal(table.textContent.includes('Local rack'),false);
 assert.equal(byClass(root,'field-signals-controller').length,1);assert.ok(byClass(root,'field-signals-controller')[0].textContent.includes('Invented controller'));
 assert.equal(writes.length,0);assert.equal(controller.hasUnsavedChanges(),false);
+""")
+
+    def test_logic_usage_statuses_are_separate_from_physical_mapping(self) -> None:
+        self.run_js(r"""
+rows=['referenced','possible_indirect','not_found','unknown'].map((status,index)=>sourceRow('address-'+(index+1),{
+ field_type:'unknown',mapping_status:'review_mapping',candidate_field_types:['di'],usage:usageEvidence(status)}));
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const cells=byClass(root,'field-signals-usage-cell');assert.equal(cells.length,4);
+assert.ok(cells[0].textContent.includes('Referenced in logic 3 exact references · 2 rungs'));
+assert.ok(cells[1].textContent.includes('Possible indirect use 2 possible references · 1 rung'));
+assert.ok(cells[2].textContent.includes('No references found Within analyzed source'));
+assert.ok(cells[3].textContent.includes('Coverage incomplete Source review required'));
+assert.equal(byClass(root,'field-signals-table')[0].textContent.match(/mapping unresolved/g).length,4);
+assert.ok(root.textContent.includes('Source references do not prove runtime activity'));
+assert.equal(/\binactive\b|\bspare\b|\blive\b/i.test(cells.map(item=>item.textContent).join(' ')),false);
+assert.equal(writes.length,0);
+rows=[sourceRow('address-1',{usage:usageEvidence('referenced',{direct_count:1,direct_rung_count:1})}),
+ sourceRow('address-2',{usage:usageEvidence('possible_indirect',{possible_count:1,possible_rung_count:1})})];
+await controller.refresh();const singular=byClass(root,'field-signals-usage-cell');
+assert.ok(singular[0].textContent.includes('1 exact reference · 1 rung'));assert.equal(singular[0].textContent.includes('1 exact references'),false);
+assert.ok(singular[1].textContent.includes('1 possible reference · 1 rung'));assert.equal(singular[1].textContent.includes('1 possible references'),false);
+await controller.openSignal('address-1');assert.ok(byClass(root,'field-signals-usage-count')[0].textContent.includes('1 exact reference · 1 rung'));
+""")
+
+    def test_missing_usage_and_blank_description_are_explicit_even_with_translation(self) -> None:
+        self.run_js(r"""
+let translated=0;window.PLCTranslation={renderProse(target,original){translated++;target.textContent=original;}};
+rows=[sourceRow('address-1',{description:'   ',source_annotations:[],usage:undefined})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+assert.equal(byClass(root,'field-signals-wording-preview')[0].textContent,'No source description captured');
+assert.ok(byClass(root,'field-signals-usage-cell')[0].textContent.includes('Coverage incomplete'));
+assert.equal(byClass(root,'field-signals-usage-cell')[0].textContent.includes('No references found'),false);
+await controller.openSignal('address-1');assert.ok(byClass(root,'field-signals-source')[0].textContent.includes('No source description captured'));
+assert.equal(translated,0);assert.equal(writes.length,0);assert.equal(controller.hasUnsavedChanges(),false);
+""")
+
+    def test_usage_filter_is_global_resets_page_and_preserves_other_filters_and_drafts(self) -> None:
+        self.run_js(r"""
+response=async path=>{const answer=result(path),q=new URL(path,'http://localhost').searchParams;
+ return {...answer,signals:{...answer.signals,page:Number(q.get('page')||1),pages:3,total:150}};};
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+await edit('field-signals-target-name','My usage-filter draft');await findButton(root,'Next signals').fire('click');
+assert.equal(new URL(calls.at(-1),'http://localhost').searchParams.get('page'),'2');
+await edit('field-signals-type','di','change');
+const filter=byClass(root,'field-signals-usage-filter')[0];assert.deepEqual(filter.children.map(item=>item.value),['','referenced','possible_indirect','not_found','unknown']);
+for(const value of ['referenced','possible_indirect','not_found','unknown','']){
+ await edit('field-signals-usage-filter',value,'change');const q=new URL(calls.at(-1),'http://localhost').searchParams;
+ assert.equal(q.get('usage'),value);assert.equal(q.get('page'),'1');assert.equal(q.get('field_type'),'di');assert.equal(q.get('run_id'),'run-1');}
+await edit('field-signals-usage-filter','referenced','change');await edit('field-signals-query','Pump');
+await byClass(root,'field-signals-filters')[0].fire('submit');await edit('field-signals-page-size','100','change');
+const q=new URL(calls.at(-1),'http://localhost').searchParams;
+assert.equal(q.get('usage'),'referenced');assert.equal(q.get('query'),'Pump');assert.equal(q.get('page_size'),'100');
+assert.equal(byClass(root,'field-signals-target-name')[0].value,'My usage-filter draft');assert.equal(controller.hasUnsavedChanges(),true);assert.equal(writes.length,0);
+""")
+
+    def test_clickable_usage_opens_exact_and_possible_source_links_with_coverage_notice(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{usage:usageEvidence('referenced',{coverage_complete:false,gap_reasons:['unsupported_routines','opaque_expressions','missing_logic','partial_export'],
+ possible_count:2,possible_rung_count:2,possible_uses:[{id:'possible-1',rung_id:'maybe-rung',instruction_id:'maybe-inst',opcode:'COP',role:'write',variable:'Local:3:I.Data',
+ path:'Program / Routine / Maybe',reason:'range_unresolved'},
+ {id:'possible-2',rung_id:'index-rung',instruction_id:'index-inst',opcode:'MOV',role:'read',variable:'Local:3:I.Data[ 1 ]',reason:'equivalent_static_index'}]})})];
+response=async path=>{const answer=result(path);if(answer.selected_signal)answer.selected_signal.direct_uses=page([
+ {id:'use-1',rung_id:'rung-1',instruction_id:'inst/a?#',opcode:'XIC',role:'read',variable:'InputAlias',path:'Program / Routine / Exact'}],10);return answer;};
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+await byClass(root,'field-signals-usage-open')[0].fire('click');const summary=byClass(root,'field-signals-usage-summary')[0];
+assert.ok(summary.textContent.includes('Exact source references'));assert.ok(summary.textContent.includes('Possible indirect references'));
+assert.ok(summary.textContent.includes('Some routine languages are unsupported'));assert.ok(summary.textContent.includes('Some expressions were not analyzed'));
+assert.ok(summary.textContent.includes('No ladder routines were captured in this source'));assert.ok(summary.textContent.includes('Source is a partial controller export'));
+assert.ok(summary.textContent.includes('Equivalent numeric array index spelling'));
+assert.ok(summary.textContent.includes('A copy or fill range may include this member'));assert.ok(summary.textContent.includes('Read: 3'));
+assert.equal(findLink(summary,'Open instruction source').href,'/analysis#view=ladder&source=inst%2Fa%3F%23');
+assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/analysis#view=ladder&source=maybe-inst'));
+assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/analysis#view=ladder&source=maybe-rung'));
+const link=findLink(summary,'Open instruction source');project={...project,active_run:'run-2'};let prevented=false;
+await link.fire('click',{preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(writes.length,0);
+""")
+
+    def test_possible_usage_preview_is_bounded_and_never_presented_as_exact(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{usage:usageEvidence('possible_indirect',{possible_count:20,possible_rung_count:20,possible_uses_truncated:true,
+ possible_uses:Array.from({length:20},(_,i)=>({id:'use-'+i,instruction_id:'inst-'+i,rung_id:'rung-'+i,opcode:'MOV',role:'read',variable:'Data[Index]',reason:'dynamic_index'}))})})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+const summary=byClass(root,'field-signals-usage-summary')[0];assert.equal(byClass(summary,'field-signals-usage-reference').length,12);
+assert.ok(summary.textContent.includes('Showing 12 of 20 possible references'));assert.ok(summary.textContent.includes('A variable index may select this member'));
+assert.equal(summary.textContent.includes('Exact source references'),false);assert.equal(writes.length,0);
+""")
+
+    def test_exact_reference_paging_retains_signal_drafts(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{usage:usageEvidence('referenced',{direct_count:11,direct_rung_count:11})})];
+response=async path=>{const answer=result(path),q=new URL(path,'http://localhost').searchParams,p=Number(q.get('use_page')||1);
+ if(answer.selected_signal)answer.selected_signal.direct_uses=page([{id:'u'+p,instruction_id:'i'+p,rung_id:'r'+p,opcode:'XIC',role:'read'}],10,{page:p,pages:2,total:11});return answer;};
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+await edit('field-signals-target-name','Preserved draft');await findButton(root,'Next exact references').fire('click');
+assert.equal(new URL(calls.at(-1),'http://localhost').searchParams.get('use_page'),'2');
+assert.equal(findLink(byClass(root,'field-signals-usage-summary')[0],'Open instruction source').href,'/analysis#view=ladder&source=i2');
+assert.equal(byClass(root,'field-signals-target-name')[0].value,'Preserved draft');assert.equal(controller.hasUnsavedChanges(),true);assert.equal(writes.length,0);
 """)
 
     def test_controller_disclosures_and_expand_all_preserve_state_after_refresh(self) -> None:

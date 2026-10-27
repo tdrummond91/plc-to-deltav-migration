@@ -1,5 +1,47 @@
 # Current handoff: PLC analysis workbench
 
+## Distinguish field-signal usage from missing details (2026-10-27)
+
+Field I/O now has a separate **Logic usage** column and filter. A signal can be
+referenced in logic while its physical mapping remains unresolved; missing
+descriptions explicitly say **No source description captured**. Neither state
+is interpreted as an inactive or spare field point.
+
+Click the usage status to inspect exact read/write references and open their
+source rung or instruction. Possible parent/child, copy/fill range, indexed uses
+and equivalent numeric address spellings have separate explanations and source
+links. The four statuses are
+Referenced in logic, Possible indirect use, No references found and Coverage
+incomplete. Absence is limited to the supported captured scan; protected,
+unsupported, missing, partial-export or unqualified logic prevents a complete
+absence check.
+Static source references cannot establish wiring, live activity, execution or
+output energization.
+
+The auxiliary usage index borrows authenticated exact-use evidence and indexes
+possible associations by source root/member boundaries. Its finite retained
+content budget degrades to known exact positives plus incomplete coverage if
+exceeded; it is included in the field-signal retained-content accounting.
+Possible-use previews are capped at 12 with full counts and an explicit limit
+notice. Usage filtering occurs before pagination and preserves natural order.
+Bindings, source values, saved names/packages and project revisions are unchanged.
+
+Validation: 721 workspace checks passed across the affected, general UI and
+remaining workspace suites. This includes 14 new usage cases, HTTP filtering
+and persistence checks, and both large saved/imported export regressions
+(19,201 signals / 45,101 addresses and the separate 4,606-rung case). Chrome
+verification using invented source confirmed readable usage details, filtering,
+missing-description text and instruction links opening the correct rung drawing.
+Independent review found no remaining blockers after fixing missing-logic
+coverage and equivalent numeric address spellings. A future performance case
+with many indirect references under one root would strengthen coverage; bounded
+previews still enumerate matching references to report complete counts.
+
+Work-PC step: **Stop workspace**, manually `git pull`, then
+`bash ./open-workbench.sh`. Open **Field I/O**, use **Logic usage**, and click a
+status for its evidence. This uses the existing saved analysis; no parser or
+translation rerun is needed.
+
 ## Natural ordering for numbered navigation names (2026-10-27)
 
 Alphabetical navigation now treats digit runs as numbers: `Card8`, `Card9`,

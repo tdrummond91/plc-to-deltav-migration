@@ -68,6 +68,52 @@ class WorkspaceFieldSignalAPITests(unittest.TestCase):
         self.assertEqual(self.workspace.store.state(), before)
         self.assertEqual(self.workspace.store.artifact('snapshot.L5X'), original)
 
+    def test_usage_filter_is_global_and_does_not_change_bindings_or_reviews(self) -> None:
+        before = self.workspace.store.state()
+        original = self.workspace.store.artifact('snapshot.L5X')
+        all_rows = self.workspace.field_signals(dict(self.query, page_size=500))
+        counts = all_rows['coverage']['usage_counts']
+        self.assertEqual(sum(counts.values()), all_rows['signals']['total'])
+        self.assertGreater(counts['referenced'], 0)
+        self.assertGreater(counts['not_found'], 0)
+        selected_ids = set()
+        for status in ('referenced', 'possible_indirect', 'not_found', 'unknown'):
+            response = self.workspace.field_signals(dict(self.query, usage=status, page_size=10))
+            self.assertEqual(response['signals']['total'], counts[status])
+            for page in range(1, response['signals']['pages'] + 1):
+                rows = self.workspace.field_signals(dict(self.query, usage=status, page_size=10,
+                                                        page=page))['signals']['items']
+                self.assertTrue(all(row['usage']['status'] == status for row in rows))
+                for row in rows:
+                    self.assertNotIn(row['id'], selected_ids)
+                    selected_ids.add(row['id'])
+                    unfiltered = next(item for item in all_rows['signals']['items'] if item['id'] == row['id'])
+                    self.assertEqual(row['binding'], unfiltered['binding'])
+        self.assertEqual(selected_ids, {row['id'] for row in all_rows['signals']['items']})
+        self.assertEqual(self.workspace.store.state(), before)
+        self.assertEqual(self.workspace.store.artifact('snapshot.L5X'), original)
+
+    def test_http_usage_detail_is_independent_from_unresolved_physical_mapping(self) -> None:
+        inputs = field_inputs(('MOV(Local:8:I.Ch0Data,InternalReal);',),
+                              modules=module('UnmappedCard', 8, 'INVENTED'))
+        saved = save_map_inputs(self.runs, inputs)
+        state = self.workspace.import_run(str(saved), self.workspace.store.state()['revision'])
+        with running_workspace(self.project, self.runs) as client:
+            query = {'run_id': state['active_run'], 'usage': 'referenced'}
+            response = client.get('/api/field-signals?' + urlencode(query))
+            self.assertTrue(response['available'])
+            self.assertEqual(response['signals']['total'], 1)
+            row = response['signals']['items'][0]
+            self.assertEqual(row['mapping_status'], 'review_mapping')
+            self.assertEqual(row['field_type'], 'unknown')
+            self.assertEqual(row['usage']['direct_count'], 1)
+            self.assertEqual(row['usage']['roles']['read'], 1)
+            detail = client.get('/api/field-signals?' + urlencode(dict(query, signal_id=row['id'])))['selected_signal']
+            self.assertEqual(detail['usage'], row['usage'])
+            self.assertEqual(detail['direct_uses']['items'][0]['rung_id'], inputs[1].rungs[0].id)
+            self.assertEqual(client.request('/api/field-signals?' + urlencode(dict(query, usage='active')))[0], 400)
+            self.assertEqual(client.get('/api/state')['revision'], state['revision'])
+
     def test_siblings_keep_independent_names_and_package_roles_survive_legacy_edits(self) -> None:
         rows = self.rows(field_type='di', section='signals')
         self.assertEqual(len(rows), 2)

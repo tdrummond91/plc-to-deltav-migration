@@ -126,6 +126,27 @@ without giving hardware its own card. Hover or focus it for a quick look;
 click to pin, and use Escape, Close or an outside click to dismiss it. Source
 links open the captured hardware or complete annotations separately.
 
+**Logic usage** is separate from the physical channel mapping and description.
+Click its status to see the evidence and open the supporting rungs. Use the
+usage filter to search all pages:
+
+- **Referenced in logic**: captured logic names this address directly or through
+  a resolved alias. Read/write counts describe the captured instruction roles.
+- **Possible indirect use**: a whole structure, array, indexed address or bulk
+  operation could include this signal. Review the linked operation to determine
+  whether it actually includes the channel.
+- **No references found**: the supported captured scan found neither direct nor
+  possible indirect references. This is a review candidate, not proof of a spare
+  or unused physical point.
+- **Coverage incomplete**: missing or unsupported source evidence prevents a
+  reliable absence check. The detail explains the coverage gaps.
+
+An unresolved channel mapping does not mean an unused signal. **No source
+description captured** means the wording is missing, not that the signal is
+inactive. These statuses cannot establish live I/O states, physical wiring,
+whether a routine executes, or whether an output is energized. Those require
+separate controller and field verification.
+
 **Source-mapped** means the exact catalog, direction and captured member profile
 support that channel interpretation. **Candidate** means its source member is
 captured but the physical mapping still needs review. A card's advertised

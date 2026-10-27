@@ -20,6 +20,7 @@ from .workspace_field_io import FieldIOIndex, _page, _preview
 from .workspace_variables import _member_key
 from .workspace_paging import page_size
 from .workspace_sorting import natural_key
+from .workspace_signal_usage import SignalUsageIndex, USAGE_STATUSES
 
 PAGE_SIZE = 24
 DETAIL_PAGE_SIZE = 12
@@ -50,6 +51,7 @@ _LIMITATIONS = (
     'No rows are invented from catalog capacity. Missing rows can mean absent member evidence or an unsupported member layout.',
     'Exact member aliases share one source identity. Whole-word, array-range, dynamic-index and implicit instruction effects are not expanded.',
     'Related rungs are optional one-hop shared-address candidates. They do not prove dataflow, execution order, scaling, shutdown behavior or package membership.',
+    'Logic usage describes references in captured source. No references found does not establish a spare, inactive, disconnected or de-energized point.',
 )
 
 
@@ -79,7 +81,8 @@ def validate_query(query: dict) -> dict:
             raise FieldSignalError('Choose a captured run and bounded field signal filters.')
         result[key] = value
     for key, default, allowed in (('section', 'all', {'all', 'signals', 'candidates'}),
-                                  ('field_type', '', {'', 'unknown', *FIELD_TYPES})):
+                                  ('field_type', '', {'', 'unknown', *FIELD_TYPES}),
+                                  ('usage', '', {'', *USAGE_STATUSES})):
         value = query.get(key, default)
         if type(value) is not str or value not in allowed:
             raise FieldSignalError('Choose an available field signal filter.')
@@ -123,6 +126,10 @@ class FieldSignalIndex:
                 if connections._rungs != self.base._rungs or connections._entities != self.base._entities:
                     _invalid()
                 connections.qualify_map(self.base._entity_ok, self.base._rung_ok)
+            self.usage = SignalUsageIndex(field_io)
+            self._budget += self.usage._budget
+            if self._budget > MAX_INDEX_BYTES:
+                _invalid('index_bytes_limit', actual=self._budget, limit=MAX_INDEX_BYTES)
             self._build()
         except FieldSignalError:
             raise
@@ -214,6 +221,7 @@ class FieldSignalIndex:
                          if row['mapping_status'] == 'documented_member_layout')
         candidate_counts = Counter(kind for row in self.signals.values() if row['mapping_status'] == 'review_mapping'
                                    for kind in (row['candidate_field_types'] or ['unknown']))
+        usage_counts = Counter(self.usage.status(self.field_io.addresses[identifier]) for identifier in self.signals)
         self.coverage = {'signals_total': len(self.signals), 'documented_total': sum(counts.values()),
             'candidates_total': sum(row['mapping_status'] == 'review_mapping' for row in self.signals.values()),
             'documented_by_field_type': {kind: counts[kind] for kind in FIELD_TYPES},
@@ -222,6 +230,7 @@ class FieldSignalIndex:
             'filter_counts': {kind: sum(row['field_type'] == kind or kind in row['candidate_field_types']
                                       for row in self.signals.values()) for kind in (*FIELD_TYPES, 'unknown')},
             'candidate_filter_counts_may_overlap': True,
+            'usage_counts': {kind: usage_counts[kind] for kind in USAGE_STATUSES},
             'excluded_addresses': excluded['non_signal_addresses'],
             'captured_addresses_total': len(self.field_io.addresses),
             'related_connections_available': self.connections is not None,
@@ -285,6 +294,7 @@ class FieldSignalIndex:
         """Expand authenticated shared evidence for one displayed signal only."""
         address = self.field_io.addresses[row['id']]
         return {**row,
+            'usage': self.usage.summary(address),
             'hardware': self._hardware_by_module[row['module_id']],
             'description_selection': self.field_io.description_selection(address),
             'source_metadata': self._source_metadata(address),
@@ -428,6 +438,7 @@ class FieldSignalIndex:
                     or query['module_id'] and query['module_id'] != row['module_id']
                     or query['field_type'] and query['field_type'] != row['field_type']
                     and query['field_type'] not in row['candidate_field_types']
+                    or query['usage'] and query['usage'] != self.usage.status(self.field_io.addresses[identifier])
                     or needle and needle not in self._search[identifier] and needle not in extras.get(identifier, '').casefold()):
                 continue
             rows.append(row)

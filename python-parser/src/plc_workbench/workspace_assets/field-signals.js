@@ -4,6 +4,27 @@
   const TYPES = {di: 'DI', do: 'DO', ai: 'AI', ao: 'AO', unknown: 'Unresolved'};
   const PAGE_SIZES = [10, 50, 100, 200, 500];
   const ROLES = {scaling: 'Scaling', alarm: 'Alarm', reference: 'Reference', logic: 'Logic'};
+  const USAGE = {referenced: 'Referenced in logic', possible_indirect: 'Possible indirect use',
+    not_found: 'No references found', unknown: 'Coverage incomplete'};
+  const USAGE_ROLES = {read: 'Read', write: 'Write', read_write: 'Read/write', unknown: 'Role unknown'};
+  const USAGE_GAPS = {missing_access: 'Instruction-access evidence is missing', unparsed_rungs: 'Some rungs were not parsed',
+    missing_logic: 'No ladder routines were captured in this source', partial_export: 'Source is a partial controller export',
+    unsupported_routines: 'Some routine languages are unsupported', protected_logic: 'Some logic is protected',
+    incomplete_routines: 'Some routine content is incomplete', opaque_expressions: 'Some expressions were not analyzed',
+    unsupported_instructions: 'Some instructions are unsupported', unqualified_source: 'Some source could not be qualified',
+    unresolved_references: 'Some source references remain unresolved', usage_index_limit: 'The usage scan reached its limits'};
+  const POSSIBLE_REASONS = {aggregate_parent: 'A containing word or structure is referenced',
+    aggregate_child: 'A member below this address is referenced', range_unresolved: 'A copy or fill range may include this member',
+    dynamic_index: 'A variable index may select this member', equivalent_static_index: 'Equivalent numeric array index spelling'};
+  const count = value => Number.isInteger(value) && value >= 0 ? value : 0;
+  const usageOf = row => row.usage && Object.hasOwn(USAGE, row.usage.status) ? row.usage
+    : {status: 'unknown', coverage_complete: false, notice: 'Usage evidence is unavailable or incomplete for this saved analysis.'};
+  const referenceCounts = (references, rungs, kind) =>
+    `${count(references)} ${kind} reference${count(references) === 1 ? '' : 's'} · ${count(rungs)} rung${count(rungs) === 1 ? '' : 's'}`;
+  const usageCount = usage => usage.status === 'referenced'
+    ? referenceCounts(usage.direct_count, usage.direct_rung_count, 'exact')
+    : usage.status === 'possible_indirect' ? referenceCounts(usage.possible_count, usage.possible_rung_count, 'possible')
+    : usage.status === 'not_found' ? 'Within analyzed source' : 'Source review required';
   const MAPPING = {exact_catalog_direction_member_and_captured_profile_type: 'Catalog, data direction, member layout and captured datatype match the documented profile.',
     captured_member_layout_requires_review: 'The module type is recognized, but this member layout still needs review.',
     qualified_floating_channel_requires_review: 'A floating-point payload and input/output direction are captured. They suggest a numeric signal; its physical channel mapping remains unresolved.',
@@ -51,9 +72,12 @@
     const query = input('', 'field-signals-query'); query.type = 'search'; query.maxLength = 256;
     const type = select([['', 'All types'], ...Object.entries(TYPES)], '', 'field-signals-type');
     const section = select([['all', 'Signals and candidates'], ['signals', 'Documented signals'], ['candidates', 'Mapping candidates']], 'all', 'field-signals-section');
+    const usage = select([['', 'All usage'], ...Object.entries(USAGE)], '', 'field-signals-usage-filter');
     const pageSize = select(PAGE_SIZES.map(size => [String(size), String(size)]), '50', 'field-signals-page-size');
     const submit = el('button', 'Search'); submit.type = 'submit';
-    filters.append(field('Find alias, address, DeltaV name, package or source wording', query), field('Physical type / candidate', type), field('Evidence', section), field('Signals per page', pageSize), submit);
+    filters.append(field('Find alias, address, DeltaV name, package or source wording', query), field('Physical type / candidate', type),
+      field('Evidence', section), field('Logic usage', usage), field('Signals per page', pageSize), submit);
+    const usageNotice = el('p', 'Logic usage reports captured source references, independently of physical mapping. Source references do not prove runtime activity.', 'field-signals-usage-notice muted');
     const status = el('p', undefined, 'field-signals-status'); status.setAttribute('role', 'status');
     const draftsNotice = el('div', undefined, 'field-signals-drafts');
     const layout = el('div', undefined, 'field-signals-layout');
@@ -62,11 +86,11 @@
     const controllerTools = el('div', undefined, 'field-signals-controller-tools');
     const detail = el('section', undefined, 'field-signals-detail'); detail.setAttribute('aria-label', 'Selected field signal and engineering package');
     directory.append(controllerTools, tableWrap, pager); layout.append(directory, detail);
-    root.replaceChildren(filters, status, draftsNotice, layout);
+    root.replaceChildren(filters, usageNotice, status, draftsNotice, layout);
     const drafts = new Map();
     const controllerStates = new Map(); let controllerPanels = [], controllersExpanded = true;
     let active = true, key = '', runId = '', listSerial = 0, detailSerial = 0, page = 1, selectedId = '', selectedDraft = null, detailPageSize = 10;
-    let applied = {query: '', field_type: '', section: 'all', page_size: '50'}, saving = false, hardware = null, hardwareTimer = null, suppressHardwareFocus = false;
+    let applied = {query: '', field_type: '', section: 'all', usage: '', page_size: '50'}, saving = false, hardware = null, hardwareTimer = null, suppressHardwareFocus = false;
     const state = () => options.getState() || {};
     const identity = () => JSON.stringify([state().project_path || '', state().active_run || '']);
     const current = expected => active && key === expected && identity() === expected;
@@ -95,8 +119,12 @@
       link.addEventListener('click', guard); link.addEventListener('auxclick', guard); return link;
     }
     function prose(target, original, wording, mode) {
+      if (typeof original !== 'string' || !original.trim()) {
+        target.textContent = 'No source description captured';
+        target.className += ' field-signals-description-missing'; return;
+      }
       if (window.PLCTranslation?.renderProse) window.PLCTranslation.renderProse(target, original, wording, mode);
-      else target.textContent = original || 'No source wording captured';
+      else target.textContent = original;
     }
     function paintDrafts() {
       draftsNotice.replaceChildren();
@@ -183,7 +211,7 @@
     }
     function signalTable(rows, result, expected) {
       const table = el('table', undefined, 'field-signals-table'), head = el('thead'), header = el('tr');
-      ['Physical channel', 'Source alias / address', 'Source description', 'DeltaV name', 'Package status', 'Info'].forEach(label => header.append(el('th', label)));
+      ['Physical channel', 'Source alias / address', 'Source description', 'Logic usage', 'DeltaV name', 'Package status', 'Info'].forEach(label => header.append(el('th', label)));
       head.append(header); const body = el('tbody');
       rows.forEach(row => {
         const tr = el('tr'); if (row.id === selectedId) tr.className = 'is-current';
@@ -200,13 +228,21 @@
         const description = el('td', undefined, 'field-signals-source-description'), wording = el('div', undefined, 'field-signals-wording-preview');
         prose(wording, textOf(row), wordingOf(row), result.presentation_mode); description.append(wording);
         if (descriptionNotice(row)) description.append(el('small', descriptionNotice(row), 'field-signals-description-conflict'));
+        const use = usageOf(row), usageCell = el('td', undefined, 'field-signals-usage-cell');
+        const usageButton = button(USAGE[use.status], async () => {
+          if (requireCurrent(expected)) { await openRow(row); revealEditor(); }
+        }, 'field-signals-usage-open usage-' + use.status);
+        usageButton.setAttribute('aria-label', USAGE[use.status] + ' for ' + labelOf(row) + '. Open source references.');
+        usageCell.append(usageButton, el('small', usageCount(use), 'muted'));
+        if (use.status !== 'unknown' && use.coverage_complete === false)
+          usageCell.append(el('small', 'Coverage incomplete', 'field-signals-usage-gap'));
         const saved = row.saved_signal, names = el('td', undefined, 'field-signals-name');
         names.append(el('span', (saved ? saved.target_name : proposedName(row)) || 'Not assigned'));
         if (!saved && proposedName(row)) names.append(el('small', 'Proposed · unreviewed', 'muted'));
         const packageIds = row.packages || (saved ? (state().groups || []).filter(group => group.signal_ids?.includes(saved.id)) : []);
         const statusLabel = !saved ? 'Not saved' : saved.needs_revalidation ? 'Needs review' : packageIds.length ? `${packageIds.length} package${packageIds.length === 1 ? '' : 's'}` : 'Saved · no package';
         const info = el('td'); info.append(hardwareButton(row));
-        tr.append(category, source, description, names, el('td', statusLabel), info); body.append(tr);
+        tr.append(category, source, description, usageCell, names, el('td', statusLabel), info); body.append(tr);
       });
       table.append(head, body); return table;
     }
@@ -216,7 +252,7 @@
       controllerPanels.forEach(({panel, id}) => { panel.open = expanded; controllerStates.set(id, expanded); });
     }
     controllerTools.append(button('Expand all', () => setControllers(true)), button('Collapse all', () => setControllers(false)),
-      el('span', 'Controllers on this page · search and type filters apply to every page', 'muted'));
+      el('span', 'Controllers on this page · search, type and usage filters apply to every page', 'muted'));
     function paintList(result) {
       closeHardware(); tableWrap.replaceChildren(); controllerPanels = [];
       controllerTools.hidden = result.available === false;
@@ -242,7 +278,7 @@
         const wrap = el('div', undefined, 'field-signals-table-wrap'); wrap.append(signalTable(group.rows, result, expected));
         panel.append(heading, wrap); tableWrap.append(panel); controllerPanels.push({panel, id: group.id});
       });
-      if (!result.signals.items.length) tableWrap.append(el('p', 'No individual signals match these filters. Unresolved candidates may require a different type or evidence filter.'));
+      if (!result.signals.items.length) tableWrap.append(el('p', 'No individual signals match these filters. Try a different type, evidence or usage filter.'));
       pageControls(pager, result.signals, 'signals', next => { if (!requireCurrent(expected)) return; page = next; return loadList(); });
     }
     async function loadList() {
@@ -275,14 +311,15 @@
       detail.setAttribute('aria-busy', 'true');
       if (!retained) detail.replaceChildren(el('p', 'Loading source uses and related rung candidates…'));
       try {
-        const priorPages = retained ? {rung_page: String(retained.row.direct_rungs?.page || 1), related_page: String(retained.row.related_rungs?.page || 1)} : {};
+        const priorPages = retained ? {rung_page: String(retained.row.direct_rungs?.page || 1), related_page: String(retained.row.related_rungs?.page || 1),
+          use_page: String(retained.row.direct_uses?.page || 1)} : {};
         const expectedDetailSize = Number(coordinates.detail_page_size || retained?.detailPageSize || detailPageSize);
         const payload = await options.api(url({signal_id: row.id, ...priorPages, detail_page_size: String(expectedDetailSize), ...coordinates}));
         if (!current(expected) || serial !== detailSerial || selectedId !== row.id) return;
         checkResult(payload, expectedRun, expectedPageSize);
         if (payload.selected_signal?.id !== row.id) throw new Error('The selected signal did not match this source address.');
         const found = payload.selected_signal;
-        for (const name of ['direct_rungs', 'related_rungs']) if (found[name] && !pageValid(found[name], expectedDetailSize))
+        for (const name of ['direct_uses', 'direct_rungs', 'related_rungs']) if (found[name] && !pageValid(found[name], expectedDetailSize))
           throw new Error('The related rung page exceeded its source bounds.');
         const draft = retained || newDraft(found, payload);
         draft.detailPageSize = expectedDetailSize; detailPageSize = expectedDetailSize;
@@ -544,10 +581,55 @@
       });
       section.append(controls); target.append(section);
     }
+    function paintUsage(draft) {
+      const row = draft.row, usage = usageOf(row), section = el('section', undefined, 'field-signals-usage-summary');
+      section.append(el('h4', 'Logic usage'), el('strong', USAGE[usage.status], 'usage-' + usage.status),
+        el('p', usageCount(usage), 'field-signals-usage-count'),
+        el('p', usage.notice || (usage.status === 'not_found'
+          ? 'No references were found in the analyzed source. This does not establish that the signal is unused.'
+          : 'Review the captured references and coverage before assigning an engineering role.')));
+      const roles = Object.entries(USAGE_ROLES).filter(([key]) => count(usage.roles?.[key]) > 0);
+      if (roles.length) section.append(el('p', roles.map(([key, label]) => `${label}: ${count(usage.roles[key])}`).join(' · '), 'field-signals-usage-roles'));
+      if (usage.coverage_complete === false && usage.status !== 'unknown')
+        section.append(el('p', 'Coverage incomplete: additional source uses may not be represented.', 'field-signals-usage-gap'));
+      const gaps = (Array.isArray(usage.gap_reasons) ? usage.gap_reasons : []).slice(0, 12);
+      if (gaps.length) section.append(el('p', gaps.map(reason => USAGE_GAPS[reason] || 'Additional unresolved source coverage').join(' · '), 'field-signals-usage-gap'));
+      section.append(el('small', 'Physical mapping and logic usage are separate. Source references do not prove runtime activity.', 'muted'));
+      function references(title, rows, possible = false) {
+        const list = el('details', undefined, 'field-signals-usage-references'); list.open = true;
+        list.append(el('summary', title));
+        rows.forEach(use => {
+          const entry = el('article', undefined, 'field-signals-usage-reference');
+          entry.append(el('strong', [use.opcode || 'Instruction', USAGE_ROLES[use.role] || 'Role unknown'].join(' · ')));
+          if (use.variable) entry.append(el('code', use.variable));
+          if (use.path) entry.append(el('small', use.path, 'muted'));
+          if (possible) entry.append(el('p', (POSSIBLE_REASONS[use.reason] || 'An indirect source association needs review') +
+            '. Review the instruction before treating this as an exact member use.', 'muted'));
+          if (use.instruction_id) entry.append(sourceLink('Open instruction source', use.instruction_id, 'ladder', draft.context));
+          if (use.rung_id) entry.append(sourceLink('Open rung source', use.rung_id, 'ladder', draft.context));
+          list.append(entry);
+        });
+        section.append(list);
+      }
+      const exact = row.direct_uses;
+      if (exact?.items?.length) references('Exact source references', exact.items);
+      if (exact?.pages > 1) {
+        const controls = el('div', undefined, 'pagination');
+        pageControls(controls, exact, 'exact references', next => {
+          if (requireCurrent(draft.context)) return openRow(row, {use_page: String(next)});
+        }); section.append(controls);
+      }
+      const possible = Array.isArray(usage.possible_uses) ? usage.possible_uses.slice(0, 12) : [];
+      if (possible.length) references('Possible indirect references', possible, true);
+      if (usage.possible_uses_truncated || count(usage.possible_count) > possible.length)
+        section.append(el('small', `Showing ${possible.length} of ${count(usage.possible_count)} possible references; the preview is bounded.`, 'muted'));
+      detail.append(section);
+    }
     function paintEditor(draft) {
       const row = draft.row, controlsDisabled = saving || !current(draft.context);
       detail.replaceChildren(el('h3', labelOf(row)), el('code', row.address), el('p', draft.message || 'Edit the engineering signal; the captured L5X remains unchanged.', 'field-signals-editor-status'));
       if (!current(draft.context)) detail.append(el('p', 'These edits belong to a different project or analysis. They remain available for reference, but cannot be saved into the current source.', 'warning-panel'));
+      paintUsage(draft);
       const source = el('details', undefined, 'field-signals-source'); source.append(el('summary', 'Original source wording and evidence'));
       const metadata = row.source_metadata || {}, facts = el('dl', undefined, 'field-signals-source-facts');
       [['Tag type', metadata.tag_type], ['Alias for', metadata.alias_for], ['Base name', metadata.base_name],
@@ -668,10 +750,11 @@
     }
     function changeFilters() {
       if (!requireCurrent(key)) return;
-      applied = {query: query.value.trim().slice(0, 256), field_type: type.value, section: section.value, page_size: pageSize.value}; page = 1; return loadList();
+      applied = {query: query.value.trim().slice(0, 256), field_type: type.value, section: section.value,
+        usage: usage.value, page_size: pageSize.value}; page = 1; return loadList();
     }
     filters.addEventListener('submit', event => { event.preventDefault(); return changeFilters(); });
-    type.addEventListener('change', changeFilters); section.addEventListener('change', changeFilters);
+    type.addEventListener('change', changeFilters); section.addEventListener('change', changeFilters); usage.addEventListener('change', changeFilters);
     pageSize.addEventListener('change', () => {
       if (!PAGE_SIZES.includes(Number(pageSize.value)) || !requireCurrent(key)) return;
       applied = {...applied, page_size: pageSize.value}; page = 1; return loadList();
