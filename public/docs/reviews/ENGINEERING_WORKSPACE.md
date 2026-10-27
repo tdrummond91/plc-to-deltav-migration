@@ -130,18 +130,27 @@ links open the captured hardware or complete annotations separately.
 Click its status to see the evidence and open the supporting rungs. Use the
 usage filter to search all pages:
 
-- **Referenced in logic**: captured logic names this address directly or through
-  a resolved alias. Read/write counts describe the captured instruction roles.
+- **Used in logic**: captured logic names this address directly or through
+  a resolved alias. Open the reference to see where it occurs. Read/write counts
+  describe known instruction roles; an unknown role does not erase the reference.
 - **Possible indirect use**: a whole structure, array, indexed address or bulk
   operation could include this signal. Review the linked operation to determine
   whether it actually includes the channel.
 - **No references found**: the supported captured scan found neither direct nor
   possible indirect references. This is a review candidate, not proof of a spare
   or unused physical point.
-- **Coverage incomplete**: missing or unsupported source evidence prevents a
-  reliable absence check. The detail explains the coverage gaps.
+- **Not checked**: the source has no usable logic to scan, or a scan limit
+  prevents checking this address. This is different from finding no references.
 
-An unresolved channel mapping does not mean an unused signal. **No source
+The **Reference scan** summary above the list shows how many captured rungs were
+checked. Expand it for missing source or unsupported expressions and for separate
+instruction-role notes. A warning elsewhere in the analysis does not make a
+known reference uncertain. When only part of the source was scanned, **No
+references found** applies to that scanned portion.
+
+An **Input** or **Output** with **Channel type not classified** has a captured
+module address and direction; the parser has not identified its physical channel
+type. This is separate from whether logic references it. **No source
 description captured** means the wording is missing, not that the signal is
 inactive. These statuses cannot establish live I/O states, physical wiring,
 whether a routine executes, or whether an output is energized. Those require

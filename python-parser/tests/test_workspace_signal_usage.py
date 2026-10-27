@@ -100,7 +100,7 @@ class SignalUsageTests(unittest.TestCase):
                 self.assertEqual(result['possible_uses'][0]['variable'], 'Local:1:I.Ch0Data')
                 other = index.summary(address(index, 'Local:2:I.Ch2Data'))
                 self.assertEqual(other['possible_count'], 0)
-                self.assertEqual(other['status'], 'unknown' if opcode == 'FLL' else 'not_found')
+                self.assertEqual(other['status'], 'not_found')
                 if opcode != 'FLL':
                     exact = index.summary(address(index, 'Local:1:I.Ch0Data'))
                     self.assertEqual(exact['status'], 'referenced')
@@ -156,20 +156,24 @@ class SignalUsageTests(unittest.TestCase):
         self.assertEqual(index.status(address(index, 'Local:1:I.Data.1')), 'possible_indirect')
         self.assertEqual(index.status(address(index, 'Local:1:I.Data.10')), 'not_found')
 
-    def test_missing_access_or_unsupported_instructions_preserve_positives_and_uncertain_absence(self) -> None:
+    def test_missing_access_or_unsupported_roles_do_not_hide_scan_results(self) -> None:
         captured = field_inputs(('XIC(InputAlias);',))
         index = build(captured, missing_access=True)
         result = index.summary(address(index, 'Local:1:I.Data.0'))
         self.assertEqual(result['status'], 'referenced')
         self.assertEqual(result['roles']['unknown'], 1)
         self.assertIn('missing_access', result['gap_reasons'])
-        self.assertEqual(index.status(address(index, 'Local:3:I.Ch0Data')), 'unknown')
+        self.assertEqual(index.status(address(index, 'Local:3:I.Ch0Data')), 'not_found')
+        self.assertTrue(index.scan_summary()['complete'])
+        self.assertEqual(index.scan_summary()['role_gap_reasons'], ['missing_access'])
         index = build(field_inputs(('Mystery(InternalReal);', 'XIC(InputAlias);')))
         self.assertEqual(index.status(address(index, 'Local:1:I.Data.0')), 'referenced')
         absent = index.summary(address(index, 'Local:3:I.Ch0Data'))
-        self.assertEqual(absent['status'], 'unknown')
+        self.assertEqual(absent['status'], 'not_found')
         self.assertFalse(absent['coverage_complete'])
         self.assertIn('unsupported_instructions', absent['gap_reasons'])
+        self.assertTrue(index.scan_summary()['complete'])
+        self.assertEqual(index.scan_summary()['role_gap_reasons'], ['unsupported_instructions'])
 
     def test_unseen_non_rll_protected_and_incomplete_routines_make_absence_unknown(self) -> None:
         source = field_inputs(())[0].data
@@ -188,7 +192,7 @@ class SignalUsageTests(unittest.TestCase):
                 self.assertEqual(result['status'], 'unknown')
                 self.assertIn(reason, result['gap_reasons'])
 
-    def test_no_routines_and_explicit_partial_exports_leave_absence_unknown(self) -> None:
+    def test_no_routines_are_unknown_but_partial_exports_report_the_captured_scan(self) -> None:
         source = field_inputs(())[0].data
         without_program = re.sub(rb'<Programs>.*?</Programs>', b'<Programs/>', source)
         index = build(recapture(without_program))
@@ -200,8 +204,93 @@ class SignalUsageTests(unittest.TestCase):
                 partial = source.replace(b'<RSLogix5000Content>',
                     b'<RSLogix5000Content TargetType="' + target + b'" ContainsContext="true">')
                 result = build(recapture(partial))
-                self.assertEqual(result.status(address(result, 'Local:1:I.Data.0')), 'unknown')
+                self.assertEqual(result.status(address(result, 'Local:1:I.Data.0')), 'not_found')
                 self.assertIn('partial_export', result.gap_reasons)
+                self.assertTrue(result.scan_summary()['available'])
+                self.assertFalse(result.scan_summary()['complete'])
+
+    def test_unresolved_internal_name_does_not_hide_unrelated_presence_or_absence(self) -> None:
+        index = build(field_inputs(('XIC(MissingInternal);', 'XIC(InputAlias);')))
+        self.assertEqual(index.status(address(index, 'Local:1:I.Data.0')), 'referenced')
+        self.assertEqual(index.status(address(index, 'Local:3:I.Ch0Data')), 'not_found')
+        self.assertEqual(index.scan_summary(), {'rungs_total': 2, 'rungs_scanned': 2,
+            'rungs_not_scanned': 0, 'available': True, 'complete': True,
+            'gap_reasons': [], 'role_gap_reasons': ['unresolved_references']})
+
+    def test_resolved_internal_dynamic_reference_is_a_scanned_address(self) -> None:
+        index = build(field_inputs(('MOV(InternalArray[Index],InternalReal);',), extra_tags=(
+            '<Tag Name="InternalArray" DataType="REAL" Dimensions="4"/>'
+            '<Tag Name="Index" DataType="DINT"/>')))
+        self.assertEqual(index.status(address(index, 'Local:1:I.Data.0')), 'not_found')
+        self.assertEqual(index.scan_summary()['gap_reasons'], [])
+        self.assertTrue(index.scan_summary()['complete'])
+        self.assertEqual(index.scan_summary()['rungs_scanned'], 1)
+
+    def test_unvisited_array_index_dependencies_are_a_real_scan_gap(self) -> None:
+        leaves = ('<ArrayMember Name="Data" DataType="DINT" Dimensions="2">'
+                  '<Element Index="[0]" Value="0"/><Element Index="[1]" Value="0"/></ArrayMember>'
+                  '<DataValueMember Name="Ch0Data" DataType="DINT" Value="0"/>')
+        cards = module('ArrayCard', 1, 'INVENTED', data=leaves) + module('Other', 2, 'INVENTED', data=leaves)
+        tags = ('<Tag Name="FieldIndex" TagType="Alias" AliasFor="Local:2:I.Ch0Data"/>'
+                '<Tag Name="Index" DataType="DINT"/>')
+        for token in ('Local:2:I.Ch0Data', 'FieldIndex', 'MissingIndex', 'Index+1'):
+            for operation in ('MOV({operand},InternalReal);', 'Mystery({operand});',
+                              'CPT(InternalReal,{operand}+1);'):
+                with self.subTest(token=token, operation=operation):
+                    text = operation.format(operand=f'Local:1:I.Data[{token}]')
+                    index = build(field_inputs((text,), modules=cards, extra_tags=tags))
+                    self.assertEqual(index.status(address(index, 'Local:1:I.Data[0]')), 'possible_indirect')
+                    self.assertEqual(index.status(address(index, 'Local:2:I.Ch0Data')), 'not_found')
+                    scan = index.scan_summary()
+                    self.assertEqual(scan['rungs_scanned'], 1)
+                    self.assertTrue(scan['available'])
+                    self.assertFalse(scan['complete'])
+                    self.assertIn('unscanned_index_expressions', scan['gap_reasons'])
+        for token in ('Index', 'InternalIndexAlias'):
+            with self.subTest(safe_internal=token):
+                index = build(field_inputs((f'MOV(Local:1:I.Data[{token}],InternalReal);',),
+                    modules=cards, extra_tags=tags +
+                    '<Tag Name="InternalIndexAlias" TagType="Alias" AliasFor="Index"/>'))
+                self.assertTrue(index.scan_summary()['complete'])
+
+    def test_unknown_instruction_and_arity_still_capture_exact_lexical_alias_references(self) -> None:
+        captured = field_inputs(('Mystery(InputAlias);', 'Mystery(Local:1:I.Data.0);',
+                                 'XIC(InputAlias,InternalReal);'))
+        index = build(captured)
+        summary = index.summary(address(index, 'Local:1:I.Data.0'))
+        self.assertEqual(summary['status'], 'referenced')
+        self.assertEqual(summary['direct_count'], 3)
+        self.assertEqual(summary['roles'], {'read': 0, 'write': 0, 'read_write': 0, 'unknown': 3})
+        self.assertTrue(index.scan_summary()['complete'])
+        self.assertEqual(index.scan_summary()['role_gap_reasons'], ['unsupported_instructions'])
+        missing = build(captured, missing_access=True)
+        self.assertEqual(missing.summary(address(missing, 'Local:1:I.Data.0'))['direct_count'], 3)
+        self.assertTrue(missing.scan_summary()['complete'])
+
+    def test_extended_access_binds_counter_member_without_changing_saved_reference_records(self) -> None:
+        captured = field_inputs(('CTU(InputAlias,10,0);',))
+        before = deepcopy(wire(captured))
+        index = build(captured)
+        summary = index.summary(address(index, 'Local:1:I.Data.0'))
+        self.assertEqual((summary['status'], summary['direct_count']), ('referenced', 1))
+        self.assertEqual(summary['roles']['read_write'], 1)
+        self.assertTrue(index.scan_summary()['complete'])
+        self.assertEqual(wire(captured), before)
+
+    def test_partial_rung_parse_and_opaque_expression_report_limits_once_without_hiding_absence(self) -> None:
+        index = build(field_inputs(('XIC(InputAlias);', 'XIC(InputAlias')))
+        summary = index.scan_summary()
+        self.assertEqual((summary['rungs_total'], summary['rungs_scanned'], summary['rungs_not_scanned']), (2, 1, 1))
+        self.assertFalse(summary['complete'])
+        self.assertTrue(summary['available'])
+        self.assertIn('unparsed_rungs', summary['gap_reasons'])
+        self.assertEqual(index.status(address(index, 'Local:3:I.Ch0Data')), 'not_found')
+        summary['gap_reasons'].clear()
+        self.assertIn('unparsed_rungs', index.scan_summary()['gap_reasons'])
+        index = build(field_inputs(('CPT(InternalReal,InputAlias?Other);',)))
+        self.assertEqual(index.status(address(index, 'Local:1:I.Data.0')), 'not_found')
+        self.assertIn('opaque_expressions', index.scan_summary()['gap_reasons'])
+        self.assertFalse(index.scan_summary()['complete'])
 
     def test_failed_or_foreign_rungs_do_not_create_positive_evidence(self) -> None:
         for captured, reason in ((field_inputs(('XIC(InputAlias',)), 'unparsed_rungs'),

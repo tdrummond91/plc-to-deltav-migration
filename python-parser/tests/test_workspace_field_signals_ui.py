@@ -43,6 +43,7 @@ const usageEvidence=(status='referenced',changes={})=>({status,direct_count:stat
  roles:{read:status==='referenced'?3:0,write:0,read_write:0,unknown:0},possible_count:status==='possible_indirect'?2:0,
  possible_rung_count:status==='possible_indirect'?1:0,coverage_complete:status!=='unknown',gap_reasons:[],possible_uses:[],
  possible_preview_limit:12,possible_uses_truncated:false,notice:'Captured source references only.',...changes});
+const scanEvidence=(changes={})=>({rungs_total:100,rungs_scanned:100,rungs_not_scanned:0,complete:true,available:true,gap_reasons:[],role_gap_reasons:[],...changes});
 let project={project_path:'invented.sqlite',active_run:'run-1',revision:1,signals:[],groups:[]},rows=[sourceRow()],calls=[],writes=[],opened=[];
 const savedSignal=(changes={})=>({id:'signal-1',binding:binding(),target_name:'LS_001',description:'Engineering words',field_type:'di',active:true,needs_revalidation:false,...changes});
 const group=(changes={})=>({id:'group-1',name:'Existing package',member_ids:['existing-rung'],signal_ids:['other-signal'],member_roles:{'existing-rung':'alarm'},migration_status:'unreviewed',...changes});
@@ -50,7 +51,7 @@ function result(path){const query=new URL(path,'http://localhost').searchParams;
  const detailSize=Number(query.get('detail_page_size')||10);
  const live=rows.map(row=>({...row,saved_signal:project.signals.find(item=>item.binding.address_id===row.id&&item.binding.run_id===project.active_run)||null}));
  const row=live.find(row=>row.id===query.get('signal_id'));
- return {available:true,run_id:project.active_run,revision:project.revision,snapshot_id:'snapshot-1',presentation_mode:'original',signals:page(live,Number(query.get('page_size')||50)),coverage:{},limitations:['No physical wiring is inferred.'],
+ return {available:true,run_id:project.active_run,revision:project.revision,snapshot_id:'snapshot-1',presentation_mode:'original',signals:page(live,Number(query.get('page_size')||50)),coverage:{reference_scan:scanEvidence()},limitations:['No physical wiring is inferred.'],
  selected_signal:row?{...row,direct_rungs:page([rung()],detailSize),direct_uses:page([],detailSize),related_rungs:page([rung('rung-2',{candidate_role:'scaling',association_reason:'shared_address_with_direct_use_rung',
  associations:[{address:'CalculatedValue',from_rung_id:'rung-1'}]})],detailSize)}:null};}
 let response=async path=>path==='/api/state'?structuredClone(project):result(path),mutationHook=null;
@@ -104,9 +105,9 @@ assert.equal(root.textContent.includes('The field signal list could not be loade
 rows.push(sourceRow('address-2',{field_type:'unknown',candidate_field_types:['ai'],mapping_status:'review_mapping'}));
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
 const table=byClass(root,'field-signals-table')[0];
-assert.ok(table.textContent.includes('Physical channel Source alias / address Source description Logic usage DeltaV name Package status Info'));
+assert.ok(table.textContent.includes('Field type / channel Source alias / address Source description Logic usage DeltaV name Package status Info'));
 assert.ok(table.textContent.includes('LevelSwitch'));assert.ok(table.textContent.includes('Local:3:I.Data.0'));assert.ok(table.textContent.includes('Niveau haut'));
-assert.ok(table.textContent.includes('Unresolved AI candidate'));assert.equal(table.textContent.includes('1756-IB16'),false);assert.equal(table.textContent.includes('Local rack'),false);
+assert.ok(table.textContent.includes('Input AI type candidate'));assert.equal(table.textContent.includes('1756-IB16'),false);assert.equal(table.textContent.includes('Local rack'),false);
 assert.equal(byClass(root,'field-signals-controller').length,1);assert.ok(byClass(root,'field-signals-controller')[0].textContent.includes('Invented controller'));
 assert.equal(writes.length,0);assert.equal(controller.hasUnsavedChanges(),false);
 """)
@@ -117,11 +118,12 @@ rows=['referenced','possible_indirect','not_found','unknown'].map((status,index)
  field_type:'unknown',mapping_status:'review_mapping',candidate_field_types:['di'],usage:usageEvidence(status)}));
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
 const cells=byClass(root,'field-signals-usage-cell');assert.equal(cells.length,4);
-assert.ok(cells[0].textContent.includes('Referenced in logic 3 exact references · 2 rungs'));
+assert.ok(cells[0].textContent.includes('Used in logic 3 exact references · 2 rungs'));
 assert.ok(cells[1].textContent.includes('Possible indirect use 2 possible references · 1 rung'));
-assert.ok(cells[2].textContent.includes('No references found Within analyzed source'));
-assert.ok(cells[3].textContent.includes('Coverage incomplete Source review required'));
-assert.equal(byClass(root,'field-signals-table')[0].textContent.match(/mapping unresolved/g).length,4);
+assert.ok(cells[2].textContent.includes('No references found Within scanned source'));
+assert.ok(cells[3].textContent.includes('Not checked Reference scan unavailable'));
+assert.equal(byClass(root,'field-signals-table')[0].textContent.match(/Input DI type candidate/g).length,4);
+assert.equal(byClass(root,'field-signals-table')[0].textContent.includes('Mapping unresolved'),false);
 assert.ok(root.textContent.includes('Source references do not prove runtime activity'));
 assert.equal(/\binactive\b|\bspare\b|\blive\b/i.test(cells.map(item=>item.textContent).join(' ')),false);
 assert.equal(writes.length,0);
@@ -139,7 +141,7 @@ let translated=0;window.PLCTranslation={renderProse(target,original){translated+
 rows=[sourceRow('address-1',{description:'   ',source_annotations:[],usage:undefined})];
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
 assert.equal(byClass(root,'field-signals-wording-preview')[0].textContent,'No source description captured');
-assert.ok(byClass(root,'field-signals-usage-cell')[0].textContent.includes('Coverage incomplete'));
+assert.ok(byClass(root,'field-signals-usage-cell')[0].textContent.includes('Not checked'));
 assert.equal(byClass(root,'field-signals-usage-cell')[0].textContent.includes('No references found'),false);
 await controller.openSignal('address-1');assert.ok(byClass(root,'field-signals-source')[0].textContent.includes('No source description captured'));
 assert.equal(translated,0);assert.equal(writes.length,0);assert.equal(controller.hasUnsavedChanges(),false);
@@ -164,19 +166,29 @@ assert.equal(q.get('usage'),'referenced');assert.equal(q.get('query'),'Pump');as
 assert.equal(byClass(root,'field-signals-target-name')[0].value,'My usage-filter draft');assert.equal(controller.hasUnsavedChanges(),true);assert.equal(writes.length,0);
 """)
 
-    def test_clickable_usage_opens_exact_and_possible_source_links_with_coverage_notice(self) -> None:
+    def test_clickable_usage_opens_exact_and_possible_links_with_one_scan_summary(self) -> None:
         self.run_js(r"""
 rows=[sourceRow('address-1',{usage:usageEvidence('referenced',{coverage_complete:false,gap_reasons:['unsupported_routines','opaque_expressions','missing_logic','partial_export'],
  possible_count:2,possible_rung_count:2,possible_uses:[{id:'possible-1',rung_id:'maybe-rung',instruction_id:'maybe-inst',opcode:'COP',role:'write',variable:'Local:3:I.Data',
  path:'Program / Routine / Maybe',reason:'range_unresolved'},
  {id:'possible-2',rung_id:'index-rung',instruction_id:'index-inst',opcode:'MOV',role:'read',variable:'Local:3:I.Data[ 1 ]',reason:'equivalent_static_index'}]})})];
-response=async path=>{const answer=result(path);if(answer.selected_signal)answer.selected_signal.direct_uses=page([
+response=async path=>{const answer=result(path);answer.coverage.reference_scan=scanEvidence({complete:false,rungs_scanned:99,rungs_not_scanned:1,
+ gap_reasons:['unsupported_routines','partial_export','opaque_expressions','unscanned_index_expressions'],role_gap_reasons:['unsupported_instructions']});
+ if(answer.selected_signal)answer.selected_signal.direct_uses=page([
  {id:'use-1',rung_id:'rung-1',instruction_id:'inst/a?#',opcode:'XIC',role:'read',variable:'InputAlias',path:'Program / Routine / Exact'}],10);return answer;};
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
 await byClass(root,'field-signals-usage-open')[0].fire('click');const summary=byClass(root,'field-signals-usage-summary')[0];
 assert.ok(summary.textContent.includes('Exact source references'));assert.ok(summary.textContent.includes('Possible indirect references'));
-assert.ok(summary.textContent.includes('Some routine languages are unsupported'));assert.ok(summary.textContent.includes('Some expressions were not analyzed'));
-assert.ok(summary.textContent.includes('No ladder routines were captured in this source'));assert.ok(summary.textContent.includes('Source is a partial controller export'));
+const scan=byClass(root,'field-signals-reference-scan')[0];assert.equal(byClass(root,'field-signals-reference-scan').length,1);
+assert.ok(scan.textContent.includes('99 / 100 rungs scanned; 1 not scanned'));assert.ok(scan.textContent.includes('source omissions'));
+assert.ok(scan.textContent.includes('Some routine languages are unsupported'));assert.ok(scan.textContent.includes('Some expressions were not analyzed'));
+assert.ok(scan.textContent.includes('References inside some array index expressions have not been scanned'));
+assert.ok(scan.textContent.includes('Source is a partial controller export'));assert.ok(scan.textContent.includes('Instruction and name details'));
+assert.ok(scan.textContent.includes('No references found applies to the scanned source.'));
+assert.equal(root.textContent.split('Some routine languages are unsupported').length-1,1);
+assert.equal(summary.textContent.includes('Coverage incomplete'),false);assert.equal(summary.textContent.includes('Source is a partial controller export'),false);
+assert.ok(byClass(root,'field-signals-usage-cell')[0].textContent.startsWith('Used in logic'));assert.equal(byClass(root,'field-signals-usage-cell')[0].textContent.includes('incomplete'),false);
+await findButton(summary,'View reference scan scope').fire('click');assert.equal(scan.open,true);assert.equal(document.activeElement,scan);
 assert.ok(summary.textContent.includes('Equivalent numeric array index spelling'));
 assert.ok(summary.textContent.includes('A copy or fill range may include this member'));assert.ok(summary.textContent.includes('Read: 3'));
 assert.equal(findLink(summary,'Open instruction source').href,'/analysis#view=ladder&source=inst%2Fa%3F%23');
@@ -184,6 +196,49 @@ assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/analysis#vie
 assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/analysis#view=ladder&source=maybe-rung'));
 const link=findLink(summary,'Open instruction source');project={...project,active_run:'run-2'};let prevented=false;
 await link.fire('click',{preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(writes.length,0);
+""")
+
+    def test_name_and_instruction_gaps_do_not_contaminate_reference_findings(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{usage:usageEvidence('referenced',{coverage_complete:false,gap_reasons:['unresolved_references','unsupported_instructions']})}),
+ sourceRow('address-2',{usage:usageEvidence('not_found',{coverage_complete:false,gap_reasons:['unresolved_references','unsupported_instructions']})})];
+response=async path=>{const answer=result(path);answer.coverage.reference_scan=scanEvidence({role_gap_reasons:['unresolved_references','unsupported_instructions']});return answer;};
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const scan=byClass(root,'field-signals-reference-scan')[0],table=byClass(root,'field-signals-table')[0];
+assert.ok(scan.children[0].textContent.includes('100 / 100 rungs scanned · complete'));
+assert.ok(scan.textContent.includes('Instruction and name details'));assert.ok(scan.textContent.includes('Some source names could not be resolved'));
+assert.equal(scan.textContent.includes('Source outside the scan'),false);assert.equal(scan.textContent.includes('Some source is outside'),false);
+assert.equal(table.textContent.includes('incomplete'),false);assert.equal(table.textContent.includes('Some source names'),false);
+assert.ok(byClass(root,'field-signals-usage-cell')[0].textContent.startsWith('Used in logic'));
+assert.ok(byClass(root,'field-signals-usage-cell')[1].textContent.startsWith('No references found'));
+scan.open=true;await edit('field-signals-usage-filter','referenced','change');assert.equal(scan.open,true);
+assert.equal(byClass(root,'field-signals-reference-scan').length,1);assert.equal(writes.length,0);
+""")
+
+    def test_unavailable_reference_scan_is_reported_once_and_not_as_unused(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{usage:undefined}),sourceRow('address-2',{usage:{status:'unexpected'}})];
+response=async path=>{const answer=result(path);answer.coverage.reference_scan=scanEvidence({available:false,complete:false,rungs_scanned:0,rungs_not_scanned:100,gap_reasons:['protected_logic']});return answer;};
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+const scan=byClass(root,'field-signals-reference-scan')[0];assert.equal(byClass(root,'field-signals-reference-scan').length,1);
+assert.ok(scan.textContent.includes('0 / 100 rungs scanned; 100 not scanned'));assert.ok(scan.textContent.includes('Some logic is protected'));
+assert.equal(root.textContent.split('Reference scan unavailable. Addresses without reference evidence are shown as Not checked.').length-1,1);
+assert.equal(root.textContent.split('Some logic is protected').length-1,1);
+assert.ok(byClass(root,'field-signals-usage-cell').every(cell=>cell.textContent.includes('Not checked')&&!cell.textContent.includes('No references found')));
+assert.equal(byClass(root,'field-signals-usage-summary')[0].textContent.includes('Some logic is protected'),false);
+response=async path=>{const answer=result(path);answer.coverage={};return answer;};await controller.refresh();
+assert.ok(scan.textContent.includes('Scan details unavailable'));assert.equal(scan.textContent.includes('0 / 0'),false);assert.equal(writes.length,0);
+""")
+
+    def test_unclassified_channel_types_preserve_known_input_output_direction(self) -> None:
+        self.run_js(r"""
+rows=['input','output','unknown'].map((direction,index)=>sourceRow('address-'+(index+1),{
+ direction,field_type:'unknown',candidate_field_types:[],mapping_status:'review_mapping'}));
+rows.push(sourceRow('address-4',{field_type:'ao',direction:'output'}));
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();const table=byClass(root,'field-signals-table')[0];
+assert.ok(table.textContent.includes('Input Channel type not classified'));assert.ok(table.textContent.includes('Output Channel type not classified'));
+assert.ok(table.textContent.includes('Unclassified Channel type not classified'));assert.ok(table.textContent.includes('AO Source-mapped'));
+assert.equal(table.textContent.includes('Mapping unresolved'),false);assert.equal(writes.length,0);
 """)
 
     def test_possible_usage_preview_is_bounded_and_never_presented_as_exact(self) -> None:
@@ -236,7 +291,7 @@ await controller.refresh();assert.equal(byClass(root,'field-signals-wording-prev
         self.run_js(r"""
 rows=[sourceRow('address-1',{field_type:'unknown',candidate_field_types:['ai'],mapping_status:'review_mapping',suggested_type_basis:'qualified_floating_channel_and_direction',direction:'input'})];
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();const table=byClass(root,'field-signals-table')[0];
-assert.ok(table.textContent.includes('Unresolved Numeric input candidate'));assert.equal(table.textContent.includes('AI Source-mapped'),false);
+assert.ok(table.textContent.includes('Input Numeric input type candidate'));assert.equal(table.textContent.includes('AI Source-mapped'),false);
 assert.equal(writes.length,0);assert.equal(controller.hasUnsavedChanges(),false);
 """)
 

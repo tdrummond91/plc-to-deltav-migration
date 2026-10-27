@@ -114,6 +114,77 @@ class WorkspaceFieldSignalAPITests(unittest.TestCase):
             self.assertEqual(client.request('/api/field-signals?' + urlencode(dict(query, usage='active')))[0], 400)
             self.assertEqual(client.get('/api/state')['revision'], state['revision'])
 
+    def test_source_occurrences_survive_unknown_roles_and_unrelated_internal_gaps(self) -> None:
+        inputs = field_inputs(('XIC(MissingInternal);', 'CTU(Local:1:I.Data,0,0);',
+                               'Mystery(Local:3:I.Ch0Data);'))
+        saved = save_map_inputs(self.runs, inputs)
+        state = self.workspace.import_run(str(saved), self.workspace.store.state()['revision'])
+        query = {'run_id': state['active_run'], 'page_size': 500}
+        response = self.workspace.field_signals(query)
+        self.assertTrue(response['available'])
+        scan = response['coverage']['reference_scan']
+        self.assertEqual((scan['rungs_total'], scan['rungs_scanned'], scan['rungs_not_scanned']), (3, 3, 0))
+        self.assertTrue(scan['complete'])
+        self.assertIn('unsupported_instructions', scan['role_gap_reasons'])
+        self.assertIn('unresolved_references', scan['role_gap_reasons'])
+        rows = {row['address']: row for row in response['signals']['items']}
+        used = rows['Local:3:I.Ch0Data']
+        self.assertEqual(used['usage']['status'], 'referenced')
+        self.assertEqual(used['usage']['roles']['unknown'], 1)
+        self.assertEqual(rows['Local:1:I.Data.0']['usage']['status'], 'possible_indirect')
+        self.assertEqual(rows['Local:4:O.Ch0Data']['usage']['status'], 'not_found')
+        detail = self.workspace.field_signals(dict(query, signal_id=used['id']))['selected_signal']
+        self.assertEqual(detail['direct_uses']['items'][0]['opcode'], 'Mystery')
+        self.assertEqual(detail['direct_uses']['items'][0]['rung_id'], inputs[1].rungs[2].id)
+        self.assertEqual(detail['binding'], used['binding'])
+        self.assertEqual(self.workspace.store.state()['revision'], state['revision'])
+
+    def test_recovered_earlier_reference_preserves_existing_saved_signal_binding(self) -> None:
+        inputs = field_inputs(('Mystery(Local:3:I.CH0DATA);',
+                               'MOV(Local:3:I.Ch0Data,InternalReal);'))
+        run = save_map_inputs(self.runs, inputs)
+        state = self.workspace.import_run(str(run), self.workspace.store.state()['revision'])
+        self.query = {'run_id': state['active_run']}
+        # Reconstruct the previous workspace projection, which admitted only
+        # original-catalog bindings, without rewriting the saved analysis.
+        with patch('plc_workbench.workspace_field_io.reference_binding',
+                   side_effect=lambda base, ref, access=None: dict(ref)):
+            before = next(row for row in self.rows() if row['address'] == 'Local:3:I.Ch0Data')
+        saved = self.save(before, 'KEEP_REVIEWED_NAME')
+        source = self.workspace.store.artifact('snapshot.L5X')
+        with closing(Workspace(self.project, self.runs)) as reopened:
+            response = reopened.field_signals(dict(self.query, signal_id=before['id']))
+            after = response['selected_signal']
+            self.assertEqual(after['binding'], before['binding'])
+            self.assertEqual(after['address'], before['address'])
+            self.assertEqual(after['usage']['direct_count'], 2)
+            self.assertEqual(after['saved_signal']['id'], saved['id'])
+            self.assertTrue(after['saved_signal']['active'])
+            self.assertFalse(after['saved_signal']['needs_revalidation'])
+            revised = reopened.mutate({'op': 'signal', 'id': saved['id'],
+                'confirm': True, 'target_name': 'KEEP_REVIEWED_NAME',
+                'description': 'Still editable after reference recovery', 'field_type': 'ai'},
+                reopened.store.state()['revision'])
+            self.assertEqual(revised['signals'][0]['description'], 'Still editable after reference recovery')
+            self.assertEqual(reopened.store.artifact('snapshot.L5X'), source)
+
+    def test_partial_scan_reports_absence_with_analysis_scope_and_preserves_exact_positives(self) -> None:
+        inputs = field_inputs(('XIC(InputAlias);', 'XIC(Broken'))
+        saved = save_map_inputs(self.runs, inputs)
+        state = self.workspace.import_run(str(saved), self.workspace.store.state()['revision'])
+        query = {'run_id': state['active_run'], 'page_size': 500}
+        response = self.workspace.field_signals(query)
+        scan = response['coverage']['reference_scan']
+        self.assertEqual((scan['rungs_total'], scan['rungs_scanned'], scan['rungs_not_scanned']), (2, 1, 1))
+        self.assertFalse(scan['complete'])
+        self.assertIn('unparsed_rungs', scan['gap_reasons'])
+        rows = {row['address']: row for row in response['signals']['items']}
+        self.assertEqual(rows['Local:1:I.Data.0']['usage']['status'], 'referenced')
+        self.assertEqual(rows['Local:3:I.Ch0Data']['usage']['status'], 'not_found')
+        absent = self.workspace.field_signals(dict(query, usage='not_found'))
+        self.assertEqual(absent['coverage']['reference_scan'], scan)
+        self.assertTrue(all(row['usage']['status'] == 'not_found' for row in absent['signals']['items']))
+
     def test_siblings_keep_independent_names_and_package_roles_survive_legacy_edits(self) -> None:
         rows = self.rows(field_type='di', section='signals')
         self.assertEqual(len(rows), 2)

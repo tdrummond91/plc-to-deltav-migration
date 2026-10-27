@@ -231,6 +231,7 @@ class FieldSignalIndex:
                                       for row in self.signals.values()) for kind in (*FIELD_TYPES, 'unknown')},
             'candidate_filter_counts_may_overlap': True,
             'usage_counts': {kind: usage_counts[kind] for kind in USAGE_STATUSES},
+            'reference_scan': self.usage.scan_summary(),
             'excluded_addresses': excluded['non_signal_addresses'],
             'captured_addresses_total': len(self.field_io.addresses),
             'related_connections_available': self.connections is not None,

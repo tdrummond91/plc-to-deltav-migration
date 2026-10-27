@@ -1,30 +1,31 @@
 /* Individual source signals and explicit, revision-bound engineering packages. */
 (() => {
   'use strict';
-  const TYPES = {di: 'DI', do: 'DO', ai: 'AI', ao: 'AO', unknown: 'Unresolved'};
+  const TYPES = {di: 'DI', do: 'DO', ai: 'AI', ao: 'AO', unknown: 'Unclassified'};
   const PAGE_SIZES = [10, 50, 100, 200, 500];
   const ROLES = {scaling: 'Scaling', alarm: 'Alarm', reference: 'Reference', logic: 'Logic'};
-  const USAGE = {referenced: 'Referenced in logic', possible_indirect: 'Possible indirect use',
-    not_found: 'No references found', unknown: 'Coverage incomplete'};
+  const USAGE = {referenced: 'Used in logic', possible_indirect: 'Possible indirect use',
+    not_found: 'No references found', unknown: 'Not checked'};
   const USAGE_ROLES = {read: 'Read', write: 'Write', read_write: 'Read/write', unknown: 'Role unknown'};
-  const USAGE_GAPS = {missing_access: 'Instruction-access evidence is missing', unparsed_rungs: 'Some rungs were not parsed',
+  const USAGE_GAPS = {missing_access: 'Saved read/write roles are unavailable', unparsed_rungs: 'Some rungs were not parsed',
     missing_logic: 'No ladder routines were captured in this source', partial_export: 'Source is a partial controller export',
     unsupported_routines: 'Some routine languages are unsupported', protected_logic: 'Some logic is protected',
     incomplete_routines: 'Some routine content is incomplete', opaque_expressions: 'Some expressions were not analyzed',
-    unsupported_instructions: 'Some instructions are unsupported', unqualified_source: 'Some source could not be qualified',
-    unresolved_references: 'Some source references remain unresolved', usage_index_limit: 'The usage scan reached its limits'};
+    unscanned_index_expressions: 'References inside some array index expressions have not been scanned',
+    unsupported_instructions: 'Read/write roles are not classified for some instructions', unqualified_source: 'Some source could not be qualified',
+    unresolved_references: 'Some source names could not be resolved', usage_index_limit: 'The usage scan reached its limits'};
   const POSSIBLE_REASONS = {aggregate_parent: 'A containing word or structure is referenced',
     aggregate_child: 'A member below this address is referenced', range_unresolved: 'A copy or fill range may include this member',
     dynamic_index: 'A variable index may select this member', equivalent_static_index: 'Equivalent numeric array index spelling'};
   const count = value => Number.isInteger(value) && value >= 0 ? value : 0;
   const usageOf = row => row.usage && Object.hasOwn(USAGE, row.usage.status) ? row.usage
-    : {status: 'unknown', coverage_complete: false, notice: 'Usage evidence is unavailable or incomplete for this saved analysis.'};
+    : {status: 'unknown', coverage_complete: false};
   const referenceCounts = (references, rungs, kind) =>
     `${count(references)} ${kind} reference${count(references) === 1 ? '' : 's'} · ${count(rungs)} rung${count(rungs) === 1 ? '' : 's'}`;
   const usageCount = usage => usage.status === 'referenced'
     ? referenceCounts(usage.direct_count, usage.direct_rung_count, 'exact')
     : usage.status === 'possible_indirect' ? referenceCounts(usage.possible_count, usage.possible_rung_count, 'possible')
-    : usage.status === 'not_found' ? 'Within analyzed source' : 'Source review required';
+    : usage.status === 'not_found' ? 'Within scanned source' : 'Reference scan unavailable';
   const MAPPING = {exact_catalog_direction_member_and_captured_profile_type: 'Catalog, data direction, member layout and captured datatype match the documented profile.',
     captured_member_layout_requires_review: 'The module type is recognized, but this member layout still needs review.',
     qualified_floating_channel_requires_review: 'A floating-point payload and input/output direction are captured. They suggest a numeric signal; its physical channel mapping remains unresolved.',
@@ -78,6 +79,8 @@
     filters.append(field('Find alias, address, DeltaV name, package or source wording', query), field('Physical type / candidate', type),
       field('Evidence', section), field('Logic usage', usage), field('Signals per page', pageSize), submit);
     const usageNotice = el('p', 'Logic usage reports captured source references, independently of physical mapping. Source references do not prove runtime activity.', 'field-signals-usage-notice muted');
+    const referenceScan = el('details', undefined, 'field-signals-reference-scan');
+    referenceScan.setAttribute('aria-label', 'Reference scan'); referenceScan.setAttribute('tabindex', '-1'); referenceScan.hidden = true;
     const status = el('p', undefined, 'field-signals-status'); status.setAttribute('role', 'status');
     const draftsNotice = el('div', undefined, 'field-signals-drafts');
     const layout = el('div', undefined, 'field-signals-layout');
@@ -86,7 +89,7 @@
     const controllerTools = el('div', undefined, 'field-signals-controller-tools');
     const detail = el('section', undefined, 'field-signals-detail'); detail.setAttribute('aria-label', 'Selected field signal and engineering package');
     directory.append(controllerTools, tableWrap, pager); layout.append(directory, detail);
-    root.replaceChildren(filters, usageNotice, status, draftsNotice, layout);
+    root.replaceChildren(filters, usageNotice, referenceScan, status, draftsNotice, layout);
     const drafts = new Map();
     const controllerStates = new Map(); let controllerPanels = [], controllersExpanded = true;
     let active = true, key = '', runId = '', listSerial = 0, detailSerial = 0, page = 1, selectedId = '', selectedDraft = null, detailPageSize = 10;
@@ -209,18 +212,41 @@
       target.replaceChildren(previous, el('span', `${result.total} ${label} · page ${result.page} of ${result.pages}`), next);
       target.hidden = result.pages <= 1;
     }
+    function paintReferenceScan(result) {
+      referenceScan.hidden = false;
+      const scan = result?.coverage?.reference_scan;
+      const hasCounts = scan && ['rungs_total', 'rungs_scanned', 'rungs_not_scanned'].every(name => Number.isInteger(scan[name]) && scan[name] >= 0);
+      const available = scan?.available === true;
+      const heading = el('summary');
+      heading.append(el('strong', 'Reference scan'), el('span', hasCounts
+        ? `${scan.rungs_scanned} / ${scan.rungs_total} rungs scanned${scan.rungs_not_scanned ? `; ${scan.rungs_not_scanned} not scanned` : ''}${!available ? ' · not available' : scan.complete !== true ? ' · source omissions' : ' · complete'}`
+        : 'Scan details unavailable', 'muted'));
+      referenceScan.replaceChildren(heading);
+      if (!available) referenceScan.append(el('p', 'Reference scan unavailable. Addresses without reference evidence are shown as Not checked.', 'field-signals-usage-gap'));
+      else if (scan.complete !== true) referenceScan.append(el('p', 'Some source is outside this reference scan. Found references remain valid.', 'field-signals-usage-gap'));
+      referenceScan.append(el('p', 'No references found applies to the scanned source. Read/write roles and physical channel types are separate findings.', 'muted'));
+      function explanations(reasons, heading) {
+        if (!Array.isArray(reasons) || !reasons.length) return;
+        const list = el('ul');
+        [...new Set(reasons)].slice(0, 16).forEach(reason => list.append(el('li', USAGE_GAPS[reason] || 'Additional source evidence could not be interpreted')));
+        referenceScan.append(el('strong', heading), list);
+      }
+      explanations(scan?.gap_reasons, 'Source outside the scan');
+      explanations(scan?.role_gap_reasons, 'Instruction and name details');
+    }
     function signalTable(rows, result, expected) {
       const table = el('table', undefined, 'field-signals-table'), head = el('thead'), header = el('tr');
-      ['Physical channel', 'Source alias / address', 'Source description', 'Logic usage', 'DeltaV name', 'Package status', 'Info'].forEach(label => header.append(el('th', label)));
+      ['Field type / channel', 'Source alias / address', 'Source description', 'Logic usage', 'DeltaV name', 'Package status', 'Info'].forEach(label => header.append(el('th', label)));
       head.append(header); const body = el('tbody');
       rows.forEach(row => {
         const tr = el('tr'); if (row.id === selectedId) tr.className = 'is-current';
         const mapped = row.mapping_status === 'documented_member_layout';
-        const typeLabel = mapped ? TYPES[row.field_type] || TYPES.unknown : TYPES.unknown;
+        const typeLabel = mapped ? TYPES[row.field_type] || TYPES.unknown
+          : row.direction === 'input' ? 'Input' : row.direction === 'output' ? 'Output' : TYPES.unknown;
         const candidates = (row.candidate_field_types || []).map(value => TYPES[value]).filter(Boolean).join(' / ');
         const numeric = row.suggested_type_basis === 'qualified_floating_channel_and_direction' || row.mapping_reason === 'qualified_floating_channel_requires_review';
-        const detailLabel = mapped ? 'Source-mapped' : numeric ? 'Numeric ' + (row.direction === 'output' ? 'output' : 'input') + ' candidate'
-          : candidates ? candidates + ' candidate · mapping unresolved' : 'Mapping unresolved';
+        const detailLabel = mapped ? 'Source-mapped' : numeric ? 'Numeric ' + (row.direction === 'output' ? 'output' : row.direction === 'input' ? 'input' : 'signal') + ' type candidate'
+          : candidates ? candidates + ' type candidate' : 'Channel type not classified';
         const category = el('td'); category.append(el('strong', typeLabel), el('small', detailLabel, 'muted'));
         const source = el('td'); source.append(button(labelOf(row), async () => { if (requireCurrent(expected)) { await openRow(row); revealEditor(); } }, 'field-signals-open'));
         if (labelOf(row) !== row.address) source.append(el('code', row.address));
@@ -234,8 +260,6 @@
         }, 'field-signals-usage-open usage-' + use.status);
         usageButton.setAttribute('aria-label', USAGE[use.status] + ' for ' + labelOf(row) + '. Open source references.');
         usageCell.append(usageButton, el('small', usageCount(use), 'muted'));
-        if (use.status !== 'unknown' && use.coverage_complete === false)
-          usageCell.append(el('small', 'Coverage incomplete', 'field-signals-usage-gap'));
         const saved = row.saved_signal, names = el('td', undefined, 'field-signals-name');
         names.append(el('span', (saved ? saved.target_name : proposedName(row)) || 'Not assigned'));
         if (!saved && proposedName(row)) names.append(el('small', 'Proposed · unreviewed', 'muted'));
@@ -254,7 +278,7 @@
     controllerTools.append(button('Expand all', () => setControllers(true)), button('Collapse all', () => setControllers(false)),
       el('span', 'Controllers on this page · search, type and usage filters apply to every page', 'muted'));
     function paintList(result) {
-      closeHardware(); tableWrap.replaceChildren(); controllerPanels = [];
+      closeHardware(); paintReferenceScan(result); tableWrap.replaceChildren(); controllerPanels = [];
       controllerTools.hidden = result.available === false;
       pager.hidden = result.available === false;
       if (result.available === false) {
@@ -585,16 +609,16 @@
       const row = draft.row, usage = usageOf(row), section = el('section', undefined, 'field-signals-usage-summary');
       section.append(el('h4', 'Logic usage'), el('strong', USAGE[usage.status], 'usage-' + usage.status),
         el('p', usageCount(usage), 'field-signals-usage-count'),
-        el('p', usage.notice || (usage.status === 'not_found'
-          ? 'No references were found in the analyzed source. This does not establish that the signal is unused.'
-          : 'Review the captured references and coverage before assigning an engineering role.')));
+        el('p', usage.status === 'referenced' ? 'This source address is used by the references listed below.'
+          : usage.status === 'possible_indirect' ? 'These references may select this address through a containing object, range or variable index.'
+          : usage.status === 'not_found' ? 'No references to this address were found in the scanned source.'
+          : 'The reference scan could not determine usage for this address.'));
       const roles = Object.entries(USAGE_ROLES).filter(([key]) => count(usage.roles?.[key]) > 0);
       if (roles.length) section.append(el('p', roles.map(([key, label]) => `${label}: ${count(usage.roles[key])}`).join(' · '), 'field-signals-usage-roles'));
-      if (usage.coverage_complete === false && usage.status !== 'unknown')
-        section.append(el('p', 'Coverage incomplete: additional source uses may not be represented.', 'field-signals-usage-gap'));
-      const gaps = (Array.isArray(usage.gap_reasons) ? usage.gap_reasons : []).slice(0, 12);
-      if (gaps.length) section.append(el('p', gaps.map(reason => USAGE_GAPS[reason] || 'Additional unresolved source coverage').join(' · '), 'field-signals-usage-gap'));
-      section.append(el('small', 'Physical mapping and logic usage are separate. Source references do not prove runtime activity.', 'muted'));
+      section.append(button('View reference scan scope', () => {
+        if (!requireCurrent(draft.context)) return;
+        referenceScan.open = true; referenceScan.scrollIntoView?.({block: 'start', behavior: 'smooth'}); referenceScan.focus({preventScroll: true});
+      }, 'text-link'));
       function references(title, rows, possible = false) {
         const list = el('details', undefined, 'field-signals-usage-references'); list.open = true;
         list.append(el('summary', title));
@@ -731,7 +755,8 @@
       const next = identity(), changedContext = next !== key;
       if (changedContext) {
         ++listSerial; ++detailSerial; closeHardware(); key = next; runId = state().active_run || ''; page = 1; selectedId = '';
-        tableWrap.replaceChildren(); pager.replaceChildren(); controllerStates.clear(); controllerPanels = [];
+        tableWrap.replaceChildren(); pager.replaceChildren(); referenceScan.replaceChildren(); referenceScan.open = false; referenceScan.hidden = true;
+        controllerStates.clear(); controllerPanels = [];
         if (selectedDraft && dirty(selectedDraft)) paintEditor(selectedDraft);
         else { selectedDraft = null; detail.replaceChildren(el('p', 'Choose an individual signal to edit its DeltaV name, description and package.')); }
       }

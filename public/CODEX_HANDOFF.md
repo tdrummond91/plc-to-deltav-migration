@@ -1,5 +1,52 @@
 # Current handoff: PLC analysis workbench
 
+## Keep reference findings separate from analysis limits (2026-10-27)
+
+The prior usage view copied whole-analysis gaps onto every signal. A missing
+internal name or unknown instruction role therefore marked even proven source
+references as incomplete. It also exposed a real missing-reference path: Field
+I/O used only the original reference catalog and omitted bindings recognized by
+the extended instruction-access analysis.
+
+Field I/O now uses authenticated access bindings and also records qualified
+whole-address arguments in otherwise unclassified instructions. Those source
+occurrences retain unknown read/write roles; no instruction effect is inferred.
+Known nondata arguments, labels, literal values and system flags are excluded.
+Source identities and persisted review bindings retain their original values.
+
+**Used in logic**, **Possible indirect use** and **No references found** describe
+what the scan found. **Not checked** is reserved for unavailable logic or an
+index limit that prevents the check. A single expandable **Reference scan**
+summary reports scanned/total rungs, genuine missing-source limits, and separate
+instruction/name details. Unknown instruction semantics or a missing standalone
+internal name do not make a completed reference scan incomplete. If source is
+only partly available, absence applies to the scanned portion; it is not a
+claim of a spare physical point.
+
+Array-index dependencies that the source scan cannot yet traverse are disclosed
+as `unscanned_index_expressions`. They do not silently become a complete scan.
+This remains a reference-extraction limitation; it is separate from knowing that
+the indexed array is used. Recovered uses are added after legacy address records
+to preserve their spelling and bindings. Fixed timer preset/accumulator slots
+remain nondata even when a malformed argument resembles a declared field alias.
+
+Known input/output direction is shown even when the physical channel type has
+not been classified. That distinction is separate from the address-to-module
+binding, logic usage, missing source wording and reviewed DeltaV naming.
+
+Validation: all 736 workspace tests passed, including both large saved/imported
+exports and a saved-signal regression that reconstructs the previous projection,
+reopens with recovered references and confirms the existing record without
+reconnecting it. Chrome checks on invented source verified the complete scan
+with separate unresolved-name/instruction notes, clean known-use rows, recovered
+unknown-opcode references, and no-reference filtering. Independent review found
+no remaining blockers after the index-expression, binding-spelling and timer
+pseudo-slot fixes.
+
+Work-PC step: **Stop workspace**, manually `git pull`, then
+`bash ./open-workbench.sh`. Existing saved analysis supplies these projections;
+no new analysis or translation run is required.
+
 ## Distinguish field-signal usage from missing details (2026-10-27)
 
 Field I/O now has a separate **Logic usage** column and filter. A signal can be

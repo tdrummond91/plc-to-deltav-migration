@@ -63,6 +63,57 @@ def address(view: dict, suffix: str, direction: str = 'input') -> dict:
 
 
 class WorkspaceFieldIOTests(unittest.TestCase):
+    def test_extended_and_unknown_instruction_references_preserve_source_ids_and_roles(self) -> None:
+        captured = field_inputs(('CTU(InputAlias,10,0);', 'Mystery(InputAlias);',
+                                 'XIC(InputAlias,InternalReal);'))
+        evidence = wire(captured)
+        before = deepcopy(evidence)
+        index = FieldIOIndex(VariableIndex(*evidence))
+        row = next(row for row in index.addresses.values() if row['address'] == 'Local:1:I.Data.0')
+        self.assertEqual([use['role'] for use in row['uses']], ['read_write', 'unknown', 'unknown'])
+        references = [ref for ref in captured[2].operands if ref['raw_text'] == 'InputAlias']
+        self.assertEqual([use['id'] for use in row['uses']], [ref['id'] for ref in references])
+        self.assertEqual([use['rung_id'] for use in row['uses']], [ref['rung_id'] for ref in references])
+        self.assertEqual(evidence, before)
+
+    def test_lexical_fallback_respects_labels_non_data_literals_and_qualified_scopes(self) -> None:
+        texts = ('GSV(InputAlias,InputAlias,InputAlias,InternalReal);',
+                 'SSV(InputAlias,InputAlias,InputAlias,InternalReal);',
+                 'JMP(InputAlias);', 'LBL(InputAlias);', 'JSR(InputAlias,0);',
+                 'SWPB(InternalReal,InputAlias,InternalReal);',
+                 'CTU(InternalReal,InputAlias,0);',
+                 'TON(InternalReal,InputAlias,0);', 'TOF(InternalReal,InputAlias,0);',
+                 'RTO(InternalReal,InputAlias,0);',
+                 'Mystery("Local:1:I.Data.0",16#FF,S:FS);')
+        captured = field_inputs(texts)
+        for missing_access in (False, True):
+            with self.subTest(missing_access=missing_access):
+                values = wire(captured)
+                if missing_access:
+                    values[3] = None
+                index = FieldIOIndex(VariableIndex(*values))
+                self.assertFalse(any(row['uses'] for row in index.addresses.values()))
+        # The same alias spelling in a program shadows the controller alias.
+        index = build(field_inputs(('Mystery(InputAlias);',),
+            local_tags='<Tag Name="InputAlias" DataType="BOOL"/>'))
+        self.assertFalse(any(row['uses'] for row in index.addresses.values()))
+
+    def test_recovered_uses_do_not_change_legacy_binding_suffix_spelling(self) -> None:
+        for texts in (('Mystery(Local:3:I.CH0DATA);', 'MOV(Local:3:I.Ch0Data,InternalReal);'),
+                      ('Mystery(Local:3:I.CH0DATA);',)):
+            with self.subTest(texts=texts):
+                captured = field_inputs(texts)
+                with patch('plc_workbench.workspace_field_io.reference_binding',
+                           side_effect=lambda base, ref, access=None: dict(ref)):
+                    legacy = build(captured)
+                index = build(captured)
+                row = next(row for row in index.addresses.values() if row['address'] == 'Local:3:I.Ch0Data')
+                prior = legacy.addresses[row['id']]
+                for key in ('id', 'root_id', 'suffix', 'address', 'group_member_ids'):
+                    self.assertEqual(row[key], prior[key])
+                self.assertEqual(row['suffix'], '.Ch0Data')
+                self.assertEqual(len(row['uses']), len(prior['uses']) + 1)
+
     def test_compact_description_origins_expand_without_mutating_shared_annotations(self) -> None:
         comments = '<Comments><Comment Operand=".Ch0Data">Precise point description</Comment></Comments>'
         card = module('InputCard', 1, '1756-IF8').replace('<InputTag>', '<InputTag>' + comments)

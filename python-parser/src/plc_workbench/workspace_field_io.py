@@ -12,7 +12,8 @@ import json
 import re
 from typing import Any
 
-from .references import _ADDRESS
+from .access import _EXTENDED_ROLES, _ROLES as _ACCESS_ROLES
+from .references import _ADDRESS, _binding, _literal
 from .module_catalog import CATALOG_TYPES, lookup_catalog
 from .workspace_evidence import diagnostic
 from .workspace_io_comments import IOCommentError, collect_io_annotations, select_description
@@ -121,6 +122,37 @@ def unavailable() -> dict:
         'notice': 'Saved field I/O evidence is missing or could not be verified. Original source remains available.',
         'snapshot_id': None, 'modules': _page([], 1), 'selected_module': None,
         'addresses': _page([], 1), 'coverage': {}, 'limitations': list(_LIMITATIONS)}
+
+
+def reference_binding(base: VariableIndex, ref: dict, access: dict | None = None) -> dict:
+    """Resolve source presence without inventing instruction access semantics.
+
+    Authenticated extended access may bind a slot the older reference catalog
+    did not support. Otherwise a complete lexical address in an unsupported
+    instruction/arity is still a source reference, with an unknown read/write
+    role. Labels, selectors, literals and known pseudo-fields remain non-data.
+    All returned records are detached from the saved evidence.
+    """
+    instruction = base._instructions[ref['instruction_id']]
+    opcode, slot, text = instruction.opcode.upper(), ref['argument_index'], ref['raw_text'].strip()
+    roles = _EXTENDED_ROLES.get(opcode, _ACCESS_ROLES.get(opcode, ()))
+    if (opcode in {'JMP', 'LBL'} or opcode == 'JSR' and slot == 0
+            or slot < len(roles) and roles[slot] == 'non_data'):
+        return dict(ref, **_binding('non_data'))
+    if access and access['binding_status'] in {'root_bound', 'non_data', 'literal', 'system_flag'}:
+        return dict(ref, **{key: access[key] for key in ('symbol_id', 'target_id', 'suffix')},
+                    alias_chain=list(access.get('alias_chain', ref.get('alias_chain', []))),
+                    status=access['binding_status'])
+    if ref['status'] not in {'unsupported_instruction', 'argument_count_mismatch'}:
+        return dict(ref)
+    if _literal(text):
+        return dict(ref, **_binding('literal'))
+    # The exported system flag is not a project symbol, even when malformed
+    # instruction arity prevents the historical catalog from identifying it.
+    if text.upper() == 'S:FS':
+        return dict(ref, **_binding('system_flag'))
+    rung = base._rungs[ref['rung_id']]
+    return dict(ref, **base._resolve(text, rung.scope_id))
 
 
 class FieldIOIndex:
@@ -299,11 +331,20 @@ class FieldIOIndex:
                 self.rack_aliases[module_id].append(value)
         access = {row['id']: row for row in base._access.operands} if base._access else {}
         for ref in base._references.operands:
-            if ref['status'] != 'root_bound' or ref['target_id'] not in self._root_module:
+            # Keep the legacy materialization order/spelling for persisted
+            # signal bindings. Newly recovered uses are added only after all
+            # previously indexed uses, aliases, values and comments below.
+            if (ref['status'] != 'root_bound' or ref['target_id'] not in self._root_module
+                    or not base._qualified(ref, ref['rung_id'])):
                 continue
-            if not base._qualified(ref, ref['rung_id']):
+            legacy_row = self._add(ref['target_id'], ref['suffix'])
+            binding = reference_binding(base, ref, access.get(ref['id']))
+            if binding['status'] != 'root_bound' or binding['target_id'] not in self._root_module:
                 continue
-            row = self._add(ref['target_id'], ref['suffix'])
+            if not base._qualified(binding, ref['rung_id']):
+                continue
+            row = (legacy_row if (binding['target_id'], binding['suffix']) == (ref['target_id'], ref['suffix'])
+                   else self._add(binding['target_id'], binding['suffix']))
             if row is not None:
                 self._use(row, ref, access.get(ref['id'], {}).get('role', 'unknown'), ref['raw_text'])
         if base._access:
@@ -351,6 +392,16 @@ class FieldIOIndex:
                 address = self._add(alias['target_id'], alias['suffix'] + suffix)
                 if address is not None:
                     self._annotations(address, notes, 'alias')
+        for ref in base._references.operands:
+            if ref['status'] == 'root_bound':
+                continue
+            binding = reference_binding(base, ref, access.get(ref['id']))
+            if (binding['status'] != 'root_bound' or binding['target_id'] not in self._root_module
+                    or not base._qualified(binding, ref['rung_id'])):
+                continue
+            row = self._add(binding['target_id'], binding['suffix'])
+            if row is not None:
+                self._use(row, ref, access.get(ref['id'], {}).get('role', 'unknown'), ref['raw_text'])
         for row in self.addresses.values():
             self._select_description(row)
             values = base._values.get((row['root_id'], _member_key(row['suffix'])), [])

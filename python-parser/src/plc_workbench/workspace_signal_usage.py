@@ -13,7 +13,8 @@ import json
 import re
 from typing import Any, Iterator
 
-from .workspace_field_io import FieldIOIndex, _preview
+from .references import _ADDRESS
+from .workspace_field_io import FieldIOIndex, _preview, reference_binding
 from .workspace_variables import _child, _member_key
 
 USAGE_STATUSES = ('referenced', 'possible_indirect', 'not_found', 'unknown')
@@ -26,7 +27,7 @@ _NOTICES = {
     'referenced': 'Exact references occur in the captured ladder logic. References do not establish runtime activity, reachability or field wiring.',
     'possible_indirect': 'No exact reference was found. Equivalent numeric spelling, a parent, child, copied range or dynamic index may involve this member; particular channel coverage is not established.',
     'not_found': 'No reference was found in the supported captured ladder scan. External uses, runtime activity, field wiring and spare status are not established.',
-    'unknown': 'No exact reference was found, and source or analysis gaps prevent a complete supported ladder scan. This does not establish that the member is unused.',
+    'unknown': 'No usable ladder reference scan is available, or the indirect-reference index reached its limit. This does not establish that the member is unused.',
 }
 
 
@@ -78,15 +79,50 @@ class SignalUsageIndex:
             self._dynamic.clear()
             self._budget = 0
 
+    def scan_summary(self) -> dict:
+        """Report analysis-wide scan limits separately from access-role gaps."""
+        gaps = sorted(set(self._scan_gaps) | ({'usage_index_limit'} if self._limited else set()))
+        return {'rungs_total': self._rungs_total, 'rungs_scanned': self._rungs_scanned,
+                'rungs_not_scanned': self._rungs_total - self._rungs_scanned,
+                'available': self._scan_available and not self._limited,
+                'complete': not gaps, 'gap_reasons': gaps,
+                'role_gap_reasons': list(self._role_gaps)}
+
     def _retain(self, value: Any) -> None:
         self._budget += len(json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
         if self._budget > MAX_INDEX_BYTES:
             raise _UsageLimit()
 
+    def _index_dependency_gap(self, variable: str, rung_id: str) -> bool:
+        """Disclose index contents omitted by the root-only dynamic scan.
+
+        A single qualified internal variable is known not to be a field root.
+        An alias can still resolve to a field address. Compound or unresolved
+        index expressions remain a scan gap until their own source occurrences
+        are indexed; never turn their omitted dependencies into absence proof.
+        """
+        rung = self.base._rungs[rung_id]
+        for match in re.finditer(r'\[([^\[\]]*)\]', variable):
+            for raw in match[1].split(','):
+                token = raw.strip()
+                if re.fullmatch(r'[0-9]+', token):
+                    continue
+                if not _ADDRESS.fullmatch(token):
+                    return True
+                binding = self.base._resolve(token, rung.scope_id)
+                if (binding['status'] != 'root_bound'
+                        or not self.base._qualified(binding, rung_id)
+                        or binding['target_id'] in self.io._root_module):
+                    return True
+        return False
+
     def _coverage_gaps(self) -> list[str]:
         base = self.base
         inventory = base._captured
-        reasons = set()
+        reasons, role_reasons = set(), set()
+        self._rungs_total = len(inventory.rungs)
+        self._rungs_scanned = sum(row.parse_status == 'parsed' and bool(base._rung_ok.get(row.id))
+                                  for row in inventory.rungs)
         if not any(row.kind == 'routine' for row in inventory.entities):
             reasons.add('missing_logic')
         target = inventory.export_attributes.get('TargetType')
@@ -94,7 +130,7 @@ class SignalUsageIndex:
                 or not any(row.kind == 'controller' for row in inventory.entities)):
             reasons.add('partial_export')
         if not base._has_access:
-            reasons.add('missing_access')
+            role_reasons.add('missing_access')
         if any(row.parse_status != 'parsed' for row in inventory.rungs):
             reasons.add('unparsed_rungs')
         if any(row.kind == 'routine' and row.attributes.get('Type') != 'RLL' for row in inventory.entities):
@@ -107,17 +143,52 @@ class SignalUsageIndex:
                 or any(row.kind in {'routine', 'aoi_definition', 'program'} and not base._entity_ok.get(row.id)
                        for row in inventory.entities)):
             reasons.add('unqualified_source')
+        access = {row['id']: row for row in base._access.operands} if base._access else {}
         if base._access:
             if any(row['status'] != 'classified' for row in base._access.instructions):
-                reasons.add('unsupported_instructions')
-            if any(row['binding_status'] == 'unsupported_expression' for row in base._access.operands):
+                role_reasons.add('unsupported_instructions')
+        for ref in base._references.operands:
+            slot = access.get(ref['id'])
+            if slot and slot['binding_status'] == 'parsed_expression':
+                continue
+            binding = reference_binding(base, ref, slot)
+            if binding['status'] == 'unsupported_expression':
                 reasons.add('opaque_expressions')
-            if any(row['binding_status'] not in _SAFE_BINDINGS
-                   for row in [*base._access.operands, *base._access.expression_uses]):
-                reasons.add('unresolved_references')
-        elif any(row['status'] not in _SAFE_BINDINGS for row in base._references.operands):
-            reasons.add('unresolved_references')
-        return sorted(reasons)
+            elif binding['status'] not in _SAFE_BINDINGS:
+                rung = base._rungs[ref['rung_id']]
+                dynamic = base._resolve(ref['raw_text'].strip(), rung.scope_id)
+                if (dynamic.get('reason') == 'non_static_array_index'
+                        and self._index_dependency_gap(ref['raw_text'], rung.id)):
+                    reasons.add('unscanned_index_expressions')
+                if (dynamic.get('reason') != 'non_static_array_index'
+                        or not base._qualified(dynamic, rung.id)):
+                    # A scanned address with an undeclared/ambiguous name is
+                    # a binding diagnostic, not an unread rung or expression.
+                    (role_reasons if _ADDRESS.fullmatch(ref['raw_text'].strip())
+                     else reasons).add('unresolved_references')
+        if base._access:
+            for use in base._access.expression_uses:
+                if use['binding_status'] in _SAFE_BINDINGS:
+                    continue
+                expression = base._reference_uses[use['expression_operand_id']]
+                rung = base._rungs[use['rung_id']]
+                binding = base._resolve(expression['raw_text'][use['start']:use['end']], rung.scope_id)
+                if (binding.get('reason') == 'non_static_array_index'
+                        and self._index_dependency_gap(expression['raw_text'][use['start']:use['end']], rung.id)):
+                    reasons.add('unscanned_index_expressions')
+                if (binding.get('reason') != 'non_static_array_index'
+                        or not base._qualified(binding, rung.id)):
+                    (role_reasons if _ADDRESS.fullmatch(expression['raw_text'][use['start']:use['end']])
+                     else reasons).add('unresolved_references')
+        # A captured, qualified empty RLL routine is a valid zero-reference
+        # scan. Missing/protected/failed routine bodies are not empty ladders.
+        empty_rll = (not inventory.rungs and any(row.kind == 'routine'
+            and row.attributes.get('Type') == 'RLL' and base._entity_ok.get(row.id)
+            for row in inventory.entities) and not reasons.intersection(
+                {'missing_logic', 'protected_logic', 'incomplete_routines', 'unqualified_source'}))
+        self._scan_available = bool(self._rungs_scanned or empty_rll)
+        self._scan_gaps, self._role_gaps = sorted(reasons), sorted(role_reasons)
+        return sorted(reasons | role_reasons)
 
     def _build(self) -> None:
         for address in self.io.addresses.values():
@@ -150,14 +221,18 @@ class SignalUsageIndex:
                            'status': use['binding_status'], 'role': use['role']}
 
         for ref in candidates():
+            if ref['id'] in self.base._reference_uses:
+                ref = reference_binding(self.base, ref, access.get(ref['id']))
+                if ref['status'] in {'non_data', 'literal', 'system_flag', 'unsupported_expression'}:
+                    continue
             instruction = self.base._instructions[ref['instruction_id']]
             opcode = instruction.opcode.upper()
             slot = ref['argument_index']
             is_range = ((opcode in {'COP', 'CPS'} and slot in {0, 1})
                         or (opcode == 'FLL' and slot == 1)) and len(instruction.arguments) == 3
             # Dynamic references require the existing resolver's root-only
-            # qualification. FLL is not part of the saved access catalog, so its
-            # destination is resolved only as a possible range, never exact use.
+            # qualification. A named FLL destination is an exact lexical use;
+            # its affected range and read/write semantics stay unevaluated.
             possible_dynamic = '[' in ref['raw_text'] and ref['status'] != 'root_bound'
             if not (is_range or possible_dynamic):
                 continue
@@ -228,7 +303,7 @@ class SignalUsageIndex:
             return 'referenced'
         if not self._limited and next(self._possible(address), None) is not None:
             return 'possible_indirect'
-        return 'unknown' if self.gap_reasons else 'not_found'
+        return 'unknown' if self._limited or not self._scan_available else 'not_found'
 
     def summary(self, address: dict) -> dict:
         address = self._address(address)
@@ -248,6 +323,8 @@ class SignalUsageIndex:
             'direct_rung_count': len({use['rung_id'] for use in direct}),
             'roles': {role: roles[role] for role in _ROLES}, 'possible_count': len(possible),
             'possible_rung_count': len({self._uses[identifier]['rung_id'] for identifier in possible}),
+            # Legacy per-row coverage includes role/name diagnostics. The
+            # page-level reference_scan.complete describes reference scanning.
             'coverage_complete': not self.gap_reasons, 'gap_reasons': list(self.gap_reasons),
             'notice': _NOTICES[status],
             'possible_uses': [_preview(dict(self._uses[identifier], reason=possible[identifier]))

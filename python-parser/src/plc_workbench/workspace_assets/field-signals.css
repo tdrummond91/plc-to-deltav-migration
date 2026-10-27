@@ -3,6 +3,11 @@
 .field-signals-status { margin: .55rem 0; font-size: .85rem; color: var(--accent); }
 .field-signals-status.is-error { color: var(--danger); }
 .field-signals-usage-notice { margin: .4rem 0; font-size: .78rem; }
+.field-signals-reference-scan { margin: .5rem 0; padding: .5rem .7rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); font-size: .8rem; scroll-margin-top: var(--workspace-pane-top); }
+.field-signals-reference-scan > summary { display: list-item; cursor: pointer; color: var(--accent); }
+.field-signals-reference-scan > summary > span { margin-left: .7rem; font-weight: normal; }
+.field-signals-reference-scan p { margin: .45rem 0; }
+.field-signals-reference-scan ul { margin: .35rem 0 .7rem; padding-left: 1.3rem; }
 .field-signals-layout { display: grid; grid-template-columns: minmax(420px, 1.3fr) minmax(340px, .8fr); align-items: start; gap: 1rem; }
 .field-signals-directory, .field-signals-detail { min-width: 0; }
 .field-signals-controller-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .65rem; }
