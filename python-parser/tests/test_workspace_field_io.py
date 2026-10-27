@@ -63,6 +63,25 @@ def address(view: dict, suffix: str, direction: str = 'input') -> dict:
 
 
 class WorkspaceFieldIOTests(unittest.TestCase):
+    def test_compact_description_origins_expand_without_mutating_shared_annotations(self) -> None:
+        comments = '<Comments><Comment Operand=".Ch0Data">Precise point description</Comment></Comments>'
+        card = module('InputCard', 1, '1756-IF8').replace('<InputTag>', '<InputTag>' + comments)
+        index = build(field_inputs(modules=card))
+        row = next(row for row in index.addresses.values()
+                   if row['address'] == 'Local:1:I.Ch0Data')
+        self.assertNotIn('candidates', row['description_selection'])
+        selection = index.description_selection(row)
+        self.assertEqual(selection['candidate_count'], 2)
+        self.assertEqual([note['description_scope'] for note in selection['candidates']],
+                         ['exact_member_comment', 'module_description'])
+        original = deepcopy(selection)
+        selection['candidates'][0]['owner_name'] = 'Changed response'
+        selection['conflicting_annotation_ids'].append('Changed response')
+        self.assertEqual(index.description_selection(row), original)
+        public = selected(index, 'InputCard')
+        address(public, '.Ch0Data')['description_selection']['candidates'][0]['via'] = 'Changed response'
+        self.assertEqual(index.description_selection(row), original)
+
     def test_exact_catalog_module_classes_and_source_topology(self) -> None:
         index = build()
         self.assertGreater(len(CATALOG_TYPES), 39)

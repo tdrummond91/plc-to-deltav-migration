@@ -19,7 +19,8 @@ def query(**kwargs) -> dict:
 
 
 def find(index: FieldSignalIndex, address: str) -> dict:
-    return next(row for row in index.signals.values() if row['address'].casefold() == address.casefold())
+    row = next(row for row in index.signals.values() if row['address'].casefold() == address.casefold())
+    return index.view(query(signal_id=row['id']))['selected_signal']
 
 
 class WorkspaceFieldSignalTests(unittest.TestCase):
@@ -74,7 +75,7 @@ class WorkspaceFieldSignalTests(unittest.TestCase):
         cards = module('Unknown', 1, 'UNKNOWN') + module('Network', 2, '1756-EN2T') + module('CPU', 3, '1756-L81E')
         index = build(field_inputs(('XIC(InputAlias);',), modules=cards))
         self.assertTrue(index.signals)
-        for row in index.signals.values():
+        for row in index.view(query())['signals']['items']:
             self.assertEqual(row['hardware']['name'], 'Unknown')
             expected = ['ai'] if row['suffix'] == '.Ch0Data' and row['direction'] == 'input' else (
                 ['ao'] if row['suffix'] == '.Ch0Data' and row['direction'] == 'output' else [])
@@ -232,6 +233,66 @@ class WorkspaceFieldSignalTests(unittest.TestCase):
         self.assertEqual(detail['direct_uses']['total'], 2)
         self.assertFalse(detail['related_rungs']['available'])
         self.assertEqual(detail['related_rungs']['total'], 0)
+
+    def test_shared_details_expand_only_for_visible_or_selected_rows(self) -> None:
+        notes = ''.join(f'<Comment Operand="Ch{i}Data">Point {i}</Comment>' for i in range(40))
+        notes += '<Comment Operand="Ch39Data">Alternate wording</Comment>'
+        card = module('Hart', 1, '1756-IF8IH').replace('<InputTag>', '<InputTag><Comments>' + notes + '</Comments>')
+        field = field_io(field_inputs((), modules=card))
+        with patch.object(field, 'description_selection', wraps=field.description_selection) as expand:
+            index = FieldSignalIndex(field)
+            self.assertEqual(expand.call_count, 0)
+            selected = next(row for row in index.signals.values() if row['suffix'] == '.ch39data')
+            view = index.view(query(page_size=10, signal_id=selected['id']))
+            self.assertEqual(expand.call_count, 11)
+        self.assertEqual(len(index._hardware_by_module), 1)
+        for row in index.signals.values():
+            self.assertNotIn('hardware', row)
+            self.assertNotIn('description_selection', row)
+            self.assertNotIn('source_annotations', row)
+        detail = view['selected_signal']
+        expected = field.description_selection(field.addresses[selected['id']])
+        self.assertEqual(detail['description_selection'], expected)
+        self.assertEqual(detail['description_selection']['conflicting_annotation_count'], 2)
+        self.assertEqual(len(detail['source_annotations']), 2)
+        self.assertEqual(detail['hardware']['name'], 'Hart')
+        # Display mutations cannot change another page or shared source evidence.
+        detail['description_selection']['candidates'][0]['owner_name'] = 'Changed'
+        detail['source_annotations'][0]['text'] = 'Changed'
+        detail['hardware']['controller']['name'] = 'Changed'
+        after = index.view(query(signal_id=selected['id']))['selected_signal']
+        self.assertEqual(after['description_selection'], expected)
+        self.assertEqual(after['hardware']['controller']['name'], 'C')
+        self.assertNotEqual(after['source_annotations'][0]['text'], 'Changed')
+
+    def test_comment_rich_multicard_signal_index_keeps_bounded_storage_and_complete_pages(self) -> None:
+        data = ''.join(f'<DataValueMember Name="Ch{i}Data" DataType="REAL" Radix="Float" Value="0.0"/>'
+                       for i in range(56))
+        comments = '<Comments>' + ''.join(
+            f'<Comment Operand="Ch{i}Data">Invented point {i}</Comment>'
+            f'<Comment Operand="Ch{i}Data">Alternate point {i}</Comment>' for i in range(56)) + '</Comments>'
+        cards = ''.join(module(f'Card{slot}', slot, 'INVENTED', data=data)
+            .replace('<InputTag>', '<InputTag>' + comments).replace('<OutputTag>', '<OutputTag>' + comments)
+            for slot in range(1, 41))
+        index = build(field_inputs((), modules=cards), related=False)
+        self.assertEqual(index.coverage['signals_total'], 4481)  # 4,480 members plus authored InputAlias.
+        self.assertLess(index._budget, 24 * 1024 * 1024)
+        first = index.view(query(page_size=500))['signals']
+        rows = [row for page in range(1, first['pages'] + 1)
+                for row in index.view(query(page_size=500, page=page))['signals']['items']]
+        self.assertEqual(len(rows), 4481)
+        self.assertEqual(len({row['id'] for row in rows}), 4481)
+        chosen = next(row for row in rows if row['address'] == 'Local:40:O.Ch55Data')
+        detail = index.view(query(signal_id=chosen['id']))['selected_signal']
+        self.assertEqual(detail['source_metadata']['data_type'], 'REAL')
+        self.assertEqual(detail['logical_signal']['kind'], 'numeric')
+        self.assertEqual(detail['suggested_field_type'], 'ao')
+        self.assertEqual(detail['description_selection']['conflicting_annotation_count'], 2)
+        self.assertEqual({note['text'] for note in detail['source_annotations']},
+                         {'Invented point 55', 'Alternate point 55'})
+        found = index.view(query(query='alternate point 55', field_type='ao'))['signals']
+        self.assertEqual(found['total'], 40)
+        self.assertEqual(index.anchor(chosen['id']), chosen['binding'])
 
     def test_saved_name_description_and_package_search_is_request_local_and_keeps_filters(self) -> None:
         index = build()

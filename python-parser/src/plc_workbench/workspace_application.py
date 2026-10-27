@@ -746,7 +746,7 @@ class ApplicationIndex:
             # Field-I/O candidates include qualified alias and module fallbacks;
             # combine them with UDT member descriptions without losing priority.
             candidates = list(self._annotations[row['id']])
-            for note in (address.get('description_selection') or {}).get('candidates', []):
+            for note in self.io.description_selection(address)['candidates']:
                 candidates.append(dict(note, text=self.annotation_texts.get(note['id'], note.get('text', ''))))
             selection = select_description(candidates, text_lookup=self.annotation_texts)
             row['description_selection'] = selection

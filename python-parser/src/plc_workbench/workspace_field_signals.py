@@ -107,6 +107,7 @@ class FieldSignalIndex:
         self.snapshot_id = self.base._captured.snapshot['id']
         self.connections = connections
         self.signals: dict[str, dict] = {}
+        self._hardware_by_module: dict[str, dict] = {}
         self._search: dict[str, str] = {}
         self._direct: dict[str, dict[str, list[dict]]] = {}
         self._uses: dict[str, list[dict]] = {}
@@ -159,27 +160,14 @@ class FieldSignalIndex:
             row = {key: address[key] for key in ('id', 'root_id', 'suffix', 'address', 'direction',
                 'field_type', 'channel', 'datatype', 'description', 'description_basis',
                 'point_basis', 'point_reference', 'channel_status', 'configuration_status')}
-            row['description_selection'] = address.get('description_selection', {})
-            row['logical_signal'] = {
-                'kind': 'numeric' if address['datatype'] in {'REAL', 'LREAL'} else
-                        'boolean' if address['datatype'] == 'BOOL' else 'unresolved',
-                'direction': address['direction'],
-                'basis': 'captured_datatype_and_module_direction',
-                'physical_layout_documented': documented,
-            }
             row.update(module_id=module_id, source_qualified=True, mapping_status=status,
                 mapping_reason=('exact_catalog_direction_member_and_captured_profile_type' if documented
                     else 'qualified_floating_channel_requires_review' if hinted != 'unknown'
                     else 'captured_member_layout_requires_review' if candidates
                     else 'captured_member_and_catalog_require_review'), candidate_field_types=candidates,
-                aliases=address['aliases'][:MAX_PREVIEW_ITEMS], aliases_total=len(address['aliases']),
-                aliases_truncated=len(address['aliases']) > MAX_PREVIEW_ITEMS,
-                source_annotations=address['source_annotations'][:MAX_PREVIEW_ITEMS],
-                source_annotations_total=len(address['source_annotations']),
-                source_annotations_truncated=len(address['source_annotations']) > MAX_PREVIEW_ITEMS,
                 use_count=len(address['uses']), rung_count=len({use['rung_id'] for use in address['uses']}))
             alias_name = metadata['name'] if metadata['tag_type'] == 'Alias' else None
-            row.update(source_metadata=metadata, suggested_target_name=alias_name or address['address'],
+            row.update(suggested_target_name=alias_name or address['address'],
                 target_name_basis='alias' if alias_name else 'base_address', suggested_field_type=hinted,
                 suggested_type_basis='documented_member_layout' if documented else
                     'qualified_floating_channel_and_direction' if hinted != 'unknown' else 'catalog_direction_candidate')
@@ -191,7 +179,13 @@ class FieldSignalIndex:
                 ensure_ascii=False, separators=(',', ':')).encode('utf-8')).hexdigest()
             row['binding'] = {'snapshot_id': self.snapshot_id, 'root_id': row['root_id'],
                 'suffix': row['suffix'], 'address_id': row['id'], 'evidence_signature': signature}
-            row['hardware'] = self._hardware(module)
+            # Module provenance is shared by its channels. Field annotations,
+            # description candidates and alias details stay in FieldIOIndex;
+            # visible rows expand them without retaining another full copy.
+            if module_id not in self._hardware_by_module:
+                hardware = self._hardware(module)
+                self._retain(hardware)
+                self._hardware_by_module[module_id] = hardware
             self._retain(row)
             self.signals[row['id']] = row
             direct: dict[str, list[dict]] = defaultdict(list)
@@ -208,8 +202,8 @@ class FieldSignalIndex:
             self._search[row['id']] = ' '.join(parts).casefold()
             self._retain(self._search[row['id']])
         self._ordered = sorted(self.signals, key=lambda identifier: (
-            self.signals[identifier]['hardware']['controller']['path'] or '',
-            self.signals[identifier]['hardware']['path'], self.signals[identifier]['direction'],
+            self._hardware_by_module[self.signals[identifier]['module_id']]['controller']['path'] or '',
+            self._hardware_by_module[self.signals[identifier]['module_id']]['path'], self.signals[identifier]['direction'],
             self.signals[identifier]['channel'] is None, self.signals[identifier]['channel'] or 0,
             self.signals[identifier]['address'].casefold(), identifier))
         counts = Counter(row['field_type'] for row in self.signals.values()
@@ -282,6 +276,27 @@ class FieldSignalIndex:
             'vendor', 'controller', 'parent_module_id', 'parent_module_name', 'slot', 'location_status',
             'catalog_description', 'catalog_family', 'catalog_capacity', 'catalog_capacity_basis',
             'catalog_reference', 'catalog_reference_page', 'catalog_publication', 'field_type_reason')}
+
+    def _present(self, row: dict) -> dict:
+        """Expand authenticated shared evidence for one displayed signal only."""
+        address = self.field_io.addresses[row['id']]
+        return {**row,
+            'hardware': self._hardware_by_module[row['module_id']],
+            'description_selection': self.field_io.description_selection(address),
+            'source_metadata': self._source_metadata(address),
+            'logical_signal': {
+                'kind': 'numeric' if row['datatype'] in {'REAL', 'LREAL'} else
+                        'boolean' if row['datatype'] == 'BOOL' else 'unresolved',
+                'direction': row['direction'],
+                'basis': 'captured_datatype_and_module_direction',
+                'physical_layout_documented': row['mapping_status'] == 'documented_member_layout',
+            },
+            'aliases': address['aliases'][:MAX_PREVIEW_ITEMS],
+            'aliases_total': len(address['aliases']),
+            'aliases_truncated': len(address['aliases']) > MAX_PREVIEW_ITEMS,
+            'source_annotations': address['source_annotations'][:MAX_PREVIEW_ITEMS],
+            'source_annotations_total': len(address['source_annotations']),
+            'source_annotations_truncated': len(address['source_annotations']) > MAX_PREVIEW_ITEMS}
 
     def anchor(self, signal_id: str) -> dict:
         if type(signal_id) is not str or signal_id not in self.signals:
@@ -386,7 +401,7 @@ class FieldSignalIndex:
             'instruction_ids': list(dict.fromkeys(use['instruction_id'] for use in direct[identifier]))[:MAX_PREVIEW_ITEMS],
             'instruction_ids_truncated': len({use['instruction_id'] for use in direct[identifier]}) > MAX_PREVIEW_ITEMS}
             for identifier in page['items']]
-        return {**deepcopy(row), 'direct_uses': _page(self._uses[signal_id], query.get('use_page', 1), query['detail_page_size']),
+        return {**deepcopy(self._present(row)), 'direct_uses': _page(self._uses[signal_id], query.get('use_page', 1), query['detail_page_size']),
                 'direct_rungs': page, 'related_rungs': self._related(signal_id, query.get('related_page', 1), query['detail_page_size']),
                 'grouping_scope': 'exact_module_member', 'automatic_membership': False}
 
@@ -414,11 +429,13 @@ class FieldSignalIndex:
             rows.append(row)
         controllers = {}
         for row in rows:
-            controller = row['hardware']['controller']
+            controller = self._hardware_by_module[row['module_id']]['controller']
             identifier = controller['id'] or controller['name'] or 'unassigned'
             entry = controllers.setdefault(identifier, {'controller_id': identifier, 'controller_name': controller['name'], 'total': 0})
             entry['total'] += 1
-        result = {'available': True, 'snapshot_id': self.snapshot_id, 'signals': _page(rows, query['page'], query['page_size']),
+        signals = _page(rows, query['page'], query['page_size'])
+        signals['items'] = [self._present(row) for row in signals['items']]
+        result = {'available': True, 'snapshot_id': self.snapshot_id, 'signals': signals,
             'controller_counts': list(controllers.values()),
             'selected_signal': self.detail(query['signal_id'], query) if query['signal_id'] else None,
             'coverage': self.coverage, 'limitations': list(_LIMITATIONS),

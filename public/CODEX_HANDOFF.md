@@ -1,5 +1,40 @@
 # Current handoff: PLC analysis workbench
 
+## Load large field indexes without duplicated provenance (2026-10-27)
+
+The returned work-PC diagnostic confirms the shared Field I/O index reached its
+32 MiB retained-data limit: `[field_io/index_bytes_limit]`, measured 33,554,794
+against 33,554,432. The saved October 27 analysis and its 4,606 rungs loaded;
+the failure was in the workspace projection used by both Field I/O and
+Application map, not a missing source export.
+
+Field I/O now retains exact annotation identities and description scopes instead
+of repeating full candidate/owner/module provenance on every address. Public
+pages expand the same candidate records on demand, retaining precedence,
+conflicts, counts and source links. Transient backing descriptions are no longer
+copied and charged on members before qualified description selection replaces
+them. The signal projection shares hardware per module and expands source
+metadata, aliases, annotations and description provenance for displayed rows.
+Both the 32 MiB field limit and 24 MiB signal limit remain unchanged.
+
+An independently invented 100-card export with 4,606 rungs, 11,200 described
+channels and one extra alias candidate reproduced the original field limit in
+the complete save/import path. After the fix, all 11,201 signal addresses and
+11,501 captured addresses remain available, including page 23, exact search,
+description provenance, stored REAL values, connected rungs and a saved DeltaV
+name. Application map also loads from that same saved analysis. The pre/post
+public signal responses on the smaller fixture are identical. No proprietary
+source was used for these tests; the actual work-PC view still needs confirmation.
+
+Validation: all 691 workspace tests passed, including the large saved-analysis
+regression. Independent review found no blockers and verified public response
+equivalence for ordinary and conflicting-comment fixtures.
+
+Next work-PC step: Stop workspace, manually pull, then run
+`bash ./open-workbench.sh`. Open **Field I/O** and **Application map** with the
+existing analysis. A full analysis or translation rerun is unnecessary; source
+artifacts, signal bindings and saved review records are unchanged.
+
 ## Diagnose unavailable Field I/O and Application map (2026-10-26)
 
 The returned screenshots confirm the October 26, 14:53:44 CDT analysis is loaded:

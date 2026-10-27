@@ -135,6 +135,8 @@ class FieldIOIndex:
         self._keys: dict[tuple[str, str], str] = {}
         self._search: dict[str, str] = {}
         self.annotation_texts: dict[str, str] = {}
+        self._annotation_records: dict[tuple[str, str], dict] = {}
+        self._description_candidates: dict[str, list[tuple[str, str, str]]] = {}
         self._budget = 0
         self._omitted = 0
         try:
@@ -179,7 +181,9 @@ class FieldIOIndex:
             'field_type': 'unknown', 'point_status': 'unresolved', 'channel': None,
             'point_basis': None, 'point_reference': None, 'channel_status': 'unresolved',
             'configuration_status': 'not_evaluated',
-            'datatype': None, 'description': entity.description, 'description_basis': 'backing_declaration',
+            # Source prose is selected below from qualified annotations. Do not
+            # duplicate (or charge) a transient root description on every member.
+            'datatype': None, 'description': None, 'description_basis': 'backing_declaration',
             'aliases': [], 'uses': [],
             'source_annotations': [],
             'group_member_ids': [root_id], 'grouping_scope': 'backing_declaration'}
@@ -397,9 +401,15 @@ class FieldIOIndex:
 
     def _annotations(self, target: dict, notes: list[dict], via: str) -> None:
         for note in notes:
-            owner = self.base._entities[note['owner_id']]
-            row = _preview(dict(note, owner_name=owner.name, owner_path=self.base._path(owner.id), via=via))
-            self._retain(row)
+            key = note['id'], via
+            row = self._annotation_records.get(key)
+            if row is None:
+                owner = self.base._entities[note['owner_id']]
+                row = _preview(dict(note, owner_name=owner.name, owner_path=self.base._path(owner.id), via=via))
+                self._retain((key, row))
+                self._annotation_records[key] = row
+            # The row and full text are owned once; targets retain references.
+            self._retain(key)
             target['source_annotations'].append(row)
             if note['id'] not in self.annotation_texts:
                 self._retain(note['text'])
@@ -426,6 +436,13 @@ class FieldIOIndex:
             candidates.extend(dict(note, description_scope='module_description')
                               for note in module['source_annotations'])
         selection = select_description(candidates, text_lookup=self.annotation_texts)
+        # Full candidate origins repeat the same annotation/owner/module
+        # metadata on thousands of members. Retain their exact identities and
+        # scopes, then expand only the requested page or downstream projection.
+        origins = [(note['id'], note['via'], note['description_scope'])
+                   for note in selection.pop('candidates')]
+        self._description_candidates[row['id']] = origins
+        self._retain((row['id'], origins))
         row['description_selection'] = selection
         row['description_basis'] = selection['basis']
         identifier = selection['preferred_annotation_id']
@@ -436,12 +453,22 @@ class FieldIOIndex:
         else:
             row['description'] = None
         self._retain(selection)
+        self._retain(row['description'])
 
-    @staticmethod
-    def _annotation_preview(row: dict) -> dict:
+    def description_selection(self, row: dict) -> dict:
+        """Return independent public provenance from compact exact references."""
+        selection = deepcopy(row['description_selection'])
+        selection['candidates'] = [dict(
+            {key: value for key, value in self._annotation_records[identifier, via].items() if key != 'text'},
+            description_scope=scope)
+            for identifier, via, scope in self._description_candidates[row['id']]]
+        return selection
+
+    def _annotation_preview(self, row: dict) -> dict:
         notes = row['source_annotations']
         return dict(row, source_annotations=notes[:MAX_ANNOTATIONS], source_annotations_total=len(notes),
-                    source_annotations_truncated=len(notes) > MAX_ANNOTATIONS)
+                    source_annotations_truncated=len(notes) > MAX_ANNOTATIONS,
+                    description_selection=self.description_selection(row))
 
     def _point(self, row: dict) -> None:
         """Only four documented profiles; no generic datatype/channel guessing.
