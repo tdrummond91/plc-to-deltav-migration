@@ -13,7 +13,14 @@ class WorkspaceEvidenceTests(unittest.TestCase):
         text = evidence_notice(result)
         self.assertIn('[field_io/index_bytes_limit]', text)
         self.assertIn('Measured 100; limit 99.', text)
+        self.assertIn('Index construction stopped at this limit', text)
+        self.assertIn('complete index may require more space', text)
         self.assertIn('capacity fix', text)
+
+    def test_complete_source_measurement_is_not_presented_as_a_partial_index(self) -> None:
+        text = evidence_notice(diagnostic('source', 'source_bytes_limit', 100, 99))
+        self.assertIn('Measured 100; limit 99.', text)
+        self.assertNotIn('Index construction stopped', text)
 
     def test_unknown_identifiers_extra_fields_and_noninteger_metrics_do_not_escape(self) -> None:
         private = 'PRIVATE_SOURCE_PATH_TAG_AND_DESCRIPTION'

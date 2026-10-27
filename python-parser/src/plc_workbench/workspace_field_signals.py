@@ -24,7 +24,10 @@ PAGE_SIZE = 24
 DETAIL_PAGE_SIZE = 12
 MAX_PREVIEW_ITEMS = 8
 MAX_SIGNALS = 100_000
-MAX_INDEX_BYTES = 24 * 1024 * 1024
+# Keep the downstream projection usable for large described channel sets after
+# the shared field index loads. Paging still bounds each response independently;
+# this finite budget measures serialized retained content, not process memory.
+MAX_INDEX_BYTES = 96 * 1024 * 1024
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 MAX_DIRECT_EXPANSION = 32
 MAX_BRIDGES = 128

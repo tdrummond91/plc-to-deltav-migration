@@ -1,5 +1,58 @@
 # Current handoff: PLC analysis workbench
 
+## Size workspace projections for mixed module exports (2026-10-27)
+
+The work PC still reported the 32 MiB field-index limit after the prior fix,
+now at 33,554,474 bytes. That fix was incomplete: compacting provenance helped
+the original test, but 11,501 captured addresses did not cover a sufficiently
+large mix of configuration, status and signal members. The displayed measurement
+is the first rejected allocation, not the complete required index size; the
+notice now explains this distinction.
+
+The retained-content budgets are now 128 MiB for shared Field I/O, 96 MiB for
+field signals and 192 MiB for Application map. All three are finite serialized
+content limits, not measurements or guarantees of Python heap usage. Source
+verification, 100,000-record caps, response/paging limits, source identities,
+saved decisions and two-run cache eviction are unchanged. Shared provenance
+from the prior fix is retained. No configuration or status member is discarded
+or promoted to a field wire to reduce the index size.
+
+An independent invented probe with 44,052 tag-data elements, 4,606 rungs,
+configuration/status members, aliases and bilingual comments measured:
+
+| Projection | Retained serialized bytes |
+| --- | ---: |
+| Variable evidence | 42,523,732 |
+| Field I/O (38,053 addresses) | 65,652,572 |
+| Field signals (8,451 candidates) | 16,910,811 |
+| Application (44,264 registers) | 149,512,117 |
+
+That probe exceeded both old field and application limits, then completed with
+the new finite limits. Peak Windows working set was 765,743,104 bytes (about
+730 MiB) for its fresh process holding captured evidence and all four indexes.
+This is one synthetic workload, not an upper bound for the workspace, SQLite
+import or two cached runs. Larger projects may eventually warrant a disk-backed
+projection cache; the current change does not introduce one.
+
+The new saved/imported mixed-export regression contains 44,800 module members:
+19,200 channel candidates, 12,800 status members and 12,800 configuration members,
+plus root declarations and one extra alias address. It exercises the old field,
+signal and application caps, late pages, exact alias search, bilingual conflicts,
+configuration values, saved DeltaV names and reopening the project. The earlier
+4,606-rung saved-run regression is retained. No proprietary export was used.
+
+Validation: the mixed saved/imported regression passed, including old-cap
+rejection for all three projections and persistence after reopening. Independent
+review found no blockers; nine focused diagnostic, guard and response tests
+also passed. All 693 workspace tests passed in 308 seconds, including both
+large saved/imported regression cases.
+
+Next work-PC step: Stop workspace, manually pull, then run
+`bash ./open-workbench.sh`. Reuse the existing analysis and check **Field I/O**
+and **Application map**. A parser or translation rerun is unnecessary. If the
+old 33,554,432 limit still appears, the workspace is running the older capacity
+policy; verify the checkout/restart before repeating analysis.
+
 ## Load large field indexes without duplicated provenance (2026-10-27)
 
 The returned work-PC diagnostic confirms the shared Field I/O index reached its

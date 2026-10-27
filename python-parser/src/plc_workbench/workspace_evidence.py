@@ -47,6 +47,8 @@ def evidence_notice(value: Any) -> str:
     text = _REASONS[reason]
     if 'actual' in clean and 'limit' in clean:
         text += f" Measured {clean['actual']:,}; limit {clean['limit']:,}."
+    if reason == 'index_bytes_limit':
+        text += ' Index construction stopped at this limit; the complete index may require more space.'
     if reason.endswith('_limit'):
         text += ' This workspace view needs a capacity fix to load the evidence.'
     return f"{text} [{clean['stage']}/{reason}]"

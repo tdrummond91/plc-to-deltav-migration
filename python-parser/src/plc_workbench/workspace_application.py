@@ -22,7 +22,11 @@ from .workspace_paging import page_size
 from .workspace_variables import _member_key
 
 MAX_REGISTERS = 100_000
-MAX_INDEX_BYTES = 96 * 1024 * 1024
+# Application registers include internal tags and full member provenance as
+# well as field data. Large mixed exports exceed the former 96 MiB allowance;
+# retain a finite desktop budget while page/response limits stay independent.
+# The counter measures serialized retained content, not Python heap usage.
+MAX_INDEX_BYTES = 192 * 1024 * 1024
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 MAX_DETAIL = 500
 MAX_TEXT = 4096

@@ -25,7 +25,11 @@ MAX_DETAIL = 24
 MAX_ANNOTATIONS = 8
 MAX_PREVIEW = 512
 MAX_ADDRESSES = 100_000
-MAX_INDEX_BYTES = 32 * 1024 * 1024
+# This shared index includes captured configuration/status members as well as
+# signal candidates. A 44k-member export exceeds the former 32 MiB budget even
+# with shared provenance. Allow a bounded desktop working set; these are
+# serialized retained-content bytes, not a measurement of Python heap usage.
+MAX_INDEX_BYTES = 128 * 1024 * 1024
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 _DIGITAL_MANUAL = 'https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1756-um058_-en-p.pdf'
 _ANALOG_MANUAL = 'https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1756-um009_-en-p.pdf'
