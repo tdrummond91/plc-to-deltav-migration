@@ -21,6 +21,7 @@ from .workspace_variables import _member_key
 from .workspace_paging import page_size
 from .workspace_sorting import natural_key
 from .workspace_signal_usage import SignalUsageIndex, USAGE_STATUSES
+from .workspace_signal_context import SignalContextIndex, description_origin, specific_description
 
 PAGE_SIZE = 24
 DETAIL_PAGE_SIZE = 12
@@ -94,6 +95,10 @@ def validate_query(query: dict) -> dict:
         result[key] = int(value)
     result['page_size'] = page_size(query, PAGE_SIZE, error=FieldSignalError)
     result['detail_page_size'] = page_size(query, DETAIL_PAGE_SIZE, key='detail_page_size', error=FieldSignalError)
+    hide_empty = query.get('hide_empty', '0')
+    if type(hide_empty) not in {str, int} or str(hide_empty) not in {'0', '1'}:
+        raise FieldSignalError('Choose whether to hide unreferenced signals without specific descriptions.')
+    result['hide_empty'] = str(hide_empty)
     return result
 
 
@@ -128,6 +133,8 @@ class FieldSignalIndex:
                 connections.qualify_map(self.base._entity_ok, self.base._rung_ok)
             self.usage = SignalUsageIndex(field_io)
             self._budget += self.usage._budget
+            self.context = SignalContextIndex(field_io, self.usage)
+            self._budget += self.context._budget
             if self._budget > MAX_INDEX_BYTES:
                 _invalid('index_bytes_limit', actual=self._budget, limit=MAX_INDEX_BYTES)
             self._build()
@@ -144,7 +151,7 @@ class FieldSignalIndex:
     def _candidate(self, row: dict, module: dict) -> list[str] | None:
         if (row['direction'] not in _DIRECTION_TYPES or not row['suffix']
                 or module['module_role'] in {'controller', 'communication'}
-                or _CANDIDATE_MEMBER.fullmatch(row['suffix']) is None):
+                or _CANDIDATE_MEMBER.fullmatch(row.get('rack_mapping', {}).get('logical_suffix', row['suffix'])) is None):
             return None
         suggested = [kind for kind in module['field_types'] if kind in _DIRECTION_TYPES[row['direction']]]
         if module['module_role'] == 'field_io' and not suggested:
@@ -154,7 +161,7 @@ class FieldSignalIndex:
     def _build(self) -> None:
         excluded = Counter()
         for address in self.field_io.addresses.values():
-            module_id = self.field_io._root_module[address['root_id']]
+            module_id = address.get('rack_mapping', {}).get('module_id') or self.field_io._root_module[address['root_id']]
             module = self.field_io.modules[module_id]
             documented = address['point_status'] == 'documented_member_layout'
             candidates = [] if documented else self._candidate(address, module)
@@ -177,6 +184,9 @@ class FieldSignalIndex:
                     else 'captured_member_layout_requires_review' if candidates
                     else 'captured_member_and_catalog_require_review'), candidate_field_types=candidates,
                 use_count=len(address['uses']), rung_count=len({use['rung_id'] for use in address['uses']}))
+            if address.get('rack_mapping'):
+                row['rack_mapping'] = address['rack_mapping']
+            row['informative'] = self.usage.status(address) != 'not_found' or specific_description(address)
             alias_name = metadata['name'] if metadata['tag_type'] == 'Alias' else None
             row.update(suggested_target_name=alias_name or address['address'],
                 target_name_basis='alias' if alias_name else 'base_address', suggested_field_type=hinted,
@@ -208,6 +218,8 @@ class FieldSignalIndex:
                 self.base._order[use['rung_id']], self.base._instructions[use['instruction_id']].start, use['id']))
             parts = [row['address'], row['description'] or '', module['name'] or '',
                      module['catalog_number'] or '', module['description'] or '']
+            if row.get('rack_mapping'):
+                parts.append(row['rack_mapping']['logical_address'])
             parts.extend(str(alias.get(key) or '') for alias in address['aliases'] for key in ('name', 'description'))
             parts.extend(self.field_io.annotation_texts[note['id']] for note in address['source_annotations'])
             self._search[row['id']] = ' '.join(parts).casefold()
@@ -223,6 +235,10 @@ class FieldSignalIndex:
                                    for kind in (row['candidate_field_types'] or ['unknown']))
         usage_counts = Counter(self.usage.status(self.field_io.addresses[identifier]) for identifier in self.signals)
         self.coverage = {'signals_total': len(self.signals), 'documented_total': sum(counts.values()),
+            'informative_total': sum(row['informative'] for row in self.signals.values()),
+            'empty_unreferenced_total': sum(not row['informative'] for row in self.signals.values()),
+            'use_context_available': self.context.available,
+            'use_context_total': sum(row['id'] in self.context._signals for row in self.signals.values()),
             'candidates_total': sum(row['mapping_status'] == 'review_mapping' for row in self.signals.values()),
             'documented_by_field_type': {kind: counts[kind] for kind in FIELD_TYPES},
             'candidates_by_field_type': {kind: candidate_counts[kind] for kind in (*FIELD_TYPES, 'unknown')},
@@ -263,7 +279,7 @@ class FieldSignalIndex:
         if not kind or catalog_hints and kind not in catalog_hints:
             return 'unknown'
         if not re.fullmatch(r'\.Ch(?:0|[1-9][0-9]{0,3})(?:Data|\.Data)|\.Channel\[(?:0|[1-9][0-9]{0,3})\]\.Data',
-                            row['suffix'], re.ASCII | re.IGNORECASE):
+                            row.get('rack_mapping', {}).get('logical_suffix', row['suffix']), re.ASCII | re.IGNORECASE):
             return 'unknown'
         contents = [value for value in self.base._contents.get(row['root_id'], [])
                     if value['xml_name'] == 'Data' and value['format_kind'] == 'decorated']
@@ -296,6 +312,8 @@ class FieldSignalIndex:
         address = self.field_io.addresses[row['id']]
         return {**row,
             'usage': self.usage.summary(address),
+            'description_origin': description_origin(self.field_io, address),
+            'use_context': self.context.get(row['id']),
             'hardware': self._hardware_by_module[row['module_id']],
             'description_selection': self.field_io.description_selection(address),
             'source_metadata': self._source_metadata(address),
@@ -427,7 +445,8 @@ class FieldSignalIndex:
                 'direct_rungs': page, 'related_rungs': self._related(signal_id, query.get('related_page', 1), query['detail_page_size'], direct),
                 'grouping_scope': 'exact_module_member', 'automatic_membership': False}
 
-    def view(self, query: dict, *, extra_search: dict[str, str] | None = None) -> dict:
+    def view(self, query: dict, *, extra_search: dict[str, str] | None = None,
+             preserve_signal_ids: set[str] | None = None) -> dict:
         query = validate_query(query)
         if extra_search is not None and (type(extra_search) is not dict or len(extra_search) > MAX_SIGNALS
                 or any(type(key) is not str or type(value) is not str or len(key) > 256 or len(value) > 32768
@@ -435,10 +454,16 @@ class FieldSignalIndex:
                 or sum(len(key) + len(value) for key, value in extra_search.items()) > MAX_SAVED_SEARCH_CHARS):
             raise FieldSignalError('Saved field signal search metadata exceeds its limits.')
         extras = extra_search or {}
+        if preserve_signal_ids is not None and (type(preserve_signal_ids) is not set
+                or len(preserve_signal_ids) > MAX_SIGNALS
+                or any(type(value) is not str or len(value) > 256 for value in preserve_signal_ids)):
+            raise FieldSignalError('Saved field signal visibility metadata exceeds its limits.')
+        preserved = preserve_signal_ids or set()
         needle = query['query'].casefold()
         if query['module_id'] and query['module_id'] not in self.field_io.modules:
             raise FieldSignalError('Choose a module captured in this run.')
         rows = []
+        total_before_hide = hidden = kept_empty = informative = 0
         for identifier in self._ordered:
             row = self.signals[identifier]
             documented = row['mapping_status'] == 'documented_member_layout'
@@ -447,8 +472,16 @@ class FieldSignalIndex:
                     or query['field_type'] and query['field_type'] != row['field_type']
                     and query['field_type'] not in row['candidate_field_types']
                     or query['usage'] and query['usage'] != self.usage.status(self.field_io.addresses[identifier])
-                    or needle and needle not in self._search[identifier] and needle not in extras.get(identifier, '').casefold()):
+                    or needle and needle not in self._search[identifier] and needle not in extras.get(identifier, '').casefold()
+                    and not self.context.matches(identifier, needle)):
                 continue
+            total_before_hide += 1
+            informative += int(row['informative'])
+            if query['hide_empty'] == '1' and not row['informative']:
+                if identifier not in preserved:
+                    hidden += 1
+                    continue
+                kept_empty += 1
             rows.append(row)
         controllers = {}
         for row in rows:
@@ -459,6 +492,9 @@ class FieldSignalIndex:
         signals = _page(rows, query['page'], query['page_size'])
         signals['items'] = [self._present(row) for row in signals['items']]
         result = {'available': True, 'snapshot_id': self.snapshot_id, 'signals': signals,
+            'filtering': {'hide_empty': query['hide_empty'] == '1', 'total_before_hide': total_before_hide,
+                'hidden_empty_count': hidden, 'preserved_empty_count': kept_empty,
+                'informative_count': informative},
             'controller_counts': list(controllers.values()),
             'selected_signal': self.detail(query['signal_id'], query) if query['signal_id'] else None,
             'coverage': self.coverage, 'limitations': list(_LIMITATIONS),

@@ -19,6 +19,7 @@ from .workspace_evidence import diagnostic
 from .workspace_io_comments import IOCommentError, collect_io_annotations, select_description
 from .workspace_sorting import natural_key
 from .workspace_variables import VariableIndex, _member_key
+from .workspace_rack_references import RackReferenceError, RackReferenceIndex
 
 PAGE_SIZE = 24
 USE_PAGE_SIZE = 12
@@ -51,7 +52,7 @@ _LIMITATIONS = (
     'BOOL/REAL types, tag names, and channel-like member names do not establish DI/DO/AI/AO or terminal assignments.',
     'Documented member indexes are not wiring verification. Analog configuration, enabled channels, electrical modes, scaling, and installed terminal blocks are not evaluated.',
     'Rung links show possible explicit uses, not execution order, energized outputs, live readings, or complete external use.',
-    'Unresolved and dynamic references cannot be assigned to a proven module address; the listed uses may be incomplete.',
+    'Qualified rack references retain their actual backing source paths; remaining unresolved and dynamic references can leave uses incomplete.',
     'Grouping a card selects its module declaration. Grouping a backing tag covers all its members, not one physical channel.',
 )
 
@@ -180,6 +181,9 @@ class FieldIOIndex:
             self._build()
         except FieldIOError:
             raise
+        except RackReferenceError as exc:
+            _invalid('index_bytes_limit' if exc.limit is not None else 'invalid_evidence',
+                     actual=exc.actual, limit=exc.limit)
         except IOCommentError as exc:
             error = FieldIOError('Saved field I/O evidence is inconsistent or exceeds its limits.')
             error.diagnostic = diagnostic(exc.diagnostic['stage'], exc.diagnostic['reason'],
@@ -232,6 +236,10 @@ class FieldIOIndex:
 
     def _build(self) -> None:
         base, entities = self.base, self.base._entities
+        self.rack_references = RackReferenceIndex(base)
+        self._budget += self.rack_references._budget
+        rack_initial_budget = self.rack_references._budget
+        self._retain({})
         children: dict[str, list] = defaultdict(list)
         names: dict[tuple[str | None, str], list] = defaultdict(list)
         for entity in entities.values():
@@ -327,6 +335,10 @@ class FieldIOIndex:
                 value = {'id': entity.id, 'kind': entity.kind, 'alias_for': entity.attributes.get('AliasFor'),
                     'description': entity.description, 'status': 'backing_unresolved',
                     'qualified': bool(base._entity_ok.get(entity.id))}
+                if entity.id in self.rack_references.roots:
+                    rack = self.rack_references.roots[entity.id]
+                    value.update(status='qualified_backing_source', backing_tag_id=rack['backing_tag_id'],
+                                 backing_prefix=rack['backing_prefix'], logical_root=rack['logical_root'])
                 self._retain(value)
                 self.rack_aliases[module_id].append(value)
         access = {row['id']: row for row in base._access.operands} if base._access else {}
@@ -355,8 +367,13 @@ class FieldIOIndex:
                     if row is not None:
                         self._use(row, use, use['role'], row['address'])
         io_aliases = []
+        recovered_aliases = []
         for alias in base._references.aliases:
             ids = [alias['source_id'], alias.get('target_id'), *alias.get('alias_chain', [])]
+            if alias['status'] != 'root_bound':
+                recovered = self.rack_references.resolve(alias, alias['raw_target'], alias['scope_id'])
+                if recovered and base._entity_ok.get(alias['source_id']):
+                    recovered_aliases.append((alias, recovered))
             if (alias['status'] != 'root_bound' or alias['target_id'] not in self._root_module
                     or not all(base._entity_ok.get(identifier) for identifier in ids)):
                 continue
@@ -376,6 +393,7 @@ class FieldIOIndex:
                     self._add(owner_id, value['path'])
         annotation_owners = set(self.modules) | set(self._root_module)
         annotation_owners.update(alias['source_id'] for alias in io_aliases)
+        annotation_owners.update(alias['source_id'] for alias, _ in recovered_aliases)
         annotations = collect_io_annotations(base._source, base._captured, base._entity_ok,
                                              owner_ids=annotation_owners)
         by_owner: dict[str, list[tuple[str, list[dict]]]] = defaultdict(list)
@@ -402,11 +420,56 @@ class FieldIOIndex:
             row = self._add(binding['target_id'], binding['suffix'])
             if row is not None:
                 self._use(row, ref, access.get(ref['id'], {}).get('role', 'unknown'), ref['raw_text'])
+        # Append newly recovered rack addresses only after all legacy anchors
+        # above are materialized. Their actual backing root/suffix remains the
+        # stable identity; logical card/address evidence is a separate overlay.
+        for alias, recovered in recovered_aliases:
+            row = self._rack_address(recovered)
+            if row is None:
+                continue
+            entity = entities[alias['source_id']]
+            value = _preview({'id': entity.id, 'name': entity.name, 'path': base._path(entity.id),
+                              'description': entity.description})
+            self._retain(value)
+            row['aliases'].append(value)
+            for suffix, notes in by_owner[alias['source_id']]:
+                # Member comments require their own validated logical member;
+                # never blindly attach arbitrary alias comment suffixes.
+                binding = dict(alias, suffix=alias['suffix'] + suffix)
+                note_target = self.rack_references.resolve(binding, alias['raw_target'], alias['scope_id'])
+                target = self._rack_address(note_target) if note_target else None
+                if target is not None:
+                    self._annotations(target, notes, 'alias')
+        self._rack_recovered_uses = 0
+        for ref in base._references.operands:
+            rung = base._rungs[ref['rung_id']]
+            if not base._rung_ok.get(rung.id):
+                continue
+            binding = reference_binding(base, ref, access.get(ref['id']))
+            recovered = self.rack_references.resolve(binding, ref['raw_text'], rung.scope_id)
+            if recovered:
+                self._rack_use(ref, recovered, access.get(ref['id'], {}).get('role', 'unknown'), ref['raw_text'])
+        if base._access:
+            for use in base._access.expression_uses:
+                rung = base._rungs[use['rung_id']]
+                if not base._rung_ok.get(rung.id):
+                    continue
+                expression = base._reference_uses[use['expression_operand_id']]
+                raw = expression['raw_text'][use['start']:use['end']]
+                binding = dict(use, status=use['binding_status'], reason=use['binding_reason'])
+                recovered = self.rack_references.resolve(binding, raw, rung.scope_id)
+                if recovered:
+                    # The authenticated calculation leaf owns the occurrence.
+                    # Never substitute the whole expression or manufacture a
+                    # root occurrence by searching unparsed expression text.
+                    self._rack_use(use, recovered, use['role'], raw)
+        self._budget += self.rack_references._budget - rack_initial_budget
+        self._retain({})
         for row in self.addresses.values():
             self._select_description(row)
             values = base._values.get((row['root_id'], _member_key(row['suffix'])), [])
             types = {value['datatype'] for value in values if value['status'] == 'qualified' and value['datatype']}
-            row['datatype'] = next(iter(types)) if len(types) == 1 else None
+            row['datatype'] = next(iter(types)) if len(types) == 1 else row.get('rack_datatype')
             self._point(row)
         for identifier, module in self.modules.items():
             self._select_description(module)
@@ -446,10 +509,33 @@ class FieldIOIndex:
             'addresses_total': len(self.addresses),
             'point_mapped_addresses': sum(row['channel'] is not None for row in self.addresses.values()),
             'rung_uses_total': sum(row['use_count'] for row in self.modules.values()),
-            'rack_aliases_unresolved': sum(row['rack_alias_count'] for row in self.modules.values()),
+            'rack_aliases_unresolved': sum(row['status'] == 'backing_unresolved'
+                                          for rows in self.rack_aliases.values() for row in rows),
             'unresolved_reference_operands_in_run': sum(row['status'] in {'unresolved', 'ambiguous',
                 'unsupported_address', 'alias_cycle', 'alias_depth_limit'} for row in base._references.operands),
             'omitted_addresses': self._omitted}
+        self.coverage['rack_recovered_reference_uses'] = self._rack_recovered_uses
+        self.coverage['rack_recovered_addresses'] = sum('rack_mapping' in row for row in self.addresses.values())
+
+    def _rack_address(self, recovered: dict) -> dict | None:
+        row = self._add(recovered['target_id'], recovered['suffix'])
+        if row is not None and 'rack_mapping' not in row:
+            self._retain(recovered['rack_mapping'])
+            row['rack_mapping'] = recovered['rack_mapping']
+            row['rack_datatype'] = recovered['datatype']
+        return row
+
+    def _rack_use(self, use: dict, recovered: dict, role: str, raw: str) -> None:
+        row = self._rack_address(recovered)
+        if row is None:
+            return
+        self._use(row, use, role, raw)
+        mapping = row['rack_mapping']
+        provenance = {'binding_basis': mapping['basis'],
+                      'logical_address': mapping['logical_address'], 'backing_address': row['address']}
+        self._retain(provenance)
+        row['uses'][-1].update(provenance)
+        self._rack_recovered_uses += 1
 
     @staticmethod
     def _matches_type(row: dict, kind: str) -> bool:
@@ -488,7 +574,8 @@ class FieldIOIndex:
                 candidates.extend(dict(note, description_scope=('backing_alias_description'
                     if note['via'] == 'alias' else 'backing_description'))
                     for note in root['source_annotations'])
-            module = self.modules[self._root_module[row['root_id']]]
+            module = self.modules[row.get('rack_mapping', {}).get('module_id')
+                                  or self._root_module[row['root_id']]]
             candidates.extend(dict(note, description_scope='module_description')
                               for note in module['source_annotations'])
         selection = select_description(candidates, text_lookup=self.annotation_texts)
@@ -533,7 +620,8 @@ class FieldIOIndex:
         Data bits from table48 output echo. UM009G pp130-131 distinguish I/O
         Ch0Data from input-side output echo and retain mode uncertainty.
         """
-        module = self.modules[self._root_module[row['root_id']]]
+        mapping = row.get('rack_mapping', {})
+        module = self.modules[mapping.get('module_id') or self._root_module[row['root_id']]]
         layout = _POINT_LAYOUTS.get(module['catalog_number'])
         if module['field_type'] == 'unknown' or layout is None:
             return
@@ -542,10 +630,11 @@ class FieldIOIndex:
             return
         digital = kind in {'di', 'do'}
         match = re.fullmatch(r'\.Data\.(0|[1-9][0-9]?)' if digital else r'\.Ch(0|[1-9][0-9]?)Data',
-                             row['suffix'], re.ASCII | re.IGNORECASE)
+                             mapping.get('logical_suffix', row['suffix']), re.ASCII | re.IGNORECASE)
         if match is None or int(match[1]) >= count:
             return
-        suffix = '.Data' if digital else row['suffix']
+        suffix = ((row['suffix'][:-len(mapping['logical_suffix'])] + '.Data')
+                  if digital and mapping else '.Data' if digital else row['suffix'])
         key = _member_key(suffix)
         values = [value for value in self.base._values.get((row['root_id'], key), [])
                   if value['envelope'] == 'Data' and value['format'] == 'decorated']

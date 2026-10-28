@@ -1,5 +1,34 @@
 # Current handoff: PLC analysis workbench
 
+## Explain and audit field-signal inventory (2026-10-28)
+
+Field I/O now distinguishes authored channel/alias descriptions from inherited
+backing-tag/module wording. A supported single-result rung can supply a labeled,
+linked result description when its input signal has no specific description.
+Original evidence and saved reviewer descriptions remain separate. A reversible
+**Hide empty unreferenced rows** filter keeps saved signal names/packages visible.
+
+The returned rack analysis had already resolved source correspondences that the
+workspace did not consume. The workspace now reuses authenticated EN2T slot
+layout evidence to recover those RLL references and aliases, including qualified
+calculation-expression leaves. This changes the projection over saved source,
+not the source or its analysis files. It does not establish physical wiring or
+complete SFC usage. The earlier 2,989 signals / 918 used / 2,071 no-reference
+counts need a new work-PC census; they are not a count of physical wired points.
+
+Table column headers stay below the app header during scrolling; page sizing is
+in the footer. Page explanations moved into **Page help**. Field evidence opens
+the existing source popout bound to the selected analysis, avoiding a full HTML
+report for each link. **Download I/O audit** exports a closed count-only census
+without source names, addresses, descriptions, logic, run IDs or saved decisions.
+
+Work-PC step: stop the old workspace, manually `git pull`, then
+`bash ./open-workbench.sh`. Keep the existing analysis and translation cache.
+Open Field I/O and download its audit to verify the remaining gaps. This update
+does not require `run-work-check.sh` or another L5X analysis.
+
+Details and validation: [Field signal inventory audit](docs/reviews/FIELD_SIGNAL_INVENTORY_AUDIT.md).
+
 ## Resolve static I/O uses and explain remaining selectors (2026-10-27)
 
 The previous indirect-use category mixed provable address relationships with

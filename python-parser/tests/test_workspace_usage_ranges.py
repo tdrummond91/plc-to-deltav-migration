@@ -39,6 +39,17 @@ def matched(resolver: UsageRangeResolver, span: dict, suffix: str) -> dict:
 
 
 class UsageRangeTests(unittest.TestCase):
+    def test_fill_reads_one_source_element_even_when_filling_several_destination_elements(self) -> None:
+        resolver, _ = setup('FLL(Local:1:I.Data[1],Buffer[0],4);', destination_type='INT')
+        span = descriptor(resolver, 0)
+        self.assertEqual(span['status'], 'resolved')
+        self.assertEqual(span['role'], 'read')
+        self.assertEqual(span['byte_count'], 4)
+        self.assertEqual(matched(resolver, span, '.Data[1]')['status'], 'included')
+        self.assertEqual(matched(resolver, span, '.Data[1].31')['status'], 'included')
+        self.assertEqual(matched(resolver, span, '.Data[2]')['status'], 'excluded')
+        self.assertIn('One source value', span['explanation'])
+
     def test_cop_cps_fixed_nonzero_array_starts_exclude_siblings_and_preserve_source(self) -> None:
         for opcode in ('COP', 'CPS'):
             with self.subTest(opcode=opcode):

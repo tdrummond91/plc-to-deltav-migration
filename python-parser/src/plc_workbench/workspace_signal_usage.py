@@ -90,7 +90,7 @@ class SignalUsageIndex:
         self._dynamic: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
         self.gap_reasons = self._coverage_gaps()
         try:
-            self._range_resolver = UsageRangeResolver(self.base)
+            self._range_resolver = UsageRangeResolver(self.base, field_io.rack_references)
             self._budget += self._range_resolver._budget
             self._retain({})
             self._build()
@@ -182,6 +182,10 @@ class SignalUsageIndex:
             if slot and slot['binding_status'] == 'parsed_expression':
                 continue
             binding = reference_binding(base, ref, slot)
+            rung = base._rungs[ref['rung_id']]
+            if (base._rung_ok.get(rung.id) and self.io.rack_references.resolve(
+                    binding, ref['raw_text'], rung.scope_id)):
+                continue
             if binding['status'] == 'unsupported_expression':
                 reasons.add('opaque_expressions')
             elif binding['status'] not in _SAFE_BINDINGS:
@@ -203,6 +207,9 @@ class SignalUsageIndex:
                 expression = base._reference_uses[use['expression_operand_id']]
                 rung = base._rungs[use['rung_id']]
                 binding = base._resolve(expression['raw_text'][use['start']:use['end']], rung.scope_id)
+                if (base._rung_ok.get(rung.id) and self.io.rack_references.resolve(
+                        binding, expression['raw_text'][use['start']:use['end']], rung.scope_id)):
+                    continue
                 if (binding.get('reason') == 'non_static_array_index'
                         and self._index_dependency_gap(expression['raw_text'][use['start']:use['end']], rung.id)):
                     reasons.add('unscanned_index_expressions')
@@ -259,15 +266,15 @@ class SignalUsageIndex:
             opcode = instruction.opcode.upper()
             slot = ref['argument_index']
             is_range = ((opcode in {'COP', 'CPS'} and slot in {0, 1})
-                        or (opcode == 'FLL' and slot == 1)) and len(instruction.arguments) == 3
-            # Dynamic references require the existing resolver's root-only
-            # qualification. A named FLL destination is an exact lexical use;
-            # its affected range and read/write semantics stay unevaluated.
+                        or (opcode == 'FLL' and slot in {0, 1})) and len(instruction.arguments) == 3
+            # Dynamic references require root-only qualification. Fixed ranges
+            # use qualified storage footprints, including recovered rack paths;
+            # their extra member uses remain separate from exact occurrences.
             possible_dynamic = '[' in ref['raw_text'] and ref['status'] != 'root_bound'
             if not (is_range or possible_dynamic):
                 continue
             rung = self.base._rungs[ref['rung_id']]
-            binding = self.base._resolve(ref['raw_text'].strip(), rung.scope_id)
+            binding = self.io.rack_references.binding(ref['raw_text'].strip(), rung.scope_id)
             if (binding.get('target_id') not in self.io._root_module
                     or not self.base._qualified(binding, rung.id)):
                 continue

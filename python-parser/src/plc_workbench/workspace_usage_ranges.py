@@ -19,6 +19,7 @@ from typing import Any
 
 from .references import _NUMBER
 from .workspace_variables import VariableIndex, _child, _member_key
+from .workspace_rack_references import RackReferenceIndex
 
 MAX_LAYOUTS = 100_000
 MAX_LAYOUT_BYTES = 16 * 1024 * 1024
@@ -73,10 +74,12 @@ class _LayoutLimit(ValueError):
 class UsageRangeResolver:
     """Build metadata once; descriptors and matches are detached, uncached data."""
 
-    def __init__(self, base: VariableIndex) -> None:
-        if type(base) is not VariableIndex:
+    def __init__(self, base: VariableIndex, rack_references: RackReferenceIndex | None = None) -> None:
+        if (type(base) is not VariableIndex or rack_references is not None
+                and (type(rack_references) is not RackReferenceIndex or rack_references.base is not base)):
             raise ValueError('Choose authenticated variable evidence for fixed ranges.')
         self.base = base
+        self._resolve = rack_references.binding if rack_references is not None else base._resolve
         self._layouts: dict[tuple[str, str], dict] = {}
         self._blocked: dict[tuple[str, str], str] = {}
         self._budget = 0
@@ -271,7 +274,7 @@ class UsageRangeResolver:
         instruction = self.base._instructions[canonical['instruction_id']]
         opcode, slot = instruction.opcode.upper(), canonical['argument_index']
         if (len(instruction.arguments) != 3 or opcode not in {'COP', 'CPS', 'FLL'}
-                or slot not in ({0, 1} if opcode in {'COP', 'CPS'} else {1})):
+                or slot not in {0, 1}):
             return fail('unsupported_instruction')
         descriptor['role'] = 'read' if slot == 0 else 'write'
         length = _integer(instruction.arguments[2])
@@ -281,7 +284,7 @@ class UsageRangeResolver:
         rung = self.base._rungs[canonical['rung_id']]
         operands = {}
         for position in ((0, 1) if opcode in {'COP', 'CPS'} else (1,)):
-            resolved = self.base._resolve(instruction.arguments[position].strip(), rung.scope_id)
+            resolved = self._resolve(instruction.arguments[position].strip(), rung.scope_id)
             if resolved['status'] != 'root_bound' or not self.base._qualified(resolved, rung.id):
                 return fail('unqualified_operand', instruction.arguments[position].strip())
             if position == slot and (resolved['target_id'] != binding.get('target_id')
@@ -291,19 +294,30 @@ class UsageRangeResolver:
             if location is None:
                 return fail(reason, instruction.arguments[position].strip())
             operands[position] = location
+        source_location = None
         if opcode == 'FLL' and not _NUMBER.fullmatch(instruction.arguments[0].strip()):
-            source = self.base._resolve(instruction.arguments[0].strip(), rung.scope_id)
+            source = self._resolve(instruction.arguments[0].strip(), rung.scope_id)
             if source['status'] != 'root_bound' or not self.base._qualified(source, rung.id):
                 return fail('unqualified_operand', instruction.arguments[0].strip())
+            if slot == 0 and (source['target_id'] != binding.get('target_id')
+                    or _key(source['suffix']) != _key(binding.get('suffix', ''))):
+                return fail('unqualified_operand')
             source_location, reason = self._location(source['target_id'], source['suffix'])
             if source_location is None:
                 return fail(reason, instruction.arguments[0].strip())
+        if opcode == 'FLL' and slot == 0 and source_location is None:
+            return fail('unqualified_operand')
         byte_count = length * operands[1]['element_bytes']
         descriptor['byte_count'] = byte_count
         for position, row in operands.items():
             if row['offset'] + byte_count > row['capacity']:
                 return fail('member_boundary', instruction.arguments[position].strip())
-        selected = operands[slot]
+        selected = source_location if opcode == 'FLL' and slot == 0 else operands[slot]
+        if opcode == 'FLL' and slot == 0:
+            # Fill repeatedly uses one source value; Length describes the
+            # destination, never that many adjacent source elements.
+            byte_count = selected['element_bytes'] if length else 0
+            descriptor['byte_count'] = byte_count
         descriptor.update(status='resolved', reason='fixed_range', container_suffix=selected['container_suffix'],
             start_byte=selected['offset'], end_byte=selected['offset'] + byte_count,
             element_bytes=selected['element_bytes'], datatype=selected['datatype'])
@@ -321,8 +335,10 @@ class UsageRangeResolver:
             verb = 'reads' if descriptor['role'] == 'read' else 'writes'
             explanation = (f'{opcode} {verb} {address_range} when executed '
                 f'({count} element{"s" if count != 1 else ""}, {byte_count} bytes{partial}). ')
-        descriptor['explanation'] = explanation + (
-            f"Length={length} x {operands[1]['element_bytes']} destination bytes; "
+        length_detail = (f'One source value supplies Length={length} destination elements; '
+                         if opcode == 'FLL' and slot == 0 else
+                         f"Length={length} x {operands[1]['element_bytes']} destination bytes; ")
+        descriptor['explanation'] = explanation + length_detail + (
             f"byte offsets {descriptor['start_byte']} to {descriptor['end_byte']} (end excluded).")
         return descriptor
 

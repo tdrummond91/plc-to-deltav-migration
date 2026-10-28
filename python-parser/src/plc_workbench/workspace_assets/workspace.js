@@ -150,6 +150,7 @@
   }
   async function refresh() {
     const project = await api("/api/state");
+    assertSourceWindowRun(project);
     if (state.project?.active_run !== project.active_run)
       window.PLCInstructionHelp?.close?.();
     state.project = project;
@@ -455,8 +456,41 @@
     badge.title = description;
     if (compact) return badge;
     const note = node('p', null, 'page-access');
-    note.append(badge, node('span', description));
+    note.append(badge, button('Page help', () => showPageHelp(view), 'page-help-button'));
     return note;
+  }
+  function showPageHelp(view) {
+    const panel = $('view-' + view), title = panel?.querySelector('.page-heading h1')?.textContent || 'Workspace';
+    const opener = document.activeElement;
+    modal(title + ' · Help', body => {
+      body.append(node('p', pageAccessNote(view, true).title || 'Review source evidence and save engineering decisions separately.'));
+      const captured = panel?.querySelector('.page-help-content');
+      if (captured) { const copy = captured.cloneNode(true); copy.hidden = false; body.append(copy); }
+      if (view === 'field-io') {
+        body.append(node('h3', 'Reading the field signal list'));
+        [
+          'Logic usage reports captured source references, independently of physical mapping. Source references do not prove runtime activity.',
+          'Used in logic includes exact names and statically resolved word, member or range accesses. Indirect references explain what still determines the selected target. Open a usage label to follow its source.',
+          'Hide empty unreferenced rows removes only rows with no references and no specific description or result context. Saved signals remain visible. Uncheck it to restore the full matching list.',
+          'From result identifies wording borrowed from one directly connected result tag. It is context for the signal, not an original channel description. Original source wording remains in the evidence expansion.',
+          'A proposed DeltaV name is not reviewed until you check and save it. Source uses and related rungs are candidates: choose the members and package roles you want. Existing package members remain until you explicitly remove them.',
+          'Signals per page and page navigation are below the list. Hardware details are available from each signal’s information button.',
+          'Download I/O audit saves a small file of inventory, usage and description counts for this analysis. It contains no source names or logic, and does not require a new analysis run.',
+        ].forEach(text => body.append(node('p', text)));
+      }
+      body.append(node('p', 'The original L5X remains read-only. Saved names, classifications and packages belong to the engineering project.'));
+    });
+    $('dialog').addEventListener('close', () => { if (opener?.isConnected !== false) opener?.focus?.({preventScroll: true}); }, {once: true});
+  }
+  function installPageHelp() {
+    document.querySelectorAll('.view').forEach(view => {
+      const heading = view.querySelector('.page-heading'), title = heading?.querySelector('h1');
+      if (!title) return;
+      const content = node('div', null, 'page-help-content'); content.hidden = true;
+      heading.querySelectorAll('p:not([id])').forEach(paragraph => content.append(paragraph));
+      if (view.id === 'view-home') { const key = view.querySelector('.access-key'); if (key) content.append(key); }
+      view.append(content); title.after(pageAccessNote(view.id.replace('view-', '')));
+    });
   }
   function openFullAnalysis(view = 'overview') {
     // Reading a separate evidence window must not discard an unfinished review.
@@ -487,6 +521,7 @@
     }
     const target = view === 'source' ? (/^(rung|instruction)_/.test(id) ? 'rungs' : 'objects') : view;
     const url = '/?panel=' + (view === 'source' ? 'source' : 'workspace')
+      + (view === 'source' ? '&run_id=' + encodeURIComponent(state.project?.active_run || '') : '')
       + '#view=' + target + (id ? '&source=' + encodeURIComponent(id) : '');
     // A direct user gesture opens an independent same-origin window. No source
     // text or credentials are placed in the URL, only canonical evidence IDs.
@@ -511,6 +546,7 @@
     const runId = state.project?.active_run;
     const view = state.view;
     const project = await api('/api/state');
+    assertSourceWindowRun(project);
     // A slow request must not replace edits or navigation made after it began.
     // Keep the old project revision too, so a retained form cannot save as fresh.
     if (request !== state.refreshSerial) return;
@@ -564,6 +600,7 @@
     if (resize) target.append(pageSizeControl(size, resize));
   }
   async function loadRungs() {
+    if (document.body.classList.contains('source-popout')) return;
     state.rungPreviewObserver?.disconnect();
     state.rungPreviewQueue = [];
     const serial = ++state.listSerial;
@@ -791,6 +828,7 @@
     }));
   }
   async function loadObjects() {
+    if (document.body.classList.contains('source-popout')) return;
     const serial = ++state.listSerial;
     const result = await api(
       "/api/objects?" +
@@ -837,15 +875,29 @@
       state.objectPageSize = size; state.objectPage = 1; run(loadObjects);
     });
   }
+  function assertSourceWindowRun(project = state.project) {
+    const active = project?.active_run;
+    if (document.body.classList.contains('source-popout')) {
+      const query = new URLSearchParams(window.location?.search || '');
+      const pinned = query.get('run_id');
+      if (query.has('run_id') && (query.getAll('run_id').length !== 1 || !pinned || pinned.length > 256 || /[\x00-\x1f\x7f]/.test(pinned)))
+        throw new Error('This source window has an invalid analysis reference. Reopen the source from the workspace.');
+      if (pinned && pinned !== active)
+        throw new Error('This source window belongs to a different analysis run. Return to Field I/O and reopen the source from the current analysis.');
+    }
+    return active;
+  }
   async function openSource(id, target = "rung-detail", skipCheck = false) {
     if (!skipCheck && !discard()) return;
+    const expectedRun = assertSourceWindowRun();
+    if (!expectedRun) throw new Error('Choose an analysis before opening source evidence.');
     window.PLCInstructionHelp?.close?.();
     const serial = ++state.detailSerial;
     const panel = $(target);
     panel.inert = true;
     panel.setAttribute("aria-busy", "true");
     try {
-      const result = await api("/api/source?id=" + encodeURIComponent(id));
+      const result = await api('/api/source?' + new URLSearchParams({id, run_id: expectedRun}));
       if (serial !== state.detailSerial) return;
       if (state.dirty) {
         notify(
@@ -853,6 +905,9 @@
         );
         return;
       }
+      assertSourceWindowRun();
+      if (state.project?.active_run !== expectedRun || result.run_id !== expectedRun || result.historical === true || result.source?.id !== id)
+        throw new Error('The source response does not match this analysis. Reopen the source from the current workspace.');
       state.source = result;
       state.detailTarget = target;
       renderDetail(result, panel);
@@ -1722,6 +1777,54 @@
     window.addEventListener('resize', measure);
     measure();
     return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
+  }
+  function installTableHeaders() {
+    const root = $('main'), header = document.querySelector('.topbar');
+    if (!root || !header) return () => {};
+    const offsets = new Map(); let queued = false, frame = 0;
+    const measure = () => {
+      queued = false;
+      const headerBottom = Math.max(0, header.getBoundingClientRect().bottom);
+      const heads = new Set(root.querySelectorAll('table > thead'));
+      offsets.forEach((_, head) => { if (!heads.has(head)) offsets.delete(head); });
+      heads.forEach(head => {
+        const table = head.parentElement;
+        if (!table?.getClientRects().length) return;
+        const tableBox = table.getBoundingClientRect(), box = head.getBoundingClientRect();
+        const naturalTop = box.top - (offsets.get(head) || 0);
+        let top = headerBottom + 2, bottom = tableBox.bottom;
+        // Translate the original header inside its table. It keeps the real
+        // column widths, controls, and horizontal scroll position; no cloned
+        // header can drift from its cells or duplicate IDs/accessibility names.
+        for (let parent = table.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+          const style = window.getComputedStyle(parent);
+          if (/(auto|scroll|hidden|clip)/.test(style.overflowY)) {
+            const bounds = parent.getBoundingClientRect();
+            top = Math.max(top, bounds.top + parent.clientTop);
+            bottom = Math.min(bottom, bounds.bottom - parent.clientTop);
+          }
+        }
+        const offset = Math.max(0, Math.min(top - naturalTop, bottom - box.height - naturalTop));
+        if (offsets.get(head) !== offset) {
+          head.classList.add('workspace-table-head');
+          head.style.transform = offset ? `translateY(${offset}px)` : '';
+          offsets.set(head, offset);
+        }
+      });
+    };
+    const schedule = () => { if (!queued) { queued = true; frame = window.requestAnimationFrame(measure); } };
+    document.addEventListener('scroll', schedule, {capture: true, passive: true});
+    window.addEventListener('resize', schedule);
+    const resize = typeof window.ResizeObserver === 'function' ? new window.ResizeObserver(schedule) : null;
+    resize?.observe(root); resize?.observe(header);
+    const mutation = typeof window.MutationObserver === 'function' ? new window.MutationObserver(schedule) : null;
+    mutation?.observe(root, {childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'open']});
+    schedule();
+    return () => {
+      document.removeEventListener('scroll', schedule, true); window.removeEventListener('resize', schedule);
+      resize?.disconnect(); mutation?.disconnect(); window.cancelAnimationFrame(frame);
+      offsets.forEach((_, head) => { head.style.transform = ''; head.classList.remove('workspace-table-head'); }); offsets.clear();
+    };
   }
   function installOverlayDismissal() {
     const dialog = $("dialog"), tools = $("project-tools");
@@ -2965,9 +3068,7 @@
       );
   }
   window.addEventListener("hashchange", () => run(() => openLocation()));
-  document.querySelectorAll('.view').forEach(view => {
-    view.querySelector('.page-heading h1')?.after(pageAccessNote(view.id.replace('view-', '')));
-  });
+  installPageHelp();
   window.PLCReadingLayout.mount(document.querySelector("#view-rungs .workspace-grid"), $("rung-reading-settings"));
   window.PLCReadingLayout.mount($('map-layout'), $('map-reading-settings'), {
     storageKey: 'plc-workspace-map-layout-v1', defaultRatio: 0.6,
@@ -3035,6 +3136,7 @@
   });
   const translations = window.PLCTranslation.mount($("translation-controls"), api, translationChanged, $("header-language"));
   installHeaderLayout();
+  installTableHeaders();
   const classificationBrowser = window.PLCClassification.mount($("classification-browser"), {
     api,
     getState: () => state.project,

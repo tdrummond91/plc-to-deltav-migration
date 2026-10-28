@@ -77,6 +77,9 @@ body:not(.source-popout) .source-popout-access { display: none; }
 .access-editable { color: var(--orange); }
 .page-heading .page-access, .page-access { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem .65rem; max-width: none; color: var(--muted); font-size: .85rem; }
 .access-key { color: var(--muted); max-width: 105ch; font-size: .9rem; }
+.page-help-button { padding: .1rem .55rem; font-size: .78rem; }
+.workspace-table-head { position: relative; z-index: 15; }
+.workspace-table-head th { background: var(--surface); box-shadow: inset 0 -2px var(--accent); }
 .home-source, .home-reference { margin: 1rem 0; padding: 1.15rem; }
 .home-source { border-left: 3px solid var(--accent); }
 .heading-actions { display: flex; flex-wrap: wrap; gap: .6rem; }

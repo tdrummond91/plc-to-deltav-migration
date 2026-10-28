@@ -924,7 +924,8 @@ class Workspace:
                         'needs_revalidation': group.get('needs_revalidation', False)})
             extra_search = {address: ' '.join([row['target_name'], row['description'],
                 *(group['name'] for group in packages[row['id']])]) for address, row in saved.items()}
-            result = index.view(selected, extra_search=extra_search) if index else unavailable(selected['page_size'])
+            result = index.view(selected, extra_search=extra_search,
+                                preserve_signal_ids=set(saved)) if index else unavailable(selected['page_size'])
             self._evidence_unavailable(result, run_id, 'variables', 'field_io', 'field_signals')
             visible = list(result['signals']['items'])
             if result['selected_signal']:
@@ -942,17 +943,37 @@ class Workspace:
             descriptions = {row['id']: index.field_io.annotation_texts.get(
                 (row.get('description_selection') or {}).get('preferred_annotation_id'),
                 index.signals[row['id']]['description']) for row in visible}
-            mode, wording = self._wording([{'text': value} for value in [*originals.values(), *descriptions.values()]], 'text')
+            contexts = {row['id']: index.context.full_description(row['use_context']['rung_id'])
+                        for row in visible if row.get('use_context')}
+            mode, wording = self._wording([{'text': value} for value in [
+                *originals.values(), *descriptions.values(), *contexts.values()]], 'text')
             for note in notes:
                 entry = wording.get(originals[note['id']])
                 note['wording'] = _preview(entry) if type(entry) is dict else None
             for row in visible:
                 entry = wording.get(descriptions[row['id']])
                 row['wording'] = {'description': _preview(entry) if type(entry) is dict else None}
+                if row.get('use_context'):
+                    entry = wording.get(contexts[row['id']])
+                    row['use_context']['wording'] = _preview(entry) if type(entry) is dict else None
             result.update(run_id=run_id, revision=state['revision'], presentation_mode=mode, historical=False)
             if len(_json(result)) > MAX_RESPONSE_BYTES:
                 raise FieldSignalError('This field I/O view exceeds the display limit. Choose fewer signals or candidate rungs per page, or narrow the filters.')
             return result
+        except FieldSignalError as exc:
+            raise ProjectError(str(exc)) from None
+
+    def field_signal_audit(self, query: dict) -> dict:
+        """Return a count-only census of the same cached signal projection."""
+        from .workspace_field_signals import FieldSignalError, validate_query
+        from .workspace_signal_audit import build_audit
+        try:
+            selected = validate_query(query)
+            state = self.store.state()
+            index = self._field_signal_index(selected['run_id'], state)
+            if index is None:
+                raise ProjectError('Field I/O evidence is unavailable. Open Field I/O for its diagnostic.')
+            return {'run_id': selected['run_id'], 'revision': state['revision'], 'audit': build_audit(index)}
         except FieldSignalError as exc:
             raise ProjectError(str(exc)) from None
 
@@ -1492,6 +1513,8 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
                 self._json(200, workspace.application(query))
             elif url.path == '/api/field-signals':
                 self._json(200, workspace.field_signals(query))
+            elif url.path == '/api/field-signals-audit':
+                self._json(200, workspace.field_signal_audit(query))
             elif url.path == '/api/ladder-map':
                 self._json(200, workspace.ladder_map(query))
             elif url.path == '/api/ladder-map/links':

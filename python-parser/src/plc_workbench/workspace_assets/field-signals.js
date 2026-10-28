@@ -85,11 +85,11 @@
     const type = select([['', 'All types'], ...Object.entries(TYPES)], '', 'field-signals-type');
     const section = select([['all', 'Signals and candidates'], ['signals', 'Documented signals'], ['candidates', 'Mapping candidates']], 'all', 'field-signals-section');
     const usage = select([['', 'All usage'], ...Object.entries(USAGE)], '', 'field-signals-usage-filter');
+    const hideEmpty = el('input', undefined, 'field-signals-hide-empty'); hideEmpty.type = 'checkbox';
     const pageSize = select(PAGE_SIZES.map(size => [String(size), String(size)]), '50', 'field-signals-page-size');
     const submit = el('button', 'Search'); submit.type = 'submit';
     filters.append(field('Find alias, address, DeltaV name, package or source wording', query), field('Physical type / candidate', type),
-      field('Evidence', section), field('Logic usage', usage), field('Signals per page', pageSize), submit);
-    const usageNotice = el('p', 'Logic usage reports captured source references, independently of physical mapping. Source references do not prove runtime activity.', 'field-signals-usage-notice muted');
+      field('Evidence', section), field('Logic usage', usage), field('Hide empty unreferenced rows', hideEmpty), submit);
     const referenceScan = el('details', undefined, 'field-signals-reference-scan');
     referenceScan.setAttribute('aria-label', 'Reference scan'); referenceScan.setAttribute('tabindex', '-1'); referenceScan.hidden = true;
     const status = el('p', undefined, 'field-signals-status'); status.setAttribute('role', 'status');
@@ -97,14 +97,18 @@
     const layout = el('div', undefined, 'field-signals-layout');
     const directory = el('section', undefined, 'field-signals-directory');
     const tableWrap = el('div', undefined, 'field-signals-controller-list'), pager = el('div', undefined, 'pagination');
+    const footer = el('div', undefined, 'field-signals-footer'), filterSummary = el('small', undefined, 'field-signals-filter-summary muted');
+    const audit = button('Download I/O audit', downloadAudit, 'field-signals-audit');
+    audit.title = 'Download inventory, usage and description counts for this analysis; no source names or logic.';
+    footer.append(field('Signals per page', pageSize), pager, audit, filterSummary);
     const controllerTools = el('div', undefined, 'field-signals-controller-tools');
     const detail = el('section', undefined, 'field-signals-detail'); detail.setAttribute('aria-label', 'Selected field signal and engineering package');
-    directory.append(controllerTools, tableWrap, pager); layout.append(directory, detail);
-    root.replaceChildren(filters, usageNotice, referenceScan, status, draftsNotice, layout);
+    directory.append(controllerTools, tableWrap, footer); layout.append(directory, detail);
+    root.replaceChildren(filters, referenceScan, status, draftsNotice, layout);
     const drafts = new Map();
     const controllerStates = new Map(); let controllerPanels = [], controllersExpanded = true;
     let active = true, key = '', runId = '', listSerial = 0, detailSerial = 0, page = 1, selectedId = '', selectedDraft = null, detailPageSize = 10;
-    let applied = {query: '', field_type: '', section: 'all', usage: '', page_size: '50'}, saving = false, hardware = null, hardwareTimer = null, suppressHardwareFocus = false;
+    let applied = {query: '', field_type: '', section: 'all', usage: '', hide_empty: '0', page_size: '50'}, saving = false, auditing = false, hardware = null, hardwareTimer = null, suppressHardwareFocus = false;
     const state = () => options.getState() || {};
     const identity = () => JSON.stringify([state().project_path || '', state().active_run || '']);
     const current = expected => active && key === expected && identity() === expected;
@@ -121,13 +125,34 @@
     function url(extra = {}) {
       return '/api/field-signals?' + new URLSearchParams({run_id: runId, ...applied, page: String(page), ...extra});
     }
+    async function downloadAudit() {
+      if (auditing || !runId || !requireCurrent(key)) return;
+      const expected = key, expectedRun = runId;
+      auditing = true; audit.disabled = true;
+      try {
+        const result = await options.api('/api/field-signals-audit?' + new URLSearchParams({run_id: expectedRun}));
+        if (!current(expected)) return;
+        if (!result || result.run_id !== expectedRun) throw new Error('The audit does not match this analysis. Refresh and try again.');
+        if (!result.audit || result.audit.schema_version !== 1) throw new Error('This I/O audit format is unavailable. Refresh and try again.');
+        // Run/revision are request guards, never part of the count-only file.
+        const blob = new Blob([JSON.stringify(result.audit, null, 2) + '\n'], {type: 'application/json'});
+        const address = URL.createObjectURL(blob), link = el('a');
+        link.href = address; link.download = 'field-io-audit.json';
+        try { document.body.append(link); link.click(); }
+        finally { link.remove(); setTimeout(() => URL.revokeObjectURL(address), 1000); }
+        message('I/O audit downloaded. It contains counts, with no source names or logic.');
+      } catch (error) {
+        if (current(expected)) message(error.message || 'The I/O audit could not be downloaded.', true);
+      } finally { auditing = false; audit.disabled = !active || !runId; }
+    }
     function checkResult(result, expectedRun, expectedPageSize) {
       if (!result || result.run_id !== expectedRun || !Number.isInteger(result.revision) || result.revision < 0 || !pageValid(result.signals, expectedPageSize))
         throw new Error('Signal evidence did not match the requested analysis or page bounds. Reload the list.');
     }
     function sourceLink(label, ownerId, view = 'objects', expected = key) {
-      const link = el('a', label); link.href = '/analysis#view=' + encodeURIComponent(view)
-        + (ownerId ? '&source=' + encodeURIComponent(ownerId) : '');
+      const link = el('a', label); link.href = ownerId
+        ? '/?panel=source&run_id=' + encodeURIComponent(runId) + '#view=' + (view === 'ladder' ? 'rungs' : 'objects') + '&source=' + encodeURIComponent(ownerId)
+        : '/#view=objects';
       link.target = '_blank'; link.rel = 'noopener';
       const guard = event => { if (!requireCurrent(expected)) event.preventDefault(); };
       link.addEventListener('click', guard); link.addEventListener('auxclick', guard); return link;
@@ -263,7 +288,15 @@
         if (labelOf(row) !== row.address) source.append(el('code', row.address));
         if (row.aliases_total > 1) source.append(el('small', row.aliases_total + ' captured aliases', 'muted'));
         const description = el('td', undefined, 'field-signals-source-description'), wording = el('div', undefined, 'field-signals-wording-preview');
-        prose(wording, textOf(row), wordingOf(row), result.presentation_mode); description.append(wording);
+        const context = row.description_origin?.specific !== true && row.use_context?.description ? row.use_context : null;
+        if (context) {
+          prose(wording, context.description, context.wording?.description || context.wording, result.presentation_mode);
+          description.append(wording, sourceLink('From result ' + (context.result_name || 'tag'), context.result_id, 'objects', expected));
+        } else {
+          prose(wording, textOf(row), wordingOf(row), result.presentation_mode); description.append(wording);
+          if (row.description_origin?.specific === false && row.description_origin.kind !== 'missing')
+            description.append(el('small', row.description_origin.label, 'field-signals-description-origin muted'));
+        }
         if (descriptionNotice(row)) description.append(el('small', descriptionNotice(row), 'field-signals-description-conflict'));
         const use = usageOf(row), usageCell = el('td', undefined, 'field-signals-usage-cell');
         const usageButton = button(USAGE[use.status], async () => {
@@ -296,7 +329,11 @@
     function paintList(result) {
       closeHardware(); paintReferenceScan(result); tableWrap.replaceChildren(); controllerPanels = [];
       controllerTools.hidden = result.available === false;
-      pager.hidden = result.available === false;
+      footer.hidden = result.available === false;
+      const filtering = result.filtering;
+      filterSummary.textContent = filtering?.hide_empty ? `${count(filtering.hidden_empty_count)} empty unreferenced rows hidden`
+        + (count(filtering.preserved_empty_count) ? `; ${count(filtering.preserved_empty_count)} saved row${count(filtering.preserved_empty_count) === 1 ? '' : 's'} retained` : '') : '';
+      filterSummary.hidden = !filterSummary.textContent;
       if (result.available === false) {
         pager.replaceChildren();
         tableWrap.append(el('p', 'The field signal list could not be loaded. This does not mean the analysis has no I/O. Your saved names and packages are retained; rungs and the full source report remain available.', 'warning-panel'));
@@ -329,7 +366,7 @@
         if (!current(expected) || serial !== listSerial) return;
         checkResult(result, expectedRun, expectedPageSize); page = result.signals.page; paintList(result);
         message(result.available === false ? result.notice || 'Signal evidence is unavailable.'
-          : `${result.signals.total} source signal addresses match. Candidate mappings and related logic require your review.`, result.available === false);
+          : `${result.signals.total} matching field signals`, result.available === false);
       } catch (error) {
         if (!current(expected) || serial !== listSerial) return;
         message(error.message || 'The signal list could not be loaded.', true);
@@ -693,10 +730,16 @@
     }
     function paintEditor(draft) {
       const row = draft.row, controlsDisabled = saving || !current(draft.context);
-      detail.replaceChildren(el('h3', labelOf(row)), el('code', row.address), el('p', draft.message || 'Edit the engineering signal; the captured L5X remains unchanged.', 'field-signals-editor-status'));
+      detail.replaceChildren(el('h3', labelOf(row)), el('code', row.address));
+      if (draft.message) detail.append(el('p', draft.message, 'field-signals-editor-status'));
       if (!current(draft.context)) detail.append(el('p', 'These edits belong to a different project or analysis. They remain available for reference, but cannot be saved into the current source.', 'warning-panel'));
       paintUsage(draft);
       const source = el('details', undefined, 'field-signals-source'); source.append(el('summary', 'Original source wording and evidence'));
+      if (row.rack_mapping?.logical_address) {
+        source.append(el('p', 'Source address ' + row.rack_mapping.logical_address
+          + ' → backing address ' + row.address, 'field-signals-rack-mapping'));
+      }
+      if (row.description_origin?.label) source.append(el('p', row.description_origin.label, 'field-signals-description-origin muted'));
       const metadata = row.source_metadata || {}, facts = el('dl', undefined, 'field-signals-source-facts');
       [['Tag type', metadata.tag_type], ['Alias for', metadata.alias_for], ['Base name', metadata.base_name],
         ['Data type', metadata.data_type], ['Radix', metadata.radix], ['External access', metadata.external_access]].forEach(([label, value]) => {
@@ -739,6 +782,13 @@
       }
       source.append(el('p', MAPPING[row.mapping_reason] || (row.mapping_status === 'documented_member_layout' ? 'Documented source member layout.' : 'Field mapping requires review.')));
       detail.append(source);
+      if (row.use_context?.description) {
+        const context = row.use_context, panel = el('section', undefined, 'field-signals-use-context'), description = el('p');
+        panel.append(sourceLink('From result ' + (context.result_name || 'tag'), context.result_id, 'objects', draft.context));
+        prose(description, context.description, context.wording?.description || context.wording, draft.payload.presentation_mode); panel.append(description);
+        if (context.rung_id) panel.append(sourceLink('Open result rung', context.rung_id, 'ladder', draft.context));
+        detail.append(panel);
+      }
       const signalForm = el('div', undefined, 'field-signals-edit-form');
       const name = input(draft.target_name, 'field-signals-target-name'), description = input(draft.description, 'field-signals-description', true);
       name.maxLength = 160; description.maxLength = 4000;
@@ -749,7 +799,6 @@
       });
       const save = button('Save signal', () => saveSignal(draft)); save.disabled = controlsDisabled;
       signalForm.append(field('DeltaV name', name), field('Engineering description', description), field('Reviewed field type', type), save);
-      if (!draft.id && proposedName(row)) signalForm.append(el('p', 'The source name is proposed for DeltaV. Check it, change it if needed, then save; the proposal is not a reviewed mapping.', 'field-signals-proposal-note muted'));
       if (draft.id && row.saved_signal?.needs_revalidation) {
         const bindingChanged = !sameEvidence(row.saved_signal.binding, row.binding);
         const confirm = button('Confirm signal mapping', () => saveSignal(draft, true)); confirm.disabled = controlsDisabled || bindingChanged;
@@ -775,7 +824,6 @@
         const save = button('Save package', () => savePackage(draft, item)); save.disabled = controlsDisabled;
         packageSection.append(save);
       }
-      packageSection.append(el('p', 'Source uses and related rungs are candidates, not an accepted design. Check only the source members you want and choose their package roles. Nothing is added automatically.', 'muted'));
       const candidateSize = select(PAGE_SIZES.map(size => [String(size), String(size)]), String(draft.detailPageSize || detailPageSize), 'field-signals-detail-page-size');
       candidateSize.disabled = controlsDisabled;
       candidateSize.addEventListener('change', () => {
@@ -803,6 +851,7 @@
         else { selectedDraft = null; detail.replaceChildren(el('p', 'Choose an individual signal to edit its DeltaV name, description and package.')); }
       }
       paintDrafts();
+      audit.disabled = auditing || !runId;
       if (!runId) { message('Choose an analysis under Project tools to browse individual field signals.'); return; }
       const tasks = [loadList()];
       if (!saving && selectedDraft && current(selectedDraft.context) && !dirty(selectedDraft)) {
@@ -818,10 +867,11 @@
     function changeFilters() {
       if (!requireCurrent(key)) return;
       applied = {query: query.value.trim().slice(0, 256), field_type: type.value, section: section.value,
-        usage: usage.value, page_size: pageSize.value}; page = 1; return loadList();
+        usage: usage.value, hide_empty: hideEmpty.checked ? '1' : '0', page_size: pageSize.value}; page = 1; return loadList();
     }
     filters.addEventListener('submit', event => { event.preventDefault(); return changeFilters(); });
     type.addEventListener('change', changeFilters); section.addEventListener('change', changeFilters); usage.addEventListener('change', changeFilters);
+    hideEmpty.addEventListener('change', changeFilters);
     pageSize.addEventListener('change', () => {
       if (!PAGE_SIZES.includes(Number(pageSize.value)) || !requireCurrent(key)) return;
       applied = {...applied, page_size: pageSize.value}; page = 1; return loadList();

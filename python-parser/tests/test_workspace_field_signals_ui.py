@@ -23,6 +23,7 @@ class Element {
  contains(target){return this===target||this.children.some(child=>child.contains(target));}
  getBoundingClientRect(){return {left:600,top:200,bottom:230,width:380,height:220};}
  focus(){document.activeElement=this;this.events.focus?.({target:this});}
+ click(){return this.fire('click');}
  fire(name,extra={}){if(this.disabled)return;return this.events[name]?.({type:name,target:this,preventDefault(){},...extra});}
 }
 const document={events:{},body:new Element('body'),createElement:tag=>new Element(tag),addEventListener(name,callback){this.events[name]=callback;}};
@@ -124,7 +125,7 @@ assert.ok(cells[2].textContent.includes('No references found Within scanned sour
 assert.ok(cells[3].textContent.includes('Not checked Reference scan unavailable'));
 assert.equal(byClass(root,'field-signals-table')[0].textContent.match(/Input DI type candidate/g).length,4);
 assert.equal(byClass(root,'field-signals-table')[0].textContent.includes('Mapping unresolved'),false);
-assert.ok(root.textContent.includes('Source references do not prove runtime activity'));
+assert.equal(root.textContent.includes('Source references do not prove runtime activity'),false,'General instructions belong in Page help');
 assert.equal(/\binactive\b|\bspare\b|\blive\b/i.test(cells.map(item=>item.textContent).join(' ')),false);
 assert.equal(writes.length,0);
 rows=[sourceRow('address-1',{usage:usageEvidence('referenced',{direct_count:1,direct_rung_count:1})}),
@@ -191,9 +192,9 @@ assert.ok(byClass(root,'field-signals-usage-cell')[0].textContent.startsWith('Us
 await findButton(summary,'View reference scan scope').fire('click');assert.equal(scan.open,true);assert.equal(document.activeElement,scan);
 assert.ok(summary.textContent.includes('Equivalent numeric array index spelling'));
 assert.ok(summary.textContent.includes('The copy or fill range has not been resolved to individual members'));assert.ok(summary.textContent.includes('Read: 3'));
-assert.equal(findLink(summary,'Open instruction source').href,'/analysis#view=ladder&source=inst%2Fa%3F%23');
-assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/analysis#view=ladder&source=maybe-inst'));
-assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/analysis#view=ladder&source=maybe-rung'));
+assert.equal(findLink(summary,'Open instruction source').href,'/?panel=source&run_id=run-1#view=rungs&source=inst%2Fa%3F%23');
+assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/?panel=source&run_id=run-1#view=rungs&source=maybe-inst'));
+assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/?panel=source&run_id=run-1#view=rungs&source=maybe-rung'));
 const link=findLink(summary,'Open instruction source');project={...project,active_run:'run-2'};let prevented=false;
 await link.fire('click',{preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(writes.length,0);
 """)
@@ -264,7 +265,7 @@ await byClass(root,'field-signals-usage-open')[0].fire('click');const summary=by
 assert.ok(summary.textContent.includes('Resolved source references'));assert.ok(summary.textContent.includes(explanation));
 assert.ok(summary.textContent.includes('Read: 1'));assert.equal(summary.textContent.includes('References needing target resolution'),false);
 assert.equal(byClass(summary,'field-signals-reference-explanation')[0].textContent,explanation);
-const link=findLink(summary,'Open instruction source');assert.equal(link.href,'/analysis#view=ladder&source=parent%2Finst%3F');
+const link=findLink(summary,'Open instruction source');assert.equal(link.href,'/?panel=source&run_id=run-1#view=rungs&source=parent%2Finst%3F');
 project={...project,active_run:'run-2'};let prevented=false;await link.fire('click',{preventDefault(){prevented=true;}});
 assert.equal(prevented,true);assert.equal(writes.length,0);
 """)
@@ -297,7 +298,7 @@ await controller.openSignal('address-1');const summary=byClass(root,'field-signa
 assert.ok(summary.textContent.includes('References needing target resolution'));
 const description=byClass(summary,'field-signals-reference-explanation')[0];assert.equal(description.textContent,explanation);assert.equal(description.children.length,0);
 assert.equal(summary.textContent.includes('A variable index selects the member'),false);assert.equal(summary.textContent.includes('may include'),false);
-assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/analysis#view=ladder&source=index-inst'));
+assert.ok(all(summary).some(item=>item.tagName==='a'&&item.href==='/?panel=source&run_id=run-1#view=rungs&source=index-inst'));
 await edit('field-signals-target-name','Preserved through resolution filter');await edit('field-signals-usage-filter','possible_indirect','change');
 assert.equal(new URL(calls.at(-1),'http://localhost').searchParams.get('usage'),'possible_indirect');
 assert.equal(byClass(root,'field-signals-target-name')[0].value,'Preserved through resolution filter');assert.equal(writes.length,0);
@@ -317,9 +318,9 @@ const sources=byClass(root,'field-signals-index-sources')[0],links=all(sources).
 assert.equal(byClass(root,'field-signals-index-sources').length,1);assert.equal(links.length,3);
 assert.ok(sources.textContent.includes('Showing 3 of 8 index source references in these previews.'));
 assert.equal(links[0].textContent,'Index Selection <img src=x> written by MOV <script> · Main / Routine / Rung 0');
-assert.equal(links[0].children.length,0);assert.equal(links[0].href,'/analysis#view=ladder&source=writer%2F0%3F');
+assert.equal(links[0].children.length,0);assert.equal(links[0].href,'/?panel=source&run_id=run-1#view=rungs&source=writer%2F0%3F');
 assert.equal(links[1].textContent,'Index Selection1 accessed by ADD · Main / Routine / Rung 1');
-assert.equal(links[1].href,'/analysis#view=ladder&source=writer-rung-1');assert.ok(links[2].textContent.includes('written by ADD'));
+assert.equal(links[1].href,'/?panel=source&run_id=run-1#view=rungs&source=writer-rung-1');assert.ok(links[2].textContent.includes('written by ADD'));
 project={...project,active_run:'run-2'};let prevented=false;await links[0].fire('click',{preventDefault(){prevented=true;}});assert.equal(prevented,true);
 assert.equal(writes.length,0);
 """)
@@ -342,7 +343,7 @@ response=async path=>{const answer=result(path),q=new URL(path,'http://localhost
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
 await edit('field-signals-target-name','Preserved draft');await findButton(root,'Next exact references').fire('click');
 assert.equal(new URL(calls.at(-1),'http://localhost').searchParams.get('use_page'),'2');
-assert.equal(findLink(byClass(root,'field-signals-usage-summary')[0],'Open instruction source').href,'/analysis#view=ladder&source=i2');
+assert.equal(findLink(byClass(root,'field-signals-usage-summary')[0],'Open instruction source').href,'/?panel=source&run_id=run-1#view=rungs&source=i2');
 assert.equal(byClass(root,'field-signals-target-name')[0].value,'Preserved draft');assert.equal(controller.hasUnsavedChanges(),true);assert.equal(writes.length,0);
 """)
 
@@ -386,6 +387,72 @@ await edit('field-signals-target-name','Retain my draft');
 const selector=byClass(root,'field-signals-page-size')[0];assert.deepEqual(selector.children.map(option=>option.value),['10','50','100','200','500']);
 for(const size of ['10','100','200','500']){await edit('field-signals-page-size',size,'change');const request=new URL(calls.at(-1),'http://localhost');assert.equal(request.searchParams.get('page_size'),size);assert.equal(request.searchParams.get('page'),'1');}
 assert.equal(controller.hasUnsavedChanges(),true);assert.equal(byClass(root,'field-signals-target-name')[0].value,'Retain my draft');assert.equal(writes.length,0);
+""")
+
+    def test_page_size_is_in_footer_and_empty_row_filter_is_reversible_without_losing_drafts(self) -> None:
+        self.run_js(r"""
+response=async path=>{const answer=result(path),hidden=new URL(path,'http://localhost').searchParams.get('hide_empty')==='1';
+ answer.filtering={hide_empty:hidden,total_before_hide:7,hidden_empty_count:hidden?5:0,preserved_empty_count:hidden?1:0,informative_count:1};return answer;};
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+const selector=byClass(root,'field-signals-page-size')[0],footer=byClass(root,'field-signals-footer')[0],filters=byClass(root,'field-signals-filters')[0];
+assert.equal(footer.contains(selector),true);assert.equal(filters.contains(selector),false);assert.ok(footer.textContent.includes('Signals per page'));
+await edit('field-signals-target-name','Keep my review');const checkbox=byClass(root,'field-signals-hide-empty')[0];assert.equal(checkbox.checked,false);
+checkbox.checked=true;await checkbox.fire('change');let q=new URL(calls.at(-1),'http://localhost').searchParams;
+assert.equal(q.get('hide_empty'),'1');assert.equal(q.get('page'),'1');assert.ok(footer.textContent.includes('5 empty unreferenced rows hidden; 1 saved row retained'));
+await edit('field-signals-page-size','100','change');q=new URL(calls.at(-1),'http://localhost').searchParams;assert.equal(q.get('hide_empty'),'1');assert.equal(q.get('page_size'),'100');
+checkbox.checked=false;await checkbox.fire('change');assert.equal(new URL(calls.at(-1),'http://localhost').searchParams.get('hide_empty'),'0');
+assert.equal(byClass(root,'field-signals-filter-summary')[0].hidden,true);assert.equal(byClass(root,'field-signals-target-name')[0].value,'Keep my review');assert.equal(writes.length,0);
+""")
+
+    def test_count_audit_download_is_run_bound_and_does_not_change_review(self) -> None:
+        self.run_js(r"""
+const exported={run_id:'run-1',revision:7,audit:{schema_version:1,inventory:{signals:7},usage:{referenced:4,not_found:3}}},blobs=[],downloads=[];
+URL.createObjectURL=blob=>{blobs.push(blob);return 'blob:local-audit';};URL.revokeObjectURL=()=>{};
+const originalClick=Element.prototype.click;Element.prototype.click=function(){if(this.tagName==='a'&&this.download)downloads.push({href:this.href,download:this.download});return originalClick.call(this);};
+response=async path=>path.startsWith('/api/field-signals-audit?')?exported:result(path);
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+await edit('field-signals-target-name','Unsaved review');await findButton(root,'Download I/O audit').fire('click');
+assert.equal(calls.at(-1),'/api/field-signals-audit?run_id=run-1');assert.deepEqual(downloads,[{href:'blob:local-audit',download:'field-io-audit.json'}]);
+assert.equal(blobs[0].type,'application/json');const payload=JSON.parse(await blobs[0].text());assert.deepEqual(payload,exported.audit);
+const countOnly=value=>{if(value&&typeof value==='object')Object.values(value).forEach(countOnly);else assert.ok(typeof value==='number'||typeof value==='boolean');};countOnly(payload);
+assert.ok(!(await blobs[0].text()).includes('run-1'));assert.ok(!('revision' in payload));
+assert.equal(byClass(root,'field-signals-target-name')[0].value,'Unsaved review');assert.equal(controller.hasUnsavedChanges(),true);assert.equal(writes.length,0);
+""")
+
+    def test_count_audit_wrong_or_changed_run_cannot_download(self) -> None:
+        self.run_js(r"""
+let downloads=0;URL.createObjectURL=()=>{downloads++;return 'blob:unexpected';};
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+response=async path=>path.startsWith('/api/field-signals-audit?')?{run_id:'wrong-run'}:result(path);
+await findButton(root,'Download I/O audit').fire('click');assert.equal(downloads,0);assert.ok(root.textContent.includes('The audit does not match this analysis'));
+const pending=deferred();response=path=>path.startsWith('/api/field-signals-audit?')?pending.promise:Promise.resolve(result(path));
+const loading=findButton(root,'Download I/O audit').fire('click');project={...project,active_run:'run-2'};await controller.refresh();
+pending.resolve({run_id:'run-1'});await loading;assert.equal(downloads,0);assert.equal(writes.length,0);
+""")
+
+    def test_unique_result_context_is_labeled_linked_and_keeps_original_wording(self) -> None:
+        self.run_js(r"""
+let callsToTranslate=[];window.PLCTranslation={renderProse(target,original,wording){callsToTranslate.push({original,wording});target.textContent=original;}};
+rows=[sourceRow('address-1',{description:'Remote adapter',source_annotations:[{text:'Remote adapter'}],
+ description_origin:{kind:'module',specific:false,label:'Inherited module description'},
+ use_context:{description:'High level shutdown input',result_name:'HighLevelTrip',result_id:'result/tag?',rung_id:'result-rung',wording:{description:{status:'translated',text:'High level shutdown input'}}}})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const cell=byClass(root,'field-signals-source-description')[0];assert.ok(cell.textContent.includes('High level shutdown input'));assert.equal(cell.textContent.includes('Remote adapter'),false);
+const link=findLink(cell,'From result HighLevelTrip');assert.ok(link);assert.equal(link.href,'/?panel=source&run_id=run-1#view=objects&source=result%2Ftag%3F');
+assert.equal(callsToTranslate[0].wording.status,'translated');await controller.openSignal('address-1');
+const source=byClass(root,'field-signals-source')[0];assert.ok(source.textContent.includes('Remote adapter'));assert.ok(source.textContent.includes('Inherited module description'));
+assert.ok(byClass(root,'field-signals-use-context')[0].textContent.includes('From result HighLevelTrip'));
+assert.equal(findLink(byClass(root,'field-signals-use-context')[0],'Open result rung').href,'/?panel=source&run_id=run-1#view=rungs&source=result-rung');
+project={...project,active_run:'other-run'};let prevented=false;await link.fire('click',{preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(writes.length,0);
+""")
+
+    def test_specific_channel_wording_wins_and_generic_fallback_is_marked(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{description_origin:{kind:'channel',specific:true,label:'Channel comment'},use_context:{description:'Result fallback',result_name:'ResultTag',result_id:'tag-id'}}),
+ sourceRow('address-2',{description:'Ethernet remote adapter',source_annotations:[{text:'Ethernet remote adapter'}],description_origin:{kind:'module',specific:false,label:'Inherited module description'}})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();const descriptions=byClass(root,'field-signals-source-description');
+assert.ok(descriptions[0].textContent.includes('Niveau haut'));assert.equal(descriptions[0].textContent.includes('Result fallback'),false);
+assert.ok(descriptions[1].textContent.includes('Ethernet remote adapter Inherited module description'));assert.equal(writes.length,0);
 """)
 
     def test_proposed_names_are_visible_and_saved_only_explicitly_with_source_metadata(self) -> None:
@@ -467,7 +534,7 @@ rows=[sourceRow('address-1',{aliases:Array.from({length:9},(_,index)=>({id:'alia
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
 const aliases=byClass(root,'field-signals-aliases')[0];assert.equal(all(aliases).filter(item=>item.tagName==='a').length,8);
 assert.ok(root.textContent.includes('10 captured aliases'));assert.ok(aliases.textContent.includes('Showing 8 of 10'));
-assert.equal(findLink(aliases,'Alias 0').href,'/analysis#view=objects&source=alias-0');assert.equal(findLink(aliases,'Alias 8'),undefined);
+assert.equal(findLink(aliases,'Alias 0').href,'/?panel=source&run_id=run-1#view=objects&source=alias-0');assert.equal(findLink(aliases,'Alias 8'),undefined);
 await findButton(root,'Save signal').fire('click');assert.equal(writes[0].command.binding.address_id,'address-1');assert.equal(project.signals.length,1);
 """)
 
@@ -625,17 +692,17 @@ project.signals=[savedSignal()];project.groups=[group({members:[{id:'existing-ru
 rows=[sourceRow('address-1',{hardware:{id:'module#one',name:'Input module',controller:{id:'controller&one',name:'Controller'},catalog_number:'1756-IB16'}})];
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');await choosePackage();
 const member=byClass(root,'field-signals-member')[0];assert.ok(member.textContent.includes('Plant program / Scaling / Rung 9'));
-assert.equal(findLink(member,'Open rung source').href,'/analysis#view=ladder&source=existing-rung');
+assert.equal(findLink(member,'Open rung source').href,'/?panel=source&run_id=run-1#view=rungs&source=existing-rung');
 await byClass(root,'field-signals-hardware-info')[0].fire('pointerenter');const popover=byClass(document.body,'field-signals-hardware-popover')[0];
-assert.equal(findLink(popover,'Open module source').href,'/analysis#view=objects&source=module%23one');
-assert.equal(findLink(popover,'Open controller source').href,'/analysis#view=objects&source=controller%26one');
+assert.equal(findLink(popover,'Open module source').href,'/?panel=source&run_id=run-1#view=objects&source=module%23one');
+assert.equal(findLink(popover,'Open controller source').href,'/?panel=source&run_id=run-1#view=objects&source=controller%26one');
 """)
 
     def test_source_note_links_encode_owner_identity_and_block_stale_project(self) -> None:
         self.run_js(r"""
 rows=[sourceRow('address-1',{source_annotations:[{id:'derived-note',owner_id:'owner #1&x=y',kind:'member_comment',text:'Text'}],source_annotations_truncated:true})];
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
-const link=findLink(root,'Open complete source wording');assert.equal(link.href,'/analysis#view=objects&source='+encodeURIComponent('owner #1&x=y'));assert.equal(link.target,'_blank');assert.equal(link.rel,'noopener');
-assert.equal(findLink(root,'Browse all source comments').href,'/analysis#view=annotations');
+const link=findLink(root,'Open complete source wording');assert.equal(link.href,'/?panel=source&run_id=run-1#view=objects&source='+encodeURIComponent('owner #1&x=y'));assert.equal(link.target,'_blank');assert.equal(link.rel,'noopener');
+assert.equal(findLink(root,'Browse all source comments').href,'/#view=objects');
 let prevented=false;project={...project,project_path:'other.sqlite'};link.events.click({preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(opened.length,0);
 """)

@@ -24,6 +24,24 @@ def find(index: FieldSignalIndex, address: str) -> dict:
 
 
 class WorkspaceFieldSignalTests(unittest.TestCase):
+    def test_logical_rack_address_search_selects_canonical_point_and_respects_filters(self) -> None:
+        from test_rack_backing_context import fixture
+        from test_workspace_rack_references import index as rack_index
+        index = FieldSignalIndex(rack_index(fixture(rungs=(
+            'XIC(Remote:3:I.Data.1)OTE(Remote:3:O.Data.1);',), sfc='')))
+        point = find(index, 'Remote:I.Slot[3].Data.1')
+        result = index.view(query(query='remote:3:i.data.1', module_id=point['module_id'], usage='referenced'))
+        self.assertEqual(result['signals']['total'], 1)
+        self.assertEqual(result['signals']['items'][0]['id'], point['id'])
+        self.assertEqual(result['signals']['items'][0]['binding'], point['binding'])
+        self.assertEqual(result['signals']['items'][0]['rack_mapping']['logical_address'], 'Remote:3:I.Data.1')
+        self.assertEqual(index.view(query(query='Remote:I.Slot[3].Data.1'))['signals']['items'][0]['id'], point['id'])
+        self.assertEqual(index.view(query(query='Remote:3:I.Data.1', usage='not_found'))['signals']['total'], 0)
+        output = index.view(query(query='Remote:3:O.Data.1'))['signals']['items']
+        self.assertEqual(len(output), 1)
+        self.assertEqual(output[0]['direction'], 'output')
+        self.assertNotEqual(output[0]['id'], point['id'])
+
     def test_documented_channel_rows_exclude_aggregates_faults_configuration_and_echo(self) -> None:
         index = build()
         view = index.view(query(section='signals'))

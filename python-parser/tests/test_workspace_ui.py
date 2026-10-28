@@ -100,7 +100,7 @@ let selectedCategories=['category-pid'];
 const categoryPicker=()=>({element:node('div'),values:()=>selectedCategories});
 let activeGroups=[];
 const groups=()=>activeGroups;
-let commands=[],modalBody,saveDialog,notice='',state={project:{revision:1},selected:new Set(['rung-a','rung-b']),source:null,dirty:false,detailSerial:0,view:'rungs'};
+let commands=[],modalBody,saveDialog,notice='',state={project:{revision:1,active_run:'synthetic-run'},selected:new Set(['rung-a','rung-b']),source:null,dirty:false,detailSerial:0,view:'rungs'};
 const statusNames={unreviewed:'Not reviewed',needs_review:'Needs review',confirmed:'Confirmed'};
 let discard=()=>true;
 const modal=(title,build,save)=>{modalBody=node('div');build(modalBody);saveDialog=save;};
@@ -196,6 +196,8 @@ class WorkspacePageTests(unittest.TestCase):
 @unittest.skipUnless(NODE, "Node is optional developer tooling")
 class WorkspaceInteractionTests(unittest.TestCase):
     def run_js(self, names: list[str], checks: str) -> None:
+        if any(name in names for name in ('openSource', 'refresh', 'refreshProjectWindow')) and 'assertSourceWindowRun' not in names:
+            names = ['assertSourceWindowRun', *names]
         dom = DOM
         for name in ("openSource", "loadRungs"):
             if name in names:
@@ -237,6 +239,42 @@ document.querySelector=()=>header;document.documentElement={style:{setProperty:(
 window.addEventListener=(name,callback)=>{resize=callback;};window.removeEventListener=()=>{};
 installHeaderLayout();assert.equal(values.at(-1),'100px');height=190;resize();assert.equal(values.at(-1),'190px');
 document.querySelector=()=>null;assert.doesNotThrow(()=>installHeaderLayout()());
+""")
+
+    def test_original_table_header_tracks_page_and_nested_scroll_without_column_clones(self) -> None:
+        self.run_js(['installTableHeaders'], r"""
+const main=node('main'),header=node('header'),table=node('table'),head=node('thead'),wrap=node('div');
+let tableTop=-100,wrapperTop=-100,wrapperBottom=500,left=-160,visible=true,frameCallback,scrollCallback,resizeCallback;
+table.parentElement=wrap;wrap.parentElement=main;main.parentElement=document.body;head.parentElement=table;head.style={};
+head.getBoundingClientRect=()=>({top:tableTop+(Number((head.style.transform||'').match(/-?[0-9.]+/)?.[0])||0),height:30,left});
+table.getBoundingClientRect=()=>({top:tableTop,bottom:tableTop+500,left});table.getClientRects=()=>visible?[{}]:[];
+wrap.getBoundingClientRect=()=>({top:wrapperTop,bottom:wrapperBottom});wrap.clientTop=0;
+header.getBoundingClientRect=()=>({bottom:100});main.querySelectorAll=()=>[head];$=id=>id==='main'?main:null;
+document.querySelector=()=>header;window.getComputedStyle=element=>({overflowY:element===wrap?'auto':'visible'});
+document.addEventListener=(name,callback)=>{assert.equal(name,'scroll');scrollCallback=callback;};
+document.removeEventListener=(name,callback)=>{assert.equal(callback,scrollCallback);scrollCallback=null;};
+window.addEventListener=(name,callback)=>{resizeCallback=callback;};window.removeEventListener=()=>{};
+window.requestAnimationFrame=callback=>{frameCallback=callback;return 1;};window.cancelAnimationFrame=()=>{};
+const cleanup=installTableHeaders();frameCallback();assert.equal(head.style.transform,'translateY(202px)');
+assert.equal(head.getBoundingClientRect().top,102);assert.equal(head.getBoundingClientRect().left,left);
+left=-400;scrollCallback();frameCallback();assert.equal(head.getBoundingClientRect().left,-400);assert.equal(head.getBoundingClientRect().top,102);
+wrapperTop=180;wrapperBottom=380;tableTop=-20;scrollCallback();frameCallback();assert.equal(head.getBoundingClientRect().top,180);
+tableTop=-380;scrollCallback();frameCallback();assert.equal(head.getBoundingClientRect().top,90,'Heading stops at table bottom');
+tableTop=240;wrapperTop=240;wrapperBottom=800;resizeCallback();frameCallback();assert.equal(head.style.transform,'');
+assert.equal(head.classList.contains('workspace-table-head'),true);cleanup();assert.equal(head.classList.contains('workspace-table-head'),false);assert.equal(head.style.transform,'');
+""")
+
+    def test_page_help_keeps_access_and_instructions_out_of_the_working_view(self) -> None:
+        self.run_js(['pageAccessNote', 'showPageHelp'], r"""
+const panel=node('section'),heading=node('h1','Field I/O'),help=node('div','Work one field signal at a time.'),dialog=node('dialog'),opener=node('button');
+help.hidden=true;help.cloneNode=()=>node('div',help.textContent);panel.querySelector=selector=>selector==='.page-heading h1'?heading:selector==='.page-help-content'?help:null;
+$=id=>id==='view-field-io'?panel:id==='dialog'?dialog:null;opener.focus=()=>{document.activeElement=opener;};opener.isConnected=true;document.activeElement=opener;
+const note=pageAccessNote('field-io');assert.equal(note.children[0].textContent,'Read & write');
+assert.equal(note.children[1].textContent,'Page help');assert.equal(contents(note).includes('Original source evidence'),false);
+note.children[1].events.click();assert.ok(contents(modalBody).includes('Original source evidence stays read-only'));
+assert.ok(contents(modalBody).includes('Source references do not prove runtime activity'));assert.ok(contents(modalBody).includes('Hide empty unreferenced rows'));
+assert.ok(contents(modalBody).includes('From result'));assert.equal(saveDialog,undefined);
+document.activeElement=dialog;dialog.events.close();assert.equal(document.activeElement,opener);
 """)
 
     def test_dialog_backdrop_click_is_distinct_from_padding_drag_cancel_and_keyboard_click(self) -> None:
@@ -495,7 +533,7 @@ discard=()=>false;openConnections('discarded');assert.equal(state.connectionRung
 const panel=node('section');$=()=>panel;document.querySelectorAll=()=>[];
 loadObjects=async()=>{};renderDetail=()=>{};let closes=0,requests=0;
 window.PLCInstructionHelp={close:()=>closes++};
-api=async()=>{requests++;return {source:{id:'instruction-next'}};};
+api=async()=>{requests++;return {run_id:'synthetic-run',source:{id:'instruction-next'}};};
 discard=()=>false;
 assert.equal(switchView('objects'),false);await openSource('instruction-next');
 assert.equal(closes,0);assert.equal(requests,0,'The dirty guard still runs first');
@@ -512,7 +550,7 @@ $=()=>panel;let resolve;
 api=()=>new Promise(done=>resolve=done);let renders=0;
 renderDetail=()=>renders++;
 const loading=openSource('rung-next');assert.equal(panel.inert,true);assert.equal(panel.attributes['aria-busy'],'true');
-state.dirty=true;resolve({source:{id:'rung-next'},revision:2});await loading;
+state.dirty=true;resolve({run_id:'synthetic-run',source:{id:'rung-next'},revision:2});await loading;
 assert.equal(renders,0);assert.ok(contents(panel).includes('Unsaved correction'));assert.equal(panel.inert,false);
 assert.ok(notice.includes('unsaved changes'));
 """)
@@ -523,9 +561,41 @@ const panel=node('section');$=()=>panel;const pending=[];
 api=()=>new Promise(resolve=>pending.push(resolve));let visible='';
 renderDetail=result=>visible=result.source.id;
 const first=openSource('rung-a'),second=openSource('rung-b');
-pending[1]({source:{id:'rung-b'},revision:1});await second;
-pending[0]({source:{id:'rung-a'},revision:1});await first;
+pending[1]({run_id:'synthetic-run',source:{id:'rung-b'},revision:1});await second;
+pending[0]({run_id:'synthetic-run',source:{id:'rung-a'},revision:1});await first;
 assert.equal(visible,'rung-b');assert.equal(state.source.source.id,'rung-b');assert.equal(panel.inert,false);
+""")
+
+    def test_source_popout_pins_run_and_skips_hidden_directories(self) -> None:
+        self.run_js(['openSource', 'loadRungs', 'loadObjects'], r"""
+document.body.classList.add('source-popout');window.location={search:'?panel=source&run_id=synthetic-run'};
+const calls=[];api=async path=>{calls.push(path);return {run_id:'synthetic-run',source:{id:'rung-specific'}};};
+let visible='';renderDetail=result=>{visible=result.source.id;};
+await loadRungs();await loadObjects();assert.deepEqual(calls,[]);
+await openSource('rung-specific');assert.deepEqual(calls,['/api/source?id=rung-specific&run_id=synthetic-run']);assert.equal(visible,'rung-specific');
+state.project={...state.project,active_run:'other-run'};
+await assert.rejects(openSource('rung-specific'),/different analysis run/);assert.equal(calls.length,1);
+window.location.search='?panel=source&run_id=other-run&run_id=duplicate';
+await assert.rejects(openSource('rung-specific'),/invalid analysis reference/);
+""")
+
+    def test_source_response_must_match_requested_run_id_and_current_source(self) -> None:
+        self.run_js(['openSource'], r"""
+const panel=node('section');$=()=>panel;let rendered=0;renderDetail=()=>rendered++;
+for(const result of [{run_id:'another-run',source:{id:'rung-a'}},{run_id:'synthetic-run',source:{id:'wrong-id'}},
+ {run_id:'synthetic-run',historical:true,source:{id:'rung-a'}}]) {
+ api=async()=>result;await assert.rejects(openSource('rung-a'),/does not match this analysis/);assert.equal(rendered,0);assert.equal(panel.inert,false);
+}
+let resolve;api=()=>new Promise(done=>resolve=done);const pending=openSource('rung-a');
+state.project={...state.project,active_run:'new-run'};resolve({run_id:'synthetic-run',source:{id:'rung-a'}});
+await assert.rejects(pending,/does not match this analysis/);assert.equal(rendered,0);assert.equal(state.source,null);
+""")
+
+    def test_refresh_refuses_to_replace_pinned_window_with_another_run(self) -> None:
+        self.run_js(['refresh'], r"""
+document.body.classList.add('source-popout');window.location={search:'?panel=source&run_id=synthetic-run'};
+const before=state.project;api=async()=>({active_run:'new-run',revision:2});
+await assert.rejects(refresh(),/different analysis run/);assert.equal(state.project,before);
 """)
 
     def test_deep_links_accept_only_bounded_source_identifiers_and_known_views(self) -> None:
@@ -548,7 +618,7 @@ window.location.hash='#view=field-io&source=module-1';assert.equal(requestedLoca
 const opened={opener:'parent'},calls=[];
 window.open=(...args)=>{calls.push(args);return opened;};
 popupWorkspace('rung_abc','source');
-assert.equal(calls[0][0],'/?panel=source#view=rungs&source=rung_abc');
+assert.equal(calls[0][0],'/?panel=source&run_id=synthetic-run#view=rungs&source=rung_abc');
 assert.equal(opened.opener,null);assert.ok(calls[0][2].includes('popup'));
 popupWorkspace('aoi_abc','source');assert.ok(calls[1][0].includes('view=objects'));
 popupWorkspace('rung_abc','connections');assert.ok(calls[2][0].includes('view=connections'));
@@ -831,7 +901,7 @@ run=async()=>{};
 api=async url=>{
   calls.push(url);
   return url.startsWith('/api/rungs?')?rungResult(rungRow('first',1),rungRow('second',2))
-    :{source:{id:'first'},revision:1};
+    :{run_id:'synthetic-run',source:{id:'first'},revision:1};
 };
 renderDetail=(result,panel)=>{visible.push(result.source.id);panel.append(node('div','Visible '+result.source.id));};
 await loadRungs();
@@ -856,8 +926,8 @@ run=async callback=>{if(callback===loadRungs)return;manual=callback();return man
 renderDetail=result=>{visible=result.source.id;};
 const loading=loadRungs();choice.events.click();
 resolveList(items);await loading;
-assert.deepEqual(sourceRequests,['/api/source?id=chosen']);
-resolveSource({source:{id:'chosen'},revision:1});await manual;
+assert.deepEqual(sourceRequests,['/api/source?id=chosen&run_id=synthetic-run']);
+resolveSource({run_id:'synthetic-run',source:{id:'chosen'},revision:1});await manual;
 assert.equal(visible,'chosen');assert.equal(state.source.source.id,'chosen');
 """)
 
@@ -877,8 +947,8 @@ run=async callback=>{
 let visible='';renderDetail=result=>{visible=result.source.id;};
 const opening=openLocation(true);
 resolveList(rungResult(rungRow('first',1)));await tasks[0];
-assert.deepEqual(requests.filter(url=>url.startsWith('/api/source')),['/api/source?id=linked-rung']);
-resolveSource({source:{id:'linked-rung'},revision:1});await opening;
+assert.deepEqual(requests.filter(url=>url.startsWith('/api/source')),['/api/source?id=linked-rung&run_id=synthetic-run']);
+resolveSource({run_id:'synthetic-run',source:{id:'linked-rung'},revision:1});await opening;
 assert.equal(visible,'linked-rung');assert.equal(state.source.source.id,'linked-rung');
 """)
 
@@ -889,14 +959,14 @@ run=async()=>{};let visible='';renderDetail=result=>{visible=result.source.id;};
 api=url=>{
   if(url.startsWith('/api/rungs?'))return new Promise(done=>resolveList=done);
   sourceRequests.push(url);
-  if(url.endsWith('chosen'))return new Promise(done=>resolveChosen=done);
-  return Promise.resolve({source:{id:'first'},revision:1});
+  if(url.includes('id=chosen&'))return new Promise(done=>resolveChosen=done);
+  return Promise.resolve({run_id:'synthetic-run',source:{id:'first'},revision:1});
 };
 const chosen=openSource('chosen');
 const refreshing=loadRungs();
 resolveList(rungResult(rungRow('first',1),rungRow('chosen',2)));await refreshing;
-assert.deepEqual(sourceRequests,['/api/source?id=chosen']);
-resolveChosen({source:{id:'chosen'},revision:1});await chosen;
+assert.deepEqual(sourceRequests,['/api/source?id=chosen&run_id=synthetic-run']);
+resolveChosen({run_id:'synthetic-run',source:{id:'chosen'},revision:1});await chosen;
 assert.equal(visible,'chosen');assert.equal(state.source.source.id,'chosen');
 """)
 
@@ -941,12 +1011,12 @@ assert.ok(contents($('rung-detail')).includes('Select a source record'));
         self.run_js(["loadRungs", "openSource"], r"""
 const pending=[],sourceRequests=[];run=async()=>{};
 api=url=>url.startsWith('/api/rungs?')?new Promise(resolve=>pending.push(resolve))
-  :(sourceRequests.push(url),Promise.resolve({source:{id:'new-result'},revision:1}));
+  :(sourceRequests.push(url),Promise.resolve({run_id:'synthetic-run',source:{id:'new-result'},revision:1}));
 let visible='';renderDetail=result=>{visible=result.source.id;};
 const old=loadRungs();$('rung-search').value='changed';const current=loadRungs();
 pending[1](rungResult(rungRow('new-result',2)));await current;
 pending[0](rungResult(rungRow('old-result',1)));await old;
-assert.deepEqual(sourceRequests,['/api/source?id=new-result']);assert.equal(visible,'new-result');
+assert.deepEqual(sourceRequests,['/api/source?id=new-result&run_id=synthetic-run']);assert.equal(visible,'new-result');
 assert.ok(contents($('rung-list')).includes('Rung 2'));
 assert.equal(contents($('rung-list')).includes('Rung 1'),false);
 """)
