@@ -7,17 +7,18 @@ This describes captured RLL references, not live wiring or equipment activity.
 from __future__ import annotations
 
 from .workspace_field_signals import FieldSignalIndex
-from .workspace_signal_context import description_origin
+from .workspace_signal_context import CONTEXT_REASONS, description_origin
 
 _USAGE = ('referenced', 'possible_indirect', 'not_found', 'unknown')
 _ORIGINS = ('channel', 'alias', 'type_member', 'containing_member', 'backing', 'module', 'missing')
 _TYPES = ('ai', 'ao', 'di', 'do', 'unknown')
+_CONTEXT_KINDS = ('result_description', 'rung_comment')
 _MEMBER_REASONS = ('available', 'no_description', 'no_type_definition', 'member_not_declared',
                    'conflict', 'unsupported_path', 'capacity')
 _SCOPES = ('exact_member_comment', 'exact_alias_description', 'declared_member_description',
            'containing_member_comment', 'backing_description', 'backing_alias_description', 'module_description')
 _CASES = ('used_missing', 'used_inherited', 'unreferenced_missing', 'unreferenced_inherited',
-          'type_member_inherited', 'result_context')
+          'type_member_inherited', 'use_context')
 _GAPS = ('missing_logic', 'partial_export', 'missing_access', 'unparsed_rungs',
          'unsupported_routines', 'protected_logic', 'incomplete_routines',
          'unqualified_source', 'unsupported_instructions', 'opaque_expressions',
@@ -31,7 +32,8 @@ def build_audit(index: FieldSignalIndex) -> dict:
     by_usage = {kind: 0 for kind in _USAGE}
     by_origin = {kind: {origin: 0 for origin in _ORIGINS} for kind in _USAGE}
     by_type = {kind: {field_type: 0 for field_type in _TYPES} for kind in _USAGE}
-    contexts = {kind: 0 for kind in _USAGE}
+    contexts = {kind: {usage: 0 for usage in _USAGE} for kind in _CONTEXT_KINDS}
+    context_reasons = {reason: 0 for reason in CONTEXT_REASONS}
     member_reasons = {kind: 0 for kind in _MEMBER_REASONS}
     candidate_scopes = {kind: 0 for kind in _SCOPES}
     cases = {kind: {'present': False} for kind in _CASES}
@@ -52,12 +54,15 @@ def build_audit(index: FieldSignalIndex) -> dict:
         selection = address['description_selection']
         truncated_candidates += int(selection['candidates_truncated'])
         has_context = identifier in index.context._signals
+        context = index.context._rungs[index.context._signals[identifier]] if has_context else {}
+        context_kind = context.get('description_kind')
+        context_reasons[index.context.reason(identifier)] += 1
         inherited = origin['kind'] in {'containing_member', 'backing', 'module'}
         buckets = {'used_missing': usage == 'referenced' and origin['kind'] == 'missing' and not has_context,
             'used_inherited': usage == 'referenced' and inherited and not has_context,
             'unreferenced_missing': usage == 'not_found' and origin['kind'] == 'missing',
             'unreferenced_inherited': usage == 'not_found' and inherited,
-            'type_member_inherited': origin['kind'] == 'type_member', 'result_context': has_context}
+            'type_member_inherited': origin['kind'] == 'type_member', 'use_context': has_context}
         for bucket, matches in buckets.items():
             if matches and not cases[bucket]['present']:
                 member = index.field_io.member_descriptions.diagnostic(address['root_id'], address['suffix'])
@@ -67,7 +72,10 @@ def build_audit(index: FieldSignalIndex) -> dict:
                     'usage_flags': {kind: usage == kind for kind in _USAGE},
                     'origin_flags': {kind: origin['kind'] == kind for kind in _ORIGINS},
                     'specific_description': origin['specific'], 'conflicting_description': origin['conflict'],
-                    'result_context': has_context, 'alias_count': len(address['aliases']),
+                    'use_context': has_context,
+                    'context_kind_flags': {kind: context_kind == kind for kind in _CONTEXT_KINDS},
+                    'context_scope_complete': bool(context.get('scope_complete', False)),
+                    'alias_count': len(address['aliases']),
                     'direct_reference_count': len(address['uses']),
                     'direct_rung_count': len({use['rung_id'] for use in address['uses']}),
                     'candidate_count': selection['candidate_count'],
@@ -79,7 +87,8 @@ def build_audit(index: FieldSignalIndex) -> dict:
         by_usage[usage] += 1
         by_origin[usage][origin['kind']] += 1
         by_type[usage][signal['field_type']] += 1
-        contexts[usage] += int(identifier in index.context._signals)
+        if has_context:
+            contexts[context_kind][usage] += 1
         conflicts += int(origin['conflict'])
         empty += int(not signal['informative'])
         if signal.get('rack_mapping'):
@@ -87,16 +96,18 @@ def build_audit(index: FieldSignalIndex) -> dict:
             recovered_occurrences += len(address['uses'])
     scan = index.usage.scan_summary()
     gaps = set(scan['gap_reasons']) | set(scan['role_gap_reasons'])
-    return {'schema_version': 2,
+    return {'schema_version': 3,
         'inventory': {'field_signal_addresses': len(index.signals),
             'captured_addresses': len(index.field_io.addresses),
             'excluded_non_signal_addresses': index.coverage['excluded_addresses']},
         'usage_counts': by_usage,
         'description_origins_by_usage': by_origin,
         'field_types_by_usage': by_type,
-        'described_result_contexts_by_usage': contexts,
+        'described_result_contexts_by_usage': contexts['result_description'],
+        'rung_comment_contexts_by_usage': contexts['rung_comment'],
         'description_conflicts': conflicts,
         'description_diagnostics': {'member_lookup_counts': member_reasons,
+            'context_reason_counts': context_reasons,
             'signals_with_retained_candidate_scope': candidate_scopes,
             'signals_with_truncated_candidate_list': truncated_candidates,
             'anonymous_cases': cases},

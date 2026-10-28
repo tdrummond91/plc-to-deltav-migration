@@ -1,4 +1,4 @@
-"""Traceable result wording for narrowly proven, single-rung signal use.
+"""Traceable captured wording for narrowly proven, single-rung signal use.
 
 The result's description is context for a captured read, never a replacement
 source annotation or a claim about the physical equipment behind an address.
@@ -10,6 +10,7 @@ from copy import deepcopy
 import json
 from typing import TYPE_CHECKING, Any
 
+from .references import _ROOT
 from .workspace_field_io import FieldIOIndex
 from .workspace_io_comments import IOCommentError, collect_io_annotations, select_description
 from .workspace_variables import _child, _member_key
@@ -18,6 +19,10 @@ if TYPE_CHECKING:
     from .workspace_signal_usage import SignalUsageIndex
 
 MAX_CONTEXT_BYTES = 8 * 1024 * 1024
+CONTEXT_REASONS = ('specific_source', 'no_direct_use', 'multiple_rungs', 'nonread_use',
+    'overlapping_use', 'unsupported_result', 'no_wording', 'conflicting_wording',
+    'unqualified_wording', 'result_description', 'rung_comment', 'access_unavailable',
+    'usage_unavailable', 'annotations_unavailable', 'capacity')
 _CONDITIONS = frozenset({'XIC', 'XIO', 'EQU', 'NEQ', 'LES', 'LEQ', 'GRT', 'GEQ', 'LIM'})
 _RESULTS = frozenset({'OTE', 'MOV', 'ADD', 'SUB', 'MUL', 'DIV', 'ABS', 'LN', 'SQR', 'CPT'})
 _SPECIFIC = frozenset({'exact_member_comment', 'exact_alias_description', 'declared_member_description'})
@@ -60,15 +65,21 @@ class SignalContextIndex:
         self.io, self.base, self.usage = field_io, field_io.base, usage
         self._rungs: dict[str, dict] = {}
         self._signals: dict[str, str] = {}
+        self._rung_reasons: dict[str, str] = {}
+        self._uncertain_roots: set[str] = set()
         self._budget = 0
         self.available = True
+        self._unavailable_reason: str | None = None
         try:
             self._build()
-        except (_ContextLimit, IOCommentError):
+        except (_ContextLimit, IOCommentError) as error:
             self._rungs.clear()
             self._signals.clear()
+            self._rung_reasons.clear()
+            self._uncertain_roots.clear()
             self._budget = 0
             self.available = False
+            self._unavailable_reason = 'capacity' if isinstance(error, _ContextLimit) else 'annotations_unavailable'
 
     def _retain(self, value: Any) -> None:
         self._budget += len(json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
@@ -131,10 +142,12 @@ class SignalContextIndex:
         return result
 
     def _build(self) -> None:
-        # Context is scoped to captured RLL. Other source languages are named
-        # explicitly; missing or unread RLL cannot prove this narrow single use.
-        gaps = set(self.usage.scan_summary()['gap_reasons'])
-        if self.base._access is None or gaps - {'unsupported_routines'}:
+        # A known captured read and its wording remain useful when another
+        # routine is unread. Disclose scan gaps instead of claiming plant-wide
+        # uniqueness or erasing positive evidence from qualified RLL rungs.
+        scan = self.usage.scan_summary()
+        gaps = set(scan['gap_reasons']) | set(scan['role_gap_reasons'])
+        if self.base._access is None:
             return
         recovered = {use['id']: address for address in self.io.addresses.values()
                      for use in address['uses'] if use.get('binding_basis') ==
@@ -152,11 +165,31 @@ class SignalContextIndex:
         by_rung, expressions = defaultdict(list), defaultdict(list)
         for use in self.base._access.operands:
             by_rung[use['rung_id']].append(qualified_use(use))
+            if (use['binding_status'] == 'unsupported_address'
+                    and use.get('binding_reason') == 'malformed_address'):
+                # An unread suffix on a known root is a signal-specific gap,
+                # unlike an unrelated unread routine. Do not promote context
+                # for another member of that same backing root.
+                raw = self.base._reference_uses[use['id']]['raw_text'].strip()
+                root = _ROOT.match(raw)
+                rung = self.base._rungs[use['rung_id']]
+                if root and raw[root.end():root.end() + 1] in {'.', '['}:
+                    binding = self.base._resolve(root[0], rung.scope_id)
+                    if self.base._qualified(binding, rung.id):
+                        target = binding['target_id']
+                        if target not in self._uncertain_roots:
+                            self._retain(target)
+                            self._uncertain_roots.add(target)
         for use in self.base._access.expression_uses:
             expressions[use['rung_id']].append(qualified_use(use))
         eligible, owners = {}, set()
         for rung in self.base._rungs.values():
             result = self._result(rung, by_rung[rung.id], expressions[rung.id])
+            reason = 'no_wording' if result is not None else 'unsupported_result'
+            # Charge the longest diagnostic up front; later selection can
+            # change the enum without silently growing retained memory.
+            self._retain((rung.id, max(CONTEXT_REASONS, key=len)))
+            self._rung_reasons[rung.id] = reason
             if result is not None:
                 eligible[rung.id] = result
                 owners.update((result['symbol_id'], result['target_id']))
@@ -164,6 +197,7 @@ class SignalContextIndex:
             return
         notes = collect_io_annotations(self.base._source, self.base._captured,
                                        self.base._entity_ok, owner_ids=owners)
+        comments = None
         for rung_id, result in eligible.items():
             rung = self.base._rungs[rung_id]
             ref = self.base._reference_uses[result['id']]
@@ -177,42 +211,111 @@ class SignalContextIndex:
                                   for note in notes.get((symbol.id, ''), []))
             candidates.extend(self.io.member_descriptions.inspect(result['target_id'], result['suffix'])['annotations'])
             selection = select_description(candidates)
-            if selection['status'] != 'selected' or selection['conflict']:
+            if selection['conflict']:
+                self._rung_reasons[rung_id] = 'conflicting_wording'
                 continue
-            note = next(note for note in candidates if note['id'] == selection['preferred_annotation_id'])
+            description_kind = 'result_description'
+            if selection['status'] == 'selected':
+                note = next(note for note in candidates if note['id'] == selection['preferred_annotation_id'])
+                description_owner = (note.get('owner_name')
+                    or self.base._resolver.name(self.base._entities[note['owner_id']]))
+            else:
+                if comments is None:
+                    comments = self._qualified_rung_comments(set(eligible))
+                if rung_id not in comments:
+                    if (rung.comment or '').strip():
+                        self._rung_reasons[rung_id] = 'unqualified_wording'
+                    continue
+                description_kind = 'rung_comment'
+                description_owner = f'Rung {rung.number}'
+                note = {'id': None, 'text': comments[rung_id], 'owner_id': rung_id,
+                        'description_scope': 'rung_comment', 'suffix': ''}
             opcode = self.base._instructions[result['instruction_id']].opcode.upper()
+            label = 'Rung comment' if description_kind == 'rung_comment' else 'Result description'
             row = {'kind': 'boolean_result' if opcode == 'OTE' else 'calculation_result',
+                'description_kind': description_kind,
                 'description': note['text'], 'result_name': ref['raw_text'].strip(),
                 'result_id': result['symbol_id'], 'result_suffix': result['suffix'],
                 'description_source_id': note['owner_id'], 'description_annotation_id': note['id'],
                 'description_basis': note['description_scope'],
-                'description_owner_name': note.get('owner_name') or self.base._resolver.name(self.base._entities[note['owner_id']]),
+                'description_owner_name': description_owner,
                 'description_owner_suffix': note.get('owner_suffix', note.get('suffix', '')),
                 'rung_id': rung_id, 'instruction_id': result['instruction_id'], 'rung_number': rung.number,
                 'path': self.base._path(rung.parent_id) + ' / Rung ' + str(rung.number),
                 'basis': 'single_supported_rung_result',
-                'notice': ('Result description from the single matched RLL use rung; it is context, not the field signal\'s source description or confirmed equipment identity.'
-                    + (' Other source languages are outside this lookup.' if 'unsupported_routines' in gaps else ''))}
+                'scope_complete': not gaps, 'scope_gap_reasons': sorted(gaps),
+                'notice': (f'{label} from the single matched RLL use rung; it is context, not the field signal\'s source description or confirmed equipment identity.'
+                    + (' Other source languages are outside this lookup.' if 'unsupported_routines' in gaps else '')
+                    + (' Additional source is outside the completed scan; this does not establish that the signal has only one use in the entire source.' if gaps else ''))}
             self._retain((rung_id, row))
             self._rungs[rung_id] = row
+            self._rung_reasons[rung_id] = description_kind
         for address in self.io.addresses.values():
-            if specific_description(address) or not address['uses'] or self.usage._limited:
+            if self.reason(address['id']) not in {'result_description', 'rung_comment'}:
                 continue
-            direct = address['uses']
-            rungs = {use['rung_id'] for use in direct}
-            if len(rungs) != 1 or any(use['role'] != 'read' for use in direct):
-                continue
-            rung_id = next(iter(rungs))
-            if rung_id not in self._rungs:
-                continue
-            direct_ids = {use['id'] for use in direct}
-            # Root/range/dynamic associations can reveal other uses even when
-            # this exact spelling occurs in just one rung. Never hide those.
-            if any(identifier not in direct_ids and (not proven or self.usage._uses[identifier]['rung_id'] != rung_id)
-                   for identifier, _, proven, _ in self.usage._related(address)):
-                continue
+            rung_id = address['uses'][0]['rung_id']
             self._retain((address['id'], rung_id))
             self._signals[address['id']] = rung_id
+
+    def _qualified_rung_comments(self, eligible: set[str]) -> dict[str, str]:
+        """Read only one plain, namespace-qualified direct Comment per rung."""
+        from .source import _read_nodes
+        nodes = _read_nodes(self.base._source)
+        namespace = nodes[0].expanded_name.rpartition('}')[0]
+        okay: list[bool] = []
+        rungs = {self.base._rungs[identifier].locator: identifier for identifier in eligible}
+        comments = {}
+        for node in nodes:
+            okay.append(node.expanded_name.rpartition('}')[0] == namespace
+                and not any('}' in key for key in node.expanded_attributes)
+                and node.attributes.get('Protected', '').casefold() not in {'true', '1'}
+                and (node.parent is None or okay[node.parent]))
+        for node in nodes:
+            identifier = rungs.get(node.locator)
+            if identifier is None:
+                continue
+            selected = [index for index in node.children if nodes[index].name == 'Comment']
+            if len(selected) != 1:
+                continue
+            index = selected[0]
+            comment = nodes[index]
+            if (okay[index] and not comment.children and comment.text.strip()
+                    and comment.text == self.base._rungs[identifier].comment):
+                comments[identifier] = comment.text
+        return comments
+
+    def reason(self, address_id: str) -> str:
+        """Return a closed diagnostic without copying source prose or names."""
+        address = self.io.addresses[address_id]
+        if specific_description(address):
+            return 'specific_source'
+        if self._unavailable_reason:
+            return self._unavailable_reason
+        if self.base._access is None:
+            return 'access_unavailable'
+        if self.usage._limited:
+            return 'usage_unavailable'
+        direct = address['uses']
+        if not direct:
+            return 'no_direct_use'
+        rungs = {use['rung_id'] for use in direct}
+        if len(rungs) != 1:
+            return 'multiple_rungs'
+        if any(use['role'] != 'read' for use in direct):
+            return 'nonread_use'
+        rung_id = next(iter(rungs))
+        reason = self._rung_reasons.get(rung_id, 'unsupported_result')
+        if reason not in {'result_description', 'rung_comment'}:
+            return reason
+        if address['root_id'] in self._uncertain_roots:
+            return 'overlapping_use'
+        direct_ids = {use['id'] for use in direct}
+        # Root/range/dynamic associations can reveal other uses even when this
+        # exact spelling occurs in just one rung. Never conceal those uses.
+        if any(identifier not in direct_ids and (not proven or self.usage._uses[identifier]['rung_id'] != rung_id)
+               for identifier, _, proven, _ in self.usage._related(address)):
+            return 'overlapping_use'
+        return reason
 
     def get(self, address_id: str) -> dict | None:
         rung_id = self._signals.get(address_id)

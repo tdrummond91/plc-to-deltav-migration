@@ -21,6 +21,7 @@ class Element {
  removeAttribute(name){delete this.attributes[name];}
  remove(){if(this.parent)this.parent.children=this.parent.children.filter(child=>child!==this);}
  contains(target){return this===target||this.children.some(child=>child.contains(target));}
+ closest(selectors){const tags=selectors.split(',').map(value=>value.trim().toLowerCase());for(let item=this;item;item=item.parent){if(tags.includes(item.tagName.toLowerCase()))return item;}return null;}
  getBoundingClientRect(){return {left:600,top:200,bottom:230,width:380,height:220};}
  focus(){document.activeElement=this;this.events.focus?.({target:this});}
  click(){return this.fire('click');}
@@ -80,6 +81,93 @@ const deferred=()=>{let resolve;const promise=new Promise(done=>resolve=done);re
 
 @unittest.skipUnless(NODE, 'Node is optional developer tooling')
 class FieldSignalsUiTests(unittest.TestCase):
+    def test_row_selection_opens_editor_and_close_restores_full_width_without_losing_drafts(self) -> None:
+        self.run_js(r"""
+rows.push(sourceRow('address-2'));
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const layout=byClass(root,'field-signals-layout')[0],editor=byClass(root,'field-signals-detail')[0];
+let entries=byClass(root,'field-signals-row');assert.equal(entries.length,2);
+assert.equal(editor.hidden,true);assert.equal(layout.className,'field-signals-layout');
+assert.equal(root.textContent.includes('Choose an individual signal'),false);
+await entries[0].fire('click',{target:entries[0].children[2]});
+assert.equal(editor.hidden,false);assert.ok(layout.className.includes('has-selection'));
+assert.ok(entries[0].className.includes('is-current'));assert.equal(entries[0].attributes['aria-current'],'true');
+assert.equal(byClass(root,'field-signals-open')[0].attributes['aria-expanded'],'true');
+await edit('field-signals-target-name','Retained signal name');
+await findButton(root,'Close').fire('click');assert.equal(editor.hidden,true);
+assert.equal(layout.className,'field-signals-layout');assert.equal(entries[0].attributes['aria-current'],undefined);
+assert.equal(document.activeElement,entries[0]);assert.equal(controller.hasUnsavedChanges(),true);
+await entries[1].fire('click',{target:entries[1].children[4]});
+assert.ok(entries[1].className.includes('is-current'));assert.equal(entries[0].className.includes('is-current'),false);
+await entries[0].fire('click',{target:entries[0].children[2]});
+assert.equal(byClass(root,'field-signals-target-name')[0].value,'Retained signal name');assert.equal(writes.length,0);
+await controller.refresh();entries=byClass(root,'field-signals-row');assert.equal(entries[0].attributes['aria-current'],'true');
+""")
+
+    def test_row_keyboard_selection_leaves_links_and_hardware_actions_independent(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{description_origin:{kind:'channel',specific:true,owner_id:'module-root',owner_name:'Local:3:I',owner_suffix:'.Data.0'}})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const entry=byClass(root,'field-signals-row')[0],editor=byClass(root,'field-signals-detail')[0];
+assert.equal(entry.attributes.tabindex,'0');let prevented=false;
+await entry.fire('keydown',{key:'Enter',preventDefault(){prevented=true;}});
+assert.equal(prevented,true);assert.equal(editor.hidden,false);await findButton(root,'Close').fire('click');
+prevented=false;await entry.fire('keydown',{key:' ',preventDefault(){prevented=true;}});
+assert.equal(prevented,true);await findButton(root,'Close').fire('click');
+const before=calls.length,info=byClass(root,'field-signals-hardware-info')[0];
+await entry.fire('click',{target:info.children[0]});
+await entry.fire('keydown',{target:info,key:'Enter'});
+const link=byClass(root,'field-signals-description-origin')[0].children[0];
+await entry.fire('click',{target:link});assert.equal(calls.length,before);assert.equal(editor.hidden,true);
+await info.fire('pointerenter');assert.equal(byClass(document.body,'field-signals-hardware-popover').length,1);assert.equal(editor.hidden,true);
+window.getSelection=()=>({toString:()=> 'selected description'});await entry.fire('click',{target:entry.children[2]});
+assert.equal(calls.length,before);assert.equal(editor.hidden,true);assert.equal(writes.length,0);
+""")
+
+    def test_closing_loading_editor_cannot_be_undone_by_late_response(self) -> None:
+        self.run_js(r"""
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const waiting=deferred(),answer=result('/api/field-signals?signal_id=address-1');response=()=>waiting.promise;
+const loading=controller.openSignal('address-1');assert.equal(byClass(root,'field-signals-detail')[0].hidden,false);
+await findButton(root,'Close').fire('click');waiting.resolve(answer);await loading;
+assert.equal(byClass(root,'field-signals-detail')[0].hidden,true);assert.equal(byClass(root,'field-signals-layout')[0].className,'field-signals-layout');
+assert.equal(byClass(root,'field-signals-target-name').length,0);assert.equal(writes.length,0);
+""")
+
+    def test_stale_open_response_does_not_steal_focus_from_current_signal_edit(self) -> None:
+        self.run_js(r"""
+rows.push(sourceRow('address-2'));const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+for(const opener of ['row','usage','public']) {
+ const waiting=deferred(),answer=result('/api/field-signals?signal_id=address-1');
+ response=path=>new URL(path,'http://localhost').searchParams.get('signal_id')==='address-1'?waiting.promise:Promise.resolve(result(path));
+ const first=opener==='row'?byClass(root,'field-signals-row')[0].fire('click'):
+   opener==='usage'?byClass(root,'field-signals-usage-open')[0].fire('click'):controller.openSignal('address-1');
+ await controller.openSignal('address-2');const name=byClass(root,'field-signals-target-name')[0];
+ name.focus();await edit('field-signals-target-name','Current '+opener+' draft');
+ waiting.resolve(answer);await first;
+ assert.equal(document.activeElement,name,'Stale '+opener+' response stole editing focus');
+ assert.equal(name.value,'Current '+opener+' draft');assert.equal(byClass(root,'field-signals-row')[1].attributes['aria-current'],'true');
+ await findButton(root,'Close').fire('click');
+}
+assert.equal(controller.hasUnsavedChanges(),true);assert.equal(writes.length,0);
+""")
+
+    def test_escape_closes_editor_retains_draft_and_prioritizes_hardware_popup(self) -> None:
+        self.run_js(r"""
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+await edit('field-signals-target-name','Keep after Escape');const editor=byClass(root,'field-signals-detail')[0];
+const type=byClass(root,'field-signals-reviewed-type')[0];
+document.events.keydown({key:'Escape',target:type,preventDefault(){}});assert.equal(editor.hidden,false,'Native select keeps its Escape');
+const info=byClass(root,'field-signals-hardware-info')[0];await info.fire('pointerenter');
+document.events.keydown({key:'Escape',target:info,preventDefault(){}});
+assert.equal(byClass(document.body,'field-signals-hardware-popover').length,0);assert.equal(editor.hidden,false);
+const name=byClass(root,'field-signals-target-name')[0];name.focus();let prevented=false;
+document.events.keydown({key:'Escape',target:name,preventDefault(){prevented=true;}});
+assert.equal(prevented,true);assert.equal(editor.hidden,true);assert.equal(controller.hasUnsavedChanges(),true);
+assert.equal(document.activeElement,byClass(root,'field-signals-row')[0]);
+await controller.openSignal('address-1');assert.equal(byClass(root,'field-signals-target-name')[0].value,'Keep after Escape');assert.equal(writes.length,0);
+""")
+
     def test_failed_loading_does_not_claim_filters_have_no_matches(self) -> None:
         self.run_js(r"""
 response=async path=>({...result(path),available:false,signals:page([]),notice:'Limit reached [field_io/index_bytes_limit]'});
@@ -419,8 +507,11 @@ assert.ok(!(await blobs[0].text()).includes('run-1'));assert.ok(!('revision' in 
 exported.audit={schema_version:2,inventory:{signals:7},description_origins:{type_member:3,containing_member:2}};
 await findButton(root,'Download I/O audit').fire('click');assert.equal(blobs.length,2);
 const current=JSON.parse(await blobs[1].text());assert.deepEqual(current,exported.audit);countOnly(current);assert.ok(!('run_id' in current));
-exported.audit={schema_version:3};await findButton(root,'Download I/O audit').fire('click');
-assert.equal(blobs.length,2);assert.ok(root.textContent.includes('This I/O audit format is unavailable'));
+exported.audit={schema_version:3,derived_context_kinds:{result_description:4,rung_comment:2}};
+await findButton(root,'Download I/O audit').fire('click');assert.equal(blobs.length,3);
+const newest=JSON.parse(await blobs[2].text());assert.deepEqual(newest,exported.audit);countOnly(newest);
+exported.audit={schema_version:4};await findButton(root,'Download I/O audit').fire('click');
+assert.equal(blobs.length,3);assert.ok(root.textContent.includes('This I/O audit format is unavailable'));
 assert.equal(byClass(root,'field-signals-target-name')[0].value,'Unsaved review');assert.equal(controller.hasUnsavedChanges(),true);assert.equal(writes.length,0);
 """)
 
@@ -460,6 +551,22 @@ assert.ok(descriptions[0].textContent.includes('Niveau haut'));assert.equal(desc
 assert.ok(descriptions[1].textContent.includes('Ethernet remote adapter Inherited from module (owner name not captured)'));assert.equal(writes.length,0);
 """)
 
+    def test_rung_comment_context_links_the_rung_owner_in_cell_and_editor(self) -> None:
+        self.run_js(r"""
+const context={description:'Calculated status for the inlet',description_kind:'rung_comment',description_basis:'rung_comment',
+ description_owner_name:'Rung 0',description_source_id:'rung #0',description_annotation_id:null,rung_id:'rung #0',rung_number:0,
+ path:'Invented controller / Main / Status / Rung 0',result_id:'status-tag',result_name:'InletStatus'};
+rows=[sourceRow('address-1',{description_origin:{kind:'missing',specific:false},use_context:context})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const cell=byClass(root,'field-signals-source-description')[0],link=findLink(cell,'From Rung 0 comment');
+assert.ok(link);assert.equal(link.href,'/?panel=source&run_id=run-1#view=rungs&source=rung%20%230');assert.equal(link.title,context.path);
+assert.ok(findLink(cell,'Result InletStatus'));assert.equal(findLink(cell,'From result InletStatus'),undefined);
+await controller.openSignal('address-1');const editor=byClass(root,'field-signals-use-context')[0];
+assert.equal(findLink(editor,'From Rung 0 comment').href,link.href);assert.equal(findLink(editor,'Open result rung'),undefined);
+assert.ok(editor.textContent.includes(context.description));assert.equal(writes.length,0);
+project={...project,active_run:'run-2'};let prevented=false;await link.fire('click',{preventDefault(){prevented=true;}});assert.equal(prevented,true);
+""")
+
     def test_every_description_identifies_its_direct_or_inherited_owner(self) -> None:
         self.run_js(r"""
 const cases=[
@@ -479,6 +586,25 @@ cases.forEach((origin,index)=>{const provenance=byClass(cells[index],'field-sign
  assert.equal(link.children.length,0);assert.equal(link.target,'_blank');});
 const old=findLink(cells[0],cases[0].label);project={...project,active_run:'new-run'};let prevented=false;
 await old.fire('click',{preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(writes.length,0);
+""")
+
+    def test_context_scope_limit_is_explained_without_hiding_captured_wording(self) -> None:
+        self.run_js(r"""
+const context={description:'Captured status context',description_kind:'rung_comment',description_owner_name:'Rung 2',
+ description_source_id:'rung-2',rung_id:'rung-2',path:'Main / Status / Rung 2',scope_complete:false,
+ notice:'Context from the single matched rung. Additional source is outside the completed scan.'};
+rows=[sourceRow('address-1',{description_origin:{kind:'missing',specific:false},use_context:context}),
+ sourceRow('address-2',{description_origin:{kind:'missing',specific:false},use_context:{...context,scope_complete:true}})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const cell=byClass(root,'field-signals-source-description')[0],provenance=byClass(cell,'field-signals-description-origin')[0];
+assert.ok(cell.textContent.includes(context.description));assert.equal(provenance.title,context.notice);
+assert.equal(findLink(provenance,'From Rung 2 comment').title,context.path);
+await controller.openSignal('address-1');const panel=byClass(root,'field-signals-use-context')[0];
+assert.ok(panel.textContent.includes('Context from the matched rung; additional unscanned source may contain other uses.'));
+assert.ok(panel.textContent.includes(context.description));await findButton(panel,'View reference scan scope').fire('click');
+assert.equal(byClass(root,'field-signals-reference-scan')[0].open,true);
+await controller.openSignal('address-2');assert.equal(byClass(root,'field-signals-use-context')[0].textContent.includes('additional unscanned source'),false);
+assert.equal(writes.length,0);
 """)
 
     def test_member_suffix_uses_selected_annotation_and_missing_text_has_no_fake_owner(self) -> None:

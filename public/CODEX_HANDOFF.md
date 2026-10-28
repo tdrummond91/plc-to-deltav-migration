@@ -1,5 +1,34 @@
 # Current handoff: PLC analysis workbench
 
+## Full-width signal rows and linked rung comments (2026-10-28)
+
+Field I/O now uses the full width until a signal is selected. Click a row or use
+Enter/Space to open its right-side editor; the selected row has a distinct fill
+and colored edge. Close restores the table width and retains unsaved drafts.
+Hardware information and source links keep their own actions. The page title
+and filters are compact; table headings and the pagination footer remain sticky.
+
+The photographed two-input calculation exposed another description gap: its
+purpose was authored as a rung comment, not as an input or result description.
+A supported single-result rung now supplies a qualified comment when no result
+description exists. The cell labels it **From Rung N comment**, links that rung,
+and separately links the result. Existing source descriptions keep priority.
+An unrelated scan gap no longer erases known context; incomplete scan scope is
+disclosed. Known multiple uses, overlapping accesses, conflicting descriptions
+and unsupported logic still prevent single-use inheritance.
+
+The schema-3 I/O audit separates result-description and rung-comment context and
+counts the reasons remaining signals have no context. It retains the closed
+count/flag-only sharing boundary. Tests use independently invented source.
+
+Work-PC step: stop the old workspace, manually `git pull`, then
+`bash ./open-workbench.sh`. This uses the saved analysis and translation cache;
+another analysis run is not required. Check the pictured inputs and their rung
+links. If wording is still absent, return **Download I/O audit** from the footer
+to identify the remaining reason before requesting more source.
+
+Validation: [Field signal inventory audit](docs/reviews/FIELD_SIGNAL_INVENTORY_AUDIT.md).
+
 ## Sticky signal footer and description ownership (2026-10-28)
 
 The Field I/O pagination footer now stays at the viewport bottom while its long

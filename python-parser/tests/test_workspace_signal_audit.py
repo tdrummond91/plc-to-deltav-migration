@@ -14,9 +14,28 @@ from test_workspace_field_io import field_inputs, module
 from test_workspace_field_signals import build
 from test_workspace_map_api import save_map_inputs
 from test_workspace_type_descriptions import definition, member, with_types
+from test_workspace_signal_context import BOOLEAN, with_rung_comment
 
 
 class SignalAuditTests(unittest.TestCase):
+    def test_rung_context_audit_distinguishes_available_comment_and_remaining_blank_reasons(self) -> None:
+        captured = with_rung_comment(field_inputs((BOOLEAN, 'XIC(Broken'),
+            extra_tags='<Tag Name="Status" DataType="BOOL"/>'), 'SECRET_RUNG_WORDING')
+        audit = build_audit(build(captured, related=False))
+        self.assertEqual(audit['rung_comment_contexts_by_usage']['referenced'], 2)
+        self.assertEqual(sum(audit['described_result_contexts_by_usage'].values()), 0)
+        reasons = audit['description_diagnostics']['context_reason_counts']
+        self.assertEqual(reasons['rung_comment'], 2)
+        self.assertGreater(reasons['no_direct_use'], 0)
+        self.assertEqual(sum(reasons.values()), audit['inventory']['field_signal_addresses'])
+        case = audit['description_diagnostics']['anonymous_cases']['use_context']
+        self.assertTrue(case['present'])
+        self.assertEqual(case['context_kind_flags'], {'result_description': False, 'rung_comment': True})
+        self.assertFalse(case['context_scope_complete'])
+        rendered = json.dumps(audit)
+        for secret in ('SECRET', 'Status', 'Local:', captured[1].rungs[0].id):
+            self.assertNotIn(secret, rendered)
+
     def test_member_diagnostics_distinguish_missing_definition_blank_and_available_wording(self) -> None:
         for definitions, status in (('', 'no_type_definition'),
                 (definition('InventedModule', member('Ch0Data', description='')), 'no_description'),
@@ -62,7 +81,7 @@ class SignalAuditTests(unittest.TestCase):
                     response = workspace.field_signal_audit({'run_id': run_id,
                         'query': 'NO_MATCH', 'usage': 'not_found', 'page_size': 10})
                 audit = response['audit']
-                self.assertEqual(audit['schema_version'], 2)
+                self.assertEqual(audit['schema_version'], 3)
                 self.assertEqual(audit['inventory']['field_signal_addresses'], len(rows))
                 self.assertEqual(audit['usage_counts']['referenced'], 1)
                 self.assertGreater(audit['usage_counts']['not_found'], 0)
@@ -70,13 +89,14 @@ class SignalAuditTests(unittest.TestCase):
                     self.assertEqual(sum(audit['description_origins_by_usage'][usage].values()), count)
                     self.assertEqual(sum(audit['field_types_by_usage'][usage].values()), count)
                 diagnostics = audit['description_diagnostics']
+                self.assertEqual(sum(diagnostics['context_reason_counts'].values()), len(rows))
                 self.assertEqual(sum(diagnostics['member_lookup_counts'].values()), len(rows))
                 self.assertEqual(diagnostics['member_lookup_counts']['no_type_definition'], len(rows))
                 self.assertEqual(diagnostics['signals_with_retained_candidate_scope']['module_description'], len(rows))
                 self.assertEqual(diagnostics['signals_with_truncated_candidate_list'], 0)
                 cases = diagnostics['anonymous_cases']
                 self.assertEqual(set(cases), {'used_missing', 'used_inherited', 'unreferenced_missing',
-                    'unreferenced_inherited', 'type_member_inherited', 'result_context'})
+                    'unreferenced_inherited', 'type_member_inherited', 'use_context'})
                 self.assertTrue(cases['used_inherited']['present'])
                 self.assertTrue(cases['unreferenced_inherited']['present'])
                 self.assertFalse(cases['type_member_inherited']['present'])

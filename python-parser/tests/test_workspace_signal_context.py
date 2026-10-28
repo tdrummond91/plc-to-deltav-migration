@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from plc_workbench.workspace import Workspace
 from plc_workbench.workspace_field_signals import FieldSignalError, FieldSignalIndex, validate_query
-from plc_workbench.workspace_signal_context import SignalContextIndex
+from plc_workbench.workspace_signal_context import CONTEXT_REASONS, SignalContextIndex
 from test_workspace_field_io import build as field_io, field_inputs, module
 from test_workspace_field_signals import build, find, query
 from test_workspace_map_api import save_map_inputs
@@ -20,6 +20,12 @@ from test_workspace_signal_usage import recapture
 STATUS = '<Tag Name="Status" DataType="BOOL"><Description>Invented two-limit permissive</Description></Tag>'
 RESULT = '<Tag Name="Result" DataType="REAL"><Description>Invented scaled measurement</Description></Tag>'
 BOOLEAN = 'XIC(Local:1:I.Data.1)XIO(Local:1:I.Data.2)OTE(Status);'
+
+
+def with_rung_comment(inputs, text: str = 'Invented calculated speed'):
+    from xml.sax.saxutils import escape
+    source = inputs[0].data.replace(b'<Text>', f'<Comment>{escape(text)}</Comment><Text>'.encode(), 1)
+    return recapture(source)
 
 
 class SignalContextTests(unittest.TestCase):
@@ -152,14 +158,145 @@ class SignalContextTests(unittest.TestCase):
             index = build(field_inputs((BOOLEAN.replace('OTE(Status)', f'OTE(Status{member})'),), extra_tags=result), related=False)
             self.assertIsNone(find(index, 'Local:1:I.Data.1')['use_context'])
 
-    def test_unqualified_and_protected_rungs_cannot_supply_result_context(self) -> None:
+    def test_unqualified_rungs_cannot_supply_result_context(self) -> None:
         source = field_inputs((BOOLEAN,), extra_tags=STATUS)[0].data
-        variants = (source.replace(b'<Rung ', b'<Rung xmlns:x="urn:foreign" x:Unsupported="yes" '),
-                    source.replace(b'</RLLContent>', b'</RLLContent><EncodedData>Invented</EncodedData>'))
+        variants = (source.replace(b'<Rung ', b'<Rung xmlns:x="urn:foreign" x:Unsupported="yes" '),)
         for source in variants:
             with self.subTest(source=source[-80:]):
                 index = build(recapture(source), related=False)
                 self.assertFalse(index.context._signals)
+
+    def test_unrelated_scan_gaps_keep_qualified_result_context_without_unique_source_claim(self) -> None:
+        source = field_inputs((BOOLEAN,), extra_tags=STATUS)[0].data
+        variants = (source.replace(b'</RLLContent>', b'</RLLContent><EncodedData>Invented</EncodedData>'),
+            source.replace(b'</RLLContent>', b'<Rung Number="1" Type="N"><Text>XIC(Broken</Text></Rung></RLLContent>'))
+        for changed in variants:
+            with self.subTest(source=changed[-80:]):
+                index = build(recapture(changed), related=False)
+                context = find(index, 'Local:1:I.Data.1')['use_context']
+                self.assertEqual(context['description_kind'], 'result_description')
+                self.assertFalse(context['scope_complete'])
+                self.assertTrue(context['scope_gap_reasons'])
+                self.assertIn('does not establish that the signal has only one use', context['notice'])
+
+    def test_two_register_cpt_uses_qualified_rung_comment_when_result_has_no_description(self) -> None:
+        data = '<ArrayMember Name="Data" DataType="DINT" Dimensions="8">'
+        data += ''.join(f'<Element Index="[{number}]" Value="0"/>' for number in (4, 5))
+        data += '</ArrayMember>'
+        inputs = with_rung_comment(field_inputs(
+            ('CPT(Result,((Local:8:I.Data[4]*256)+Local:8:I.Data[5])/1000);',),
+            modules=module('RegisterCard', 8, 'INVENTED', data=data),
+            extra_tags='<Tag Name="Result" DataType="REAL"/>'))
+        index = build(inputs, related=False)
+        for number in (4, 5):
+            row = find(index, f'Local:8:I.Data[{number}]')
+            context = row['use_context']
+            self.assertEqual(context['description'], 'Invented calculated speed')
+            self.assertEqual(context['description_kind'], 'rung_comment')
+            self.assertEqual(context['description_basis'], 'rung_comment')
+            self.assertEqual(context['description_source_id'], inputs[1].rungs[0].id)
+            self.assertEqual(context['description_owner_name'], 'Rung 0')
+            self.assertIsNone(context['description_annotation_id'])
+            self.assertEqual(index.context.reason(row['id']), 'rung_comment')
+            self.assertEqual(index.context.full_description(context['rung_id']), context['description'])
+            self.assertEqual(row['description'], 'Invented RegisterCard module')
+        self.assertEqual(len(index.context._rungs), 1)
+        self.assertEqual(index.view(query(query='calculated speed'))['signals']['total'], 2)
+
+    def test_specific_source_and_result_wording_precede_rung_comment(self) -> None:
+        cards = module('Input', 1, '1756-IB16').replace('<InputTag>', '<InputTag><Comments>'
+            '<Comment Operand="Data.1">Invented specific limit</Comment></Comments>')
+        index = build(with_rung_comment(field_inputs((BOOLEAN,), modules=cards, extra_tags=STATUS)), related=False)
+        source = find(index, 'Local:1:I.Data.1')
+        self.assertIsNone(source['use_context'])
+        self.assertEqual(index.context.reason(source['id']), 'specific_source')
+        inherited = find(index, 'Local:1:I.Data.2')['use_context']
+        self.assertEqual(inherited['description_kind'], 'result_description')
+        self.assertEqual(inherited['description'], 'Invented two-limit permissive')
+
+    def test_conflicting_result_wording_does_not_hide_conflict_behind_rung_comment(self) -> None:
+        tags = STATUS.replace('</Description>', '</Description><Description>Other wording</Description>')
+        index = build(with_rung_comment(field_inputs((BOOLEAN,), extra_tags=tags)), related=False)
+        row = find(index, 'Local:1:I.Data.1')
+        self.assertIsNone(row['use_context'])
+        self.assertEqual(index.context.reason(row['id']), 'conflicting_wording')
+
+    def test_foreign_duplicate_and_nested_rung_comments_are_not_inherited(self) -> None:
+        source = field_inputs((BOOLEAN,), extra_tags='<Tag Name="Status" DataType="BOOL"/>')[0].data
+        variants = (
+            '<x:Comment xmlns:x="urn:foreign">Invented foreign</x:Comment>',
+            '<Comment xmlns:x="urn:foreign" x:Extra="yes">Invented foreign attribute</Comment>',
+            '<Comment>First wording</Comment><Comment>Other wording</Comment>',
+            '<Comment Protected="true">Invented protected wording</Comment>',
+            '<Comment><LocalizedComment Lang="en-US">Invented nested</LocalizedComment></Comment>',
+        )
+        for annotation in variants:
+            with self.subTest(annotation=annotation):
+                inputs = recapture(source.replace(b'<Text>', annotation.encode() + b'<Text>', 1))
+                index = build(inputs, related=False)
+                row = find(index, 'Local:1:I.Data.1')
+                self.assertIsNone(row['use_context'])
+                self.assertIn(index.context.reason(row['id']), {'unqualified_wording', 'no_wording'})
+
+    def test_comment_context_rejects_multi_outputs_other_uses_and_unresolved_conditions(self) -> None:
+        tags = '<Tag Name="Status" DataType="BOOL"/><Tag Name="Index" DataType="DINT"/>'
+        variants = ((BOOLEAN, BOOLEAN), (BOOLEAN, 'MOV(Local:1:I.Data,InternalReal);'),
+            (BOOLEAN, 'XIC(Local:1:I.Data.[Index]);'),
+            (BOOLEAN[:-1] + 'OTE(InternalBool);',),
+            ('[XIC(Local:1:I.Data.1)OTE(Status),XIC(Local:1:I.Data.2)OTE(InternalBool)];',),
+            ('XIC(Missing)XIC(Local:1:I.Data.1)OTE(Status);',))
+        for texts in variants:
+            with self.subTest(texts=texts):
+                index = build(with_rung_comment(field_inputs(texts, extra_tags=tags)), related=False)
+                row = find(index, 'Local:1:I.Data.1')
+                self.assertIsNone(row['use_context'])
+                self.assertIn(index.context.reason(row['id']), CONTEXT_REASONS)
+                self.assertNotEqual(index.context.reason(row['id']), 'rung_comment')
+
+    def test_branched_conditions_and_undescribed_alias_can_inherit_known_rung_comment(self) -> None:
+        tags = ('<Tag Name="UndescribedAlias" TagType="Alias" AliasFor="Local:1:I.Data.2"/>'
+                '<Tag Name="Status" DataType="BOOL"/>')
+        inputs = with_rung_comment(field_inputs(
+            ('[XIC(Local:1:I.Data.1),XIO(UndescribedAlias)]OTE(Status);',), extra_tags=tags))
+        index = build(inputs, related=False)
+        for bit in (1, 2):
+            context = find(index, f'Local:1:I.Data.{bit}')['use_context']
+            self.assertEqual(context['description_kind'], 'rung_comment')
+            self.assertEqual(context['description_source_id'], inputs[1].rungs[0].id)
+
+    def test_rung_context_preserves_full_original_text_and_is_scoped_when_other_rung_unread(self) -> None:
+        wording = 'Commentaire francais invente ' * 60 + 'Fin specifique'
+        inputs = with_rung_comment(field_inputs((BOOLEAN, 'XIC(Broken'),
+            extra_tags='<Tag Name="Status" DataType="BOOL"/>'), wording)
+        index = build(inputs, related=False)
+        row = find(index, 'Local:1:I.Data.1')
+        self.assertTrue(wording.startswith(row['use_context']['description']))
+        self.assertFalse(row['use_context']['scope_complete'])
+        self.assertIn('unparsed_rungs', row['use_context']['scope_gap_reasons'])
+        self.assertEqual(index.context.reason(row['id']), 'rung_comment')
+        self.assertEqual(index.context.full_description(inputs[1].rungs[0].id), wording)
+
+    def test_protected_rung_ancestor_cannot_supply_comment_context(self) -> None:
+        inputs = with_rung_comment(field_inputs((BOOLEAN,), extra_tags='<Tag Name="Status" DataType="BOOL"/>'))
+        for marker in (b'<Rung ', b'<Routine '):
+            with self.subTest(marker=marker):
+                source = inputs[0].data.replace(marker, marker + b'Protected="1" ', 1)
+                index = build(recapture(source), related=False)
+                row = find(index, 'Local:1:I.Data.1')
+                self.assertIsNone(row['use_context'])
+                self.assertEqual(index.context.reason(row['id']), 'unqualified_wording')
+
+    def test_all_context_diagnostics_are_closed_and_do_not_require_detail_expansion(self) -> None:
+        index = build(with_rung_comment(field_inputs((BOOLEAN,), extra_tags='<Tag Name="Status" DataType="BOOL"/>')),
+                      related=False)
+        self.assertEqual(set(index.context.reason(identifier) for identifier in index.signals),
+                         {'rung_comment', 'specific_source', 'no_direct_use'})
+        with patch('plc_workbench.workspace_signal_context.MAX_CONTEXT_BYTES', 1):
+            context = SignalContextIndex(index.field_io, index.usage)
+        row = find(index, 'Local:1:I.Data.1')
+        self.assertEqual(context.reason(row['id']), 'capacity')
+        self.assertEqual(context._rung_reasons, {})
+        self.assertEqual(context._uncertain_roots, set())
 
     def test_other_source_languages_keep_explicitly_rll_scoped_context(self) -> None:
         source = field_inputs((BOOLEAN,), extra_tags=STATUS)[0].data
@@ -274,6 +411,40 @@ class SignalContextTests(unittest.TestCase):
 
 
 class SignalContextAPITests(unittest.TestCase):
+    def test_rung_comment_uses_full_cached_translation_and_existing_source_link(self) -> None:
+        wording = 'Commentaire de vitesse invente ' * 35 + 'Fin unique'
+        inputs = with_rung_comment(field_inputs((BOOLEAN,), extra_tags='<Tag Name="Status" DataType="BOOL"/>'), wording)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run = save_map_inputs(root / 'runs', inputs)
+            with closing(Workspace(root / 'project.sqlite', root / 'runs')) as workspace:
+                run_id = workspace.import_run(str(run), 0)['active_run']
+                snapshot = workspace.store.artifact('snapshot.L5X')
+                before = workspace.store.state()
+                looked_up = []
+                class CachedTranslator:
+                    def status(self):
+                        return {'presentation_mode': 'both'}
+                    def lookup_many(self, texts):
+                        texts = list(texts)
+                        looked_up.extend(texts)
+                        return {text: {'state': 'ready', 'text': 'Cached invented speed description',
+                                       'original': text} for text in texts}
+                with patch.object(workspace, '_translator', return_value=CachedTranslator()):
+                    response = workspace.field_signals({'run_id': run_id, 'page_size': 500})
+                row = next(row for row in response['signals']['items'] if row.get('use_context'))
+                context = row['use_context']
+                self.assertEqual(context['description_kind'], 'rung_comment')
+                self.assertIsNone(context['description_annotation_id'])
+                self.assertIn(wording, looked_up)
+                self.assertEqual(context['wording']['text'], 'Cached invented speed description')
+                source = workspace.source(context['description_source_id'], run_id)
+                self.assertEqual(source['kind'], 'rung')
+                self.assertTrue(source['source_qualified'])
+                self.assertEqual(source['source']['comment'], wording)
+                self.assertEqual(workspace.store.state(), before)
+                self.assertEqual(workspace.store.artifact('snapshot.L5X'), snapshot)
+
     def test_cached_full_result_wording_and_saved_empty_packages_survive_reopen(self) -> None:
         wording = 'Description francaise inventee ' * 40 + 'Fin unique'
         inputs = field_inputs((BOOLEAN,), extra_tags=STATUS.replace('Invented two-limit permissive', wording))

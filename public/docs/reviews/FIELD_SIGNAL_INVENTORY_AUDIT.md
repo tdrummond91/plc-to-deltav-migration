@@ -6,6 +6,16 @@ can therefore exist, inherit a module description and have no captured RLL
 reference. An address used in logic can also lack an authored description. The
 inventory count is not the number of wired devices or addresses found in rungs.
 
+## Signal table and editor
+
+The table fills the page until a row is selected. Click any noninteractive part
+of a row, or focus the row and press Enter/Space, to open the right-side editor.
+The selected row has a colored edge and distinct background. Hardware information
+opens on hover, focus or click; source links open their own source window.
+Close restores the table width without discarding unsaved drafts. On a narrow
+window the editor is a side drawer. Its heading and Close control remain visible
+while the editor scrolls. The page title and filters use less vertical space.
+
 ## Source descriptions and result context
 
 Each description cell labels and links its owner: direct channel/member or alias,
@@ -42,6 +52,20 @@ source wording and saved reviewer edits are never overwritten. English display
 uses the existing local translation cache keyed by the full original wording.
 When the result itself inherits a datatype-member description, its cell includes
 both the result link and the actual description-owner link.
+
+If the supported result has no description, its rung's direct comment can supply
+**From Rung N comment** context instead. This covers two-register calculations
+whose purpose is described on the rung. The rung comment and result have separate
+links: the prose is not falsely attributed to the result tag. Only one plain,
+namespace-qualified, unprotected comment is accepted; duplicate, foreign or
+nested comments are excluded. Conflicting result descriptions block fallback.
+
+An unrelated unread rung or unsupported routine no longer suppresses context
+from qualified captured RLL. The displayed context stays scoped to its matched
+rung, and the editor discloses other unscanned source. Known additional uses,
+range/dynamic overlaps and an unread member selector on the same backing root
+still prevent single-use context. This does not prove whole-source uniqueness.
+
 Description links open the exact selected source annotation above the review
 editor. The API verifies its owner and snapshot, returns the complete original
 wording within its response bound, and uses any exact local translation-cache
@@ -85,8 +109,10 @@ spare based only on this RLL lookup.
 Close the old workspace, pull the branch and run `bash ./open-workbench.sh`.
 This reuses the saved analysis; its original analysis date remains correct.
 
-1. In Field I/O, compare module wording with the labeled result descriptions and
-   follow a result/reference link to the source.
+1. In Field I/O, compare module wording with the labeled result descriptions or
+   rung-comment context. Follow the inline owner link to its actual source.
+   Click a plain row cell, verify its highlight and right-side editor, then Close
+   to restore the full-width table. Existing drafts should remain available.
 2. Scroll a long table and confirm its column headers remain visible. The
    **Signals per page** footer stays at the viewport bottom throughout the table.
    **Page help** explains the page without
@@ -95,11 +121,15 @@ This reuses the saved analysis; its original analysis date remains correct.
 4. Select **Download I/O audit** in the footer and return `field-io-audit.json`.
    Its fixed keys contain only counts/flags: inventory, usage, description
    origins, field types, result contexts, recovered rack references and scan
-   limits. Schema 2 also counts declaration lookup outcomes (available, blank,
-   missing definition/member, conflicting, unsupported or capacity-limited),
+   limits. Declaration lookup outcomes include available, blank,
+   missing definition/member, conflicting, unsupported or capacity-limited;
    retained description-candidate origins and truncated candidate lists. Up to
    six anonymous profiles summarize a used/unused missing or inherited case,
-   a datatype-member case and a result-context case. Profiles contain only fixed
+   a datatype-member case and a use-context case. Schema 3 separately counts
+   result-description and rung-comment context, plus fixed context reasons:
+   specific source wording, no direct use, multiple rungs, nonread or overlapping
+   use, unsupported result, absent/conflicting/unqualified wording, unavailable
+   evidence or capacity. Profiles contain only fixed
    keys, counts and flags: never source names, addresses, descriptions, values,
    XML or rung content. The API run/revision guards are excluded from the file.
 
@@ -109,6 +139,24 @@ The actual work-PC totals must be measured before claiming how many of the
 reported 2,071 no-reference entries were repaired or should be hidden.
 
 ## Validation
+
+The full-width row/rung-comment follow-up passed 249 affected context, audit,
+field-signal, API, UI, type-description, source-annotation, usage and rack tests,
+including both large saved/imported capacity fixtures. Independent review caught
+and verified the fix for a stale row response stealing focus from another row's
+input. Regression tests cover all three open paths, close-before-response,
+draft retention, nested controls and incomplete-scan context disclosure.
+
+Chrome checks confirmed full-width rows before selection, plain-cell and keyboard
+activation, active-row highlighting, draft retention through Close/reopen,
+independent hardware information, and a pinned source popout showing the correct
+rung comment and CPT. A 1000-by-800 viewport check confirmed the side drawer,
+sticky Close heading and Escape dismissal. The schema-3 audit downloaded through
+the UI contained 201 invented signals, two rung-comment contexts and only
+numeric/Boolean leaves. Original, inherited and context wording remain distinct.
+Actual work-PC description coverage has not yet been measured with this version.
+
+Earlier sticky-footer/description validation:
 
 The sticky-footer/description follow-up passed 135 inheritance, field, context,
 audit and application tests; 170 source/API/UI tests; and a final 95-test affected
