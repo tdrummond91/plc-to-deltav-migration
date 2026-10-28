@@ -28,6 +28,7 @@
     detailSerial: 0,
     refreshSerial: 0,
     connectionRung: null,
+    sourceWindowOwner: null,
   };
   const node = (tag, text, className) => {
     const n = document.createElement(tag);
@@ -887,17 +888,29 @@
     }
     return active;
   }
+  function sourceWindowAnnotation(id) {
+    if (!document.body.classList.contains('source-popout') || state.sourceWindowOwner !== id) return null;
+    const query = new URLSearchParams(window.location?.search || '');
+    if (!query.has('annotation')) return null;
+    const annotation = query.get('annotation');
+    if (query.getAll('annotation').length !== 1 || !annotation || annotation.length > 256 || /[\x00-\x1f\x7f]/.test(annotation))
+      throw new Error('This source window has an invalid wording reference. Reopen the description from Field I/O.');
+    return annotation;
+  }
   async function openSource(id, target = "rung-detail", skipCheck = false) {
     if (!skipCheck && !discard()) return;
     const expectedRun = assertSourceWindowRun();
     if (!expectedRun) throw new Error('Choose an analysis before opening source evidence.');
+    const annotation = sourceWindowAnnotation(id);
     window.PLCInstructionHelp?.close?.();
     const serial = ++state.detailSerial;
     const panel = $(target);
     panel.inert = true;
     panel.setAttribute("aria-busy", "true");
     try {
-      const result = await api('/api/source?' + new URLSearchParams({id, run_id: expectedRun}));
+      const query = new URLSearchParams({id, run_id: expectedRun});
+      if (annotation) query.set('annotation', annotation);
+      const result = await api('/api/source?' + query);
       if (serial !== state.detailSerial) return;
       if (state.dirty) {
         notify(
@@ -908,6 +921,9 @@
       assertSourceWindowRun();
       if (state.project?.active_run !== expectedRun || result.run_id !== expectedRun || result.historical === true || result.source?.id !== id)
         throw new Error('The source response does not match this analysis. Reopen the source from the current workspace.');
+      if ((annotation && (result.selected_annotation?.id !== annotation || result.selected_annotation?.owner_id !== id))
+          || (!annotation && result.selected_annotation))
+        throw new Error('The selected wording does not match this source. Reopen the description from Field I/O.');
       state.source = result;
       state.detailTarget = target;
       renderDetail(result, panel);
@@ -1036,6 +1052,19 @@
     card.append(technical);
     root.append(card);
   }
+  function renderSelectedAnnotation(data, root) {
+    const annotation = data.selected_annotation;
+    if (!annotation || annotation.owner_id !== data.source?.id || typeof annotation.text !== 'string') return;
+    const selected = section(root, 'Selected source wording');
+    let owner = annotation.owner_name || data.source.name || '(owner name not captured)';
+    if (annotation.owner_suffix && !owner.endsWith(annotation.owner_suffix)) owner += annotation.owner_suffix;
+    selected.append(node('strong', owner));
+    if (annotation.language) selected.append(node('small', 'Source language: ' + annotation.language, 'muted'));
+    const prose = node('div', annotation.text, 'translation-pair');
+    if (annotation.wording && window.PLCTranslation?.renderProse)
+      window.PLCTranslation.renderProse(prose, annotation.text, annotation.wording, data.presentation_mode);
+    selected.append(prose);
+  }
   function renderDetail(data, root) {
     window.PLCInstructionHelp?.close?.();
     clear(root);
@@ -1066,6 +1095,7 @@
       button('Pop out source', () => popupWorkspace(s.id, 'source')),
     );
     root.append(header);
+    renderSelectedAnnotation(data, root);
     root.append(
       button(
         "Back to source list",
@@ -3082,7 +3112,10 @@
   const panelMode = new URLSearchParams(window.location.search).get('panel');
   if (panelMode === 'source' || panelMode === 'workspace') {
     document.body.classList.add('workspace-popout');
-    if (panelMode === 'source') document.body.classList.add('source-popout');
+    if (panelMode === 'source') {
+      document.body.classList.add('source-popout');
+      state.sourceWindowOwner = requestedLocation()?.source || null;
+    }
     $('stop').hidden = true;
     const note = node('div', 'This window shares the same saved project. After saving elsewhere, use Refresh saved data here. Close this window with the browser window controls.', 'popout-note');
     document.querySelector('.topbar').after(note);

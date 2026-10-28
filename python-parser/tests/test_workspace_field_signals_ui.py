@@ -416,6 +416,11 @@ assert.equal(calls.at(-1),'/api/field-signals-audit?run_id=run-1');assert.deepEq
 assert.equal(blobs[0].type,'application/json');const payload=JSON.parse(await blobs[0].text());assert.deepEqual(payload,exported.audit);
 const countOnly=value=>{if(value&&typeof value==='object')Object.values(value).forEach(countOnly);else assert.ok(typeof value==='number'||typeof value==='boolean');};countOnly(payload);
 assert.ok(!(await blobs[0].text()).includes('run-1'));assert.ok(!('revision' in payload));
+exported.audit={schema_version:2,inventory:{signals:7},description_origins:{type_member:3,containing_member:2}};
+await findButton(root,'Download I/O audit').fire('click');assert.equal(blobs.length,2);
+const current=JSON.parse(await blobs[1].text());assert.deepEqual(current,exported.audit);countOnly(current);assert.ok(!('run_id' in current));
+exported.audit={schema_version:3};await findButton(root,'Download I/O audit').fire('click');
+assert.equal(blobs.length,2);assert.ok(root.textContent.includes('This I/O audit format is unavailable'));
 assert.equal(byClass(root,'field-signals-target-name')[0].value,'Unsaved review');assert.equal(controller.hasUnsavedChanges(),true);assert.equal(writes.length,0);
 """)
 
@@ -452,7 +457,85 @@ rows=[sourceRow('address-1',{description_origin:{kind:'channel',specific:true,la
  sourceRow('address-2',{description:'Ethernet remote adapter',source_annotations:[{text:'Ethernet remote adapter'}],description_origin:{kind:'module',specific:false,label:'Inherited module description'}})];
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();const descriptions=byClass(root,'field-signals-source-description');
 assert.ok(descriptions[0].textContent.includes('Niveau haut'));assert.equal(descriptions[0].textContent.includes('Result fallback'),false);
-assert.ok(descriptions[1].textContent.includes('Ethernet remote adapter Inherited module description'));assert.equal(writes.length,0);
+assert.ok(descriptions[1].textContent.includes('Ethernet remote adapter Inherited from module (owner name not captured)'));assert.equal(writes.length,0);
+""")
+
+    def test_every_description_identifies_its_direct_or_inherited_owner(self) -> None:
+        self.run_js(r"""
+const cases=[
+ {kind:'module',specific:false,owner_id:'module #1',owner_name:'RemoteAdapter',label:'Inherited from module RemoteAdapter'},
+ {kind:'backing',specific:false,owner_id:'backing-tag',owner_name:'Rack:I',label:'Inherited from backing tag Rack:I'},
+ {kind:'backing',basis:'backing_alias_description',specific:false,owner_id:'backing-alias',owner_name:'RackAlias',label:'Inherited from backing alias RackAlias'},
+ {kind:'alias',specific:true,owner_id:'alias-id',owner_name:'HighLevel',label:'From alias HighLevel'},
+ {kind:'channel',specific:true,owner_id:'input-tag',owner_name:'Rack:I',owner_suffix:'.Data.4',label:'From member Rack:I.Data.4'},
+ {kind:'containing_member',specific:false,owner_id:'containing-tag',owner_name:'Rack:I',owner_suffix:'.Data',label:'Inherited from member Rack:I.Data'},
+ {kind:'type_member',specific:true,owner_id:'type-id',owner_name:'InputType.Ch0Data',owner_suffix:'.Ch0Data',label:'Inherited from data type InputType.Ch0Data'},
+];
+rows=cases.map((origin,index)=>sourceRow('address-'+index,{description_origin:origin}));
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();const cells=byClass(root,'field-signals-source-description');
+cases.forEach((origin,index)=>{const provenance=byClass(cells[index],'field-signals-description-origin');assert.equal(provenance.length,1);
+ const link=findLink(provenance[0],origin.label);assert.ok(link,origin.label);
+ assert.equal(link.href,'/?panel=source&run_id=run-1#view=objects&source='+encodeURIComponent(origin.owner_id));
+ assert.equal(link.children.length,0);assert.equal(link.target,'_blank');});
+const old=findLink(cells[0],cases[0].label);project={...project,active_run:'new-run'};let prevented=false;
+await old.fire('click',{preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(writes.length,0);
+""")
+
+    def test_member_suffix_uses_selected_annotation_and_missing_text_has_no_fake_owner(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{description_selection:{preferred_annotation_id:'chosen'},
+ source_annotations:[{id:'wrong',text:'Wrong owner',owner_name:'Other',suffix:'.Data.9'},
+ {id:'chosen',text:'Correct member comment',owner_name:'Rack:I',suffix:'.Data.4'}],
+ description_origin:{kind:'channel',specific:true,annotation_id:'chosen',owner_id:'root-tag',owner_name:'Rack:I'}}),
+ sourceRow('address-2',{description:'',source_annotations:[],description_origin:{kind:'missing',specific:false,owner_id:null,owner_name:null}}),
+ sourceRow('address-3',{description_origin:{kind:'module',specific:false,owner_name:'<img src=x>',owner_id:null}})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();const cells=byClass(root,'field-signals-source-description');
+assert.ok(findLink(cells[0],'From member Rack:I.Data.4'));assert.equal(cells[0].textContent.includes('Other'),false);
+assert.equal(cells[1].textContent,'No source description captured');assert.equal(byClass(cells[1],'field-signals-description-origin').length,0);
+const missingOwner=byClass(cells[2],'field-signals-description-origin')[0];assert.equal(missingOwner.textContent,'Inherited from module <img src=x>');
+assert.equal(all(missingOwner).some(item=>item.tagName==='a'),false);assert.equal(all(missingOwner).some(item=>item.tagName==='img'),false);
+assert.equal(writes.length,0);
+""")
+
+    def test_result_context_names_and_links_its_actual_description_owner(self) -> None:
+        self.run_js(r"""
+const common={description:'Ready for operation',result_name:'Status.Ready',result_id:'status-tag',
+ description_basis:'declared_member_description',description_source_id:'type #1',description_annotation_id:'member #1',
+ description_owner_name:'StateRecord.Ready',description_owner_suffix:'.Ready'};
+rows=[sourceRow('address-1',{description_origin:{kind:'missing',specific:false},use_context:common}),
+ sourceRow('address-2',{description_origin:{kind:'missing',specific:false},use_context:{...common,description_source_id:'status-tag'}}),
+ sourceRow('address-3',{description_origin:{kind:'missing',specific:false},use_context:{...common,
+ description_owner_name:'<img src=x>',description_owner_suffix:'.Ready'}})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const cells=byClass(root,'field-signals-source-description'),first=byClass(cells[0],'field-signals-description-origin')[0];
+assert.ok(findLink(first,'From result Status.Ready'));
+const owner=findLink(first,'Inherited from data type StateRecord.Ready');assert.ok(owner);
+assert.equal(owner.href,'/?panel=source&run_id=run-1&annotation=member%20%231#view=objects&source=type%20%231');assert.equal(owner.target,'_blank');
+assert.equal(findLink(first,'From result Status.Ready').href,'/?panel=source&run_id=run-1#view=objects&source=status-tag');
+assert.equal(first.textContent.includes('.Ready.Ready'),false);
+assert.equal(all(byClass(cells[1],'field-signals-description-origin')[0]).filter(item=>item.tagName==='a').length,1);
+assert.equal(findLink(cells[1],'From result Status.Ready').href,'/?panel=source&run_id=run-1&annotation=member%20%231#view=objects&source=status-tag');
+assert.ok(findLink(cells[2],'Inherited from data type <img src=x>.Ready'));assert.equal(all(cells[2]).some(item=>item.tagName==='img'),false);
+project={...project,active_run:'run-2'};let prevented=false;await owner.fire('auxclick',{preventDefault(){prevented=true;}});
+assert.equal(prevented,true);assert.equal(writes.length,0);
+""")
+
+    def test_result_description_is_explicitly_derived_and_footer_controls_keep_drafts(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{description_origin:{kind:'module',specific:false,owner_id:'module',owner_name:'Remote'},
+ use_context:{description:'Tank high-level trip',result_name:'TankTrip',result_id:'trip-tag'}})];
+response=async path=>{const answer=result(path),query=new URL(path,'http://localhost').searchParams;
+ answer.signals={...answer.signals,page:Number(query.get('page')||1),pages:3,total:150};return answer;};
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+const footer=byClass(root,'field-signals-footer')[0],directory=byClass(root,'field-signals-directory')[0];
+assert.equal(directory.children.at(-1),footer);assert.equal(footer.attributes['aria-label'],'Field I/O pagination and audit');
+const provenance=byClass(byClass(root,'field-signals-source-description')[0],'field-signals-description-origin')[0];
+assert.ok(provenance.textContent.includes('Derived context'));assert.ok(findLink(provenance,'From result TankTrip'));
+await edit('field-signals-target-name','Keep this correction');await findButton(footer,'Next signals').fire('click');
+assert.equal(new URL(calls.at(-1),'http://localhost').searchParams.get('page'),'2');assert.equal(byClass(root,'field-signals-footer')[0],footer);
+assert.ok(footer.textContent.includes('page 2 of 3'));await findButton(footer,'Previous signals').fire('click');
+assert.equal(new URL(calls.at(-1),'http://localhost').searchParams.get('page'),'1');
+assert.equal(byClass(root,'field-signals-target-name')[0].value,'Keep this correction');assert.equal(controller.hasUnsavedChanges(),true);assert.equal(writes.length,0);
 """)
 
     def test_proposed_names_are_visible_and_saved_only_explicitly_with_source_metadata(self) -> None:
@@ -702,7 +785,19 @@ assert.equal(findLink(popover,'Open controller source').href,'/?panel=source&run
         self.run_js(r"""
 rows=[sourceRow('address-1',{source_annotations:[{id:'derived-note',owner_id:'owner #1&x=y',kind:'member_comment',text:'Text'}],source_annotations_truncated:true})];
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
-const link=findLink(root,'Open complete source wording');assert.equal(link.href,'/?panel=source&run_id=run-1#view=objects&source='+encodeURIComponent('owner #1&x=y'));assert.equal(link.target,'_blank');assert.equal(link.rel,'noopener');
+const link=findLink(root,'Open complete source wording');assert.equal(link.href,'/?panel=source&run_id=run-1&annotation=derived-note#view=objects&source='+encodeURIComponent('owner #1&x=y'));assert.equal(link.target,'_blank');assert.equal(link.rel,'noopener');
 assert.equal(findLink(root,'Browse all source comments').href,'/#view=objects');
 let prevented=false;project={...project,project_path:'other.sqlite'};link.events.click({preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.equal(opened.length,0);
+""")
+
+    def test_origin_and_candidate_links_select_exact_member_wording(self) -> None:
+        self.run_js(r"""
+rows=[sourceRow('address-1',{description:'Specific member wording',
+ description_origin:{kind:'type_member',specific:true,annotation_id:'member &1',owner_id:'data-type',owner_name:'StateRecord.Ready'},
+ description_selection:{preferred_annotation_id:'member &1',basis:'declared_member_description',status:'selected',candidate_count:1,
+ candidates:[{id:'member &1',owner_id:'data-type',owner_name:'StateRecord.Ready',kind:'member_description'}]}})];
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+const expected='/?panel=source&run_id=run-1&annotation=member%20%261#view=objects&source=data-type';
+assert.equal(findLink(root,'Inherited from data type StateRecord.Ready').href,expected);
+assert.equal(findLink(root,'Open candidate source').href,expected);assert.equal(writes.length,0);
 """)

@@ -17,11 +17,12 @@ from .workspace_evidence import diagnostic
 MAX_ANNOTATIONS = 25_000
 MAX_ANNOTATION_CHARS = 4_000_000
 _OWNERS = {'module', 'module_input_tag', 'module_output_tag', 'module_config_tag',
-           'tag', 'aoi_local_tag', 'aoi_parameter'}
+           'tag', 'aoi_local_tag', 'aoi_parameter', 'data_type'}
 _PART = r'(?:\.[A-Za-z_][A-Za-z0-9_]*|\.(?:0|[1-9][0-9]*)|\[(?:0|[1-9][0-9]*)(?:,(?:0|[1-9][0-9]*))*\])'
 _SUFFIX = re.compile(_PART + '+', re.ASCII)
 _DESCRIPTION_PRIORITY = {'exact_member_comment': 0, 'exact_alias_description': 0,
                          'declared_member_description': 5,
+                         'containing_member_comment': 7,
                          'backing_description': 10, 'backing_alias_description': 10,
                          'module_description': 20}
 MAX_DESCRIPTION_CANDIDATES = 24
@@ -166,6 +167,22 @@ def collect_io_annotations(source: bytes, inventory: InventoryResult,
             continue
         index = locations.get(owner.locator)
         if owner.kind not in _OWNERS or not qualified.get(owner.id) or index is None or not okay[index]:
+            continue
+        if owner.kind == 'data_type':
+            # Exact annotation-owner retrieval only. Applying these notes to an
+            # instance still requires DeclaredMemberDescriptions path checks.
+            for container_index in nodes[index].children:
+                container = nodes[container_index]
+                if container.name != 'Members' or not okay[container_index]:
+                    continue
+                for member_index in container.children:
+                    member = nodes[member_index]
+                    name = member.attributes.get('Name', '')
+                    if member.name != 'Member' or not okay[member_index] or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name, re.ASCII):
+                        continue
+                    for description_index in member.children:
+                        if nodes[description_index].name == 'Description':
+                            prose(owner.id, '.' + name, description_index, 'datatype_member_description', 'LocalizedDescription')
             continue
         for child in nodes[index].children:
             node = nodes[child]

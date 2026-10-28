@@ -20,6 +20,7 @@ from .workspace_io_comments import IOCommentError, collect_io_annotations, selec
 from .workspace_sorting import natural_key
 from .workspace_variables import VariableIndex, _member_key
 from .workspace_rack_references import RackReferenceError, RackReferenceIndex
+from .workspace_type_descriptions import DeclaredMemberDescriptions
 
 PAGE_SIZE = 24
 USE_PAGE_SIZE = 12
@@ -465,6 +466,13 @@ class FieldIOIndex:
                     self._rack_use(use, recovered, use['role'], raw)
         self._budget += self.rack_references._budget - rack_initial_budget
         self._retain({})
+        self.member_descriptions = DeclaredMemberDescriptions(base)
+        self._budget += self.member_descriptions._budget
+        self._retain({})
+        for row in self.addresses.values():
+            inherited = self.member_descriptions.inspect(row['root_id'], row['suffix'])
+            self._annotations(row, inherited['annotations'], 'datatype_member')
+            self._containing_annotations(row)
         for row in self.addresses.values():
             self._select_description(row)
             values = base._values.get((row['root_id'], _member_key(row['suffix'])), [])
@@ -516,6 +524,7 @@ class FieldIOIndex:
             'omitted_addresses': self._omitted}
         self.coverage['rack_recovered_reference_uses'] = self._rack_recovered_uses
         self.coverage['rack_recovered_addresses'] = sum('rack_mapping' in row for row in self.addresses.values())
+        self.coverage['member_descriptions_available'] = self.member_descriptions.available
 
     def _rack_address(self, recovered: dict) -> dict | None:
         row = self._add(recovered['target_id'], recovered['suffix'])
@@ -547,7 +556,9 @@ class FieldIOIndex:
             row = self._annotation_records.get(key)
             if row is None:
                 owner = self.base._entities[note['owner_id']]
-                row = _preview(dict(note, owner_name=owner.name, owner_path=self.base._path(owner.id), via=via))
+                row = _preview(dict(note, owner_name=note.get('owner_name') or self.base._resolver.name(owner),
+                    owner_path=note.get('owner_path', self.base._path(owner.id)),
+                    owner_suffix=note.get('owner_suffix', note.get('suffix', '')), via=via))
                 self._retain((key, row))
                 self._annotation_records[key] = row
             # The row and full text are owned once; targets retain references.
@@ -557,12 +568,31 @@ class FieldIOIndex:
                 self._retain(note['text'])
                 self.annotation_texts[note['id']] = note['text']
 
+    def _containing_annotations(self, row: dict) -> None:
+        """Keep the nearest authored parent-member comment visibly inherited."""
+        suffix = row['suffix']
+        # Boundaries are complete member/array selections, never name prefixes:
+        # .Data cannot match .Data10, and [1] cannot match [10].
+        for position in reversed([match.start() for match in re.finditer(r'[.\[]', suffix) if match.start()]):
+            prefix = _member_key(suffix[:position])
+            identifier = self._keys.get((row['root_id'], prefix))
+            parent = self.addresses.get(identifier)
+            if parent is None:
+                continue
+            notes = [note for note in parent['source_annotations'] if note['kind'] == 'member_comment'
+                     and note.get('via') != 'containing_member']
+            if notes:
+                self._annotations(row, notes, 'containing_member')
+                return
+
     def _select_description(self, row: dict) -> None:
         """Keep exact annotations apart from explicit backing/module fallbacks."""
         candidates = []
         is_address = 'root_id' in row
         for note in row['source_annotations']:
-            scope = ('exact_member_comment' if note['kind'] == 'member_comment' else
+            scope = ('containing_member_comment' if note['via'] == 'containing_member' else
+                     'declared_member_description' if note['kind'] == 'datatype_member_description' else
+                     'exact_member_comment' if note['kind'] == 'member_comment' else
                      'exact_alias_description' if note['via'] == 'alias' and row.get('suffix') else
                      'backing_alias_description' if note['via'] == 'alias' else
                      'module_description' if note['via'] == 'module' else 'backing_description')

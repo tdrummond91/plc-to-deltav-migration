@@ -8,9 +8,26 @@ inventory count is not the number of wired devices or addresses found in rungs.
 
 ## Source descriptions and result context
 
-Each row labels the description's origin: channel/member, alias, backing tag or
-module. Shared module/backing descriptions do not become specific point wording.
+Each description cell labels and links its owner: direct channel/member or alias,
+inherited datatype member, containing member, backing tag or module. A datatype
+member link names the declared type and member; a containing-member link names
+the exact authored parent suffix. Shared module/backing/parent descriptions do
+not become individually authored point wording.
 Conflicting original annotations remain inspectable.
+
+Qualified datatype definitions are shared across instances without expanding
+arrays. Lookup follows the requested static path and checks nested types, array
+rank/bounds and captured layout conflicts. Foreign/protected or duplicate
+declarations do not supply wording. An exact instance or alias description takes
+priority over type wording. A nearest containing member comment is an explicit
+fallback, with token boundaries so `.Data` cannot match `.Data10`.
+
+Datatype member descriptions were already available in Application Map and the
+translation catalog but were missing from Field I/O. Containing-member comments
+were captured but only exact member matches were selected. The shared lookup
+repairs both integrations over the saved source; a new analysis is not required.
+This is source-description recovery, not a plant or manufacturer glossary lookup.
+Unexported descriptions remain absent.
 
 For a signal without a specific description, a supported rung with one described
 result can provide **From result …** context. The matcher requires a parsed,
@@ -23,6 +40,13 @@ describes the calculation's result, not the physical identity of each input.
 Uniqueness is scoped to checked RLL source; SFC is outside this lookup. Original
 source wording and saved reviewer edits are never overwritten. English display
 uses the existing local translation cache keyed by the full original wording.
+When the result itself inherits a datatype-member description, its cell includes
+both the result link and the actual description-owner link.
+Description links open the exact selected source annotation above the review
+editor. The API verifies its owner and snapshot, returns the complete original
+wording within its response bound, and uses any exact local translation-cache
+match. Ordinary source links remain unchanged. Implicit module I/O owners use
+their resolved source name rather than an empty XML `Name` attribute.
 
 **Hide empty unreferenced rows** hides only no-reference addresses with neither
 specific source wording nor derived result context. It does not hide used,
@@ -63,14 +87,21 @@ This reuses the saved analysis; its original analysis date remains correct.
 
 1. In Field I/O, compare module wording with the labeled result descriptions and
    follow a result/reference link to the source.
-2. Scroll a long table and confirm its column headers remain visible. Change
-   **Signals per page** at the bottom. **Page help** explains the page without
+2. Scroll a long table and confirm its column headers remain visible. The
+   **Signals per page** footer stays at the viewport bottom throughout the table.
+   **Page help** explains the page without
    keeping long instructions above the table.
 3. Toggle **Hide empty unreferenced rows**. Saved records remain available.
 4. Select **Download I/O audit** in the footer and return `field-io-audit.json`.
    Its fixed keys contain only counts/flags: inventory, usage, description
    origins, field types, result contexts, recovered rack references and scan
-   limits. The API run/revision guards are excluded from the downloaded file.
+   limits. Schema 2 also counts declaration lookup outcomes (available, blank,
+   missing definition/member, conflicting, unsupported or capacity-limited),
+   retained description-candidate origins and truncated candidate lists. Up to
+   six anonymous profiles summarize a used/unused missing or inherited case,
+   a datatype-member case and a result-context case. Profiles contain only fixed
+   keys, counts and flags: never source names, addresses, descriptions, values,
+   XML or rung content. The API run/revision guards are excluded from the file.
 
 The download covers all signals, independent of the current filters or page.
 It neither reparses the L5X nor sends anything over Git or an external service.
@@ -78,6 +109,23 @@ The actual work-PC totals must be measured before claiming how many of the
 reported 2,071 no-reference entries were repaired or should be hidden.
 
 ## Validation
+
+The sticky-footer/description follow-up passed 135 inheritance, field, context,
+audit and application tests; 170 source/API/UI tests; and a final 95-test affected
+suite after correcting implicit module owner labels. Both large saved/imported
+capacity fixtures also passed. Independent review found and resolved separate
+result-description owners and exact-member source links. Invalid annotation
+parameters, wrong owners/snapshots, historical lookup, full original text and
+local translation-cache lookup have explicit regression coverage.
+
+Chrome checks confirmed the sticky footer at the top, middle and end of a long
+table and in a narrower single-column window. Per-row links identify the type,
+parent member, module or result; the datatype link visibly opens its exact member
+wording above the review editor. The schema-2 download was inspected on disk:
+201 invented signals, three populated anonymous profiles and numeric/Boolean
+leaves only. These are synthetic checks; work-PC gaps still require its audit.
+
+Earlier inventory/reference validation:
 
 The complete 789-test workspace suite passed. The final 242-test affected suite
 also passed, including both large saved/imported capacity fixtures. Subsequent

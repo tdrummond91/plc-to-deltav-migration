@@ -98,6 +98,7 @@
     const directory = el('section', undefined, 'field-signals-directory');
     const tableWrap = el('div', undefined, 'field-signals-controller-list'), pager = el('div', undefined, 'pagination');
     const footer = el('div', undefined, 'field-signals-footer'), filterSummary = el('small', undefined, 'field-signals-filter-summary muted');
+    footer.setAttribute('role', 'region'); footer.setAttribute('aria-label', 'Field I/O pagination and audit');
     const audit = button('Download I/O audit', downloadAudit, 'field-signals-audit');
     audit.title = 'Download inventory, usage and description counts for this analysis; no source names or logic.';
     footer.append(field('Signals per page', pageSize), pager, audit, filterSummary);
@@ -133,7 +134,7 @@
         const result = await options.api('/api/field-signals-audit?' + new URLSearchParams({run_id: expectedRun}));
         if (!current(expected)) return;
         if (!result || result.run_id !== expectedRun) throw new Error('The audit does not match this analysis. Refresh and try again.');
-        if (!result.audit || result.audit.schema_version !== 1) throw new Error('This I/O audit format is unavailable. Refresh and try again.');
+        if (!result.audit || ![1, 2].includes(result.audit.schema_version)) throw new Error('This I/O audit format is unavailable. Refresh and try again.');
         // Run/revision are request guards, never part of the count-only file.
         const blob = new Blob([JSON.stringify(result.audit, null, 2) + '\n'], {type: 'application/json'});
         const address = URL.createObjectURL(blob), link = el('a');
@@ -149,9 +150,11 @@
       if (!result || result.run_id !== expectedRun || !Number.isInteger(result.revision) || result.revision < 0 || !pageValid(result.signals, expectedPageSize))
         throw new Error('Signal evidence did not match the requested analysis or page bounds. Reload the list.');
     }
-    function sourceLink(label, ownerId, view = 'objects', expected = key) {
+    function sourceLink(label, ownerId, view = 'objects', expected = key, annotationId = null) {
       const link = el('a', label); link.href = ownerId
-        ? '/?panel=source&run_id=' + encodeURIComponent(runId) + '#view=' + (view === 'ladder' ? 'rungs' : 'objects') + '&source=' + encodeURIComponent(ownerId)
+        ? '/?panel=source&run_id=' + encodeURIComponent(runId)
+          + (annotationId ? '&annotation=' + encodeURIComponent(annotationId) : '')
+          + '#view=' + (view === 'ladder' ? 'rungs' : 'objects') + '&source=' + encodeURIComponent(ownerId)
         : '/#view=objects';
       link.target = '_blank'; link.rel = 'noopener';
       const guard = event => { if (!requireCurrent(expected)) event.preventDefault(); };
@@ -164,6 +167,42 @@
       }
       if (window.PLCTranslation?.renderProse) window.PLCTranslation.renderProse(target, original, wording, mode);
       else target.textContent = original;
+    }
+    function descriptionProvenance(row, expected, context = null) {
+      const line = el('small', undefined, 'field-signals-description-origin muted');
+      if (context) {
+        line.append(el('span', 'Derived context · '));
+        const label = 'From result ' + (context.result_name || '(name not captured)');
+        line.append(context.result_id ? sourceLink(label, context.result_id, 'objects', expected,
+          context.description_source_id === context.result_id ? context.description_annotation_id : null) : el('span', label));
+        if (context.description_source_id && context.description_source_id !== context.result_id) {
+          const origin = context.description_basis === 'declared_member_description' ? 'Inherited from data type'
+            : context.description_basis === 'exact_alias_description' ? 'From alias' : 'From description source';
+          let owner = wording(context.description_owner_name);
+          const suffix = wording(context.description_owner_suffix);
+          if (owner && suffix && !owner.endsWith(suffix)) owner += suffix;
+          line.append(el('span', ' · '), sourceLink(origin + ' ' + (owner || '(owner name not captured)'),
+            context.description_source_id, 'objects', expected, context.description_annotation_id));
+        }
+        return line;
+      }
+      if (!wording(textOf(row))) return null;
+      const origin = row.description_origin;
+      if (!origin || origin.kind === 'missing') { line.textContent = 'Description origin not captured'; return line; }
+      const labels = {module: 'Inherited from module', backing: origin.basis === 'backing_alias_description'
+        ? 'Inherited from backing alias' : 'Inherited from backing tag', type_member: 'Inherited from data type', containing_member: 'Inherited from member',
+        alias: origin.specific === false ? 'Inherited from alias' : 'From alias',
+        channel: origin.specific === false ? 'Inherited from member' : 'From member', member: 'From member'};
+      const label = labels[origin.kind] || 'From source';
+      const selected = preferredNote(row);
+      const note = origin.annotation_id ? (selected?.id === origin.annotation_id ? selected
+        : row.source_annotations?.find(item => item.id === origin.annotation_id)) : null;
+      let owner = wording(origin.owner_name) || wording(note?.owner_name);
+      const suffix = wording(origin.owner_suffix) || wording(origin.suffix) || wording(note?.suffix);
+      if (owner && suffix && !owner.endsWith(suffix)) owner += suffix;
+      const text = label + ' ' + (owner || '(owner name not captured)');
+      line.append(origin.owner_id ? sourceLink(text, origin.owner_id, 'objects', expected, origin.annotation_id) : el('span', text));
+      return line;
     }
     function paintDrafts() {
       draftsNotice.replaceChildren();
@@ -291,11 +330,10 @@
         const context = row.description_origin?.specific !== true && row.use_context?.description ? row.use_context : null;
         if (context) {
           prose(wording, context.description, context.wording?.description || context.wording, result.presentation_mode);
-          description.append(wording, sourceLink('From result ' + (context.result_name || 'tag'), context.result_id, 'objects', expected));
+          description.append(wording, descriptionProvenance(row, expected, context));
         } else {
           prose(wording, textOf(row), wordingOf(row), result.presentation_mode); description.append(wording);
-          if (row.description_origin?.specific === false && row.description_origin.kind !== 'missing')
-            description.append(el('small', row.description_origin.label, 'field-signals-description-origin muted'));
+          const provenance = descriptionProvenance(row, expected); if (provenance) description.append(provenance);
         }
         if (descriptionNotice(row)) description.append(el('small', descriptionNotice(row), 'field-signals-description-conflict'));
         const use = usageOf(row), usageCell = el('td', undefined, 'field-signals-usage-cell');
@@ -757,7 +795,7 @@
           const alternatives = el('details'); alternatives.append(el('summary', 'Description selection evidence'));
           choices.forEach(candidate => {
             const entry = el('p', [candidate.kind, candidate.basis, candidate.owner_name].filter(Boolean).map(value => String(value).replaceAll('_', ' ')).join(' · ') || 'Source wording candidate');
-            if (candidate.owner_id) entry.append(sourceLink('Open candidate source', candidate.owner_id, 'objects', draft.context)); alternatives.append(entry);
+            if (candidate.owner_id) entry.append(sourceLink('Open candidate source', candidate.owner_id, 'objects', draft.context, candidate.id)); alternatives.append(entry);
           });
           if (selection.candidates_truncated || selection.candidate_count > choices.length) alternatives.append(el('small', `Showing ${choices.length} of ${selection.candidate_count} description candidates.`, 'muted'));
           source.append(alternatives);
@@ -768,7 +806,7 @@
         const entry = el('article'), text = el('div');
         entry.append(el('strong', (note.kind === 'member_comment' ? 'Member comment' : 'Source description') + (note.via === 'alias' ? ' · alias ' + (note.owner_name || '') : '')));
         prose(text, note.text, note.wording, draft.payload.presentation_mode); entry.append(text);
-        if (note.owner_id) entry.append(sourceLink('Open complete source wording', note.owner_id, 'objects', draft.context)); source.append(entry);
+        if (note.owner_id) entry.append(sourceLink('Open complete source wording', note.owner_id, 'objects', draft.context, note.id)); source.append(entry);
       });
       else { const text = el('p'); prose(text, row.description, row.wording?.description, draft.payload.presentation_mode); source.append(text); }
       if (row.source_annotations_truncated) source.append(sourceLink('Browse all source comments', '', 'annotations', draft.context));
@@ -784,7 +822,7 @@
       detail.append(source);
       if (row.use_context?.description) {
         const context = row.use_context, panel = el('section', undefined, 'field-signals-use-context'), description = el('p');
-        panel.append(sourceLink('From result ' + (context.result_name || 'tag'), context.result_id, 'objects', draft.context));
+        panel.append(descriptionProvenance(row, draft.context, context));
         prose(description, context.description, context.wording?.description || context.wording, draft.payload.presentation_mode); panel.append(description);
         if (context.rung_id) panel.append(sourceLink('Open result rung', context.rung_id, 'ladder', draft.context));
         detail.append(panel);

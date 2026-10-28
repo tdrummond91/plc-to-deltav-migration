@@ -1075,12 +1075,12 @@ class Workspace:
                           'description_is_code': code, 'wording': {'description': entry}})
         return dict(self._page(items, query), presentation_mode=mode)
 
-    def source(self, identifier: str, run_id: str | None = None) -> dict:
+    def source(self, identifier: str, run_id: str | None = None, annotation_id: str | None = None) -> dict:
         state = self.store.state()
         active = state.get('active_run')
         self._load(dict(state, active_run=run_id or active))
         try:
-            result = self._source_detail(identifier, state)
+            result = self._source_detail(identifier, state, annotation_id)
             result['historical'] = bool(run_id and run_id != active)
             result['run_id'] = run_id or active
             result['revision'] = state['revision']
@@ -1088,7 +1088,7 @@ class Workspace:
         finally:
             self._load(state)
 
-    def _source_detail(self, identifier: str, state: dict) -> dict:
+    def _source_detail(self, identifier: str, state: dict, annotation_id: str | None = None) -> dict:
         if identifier not in self._sources:
             raise ProjectError("This source record is not present in the selected analysis.")
         source = self._sources[identifier]
@@ -1111,7 +1111,7 @@ class Workspace:
                 operands.append(dict(operand, target_ids=targets))
                 for target in targets:
                     related.append({"id": target, "label": self.path(target)})
-        return {"source": source, "path": self.path(identifier), "kind": kind,
+        result = {"source": source, "path": self.path(identifier), "kind": kind,
                 "source_qualified": source_qualified,
                 "proposals": self._proposals.get(rung_id or identifier, []),
                 "review": state.get("reviews", {}).get(identifier, {}), "operands": operands,
@@ -1119,6 +1119,24 @@ class Workspace:
                 "rule_proposals": self.rule_proposals(rung_id or identifier, state),
                 "related": list({row["id"]: row for row in related}.values()),
                 "group_ids": [g["id"] for g in state.get("groups", []) if identifier in g.get("member_ids", [])]}
+        if annotation_id is not None:
+            from .workspace_source_annotations import MAX_RESPONSE_BYTES, SourceAnnotationError, select_annotation
+            evidence = self._variable_index(self._run)
+            if evidence is None:
+                raise ProjectError('Source annotation evidence is unavailable for the selected analysis.')
+            try:
+                result['selected_annotation'] = select_annotation(evidence, identifier, annotation_id,
+                    self._field_io_cache.get(self._run))
+            except SourceAnnotationError as exc:
+                raise ProjectError(str(exc)) from None
+            selected = result['selected_annotation']
+            mode, wording = self._wording([selected], 'text')
+            result['presentation_mode'] = mode
+            if selected['text'] in wording:
+                selected['wording'] = wording[selected['text']]
+            if len(_json(result)) > MAX_RESPONSE_BYTES:
+                raise ProjectError('The selected annotation exceeds the source-panel display limit.')
+        return result
 
     def _calculation_detail(self, instruction_ids: list[str]) -> dict:
         """Expose saved expression syntax only after matching its captured source.
@@ -1526,7 +1544,10 @@ class WorkspaceHandler(BaseHTTPRequestHandler):
             elif url.path == '/api/classification':
                 self._json(200, workspace.classification(query))
             elif url.path == "/api/source":
-                self._json(200, workspace.source(query.get("id", ""), query.get("run_id")))
+                annotations = parse_qs(url.query, keep_blank_values=True).get('annotation', [])
+                if annotations and (len(annotations) != 1 or not annotations[0]):
+                    raise ProjectError('Choose one captured source annotation.')
+                self._json(200, workspace.source(query.get("id", ""), query.get("run_id"), query.get('annotation')))
             elif url.path == "/api/translation":
                 self._json(200, workspace.translation(query.get('source_id', ''), query.get('run_id')))
             elif url.path == "/api/runs":

@@ -23,7 +23,8 @@ _RESULTS = frozenset({'OTE', 'MOV', 'ADD', 'SUB', 'MUL', 'DIV', 'ABS', 'LN', 'SQ
 _SPECIFIC = frozenset({'exact_member_comment', 'exact_alias_description', 'declared_member_description'})
 _ORIGINS = {'exact_member_comment': ('channel', 'Channel comment'),
     'exact_alias_description': ('alias', 'Signal alias description'),
-    'declared_member_description': ('channel', 'Member description'),
+    'declared_member_description': ('type_member', 'Data type member description'),
+    'containing_member_comment': ('containing_member', 'Containing member comment'),
     'backing_description': ('backing', 'Backing tag description'),
     'backing_alias_description': ('backing', 'Backing alias description'),
     'module_description': ('module', 'Module description'), 'missing': ('missing', 'No signal description')}
@@ -44,7 +45,8 @@ def description_origin(field_io: FieldIOIndex, address: dict) -> dict:
                  if identifier == preferred), {})
     return {'kind': kind, 'label': label, 'basis': basis, 'specific': specific_description(address),
         'conflict': selection['conflict'], 'annotation_id': preferred,
-        'owner_id': note.get('owner_id'), 'owner_name': note.get('owner_name')}
+        'owner_id': note.get('owner_id'), 'owner_name': note.get('owner_name'),
+        'owner_suffix': note.get('owner_suffix', note.get('suffix')), 'owner_path': note.get('owner_path')}
 
 
 class _ContextLimit(ValueError):
@@ -173,6 +175,7 @@ class SignalContextIndex:
             if symbol.id != result['target_id'] and ref['raw_text'].strip().casefold() == (symbol.name or '').casefold():
                 candidates.extend(dict(note, description_scope='exact_alias_description')
                                   for note in notes.get((symbol.id, ''), []))
+            candidates.extend(self.io.member_descriptions.inspect(result['target_id'], result['suffix'])['annotations'])
             selection = select_description(candidates)
             if selection['status'] != 'selected' or selection['conflict']:
                 continue
@@ -182,6 +185,9 @@ class SignalContextIndex:
                 'description': note['text'], 'result_name': ref['raw_text'].strip(),
                 'result_id': result['symbol_id'], 'result_suffix': result['suffix'],
                 'description_source_id': note['owner_id'], 'description_annotation_id': note['id'],
+                'description_basis': note['description_scope'],
+                'description_owner_name': note.get('owner_name') or self.base._resolver.name(self.base._entities[note['owner_id']]),
+                'description_owner_suffix': note.get('owner_suffix', note.get('suffix', '')),
                 'rung_id': rung_id, 'instruction_id': result['instruction_id'], 'rung_number': rung.number,
                 'path': self.base._path(rung.parent_id) + ' / Rung ' + str(rung.number),
                 'basis': 'single_supported_rung_result',

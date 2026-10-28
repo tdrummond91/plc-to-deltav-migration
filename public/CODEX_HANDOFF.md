@@ -1,5 +1,31 @@
 # Current handoff: PLC analysis workbench
 
+## Sticky signal footer and description ownership (2026-10-28)
+
+The Field I/O pagination footer now stays at the viewport bottom while its long
+table scrolls. Each description cell names and links its source: direct member
+comment or alias, inherited datatype member, containing member, backing tag or
+module. Derived result context retains its result link and also links the actual
+description owner when that wording belongs to a different source object.
+
+Two missing integrations are repaired: qualified UDT member descriptions already
+captured by Application Map now reach Field I/O and result context; a nearest
+containing member comment can supply explicitly inherited wording to a narrower
+member. Exact instance/alias descriptions retain priority. No plant-specific
+glossary or physical-device description is invented when the export lacks one.
+
+The schema-2 I/O audit adds declaration lookup reasons, candidate-origin counts
+and at most six anonymous count/flag profiles. These contain no names, addresses,
+prose, values, XML or rung content. Return this audit from the saved work-PC run
+to measure remaining gaps before requesting any additional bounded source case.
+No fresh analysis is needed for these projection fixes.
+
+Work-PC step: stop the old workspace, manually `git pull`, then
+`bash ./open-workbench.sh`. In Field I/O, use **Download I/O audit** in the sticky
+footer and return `field-io-audit.json`.
+
+Validation is recorded in [Field signal inventory audit](docs/reviews/FIELD_SIGNAL_INVENTORY_AUDIT.md).
+
 ## Explain and audit field-signal inventory (2026-10-28)
 
 Field I/O now distinguishes authored channel/alias descriptions from inherited

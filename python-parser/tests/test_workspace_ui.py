@@ -198,6 +198,10 @@ class WorkspaceInteractionTests(unittest.TestCase):
     def run_js(self, names: list[str], checks: str) -> None:
         if any(name in names for name in ('openSource', 'refresh', 'refreshProjectWindow')) and 'assertSourceWindowRun' not in names:
             names = ['assertSourceWindowRun', *names]
+        if 'openSource' in names and 'sourceWindowAnnotation' not in names:
+            names = ['sourceWindowAnnotation', *names]
+        if 'renderDetail' in names and 'renderSelectedAnnotation' not in names:
+            names = ['renderSelectedAnnotation', *names]
         dom = DOM
         for name in ("openSource", "loadRungs"):
             if name in names:
@@ -205,6 +209,8 @@ class WorkspaceInteractionTests(unittest.TestCase):
                 dom = dom.replace(f"let {name}=async()=>{{}};", "")
         if "loadObjects" in names:
             dom = dom.replace("renderDetail, loadObjects;", "renderDetail;")
+        if 'renderDetail' in names:
+            dom = dom.replace(', renderDetail', '')
         if "loadRungs" in names or "loadObjects" in names:
             dom += RUNG_LIST_DOM
         code = dom + "\n" + "\n".join(function(name) for name in names)
@@ -577,6 +583,61 @@ state.project={...state.project,active_run:'other-run'};
 await assert.rejects(openSource('rung-specific'),/different analysis run/);assert.equal(calls.length,1);
 window.location.search='?panel=source&run_id=other-run&run_id=duplicate';
 await assert.rejects(openSource('rung-specific'),/invalid analysis reference/);
+""")
+
+    def test_selected_source_wording_is_requested_only_for_original_popout_owner(self) -> None:
+        self.run_js(['openSource'], r"""
+document.body.classList.add('source-popout');state.sourceWindowOwner='type #1';
+window.location={search:'?panel=source&run_id=synthetic-run&annotation=note%20%231',hash:'#view=objects&source=type%20%231'};
+const panel=node('section');$=()=>panel;const calls=[];let visible;
+api=async path=>{calls.push(path);const query=new URL(path,'http://localhost').searchParams;
+ return {run_id:'synthetic-run',source:{id:query.get('id')},...(query.has('annotation')
+  ?{selected_annotation:{id:query.get('annotation'),owner_id:query.get('id'),text:'Selected member comment'}}:{})};};
+renderDetail=result=>visible=result;
+await openSource('type #1');assert.equal(calls[0],'/api/source?id=type+%231&run_id=synthetic-run&annotation=note+%231');
+assert.equal(visible.selected_annotation.text,'Selected member comment');
+window.location.hash='#view=objects&source=another-tag';await openSource('another-tag');
+assert.equal(calls[1],'/api/source?id=another-tag&run_id=synthetic-run');assert.equal(visible.selected_annotation,undefined);
+await openSource('type #1');assert.ok(calls[2].includes('&annotation=note+%231'));
+document.body.classList.remove('source-popout');await openSource('type #1');assert.equal(calls[3].includes('annotation='),false);
+assert.equal(state.dirty,false);assert.equal(commands.length,0);
+""")
+
+    def test_selected_wording_rejects_invalid_query_and_mismatched_response(self) -> None:
+        self.run_js(['openSource'], r"""
+document.body.classList.add('source-popout');state.sourceWindowOwner='type-id';
+const panel=node('section');$=()=>panel;let requests=0,renders=0;
+api=async()=>{requests++;return {};};renderDetail=()=>renders++;
+for(const query of ['annotation=','annotation=a&annotation=b','annotation=%00','annotation='+ 'a'.repeat(257)]) {
+ window.location={search:'?panel=source&run_id=synthetic-run&'+query};
+ await assert.rejects(openSource('type-id'),/invalid wording reference/);
+}
+assert.equal(requests,0);window.location.search='?panel=source&run_id=synthetic-run&annotation=note-id';
+for(const selected of [undefined,{id:'different-note',owner_id:'type-id'}, {id:'note-id',owner_id:'different-owner'}]) {
+ api=async()=>({run_id:'synthetic-run',source:{id:'type-id'},selected_annotation:selected});
+ await assert.rejects(openSource('type-id'),/wording does not match this source/);assert.equal(panel.inert,false);
+}
+assert.equal(renders,0);assert.equal(state.source,null);assert.equal(commands.length,0);
+""")
+
+    def test_selected_member_wording_renders_above_editor_with_safe_original_text(self) -> None:
+        self.run_js(['renderDetail', 'renderValues'], r"""
+const root=node('section'),calls=[];globalThis.chip=(text,cls)=>node('span',text,cls);
+globalThis.renderEditor=(target,id)=>{target.append(node('textarea','Review '+id));};
+const data={run_id:'synthetic-run',source:{id:'type-id',name:'StateRecord',kind:'data_type',attributes:{Family:'NoFamily'}},
+ selected_annotation:{id:'note-id',owner_id:'type-id',owner_name:'StateRecord.Ready',owner_suffix:'.Ready',
+ text:'Prêt <script>alert(1)</script>',kind:'member_description',language:'fr'}};
+renderDetail(data,root);let sections=root.children.filter(item=>item.tagName==='section');
+assert.ok(contents(sections[0]).includes('Selected source wording StateRecord.Ready'));
+assert.ok(contents(sections[0]).includes('Prêt <script>alert(1)</script>'));
+assert.equal(contents(sections[0]).includes('.Ready.Ready'),false);
+assert.ok(contents(sections[1]).includes('Your engineering review'));
+assert.equal(descendants(root).some(item=>item.tagName==='script'),false);
+window.PLCTranslation={renderProse:(target,original,wording,mode)=>{calls.push({original,wording,mode});target.textContent=wording.text;}};
+data.selected_annotation.wording={text:'Ready',status:'translated'};data.presentation_mode='english';renderDetail(data,root);
+assert.equal(calls.length,1);assert.equal(calls[0].original,'Prêt <script>alert(1)</script>');assert.equal(calls[0].mode,'english');
+data.selected_annotation.owner_id='wrong-owner';renderDetail(data,root);
+assert.equal(contents(root).includes('Selected source wording'),false);assert.equal(commands.length,0);
 """)
 
     def test_source_response_must_match_requested_run_id_and_current_source(self) -> None:

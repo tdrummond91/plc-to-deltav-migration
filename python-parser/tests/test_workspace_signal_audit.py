@@ -8,12 +8,37 @@ from unittest.mock import patch
 from urllib.parse import urlencode
 
 from plc_workbench.workspace import Workspace
+from plc_workbench.workspace_signal_audit import build_audit
 from test_workspace import running_workspace
 from test_workspace_field_io import field_inputs, module
+from test_workspace_field_signals import build
 from test_workspace_map_api import save_map_inputs
+from test_workspace_type_descriptions import definition, member, with_types
 
 
 class SignalAuditTests(unittest.TestCase):
+    def test_member_diagnostics_distinguish_missing_definition_blank_and_available_wording(self) -> None:
+        for definitions, status in (('', 'no_type_definition'),
+                (definition('InventedModule', member('Ch0Data', description='')), 'no_description'),
+                (definition('InventedModule', member('Ch0Data', description='SECRET_PRESSURE')), 'available'),
+                (definition('InventedModule', member('DifferentMember')), 'member_not_declared')):
+            with self.subTest(status=status):
+                captured = with_types(field_inputs(('MOV(Local:8:I.Ch0Data,InternalReal);',),
+                    modules=module('SECRET_CARD', 8, 'INVENTED')), definitions)
+                audit = build_audit(build(captured, related=False))
+                diagnostics = audit['description_diagnostics']
+                self.assertGreater(diagnostics['member_lookup_counts'][status], 0)
+                profile = diagnostics['anonymous_cases']['type_member_inherited']
+                self.assertEqual(profile['present'], status == 'available')
+                if profile['present']:
+                    self.assertEqual(profile['member_facts']['description_count'], 1)
+                    self.assertEqual(profile['member_facts']['member_depth'], 1)
+                    self.assertTrue(profile['member_lookup_flags']['available'])
+                    self.assertTrue(profile['origin_flags']['type_member'])
+                rendered = json.dumps(audit)
+                for secret in ('SECRET', 'InventedModule', 'Ch0Data', 'DifferentMember', 'io_annotation_'):
+                    self.assertNotIn(secret, rendered)
+
     def test_http_audit_censuses_all_rows_without_source_or_review_text(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -37,12 +62,33 @@ class SignalAuditTests(unittest.TestCase):
                     response = workspace.field_signal_audit({'run_id': run_id,
                         'query': 'NO_MATCH', 'usage': 'not_found', 'page_size': 10})
                 audit = response['audit']
+                self.assertEqual(audit['schema_version'], 2)
                 self.assertEqual(audit['inventory']['field_signal_addresses'], len(rows))
                 self.assertEqual(audit['usage_counts']['referenced'], 1)
                 self.assertGreater(audit['usage_counts']['not_found'], 0)
                 for usage, count in audit['usage_counts'].items():
                     self.assertEqual(sum(audit['description_origins_by_usage'][usage].values()), count)
                     self.assertEqual(sum(audit['field_types_by_usage'][usage].values()), count)
+                diagnostics = audit['description_diagnostics']
+                self.assertEqual(sum(diagnostics['member_lookup_counts'].values()), len(rows))
+                self.assertEqual(diagnostics['member_lookup_counts']['no_type_definition'], len(rows))
+                self.assertEqual(diagnostics['signals_with_retained_candidate_scope']['module_description'], len(rows))
+                self.assertEqual(diagnostics['signals_with_truncated_candidate_list'], 0)
+                cases = diagnostics['anonymous_cases']
+                self.assertEqual(set(cases), {'used_missing', 'used_inherited', 'unreferenced_missing',
+                    'unreferenced_inherited', 'type_member_inherited', 'result_context'})
+                self.assertTrue(cases['used_inherited']['present'])
+                self.assertTrue(cases['unreferenced_inherited']['present'])
+                self.assertFalse(cases['type_member_inherited']['present'])
+                for case in cases.values():
+                    if case['present']:
+                        self.assertEqual(sum(case['usage_flags'].values()), 1)
+                        self.assertEqual(sum(case['origin_flags'].values()), 1)
+                        self.assertEqual(sum(case['member_lookup_flags'].values()), 1)
+                        self.assertLessEqual(sum(case['retained_candidate_scope_counts'].values()), case['candidate_count'])
+                        self.assertEqual(case['alias_count'], 0)
+                    else:
+                        self.assertEqual(case, {'present': False})
                 self.assertEqual(workspace.store.state(), before)
                 self.assertEqual(workspace.store.artifact('snapshot.L5X'), snapshot)
                 rendered = json.dumps(audit)
