@@ -1261,6 +1261,62 @@
       });
     root.append(list);
   }
+  function loadRungRenderer(name) {
+    // Only these bundled, same-origin assets may be reloaded. A failed optional
+    // display must never prevent reading source or saving an engineering review.
+    const path = {PLCRungExplanation: '/rung-explanation.js', PLCLadderDiagram: '/ladder-diagram.js'}[name];
+    if (typeof path !== 'string') return Promise.reject(new Error('Unknown rung display.'));
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      let finished = false;
+      const complete = error => {
+        if (finished) return;
+        finished = true; clearTimeout(timer); script.remove();
+        if (error) reject(error); else resolve();
+      };
+      const timer = setTimeout(() => complete(new Error('Rung display loading timed out.')), 10000);
+      script.src = path;
+      script.onload = () => complete(typeof window[name]?.render === 'function'
+        ? null : new Error('Rung display did not initialize.'));
+      script.onerror = () => complete(new Error('Rung display could not be loaded.'));
+      document.head.append(script);
+    });
+  }
+  function renderRungRenderer(panel, name, source, options) {
+    const label = name === 'PLCRungExplanation' ? 'Logic summary' : 'Ladder drawing';
+    const display = node('div');
+    panel.append(display);
+    let loading = false;
+    const fallback = () => {
+      const warning = node('div', null, 'warning-panel');
+      const message = node('p', `${label} is temporarily unavailable. The original rung text and review controls remain available.`);
+      message.setAttribute('role', 'status');
+      const retryDisplay = async () => {
+        if (loading) return;
+        loading = true; retry.disabled = true; message.textContent = `Loading ${label.toLowerCase()}...`;
+        try {
+          if (typeof window[name]?.render !== 'function') await loadRungRenderer(name);
+          // Replace this panel only: other views, source comments and draft
+          // review fields must survive a retry without a page refresh.
+          const rendered = window[name].render(source, options);
+          display.replaceChildren(rendered);
+        } catch (_error) {
+          message.textContent = `${label} could not be loaded. Retry display, or stop and reopen the workspace if this continues. The original text is shown below.`;
+        } finally { loading = false; retry.disabled = false; }
+      };
+      const retry = button('Retry display', retryDisplay);
+      warning.append(message, retry);
+      display.replaceChildren(warning, node('pre', source.text ?? 'Source text unavailable.'));
+      return retryDisplay;
+    };
+    try {
+      if (typeof window[name]?.render !== 'function') {
+        // One bounded automatic retry recovers a transient local asset failure.
+        fallback()(); return;
+      }
+      display.append(window[name].render(source, options));
+    } catch (_error) { fallback(); }
+  }
   function renderRungLogic(root, source, calculations, explanationOptions = {}) {
     const area = section(root, "Rung logic",
       "The ladder shows the captured paths and instructions. Hover over a block for its explanation; use the other views for summaries, equations and original text.");
@@ -1301,16 +1357,17 @@
     });
     area.append(tabs, ...panels);
     activate(1);
-    panels[0].append(window.PLCRungExplanation.render(source, {...explanationOptions, calculations}));
+    renderRungRenderer(panels[0], 'PLCRungExplanation', source, {...explanationOptions, calculations});
     if (calculations.status === "unavailable")
       area.prepend(node("p", "Saved expression structure could not be verified. CPT instructions retain their original expressions.", "warning-panel"));
     if (source.structure) {
       const positions = new Map(source.instructions.map((i, index) => [i.id, index + 1]));
-      panels[1].append(window.PLCLadderDiagram.render(source, {
+      renderRungRenderer(panels[1], 'PLCLadderDiagram', source, {
         sourceQualified: explanationOptions.sourceQualified === true,
         compact: true, helpContext: explanationOptions.helpContext,
         onInstruction: inst => popupWorkspace(inst.id, 'source'),
-      }), button("Select individual instructions to group", () => activate(3), "text-button"));
+      });
+      panels[1].append(button("Select individual instructions to group", () => activate(3), "text-button"));
       panels[2].append(renderEquationTree(source.structure, byId, occurrences, nodes, positions, 0, colors));
       const chosen = new Set();
       const scroll = node("div", null, "structure-scroll");
@@ -1811,7 +1868,7 @@
   function installTableHeaders() {
     const root = $('main'), header = document.querySelector('.topbar');
     if (!root || !header) return () => {};
-    const offsets = new Map(); let queued = false, frame = 0;
+    const offsets = new Map(), observedToolbars = new Set(); let queued = false, frame = 0;
     const measure = () => {
       queued = false;
       const headerBottom = Math.max(0, header.getBoundingClientRect().bottom);
@@ -1823,6 +1880,13 @@
         const tableBox = table.getBoundingClientRect(), box = head.getBoundingClientRect();
         const naturalTop = box.top - (offsets.get(head) || 0);
         let top = headerBottom + 2, bottom = tableBox.bottom;
+        // A page may keep its own compact controls below the app header.
+        // Measure that toolbar's real bottom, including wrapping and zoom.
+        const toolbar = table.closest?.('.view')?.querySelector('[data-table-toolbar]');
+        if (toolbar) {
+          if (!observedToolbars.has(toolbar)) { resize?.observe(toolbar); observedToolbars.add(toolbar); }
+          if (toolbar.getClientRects().length) top = Math.max(top, toolbar.getBoundingClientRect().bottom + 2);
+        }
         // Translate the original header inside its table. It keeps the real
         // column widths, controls, and horizontal scroll position; no cloned
         // header can drift from its cells or duplicate IDs/accessibility names.

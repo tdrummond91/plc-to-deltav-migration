@@ -270,6 +270,27 @@ tableTop=240;wrapperTop=240;wrapperBottom=800;resizeCallback();frameCallback();a
 assert.equal(head.classList.contains('workspace-table-head'),true);cleanup();assert.equal(head.classList.contains('workspace-table-head'),false);assert.equal(head.style.transform,'');
 """)
 
+    def test_table_header_stays_below_page_toolbar_and_tracks_toolbar_resize(self) -> None:
+        self.run_js(['installTableHeaders'], r"""
+const main=node('main'),header=node('header'),table=node('table'),head=node('thead'),view=node('section'),toolbar=node('div');
+let toolbarBottom=186,toolbarVisible=true,useToolbar=true,frameCallback,resized,disconnected=false;const observed=[];
+table.parentElement=main;main.parentElement=document.body;head.parentElement=table;head.style={};
+table.closest=selector=>selector==='.view'&&useToolbar?view:null;view.querySelector=selector=>selector==='[data-table-toolbar]'?toolbar:null;
+toolbar.getClientRects=()=>toolbarVisible?[{}]:[];toolbar.getBoundingClientRect=()=>({bottom:toolbarBottom});
+head.getBoundingClientRect=()=>({top:-100+(Number((head.style.transform||'').match(/-?[0-9.]+/)?.[0])||0),height:30});
+table.getBoundingClientRect=()=>({top:-100,bottom:600});table.getClientRects=()=>[{}];
+header.getBoundingClientRect=()=>({bottom:100});main.querySelectorAll=()=>[head];$=id=>id==='main'?main:null;
+document.querySelector=()=>header;window.getComputedStyle=()=>({overflowY:'visible'});
+document.addEventListener=()=>{};document.removeEventListener=()=>{};window.addEventListener=()=>{};window.removeEventListener=()=>{};
+window.requestAnimationFrame=callback=>{frameCallback=callback;return 1;};window.cancelAnimationFrame=()=>{};
+window.ResizeObserver=class{constructor(callback){resized=callback;}observe(target){observed.push(target);}disconnect(){disconnected=true;}};
+const cleanup=installTableHeaders();frameCallback();assert.equal(head.getBoundingClientRect().top,188);assert.ok(observed.includes(toolbar));
+toolbarBottom=244;resized();frameCallback();assert.equal(head.getBoundingClientRect().top,246,'Wrapped toolbar must not cover column headings');
+toolbarVisible=false;resized();frameCallback();assert.equal(head.getBoundingClientRect().top,102,'Hidden toolbar does not affect headers');
+toolbarVisible=true;useToolbar=false;resized();frameCallback();assert.equal(head.getBoundingClientRect().top,102,'Other pages keep their ordinary header offset');
+cleanup();assert.equal(disconnected,true);assert.equal(head.style.transform,'');
+""")
+
     def test_page_help_keeps_access_and_instructions_out_of_the_working_view(self) -> None:
         self.run_js(['pageAccessNote', 'showPageHelp'], r"""
 const panel=node('section'),heading=node('h1','Field I/O'),help=node('div','Work one field signal at a time.'),dialog=node('dialog'),opener=node('button');

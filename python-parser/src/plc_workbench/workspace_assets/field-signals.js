@@ -80,16 +80,27 @@
   };
 
   function mount(root, options) {
+    const toolbar = el('div', undefined, 'field-signals-toolbar'), toolbarTop = el('div', undefined, 'field-signals-toolbar-top');
+    toolbar.setAttribute('data-table-toolbar', '');
+    const pageHeading = root.parentElement?.querySelector('.page-heading');
+    if (pageHeading) toolbarTop.append(pageHeading);
     const filters = el('form', undefined, 'filters field-signals-filters');
     const query = input('', 'field-signals-query'); query.type = 'search'; query.maxLength = 256;
+    query.placeholder = 'Alias, address, name or description';
     const type = select([['', 'All types'], ...Object.entries(TYPES)], '', 'field-signals-type');
     const section = select([['all', 'Signals and candidates'], ['signals', 'Documented signals'], ['candidates', 'Mapping candidates']], 'all', 'field-signals-section');
     const usage = select([['', 'All usage'], ...Object.entries(USAGE)], '', 'field-signals-usage-filter');
     const hideEmpty = el('input', undefined, 'field-signals-hide-empty'); hideEmpty.type = 'checkbox';
+    const hideChip = el('label', undefined, 'field-signals-hide-chip');
+    hideEmpty.setAttribute('aria-label', 'Hide empty unreferenced rows');
+    hideChip.title = 'Hide rows with no references and no specific description or context. Saved signals remain visible.';
+    hideChip.append(hideEmpty, el('span', 'Hide empty rows'));
     const pageSize = select(PAGE_SIZES.map(size => [String(size), String(size)]), '50', 'field-signals-page-size');
     const submit = el('button', 'Search'); submit.type = 'submit';
-    filters.append(field('Find alias, address, DeltaV name, package or source wording', query), field('Physical type / candidate', type),
-      field('Evidence', section), field('Logic usage', usage), field('Hide empty unreferenced rows', hideEmpty), submit);
+    filters.append(field('Search signals', query), field('Type', type),
+      field('Evidence', section), field('Usage', usage), hideChip, submit);
+    query.setAttribute('aria-label', 'Find alias, address, DeltaV name, package or source wording');
+    type.setAttribute('aria-label', 'Physical type or candidate'); usage.setAttribute('aria-label', 'Logic usage');
     const referenceScan = el('details', undefined, 'field-signals-reference-scan');
     referenceScan.setAttribute('aria-label', 'Reference scan'); referenceScan.setAttribute('tabindex', '-1'); referenceScan.hidden = true;
     const status = el('p', undefined, 'field-signals-status'); status.setAttribute('role', 'status');
@@ -101,12 +112,14 @@
     footer.setAttribute('role', 'region'); footer.setAttribute('aria-label', 'Field I/O pagination and audit');
     const audit = button('Download I/O audit', downloadAudit, 'field-signals-audit');
     audit.title = 'Download inventory, usage and description counts for this analysis; no source names or logic.';
-    footer.append(field('Signals per page', pageSize), pager, audit, filterSummary);
+    const footerMiddle = el('div', undefined, 'field-signals-footer-middle'); footerMiddle.append(pager, filterSummary);
+    footer.append(field('Signals per page', pageSize), footerMiddle, audit);
     const controllerTools = el('div', undefined, 'field-signals-controller-tools');
     const detail = el('section', undefined, 'field-signals-detail'); detail.setAttribute('aria-label', 'Selected field signal and engineering package');
     detail.id = 'field-signal-editor'; detail.setAttribute('tabindex', '-1'); detail.hidden = true;
-    directory.append(controllerTools, tableWrap, footer); layout.append(directory, detail);
-    root.replaceChildren(filters, referenceScan, status, draftsNotice, layout);
+    toolbarTop.append(status, referenceScan, controllerTools); toolbar.append(toolbarTop, filters);
+    directory.append(tableWrap); layout.append(directory, detail);
+    root.replaceChildren(toolbar, draftsNotice, layout, footer);
     const drafts = new Map();
     const controllerStates = new Map(), rowElements = new Map(); let controllerPanels = [], controllersExpanded = true;
     let active = true, key = '', runId = '', listSerial = 0, detailSerial = 0, page = 1, selectedId = '', selectedDraft = null, detailPageSize = 10;
@@ -119,6 +132,33 @@
     const hasUnsavedChanges = () => [...drafts.values()].some(dirty);
     const message = (text, error = false) => { status.textContent = text; status.className = 'field-signals-status' + (error ? ' is-error' : ''); };
     const changed = () => { paintDrafts(); options.onDirtyChange?.(hasUnsavedChanges()); };
+    const measuredLayout = new Map(); let layoutFrame = 0;
+    function measureLayout() {
+      if (!active || !root.getClientRects?.().length) return;
+      const toolbarBox = toolbar.getBoundingClientRect(), footerHeight = Math.ceil(footer.getBoundingClientRect().height);
+      const values = {'--field-signals-toolbar-height': Math.ceil(toolbarBox.height), '--field-signals-footer-height': footerHeight};
+      if (!detail.hidden) {
+        // Before sticky positioning engages, the editor starts farther down the
+        // page. Fit its real top to the footer instead of assuming the sticky top.
+        const stickyTop = parseFloat(window.getComputedStyle?.(detail).top) || 0;
+        const toolbarBottom = Number.isFinite(toolbarBox.bottom) ? toolbarBox.bottom : 0;
+        const top = Math.max(0, detail.getBoundingClientRect().top, toolbarBottom + 8, stickyTop);
+        values['--field-signals-editor-height'] = Math.max(0, Math.floor(window.innerHeight - footerHeight - top - 8));
+      }
+      Object.entries(values).forEach(([name, value]) => {
+        if (measuredLayout.get(name) === value) return;
+        root.style.setProperty(name, value + 'px'); measuredLayout.set(name, value);
+      });
+    }
+    function scheduleLayout() {
+      if (!active) return;
+      if (typeof window.requestAnimationFrame !== 'function') { measureLayout(); return; }
+      if (!layoutFrame) layoutFrame = window.requestAnimationFrame(() => { layoutFrame = 0; measureLayout(); });
+    }
+    const layoutObserver = typeof window.ResizeObserver === 'function' ? new window.ResizeObserver(scheduleLayout) : null;
+    layoutObserver?.observe(toolbar); layoutObserver?.observe(footer); layoutObserver?.observe(root);
+    window.addEventListener('resize', scheduleLayout);
+    document.addEventListener('scroll', scheduleLayout, {capture: true, passive: true});
     function paintSelection() {
       const visible = !detail.hidden;
       layout.className = 'field-signals-layout' + (visible ? ' has-selection' : '');
@@ -129,6 +169,7 @@
         else entry.row.removeAttribute('aria-current');
         entry.open.setAttribute('aria-expanded', String(selected));
       });
+      scheduleLayout();
     }
     function closeEditor(restoreFocus = true) {
       const previous = rowElements.get(selectedId)?.row;
@@ -309,12 +350,15 @@
     }
     document.addEventListener('pointerdown', event => {
       if (hardware && !hardware.panel.contains(event.target) && !hardware.anchor.contains(event.target)) closeHardware();
+      if (referenceScan.open && !referenceScan.contains(event.target)) referenceScan.open = false;
     });
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape' && hardware) {
         const anchor = hardware.anchor; closeHardware(); suppressHardwareFocus = true;
         try { anchor.focus({preventScroll: true}); } finally { suppressHardwareFocus = false; }
         event.preventDefault();
+      } else if (event.key === 'Escape' && active && referenceScan.open) {
+        referenceScan.open = false; referenceScan.querySelector?.('summary')?.focus({preventScroll: true}); event.preventDefault();
       } else if (event.key === 'Escape' && active && !detail.hidden && detail.contains(event.target)
         && !event.target.closest?.('select')) {
         closeEditor(); event.preventDefault();
@@ -333,18 +377,21 @@
       const hasCounts = scan && ['rungs_total', 'rungs_scanned', 'rungs_not_scanned'].every(name => Number.isInteger(scan[name]) && scan[name] >= 0);
       const available = scan?.available === true;
       const heading = el('summary');
-      heading.append(el('strong', 'Reference scan'), el('span', hasCounts
+      const description = hasCounts
         ? `${scan.rungs_scanned} / ${scan.rungs_total} rungs scanned${scan.rungs_not_scanned ? `; ${scan.rungs_not_scanned} not scanned` : ''}${!available ? ' · not available' : scan.complete !== true ? ' · source omissions' : ' · complete'}`
-        : 'Scan details unavailable', 'muted'));
-      referenceScan.replaceChildren(heading);
-      if (!available) referenceScan.append(el('p', 'Reference scan unavailable. Addresses without reference evidence are shown as Not checked.', 'field-signals-usage-gap'));
-      else if (scan.complete !== true) referenceScan.append(el('p', 'Some source is outside this reference scan. Found references remain valid.', 'field-signals-usage-gap'));
-      referenceScan.append(el('p', 'No references found applies to the scanned source. Read/write roles and physical channel types are separate findings.', 'muted'));
+        : 'Scan details unavailable';
+      heading.title = description;
+      heading.append(el('strong', 'Scan'), el('span', hasCounts ? `${scan.rungs_scanned} / ${scan.rungs_total}` : 'Details', 'muted'));
+      const content = el('div', undefined, 'field-signals-scan-content'); content.append(el('strong', 'Reference scan'), el('p', description));
+      referenceScan.replaceChildren(heading, content);
+      if (!available) content.append(el('p', 'Reference scan unavailable. Addresses without reference evidence are shown as Not checked.', 'field-signals-usage-gap'));
+      else if (scan.complete !== true) content.append(el('p', 'Some source is outside this reference scan. Found references remain valid.', 'field-signals-usage-gap'));
+      content.append(el('p', 'No references found applies to the scanned source. Read/write roles and physical channel types are separate findings.', 'muted'));
       function explanations(reasons, heading) {
         if (!Array.isArray(reasons) || !reasons.length) return;
         const list = el('ul');
         [...new Set(reasons)].slice(0, 16).forEach(reason => list.append(el('li', USAGE_GAPS[reason] || 'Additional source evidence could not be interpreted')));
-        referenceScan.append(el('strong', heading), list);
+        content.append(el('strong', heading), list);
       }
       explanations(scan?.gap_reasons, 'Source outside the scan');
       explanations(scan?.role_gap_reasons, 'Instruction and name details');
@@ -415,12 +462,11 @@
       controllerStates.forEach((_, id) => controllerStates.set(id, expanded));
       controllerPanels.forEach(({panel, id}) => { panel.open = expanded; controllerStates.set(id, expanded); });
     }
-    controllerTools.append(button('Expand all', () => setControllers(true)), button('Collapse all', () => setControllers(false)),
-      el('span', 'Controllers on this page · search, type and usage filters apply to every page', 'muted'));
+    controllerTools.append(button('Expand all', () => setControllers(true)), button('Collapse all', () => setControllers(false)));
+    controllerTools.title = 'Expand or collapse controllers on this page. Search and filters apply to every page.';
     function paintList(result) {
       closeHardware(); paintReferenceScan(result); tableWrap.replaceChildren(); controllerPanels = []; rowElements.clear();
       controllerTools.hidden = result.available === false;
-      footer.hidden = result.available === false;
       const filtering = result.filtering;
       filterSummary.textContent = filtering?.hide_empty ? `${count(filtering.hidden_empty_count)} empty unreferenced rows hidden`
         + (count(filtering.preserved_empty_count) ? `; ${count(filtering.preserved_empty_count)} saved row${count(filtering.preserved_empty_count) === 1 ? '' : 's'} retained` : '') : '';
@@ -942,7 +988,7 @@
       if (!detail.hidden) detail.focus({preventScroll: true});
     }
     async function refresh() {
-      active = true;
+      active = true; footer.hidden = false; measureLayout();
       const next = identity(), changedContext = next !== key;
       if (changedContext) {
         ++listSerial; ++detailSerial; closeHardware(); key = next; runId = state().active_run || ''; page = 1; selectedId = '';
@@ -960,7 +1006,7 @@
       }
       await Promise.all(tasks);
     }
-    function deactivate() { active = false; ++listSerial; ++detailSerial; closeHardware(); }
+    function deactivate() { active = false; ++listSerial; ++detailSerial; closeHardware(); referenceScan.open = false; footer.hidden = true; }
     function discardDrafts() {
       if (saving) return;
       drafts.clear(); closeEditor(false); changed();

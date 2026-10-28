@@ -1,5 +1,35 @@
 # Current handoff: PLC analysis workbench
 
+## Compact Field I/O controls and source-display recovery (2026-10-28)
+
+Field I/O now keeps its title, count, scan disclosure, controller actions and
+filters in a compact sticky toolbar below the application header. Table headings
+follow the toolbar's measured height. **Hide empty rows** is an inline checkbox;
+its filtering rules and saved-record protection are unchanged. The thin pagination
+footer spans the full viewport, including when the signal editor is open, and
+leaves clearance for the final row and editor controls. Page help contains the
+longer explanations. Successful automatic analysis import is confirmed in the
+console and existing source/date header rather than a persistent alert. Genuine
+startup warnings still appear.
+
+The photographed source popout reached the selected rung, then a missing display
+renderer aborted the rest of its content. Each renderer now retries its fixed
+local script once, with a timeout. A persistent failure leaves original text,
+other displays and review controls available, plus **Retry display**. The cause
+of the missing script on the work PC is not established. An older rung's delayed
+retry cannot replace the current selection or its unsaved review draft.
+
+Work-PC step: stop the old workspace, manually `git pull`, then
+`bash ./open-workbench.sh`. No new L5X analysis or translation pass is needed.
+Check the compact toolbar while scrolling, the full-width footer with a selected
+row, and **Open rung source** for the previously failing line item.
+
+Validation: 187 focused UI/integration tests passed and an independent review
+found no remaining issues. Chrome checks
+cover scrolling, side panes, narrow windows and a deliberately failed local
+renderer script followed by successful recovery. Details are in the
+[Field signal inventory audit](docs/reviews/FIELD_SIGNAL_INVENTORY_AUDIT.md).
+
 ## Full-width signal rows and linked rung comments (2026-10-28)
 
 Field I/O now uses the full width until a signal is selected. Click a row or use

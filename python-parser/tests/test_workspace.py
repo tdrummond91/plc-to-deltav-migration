@@ -643,8 +643,9 @@ class WorkspaceIntegrationTests(unittest.TestCase):
             self.assertEqual(url, servers[0].origin)
             self.assertEqual(state['active_run'], expected)
             self.assertEqual(state['source']['rung_count'], 105)
-            self.assertIn('105 captured rungs', state['startup_notice'])
-            self.assertIn('Analysis ready', state['startup_notice'])
+            # Success is visible in the header source/date/count, not a
+            # persistent startup warning above every workspace page.
+            self.assertEqual(state['startup_notice'], '')
             return True
 
         def serve(server: WorkspaceServer, **_: object) -> None:

@@ -7,14 +7,14 @@ import subprocess
 import unittest
 
 from test_calculations import capture
-from test_workspace_ui import ASSETS, DOM, NODE, function
-from test_workspace_rung_flow_ui import FLOW_DOM, SCRIPT as FLOW_SCRIPT
+from test_workspace_ui import ASSETS, DOM, NODE, Page, function
+from test_workspace_rung_flow_ui import FLOW_DOM
 from test_workspace_rung_explanation_ui import SCRIPT as EXPLANATION_SCRIPT
-from test_workspace_ladder_diagram_ui import SCRIPT as LADDER_SCRIPT
 
 
 MATH_FUNCTIONS = ["mathNode", "mathAtom", "mathFence", "mathExpression", "instructionEquation"]
-RUNG_FUNCTIONS = [*MATH_FUNCTIONS, "renderEquationTree", "renderStructure", "renderRungLogic"]
+RUNG_FUNCTIONS = [*MATH_FUNCTIONS, "renderEquationTree", "renderStructure", "loadRungRenderer",
+                  "renderRungRenderer", "renderRungLogic"]
 MATH_DOM = r"""
 document.createElement=tag=>node(tag);
 document.createElementNS=(namespace,tag)=>{const result=node(tag);result.namespaceURI=namespace;return result;};
@@ -42,10 +42,19 @@ class WorkspaceEquationTests(unittest.TestCase):
     def run_js(self, names: list[str], checks: str, payload: object = None) -> None:
         dom = DOM.replace("renderDetail, ", "") if "renderDetail" in names else DOM
         code = dom + MATH_DOM
-        code += (ASSETS / "source-colors.js").read_text(encoding="utf-8")
-        code += EXPLANATION_SCRIPT
         if "renderRungLogic" in names:
-            code += FLOW_DOM + FLOW_SCRIPT + LADDER_SCRIPT
+            code += FLOW_DOM
+            # Exercise shipped dependencies in the HTML's real deferred order,
+            # including fresh source popouts, rather than injecting a test order.
+            scripts = [attrs['src'] for tag, attrs in Page().elements if tag == 'script']
+            required = {'/source-colors.js', '/rung-flow.js', '/rung-explanation.js', '/ladder-diagram.js'}
+            self.assertTrue(required.issubset(scripts))
+            for asset in scripts:
+                if asset in required:
+                    self.assertLess(scripts.index(asset), scripts.index('/workspace.js'))
+                    code += (ASSETS / asset.lstrip('/')).read_text(encoding='utf-8')
+        else:
+            code += (ASSETS / "source-colors.js").read_text(encoding="utf-8") + EXPLANATION_SCRIPT
         code += "\n" + "\n".join(function(name) for name in names)
         code += "\nconst data=" + json.dumps(payload) + ";\n"
         code += "\n(async()=>{\n" + checks + "\n})().catch(error=>{console.error(error);process.exitCode=1;});"
@@ -294,7 +303,7 @@ assert.equal(tags(panel,'pre')[0].textContent,source.text);
 """, parsed())
 
     def test_source_detail_passes_calculations_to_equations_and_keeps_review_editor(self) -> None:
-        self.run_js([*RUNG_FUNCTIONS, "renderInstructions", "renderDetail"], r"""
+        self.run_js([*RUNG_FUNCTIONS, "renderInstructions", "renderSelectedAnnotation", "renderDetail"], r"""
 let editorCall;
 globalThis.renderEditor=(root,id,review,revision)=>{editorCall={id,review,revision};root.append(node('button','Save review'));};
 const root=node('div');const review={status:'confirmed'};
@@ -310,6 +319,112 @@ assert.equal(editorCall.revision,9);
 assert.ok(exactText(root).includes('Save review'));
 assert.equal(tags(root,'pre').find(n=>n.textContent===data.source.text).textContent,data.source.text);
 """, parsed("A/B"))
+
+    def test_fresh_copy_rung_source_keeps_comment_ladder_and_review_controls(self) -> None:
+        self.run_js([*RUNG_FUNCTIONS, "renderInstructions", "renderSelectedAnnotation", "renderDetail"], r"""
+globalThis.translations={show:(root,data)=>root.append(node('p',data.source.comment))};
+globalThis.renderEditor=(root,id)=>{assert.equal(id,data.source.id);root.append(node('input','Saved decision'));};
+const source={...data.source,comment:'Invented registers copied into an engineering buffer.'};
+const root=node('div');renderDetail({source,calculations:data,source_qualified:true,review:{},revision:4},root);
+const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
+assert.equal(panels.length,5);assert.ok(tags(panels[1],'svg').length);
+assert.ok(contents(root).includes(source.comment));assert.ok(contents(root).includes('Your engineering review'));
+assert.equal(tags(panels[4],'pre')[0].textContent,source.text);
+assert.ok(tags(panels[1],'g').some(n=>n.attributes['data-instruction-id']===source.instructions[0].id));
+""", parsed(text="COP(Local:3:I.Data[0],Buffer[0],4);"))
+
+    def test_missing_summary_asset_reloads_once_without_blanking_the_ladder(self) -> None:
+        self.run_js(RUNG_FUNCTIONS, r"""
+const original=window.PLCRungExplanation,loaded=[];delete window.PLCRungExplanation;
+document.head=node('head');document.head.append=script=>{loaded.push(script);};
+const root=node('div');renderRungLogic(root,data.source,data,{sourceQualified:true});
+const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
+assert.equal(loaded.length,1);assert.equal(loaded[0].src,'/rung-explanation.js');
+assert.ok(contents(panels[0]).includes('Loading logic summary'));
+assert.ok(tags(panels[1],'svg').length);assert.equal(tags(panels[4],'pre')[0].textContent,data.source.text);
+window.PLCRungExplanation=original;loaded[0].onload();await Promise.resolve();await Promise.resolve();
+assert.ok(css(panels[0],'rung-explanation-step').length);assert.equal(tags(panels[0],'button').length,0);
+assert.equal(loaded.length,1);
+""", parsed(text="COP(Local:3:I.Data[0],Buffer[0],4);"))
+
+    def test_failed_local_asset_retry_keeps_the_editor_draft_and_other_views(self) -> None:
+        self.run_js([*RUNG_FUNCTIONS, "renderInstructions", "renderSelectedAnnotation", "renderDetail"], r"""
+const original=window.PLCLadderDiagram,loaded=[];delete window.PLCLadderDiagram;
+document.head=node('head');document.head.append=script=>{loaded.push(script);};
+const draft=node('input');draft.value='Retained engineering correction';
+globalThis.renderEditor=root=>root.append(draft);
+const root=node('div');renderDetail({source:data.source,calculations:data,source_qualified:true,review:{},revision:4},root);
+const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
+assert.equal(loaded.length,1);assert.equal(loaded[0].src,'/ladder-diagram.js');
+loaded[0].onerror();await Promise.resolve();await Promise.resolve();
+assert.ok(contents(panels[1]).includes('stop and reopen the workspace'));
+assert.equal(tags(panels[1],'pre')[0].textContent,data.source.text);
+assert.ok(css(panels[0],'rung-explanation-step').length);assert.equal(tags(panels[4],'pre')[0].textContent,data.source.text);
+const retry=tags(panels[1],'button').find(n=>n.textContent==='Retry display');assert.equal(retry.disabled,false);
+const pending=retry.events.click();assert.equal(retry.disabled,true);assert.equal(loaded.length,2);
+await retry.events.click();assert.equal(loaded.length,2,'Repeated clicks cannot start duplicate loads');
+window.PLCLadderDiagram=original;loaded[1].onload();await pending;
+assert.ok(tags(panels[1],'svg').length);assert.equal(contents(panels[1]).includes('could not be loaded'),false);
+assert.ok(tags(panels[1],'button').some(n=>n.textContent==='Select individual instructions to group'));
+assert.ok(descendants(root).includes(draft));assert.equal(draft.value,'Retained engineering correction');
+""", parsed(text="COP(Local:3:I.Data[0],Buffer[0],4);"))
+
+    def test_renderer_exception_is_contained_and_manual_retry_does_not_reload_source(self) -> None:
+        self.run_js(RUNG_FUNCTIONS, r"""
+const original=window.PLCRungExplanation;
+window.PLCRungExplanation={render:()=>{throw new Error('Invented renderer failure');}};
+document.head=node('head');document.head.append=()=>assert.fail('An initialized renderer should not reload its script');
+const root=node('div');assert.doesNotThrow(()=>renderRungLogic(root,data.source,data,{sourceQualified:true}));
+const panels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
+assert.ok(contents(panels[0]).includes('temporarily unavailable'));assert.ok(tags(panels[1],'svg').length);
+assert.equal(contents(root).includes('Invented renderer failure'),false);
+window.PLCRungExplanation=original;
+await tags(panels[0],'button').find(n=>n.textContent==='Retry display').events.click();
+assert.ok(css(panels[0],'rung-explanation-step').length);assert.ok(tags(panels[1],'svg').length);
+""", parsed(text="COP(Local:3:I.Data[0],Buffer[0],4);"))
+
+    def test_late_renderer_retry_for_previous_source_cannot_replace_current_rung_or_draft(self) -> None:
+        self.run_js([*RUNG_FUNCTIONS, "renderInstructions", "renderSelectedAnnotation", "renderDetail"], r"""
+const original=window.PLCLadderDiagram,loaded=[],drafts=[];delete window.PLCLadderDiagram;
+document.head=node('head');document.head.append=script=>loaded.push(script);
+globalThis.renderEditor=(root,id)=>{const draft=node('input');draft.dataset.source=id;drafts.push(draft);root.append(draft);};
+const root=node('div');
+renderDetail({source:data[0].source,calculations:data[0],source_qualified:true,review:{},revision:4},root);
+const previousPanels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
+assert.equal(loaded.length,1);assert.ok(contents(previousPanels[1]).includes('Loading ladder drawing'));
+renderDetail({source:data[1].source,calculations:data[1],source_qualified:true,review:{},revision:4},root);
+assert.equal(loaded.length,2);
+window.PLCLadderDiagram=original;loaded[1].onload();await Promise.resolve();await Promise.resolve();
+const currentPanels=descendants(root).filter(n=>n.attributes.role==='tabpanel');
+assert.ok(tags(currentPanels[1],'svg').length);assert.equal(tags(currentPanels[4],'pre')[0].textContent,data[1].source.text);
+drafts[1].value='Keep this newer rung correction';state.dirty=true;
+const visibleNodes=descendants(root),visibleText=contents(root);
+loaded[0].onload();await Promise.resolve();await Promise.resolve();
+assert.ok(tags(previousPanels[1],'svg').length,'The previous request really completed');
+assert.deepEqual(descendants(root),visibleNodes,'A late display update remains in the detached previous source');
+assert.equal(contents(root),visibleText);assert.equal(drafts[1].value,'Keep this newer rung correction');
+assert.ok(descendants(root).includes(drafts[1]));assert.equal(descendants(root).includes(drafts[0]),false);
+assert.equal(state.dirty,true);assert.equal(tags(currentPanels[4],'pre')[0].textContent,data[1].source.text);
+""", [parsed(text="COP(Local:3:I.Data[0],Buffer[0],4);"),
+        parsed(text="XIC(Enable)OTE(Ready);")])
+
+    def test_asset_loader_is_bounded_and_rejects_missing_exports_or_unknown_assets(self) -> None:
+        self.run_js(["loadRungRenderer"], r"""
+const loaded=[],timers=[],cleared=[];
+const savedSetTimeout=globalThis.setTimeout,savedClearTimeout=globalThis.clearTimeout;
+globalThis.setTimeout=(callback,delay)=>{assert.equal(delay,10000);timers.push(callback);return timers.length;};
+globalThis.clearTimeout=id=>cleared.push(id);
+document.head=node('head');document.head.append=script=>loaded.push(script);
+await assert.rejects(loadRungRenderer('https://untrusted.invalid/file.js'),/Unknown/);assert.equal(loaded.length,0);
+await assert.rejects(loadRungRenderer('__proto__'),/Unknown/);assert.equal(loaded.length,0);
+delete window.PLCRungExplanation;
+const missing=loadRungRenderer('PLCRungExplanation');loaded[0].onload();
+await assert.rejects(missing,/did not initialize/);assert.deepEqual(cleared,[1]);
+const timed=loadRungRenderer('PLCLadderDiagram');timers[1]();
+await assert.rejects(timed,/timed out/);assert.deepEqual(cleared,[1,2]);
+loaded[1].onerror();assert.deepEqual(cleared,[1,2],'Late callbacks cannot settle a completed load twice');
+globalThis.setTimeout=savedSetTimeout;globalThis.clearTimeout=savedClearTimeout;
+""")
 
     def test_variable_identity_colors_are_shared_across_equations_flow_branches_and_list(self) -> None:
         self.run_js([*RUNG_FUNCTIONS, "renderInstructions"], r"""

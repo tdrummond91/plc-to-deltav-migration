@@ -1704,12 +1704,15 @@ def main(argv: list[str] | None = None) -> int:
                     loaded = with_workspace.import_run(
                         str(args.import_run), with_workspace.store.state()['revision']
                     )
-                    startup_notice = (
+                    # Successful import is already represented by the active
+                    # source/date in the header. Keep the console confirmation
+                    # without adding a persistent warning banner to every page.
+                    print(
                         f"Analysis ready: {loaded['source']['name']} - "
                         f"{loaded['source']['rung_count']:,} captured rungs. "
-                        'Saved review corrections are retained; changed evidence is flagged for review.'
+                        'Saved review corrections are retained; changed evidence is flagged for review.',
+                        flush=True,
                     )
-                    with_workspace.startup_notice = startup_notice
                 print(f"Engineering workspace: {server.origin}", flush=True)
                 if args.import_run is None:
                     print("Open Choose analysis run to select your saved run. Stop with Stop workspace or Ctrl+C.", flush=True)

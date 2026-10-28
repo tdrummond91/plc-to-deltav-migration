@@ -16,6 +16,50 @@ Close restores the table width without discarding unsaved drafts. On a narrow
 window the editor is a side drawer. Its heading and Close control remain visible
 while the editor scrolls. The page title and filters use less vertical space.
 
+The title, result count, scan disclosure and expand/collapse actions share the
+toolbar's first row; search and filters occupy its second row at desktop widths.
+The toolbar stays below the application header during page scrolling, and column
+headings follow its measured bottom edge. Longer explanations remain in Page
+help. Scan details open as a disclosure and dismiss on outside click or Escape.
+The visible **Hide empty rows** checkbox retains the full accessible name and
+the filtering rules documented below.
+
+Pagination is outside the table/editor grid, fixed across the viewport bottom.
+Its measured height reserves clearance for both panes, including short/empty
+lists. It disappears when leaving Field I/O. Application menus remain above the
+toolbar and editor. Successful automatic import no longer creates a persistent
+startup alert; source and analysis time remain in the header. Genuine startup
+warnings are retained.
+
+## Source-display recovery
+
+The reported source popout loaded its rung and comment before failing at a
+missing renderer's `render` method. The explanation and ladder displays now load
+independently. A missing renderer gets one bounded reload of its fixed same-origin
+asset, with a ten-second timeout. Failure leaves original source text and a
+**Retry display** action without preventing other displays or review controls.
+Retry replaces only its captured display, preserving grouping controls and
+unsaved corrections. A delayed completion for an old rung cannot replace the
+current source or draft. The reason the work-PC asset was unavailable remains
+unknown; this change repairs the failure boundary rather than claiming a
+particular browser or network cause.
+
+Chrome validation used independently invented CPT/COP logic. A test-only local
+server rejected the initial explanation script in the main page and source
+popout; the popout's automatic retry succeeded, with both ladder and explanation
+views available. Normal and narrow-window checks covered sticky controls,
+aligned table headings, full-width pagination with an editor, and footer hiding
+after navigating Home. No source reanalysis is required.
+
+Final desktop measurements: a 37-pixel footer spans the 1,905-pixel content
+viewport with the editor open. Its bottom clears the footer both before scrolling
+and after sticky positioning engages. At a 1,000-by-800 viewport the drawer also
+clears the footer. Measurements are coalesced per frame, with no style writes for
+unchanged values. All 187 focused UI/integration tests passed. Coverage includes layout lifecycle and
+draft retention, unavailable renderers, retry failure/success, delayed completion
+from an older rung, and retention of genuine startup warnings. Independent review
+found no remaining issues.
+
 ## Source descriptions and result context
 
 Each description cell labels and links its owner: direct channel/member or alias,

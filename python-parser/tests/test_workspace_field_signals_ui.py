@@ -81,6 +81,65 @@ const deferred=()=>{let resolve;const promise=new Promise(done=>resolve=done);re
 
 @unittest.skipUnless(NODE, 'Node is optional developer tooling')
 class FieldSignalsUiTests(unittest.TestCase):
+    def test_compact_toolbar_groups_controls_and_preserves_page_help_action(self) -> None:
+        self.run_js(r"""
+let helpClicks=0;const heading=new Element('div'),help=new Element('button');heading.className='page-heading';
+help.textContent='Page help';help.addEventListener('click',()=>helpClicks++);heading.append(help);
+root.parentElement={querySelector:selector=>selector==='.page-heading'?heading:null};
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const toolbar=byClass(root,'field-signals-toolbar')[0],top=byClass(root,'field-signals-toolbar-top')[0];
+assert.equal(toolbar.attributes['data-table-toolbar'],'');assert.equal(top.contains(heading),true);
+for(const cls of ['field-signals-status','field-signals-reference-scan','field-signals-controller-tools'])assert.ok(top.contains(byClass(root,cls)[0]));
+assert.equal(toolbar.contains(byClass(root,'field-signals-filters')[0]),true);await help.fire('click');assert.equal(helpClicks,1);
+const chip=byClass(root,'field-signals-hide-chip')[0],checkbox=byClass(root,'field-signals-hide-empty')[0];
+assert.ok(chip.children[0]===checkbox);assert.equal(chip.textContent.trim(),'Hide empty rows');assert.equal(checkbox.attributes['aria-label'],'Hide empty unreferenced rows');
+assert.ok(chip.title.includes('Saved signals remain visible'));assert.equal(checkbox.checked,false);
+const scan=byClass(root,'field-signals-reference-scan')[0];scan.open=true;document.events.pointerdown({target:scan.children[1]});assert.equal(scan.open,true);
+document.events.pointerdown({target:root});assert.equal(scan.open,false);scan.open=true;
+document.events.keydown({key:'Escape',target:scan,preventDefault(){}});assert.equal(scan.open,false);assert.equal(writes.length,0);
+""")
+
+    def test_footer_is_independent_of_split_layout_and_tracks_clearance_and_activation(self) -> None:
+        self.run_js(r"""
+const observed=[];let resized;window.ResizeObserver=class{constructor(callback){resized=callback;}observe(target){observed.push(target);}};
+root.getClientRects=()=>[{}];root.style.setProperty=(name,value)=>{root.style[name]=value;};
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const footer=byClass(root,'field-signals-footer')[0],toolbar=byClass(root,'field-signals-toolbar')[0],layout=byClass(root,'field-signals-layout')[0];
+assert.equal(layout.contains(footer),false);assert.ok(root.children.at(-1)===footer);assert.equal(footer.hidden,false);
+assert.ok(observed.includes(footer)&&observed.includes(toolbar));
+toolbar.getBoundingClientRect=()=>({height:86.2});footer.getBoundingClientRect=()=>({height:41.1});resized();
+assert.equal(root.style['--field-signals-toolbar-height'],'87px');assert.equal(root.style['--field-signals-footer-height'],'42px');
+await controller.openSignal('address-1');await edit('field-signals-target-name','Keep through footer layout');assert.equal(footer.hidden,false);
+controller.deactivate();assert.equal(footer.hidden,true);await controller.refresh();assert.equal(footer.hidden,false);
+assert.equal(byClass(root,'field-signals-target-name')[0].value,'Keep through footer layout');
+rows=[];await controller.refresh();assert.equal(footer.hidden,false);
+response=async path=>({...result(path),available:false});await controller.refresh();assert.equal(footer.hidden,false);
+const waiting=deferred();response=()=>waiting.promise;const loading=controller.refresh();assert.equal(footer.hidden,false);
+waiting.resolve(result('/api/field-signals'));await loading;assert.equal(controller.hasUnsavedChanges(),true);assert.equal(writes.length,0);
+""")
+
+    def test_editor_height_fits_actual_top_to_footer_and_scroll_updates_are_coalesced(self) -> None:
+        self.run_js(r"""
+const writesToStyle=[];let frame,frames=0,resized;
+window.innerHeight=960;window.requestAnimationFrame=callback=>{frame=callback;return ++frames;};
+window.ResizeObserver=class{constructor(callback){resized=callback;}observe(){}};
+window.getComputedStyle=()=>({top:'221px'});root.getClientRects=()=>[{}];
+root.style.setProperty=(name,value)=>{root.style[name]=value;writesToStyle.push([name,value]);};
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();frame();
+const toolbar=byClass(root,'field-signals-toolbar')[0],footer=byClass(root,'field-signals-footer')[0],editor=byClass(root,'field-signals-detail')[0];
+let top=251.42,toolbarBottom=213,footerHeight=37;
+toolbar.getBoundingClientRect=()=>({height:103,bottom:toolbarBottom});footer.getBoundingClientRect=()=>({height:footerHeight});
+editor.getBoundingClientRect=()=>({top});await controller.openSignal('address-1');frame();
+assert.equal(root.style['--field-signals-editor-height'],'663px');
+assert.ok(top+parseFloat(root.style['--field-signals-editor-height'])<window.innerHeight-footerHeight,'Natural top must not put editor behind footer');
+top=221;const beforeFrames=frames;document.events.scroll();document.events.scroll();document.events.scroll();assert.equal(frames,beforeFrames+1);frame();
+assert.equal(root.style['--field-signals-editor-height'],'694px');const beforeWrites=writesToStyle.length;resized();frame();
+assert.equal(writesToStyle.length,beforeWrites,'An unchanged observation must not rewrite layout styles');
+window.innerWidth=900;window.innerHeight=700;top=250;toolbarBottom=242;footerHeight=68;resized();frame();
+assert.equal(root.style['--field-signals-editor-height'],'374px');assert.ok(top+374<700-footerHeight);
+assert.equal(writes.length,0);
+""")
+
     def test_row_selection_opens_editor_and_close_restores_full_width_without_losing_drafts(self) -> None:
         self.run_js(r"""
 rows.push(sourceRow('address-2'));
@@ -294,7 +353,7 @@ rows=[sourceRow('address-1',{usage:usageEvidence('referenced',{coverage_complete
 response=async path=>{const answer=result(path);answer.coverage.reference_scan=scanEvidence({role_gap_reasons:['unresolved_references','unsupported_instructions']});return answer;};
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
 const scan=byClass(root,'field-signals-reference-scan')[0],table=byClass(root,'field-signals-table')[0];
-assert.ok(scan.children[0].textContent.includes('100 / 100 rungs scanned · complete'));
+assert.equal(scan.children[0].textContent,'Scan 100 / 100');assert.ok(scan.children[0].title.includes('100 / 100 rungs scanned · complete'));
 assert.ok(scan.textContent.includes('Instruction and name details'));assert.ok(scan.textContent.includes('Some source names could not be resolved'));
 assert.equal(scan.textContent.includes('Source outside the scan'),false);assert.equal(scan.textContent.includes('Some source is outside'),false);
 assert.equal(table.textContent.includes('incomplete'),false);assert.equal(table.textContent.includes('Some source names'),false);
@@ -484,6 +543,8 @@ response=async path=>{const answer=result(path),hidden=new URL(path,'http://loca
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
 const selector=byClass(root,'field-signals-page-size')[0],footer=byClass(root,'field-signals-footer')[0],filters=byClass(root,'field-signals-filters')[0];
 assert.equal(footer.contains(selector),true);assert.equal(filters.contains(selector),false);assert.ok(footer.textContent.includes('Signals per page'));
+assert.ok(footer.children.at(-1)===findButton(footer,'Download I/O audit'));
+assert.equal(byClass(footer,'field-signals-footer-middle')[0].contains(byClass(root,'field-signals-filter-summary')[0]),true);
 await edit('field-signals-target-name','Keep my review');const checkbox=byClass(root,'field-signals-hide-empty')[0];assert.equal(checkbox.checked,false);
 checkbox.checked=true;await checkbox.fire('change');let q=new URL(calls.at(-1),'http://localhost').searchParams;
 assert.equal(q.get('hide_empty'),'1');assert.equal(q.get('page'),'1');assert.ok(footer.textContent.includes('5 empty unreferenced rows hidden; 1 saved row retained'));
@@ -654,7 +715,8 @@ response=async path=>{const answer=result(path),query=new URL(path,'http://local
  answer.signals={...answer.signals,page:Number(query.get('page')||1),pages:3,total:150};return answer;};
 const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
 const footer=byClass(root,'field-signals-footer')[0],directory=byClass(root,'field-signals-directory')[0];
-assert.equal(directory.children.at(-1),footer);assert.equal(footer.attributes['aria-label'],'Field I/O pagination and audit');
+assert.ok(root.children.at(-1)===footer);assert.equal(directory.contains(footer),false);assert.equal(byClass(root,'field-signals-layout')[0].contains(footer),false);
+assert.equal(footer.attributes['aria-label'],'Field I/O pagination and audit');
 const provenance=byClass(byClass(root,'field-signals-source-description')[0],'field-signals-description-origin')[0];
 assert.ok(provenance.textContent.includes('Derived context'));assert.ok(findLink(provenance,'From result TankTrip'));
 await edit('field-signals-target-name','Keep this correction');await findButton(footer,'Next signals').fire('click');
