@@ -23,6 +23,7 @@ class Element {
  contains(target){return this===target||this.children.some(child=>child.contains(target));}
  closest(selectors){const tags=selectors.split(',').map(value=>value.trim().toLowerCase());for(let item=this;item;item=item.parent){if(tags.includes(item.tagName.toLowerCase()))return item;}return null;}
  getBoundingClientRect(){return {left:600,top:200,bottom:230,width:380,height:220};}
+ scrollIntoView(options){(this.scrollCalls??=[]).push(options);}
  focus(){document.activeElement=this;this.events.focus?.({target:this});}
  click(){return this.fire('click');}
  fire(name,extra={}){if(this.disabled)return;return this.events[name]?.({type:name,target:this,preventDefault(){},...extra});}
@@ -81,6 +82,49 @@ const deferred=()=>{let resolve;const promise=new Promise(done=>resolve=done);re
 
 @unittest.skipUnless(NODE, 'Node is optional developer tooling')
 class FieldSignalsUiTests(unittest.TestCase):
+    def test_signal_page_navigation_returns_to_list_start_after_render_and_keeps_drafts(self) -> None:
+        self.run_js(r"""
+rows.push(sourceRow('address-2'));
+const paged=path=>{const data=result(path),q=new URL(path,'http://localhost').searchParams,p=Number(q.get('page')||1);
+ data.signals=page([rows[p-1]],Number(q.get('page_size')||50),{page:p,pages:2,total:100});return data;};
+response=async path=>paged(path);
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();await controller.openSignal('address-1');
+await edit('field-signals-target-name','Keep my unsaved name');
+const directory=byClass(root,'field-signals-directory')[0],scrolls=[];
+directory.scrollIntoView=options=>scrolls.push({options,first:byClass(root,'field-signals-row')[0]?.attributes['aria-label']});
+const waiting=deferred();response=path=>new URL(path,'http://localhost').searchParams.get('page')==='2'?waiting.promise:Promise.resolve(paged(path));
+const next=findButton(root,'Next signals').fire('click');assert.equal(scrolls.length,0,'Wait for the requested page');
+waiting.resolve(paged('/api/field-signals?page=2'));await next;
+assert.equal(scrolls.length,1);assert.ok(scrolls[0].first.includes('SecondSwitch'),'Scroll only after the new rows exist');
+assert.equal(scrolls[0].options.block,'start');assert.equal(scrolls[0].options.behavior,'instant');
+await findButton(root,'Previous signals').fire('click');assert.equal(scrolls.length,2);
+assert.ok(scrolls[1].first.includes('LevelSwitch'));assert.equal(byClass(root,'field-signals-target-name')[0].value,'Keep my unsaved name');
+await controller.refresh();assert.equal(scrolls.length,2,'Background refresh must not move the reader');
+await edit('field-signals-page-size','100','change');assert.equal(scrolls.length,3);
+assert.equal(controller.hasUnsavedChanges(),true);assert.equal(writes.length,0);
+""")
+
+    def test_failed_or_stale_pagination_never_scrolls_and_retry_keeps_navigation_intent(self) -> None:
+        self.run_js(r"""
+const paged=path=>{const data=result(path),p=Number(new URL(path,'http://localhost').searchParams.get('page')||1);
+ data.signals=page(rows,50,{page:p,pages:3,total:150});return data;};
+response=async path=>paged(path);
+const controller=window.PLCFieldSignals.mount(root,options);await controller.refresh();
+const directory=byClass(root,'field-signals-directory')[0];
+response=async()=>{throw new Error('Connection interrupted');};await findButton(root,'Next signals').fire('click');
+assert.equal(directory.scrollCalls,undefined);
+response=async path=>paged(path);await findButton(root,'Retry signals').fire('click');assert.equal(directory.scrollCalls.length,1);
+const waiting=deferred();response=()=>waiting.promise;const obsolete=findButton(root,'Next signals').fire('click');
+controller.deactivate();waiting.resolve(paged('/api/field-signals?page=3'));await obsolete;
+assert.equal(directory.scrollCalls.length,1,'A response after leaving the view must not scroll');
+response=async path=>paged(path);await controller.refresh();assert.equal(directory.scrollCalls.length,1);
+const older=deferred(),newer=deferred();let count=0;response=()=>++count===1?older.promise:newer.promise;
+const previous=findButton(root,'Previous signals');const first=previous.fire('click'),second=previous.fire('click');
+newer.resolve(paged('/api/field-signals?page=2'));await second;assert.equal(directory.scrollCalls.length,2);
+older.resolve(paged('/api/field-signals?page=2'));await first;assert.equal(directory.scrollCalls.length,2,'Superseded pages must not scroll');
+assert.equal(writes.length,0);
+""")
+
     def test_compact_toolbar_groups_controls_and_preserves_page_help_action(self) -> None:
         self.run_js(r"""
 let helpClicks=0;const heading=new Element('div'),help=new Element('button');heading.className='page-heading';

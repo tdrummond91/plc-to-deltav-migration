@@ -493,10 +493,10 @@
         panel.append(heading, wrap); tableWrap.append(panel); controllerPanels.push({panel, id: group.id});
       });
       if (!result.signals.items.length) tableWrap.append(el('p', 'No individual signals match these filters. Try a different type, evidence or usage filter.'));
-      pageControls(pager, result.signals, 'signals', next => { if (!requireCurrent(expected)) return; page = next; return loadList(); });
+      pageControls(pager, result.signals, 'signals', next => { if (!requireCurrent(expected)) return; page = next; return loadList({scrollToStart: true}); });
       paintSelection();
     }
-    async function loadList() {
+    async function loadList({scrollToStart = false} = {}) {
       const expected = key, expectedRun = runId, expectedPageSize = Number(applied.page_size), serial = ++listSerial;
       message('Loading individual field signals…'); directory.setAttribute('aria-busy', 'true');
       try {
@@ -505,10 +505,16 @@
         checkResult(result, expectedRun, expectedPageSize); page = result.signals.page; paintList(result);
         message(result.available === false ? result.notice || 'Signal evidence is unavailable.'
           : `${result.signals.total} matching field signals`, result.available === false);
+        if (scrollToStart && result.available !== false) {
+          // Navigate after the current response is painted. CSS scroll margin
+          // keeps the first controller and row below both sticky headers.
+          measureLayout();
+          directory.scrollIntoView({block: 'start', behavior: 'instant'});
+        }
       } catch (error) {
         if (!current(expected) || serial !== listSerial) return;
         message(error.message || 'The signal list could not be loaded.', true);
-        tableWrap.replaceChildren(button('Retry signals', loadList));
+        tableWrap.replaceChildren(button('Retry signals', () => loadList({scrollToStart})));
       } finally { if (current(expected) && serial === listSerial) directory.removeAttribute('aria-busy'); }
     }
     function newDraft(row, payload) {
@@ -1014,14 +1020,14 @@
     function changeFilters() {
       if (!requireCurrent(key)) return;
       applied = {query: query.value.trim().slice(0, 256), field_type: type.value, section: section.value,
-        usage: usage.value, hide_empty: hideEmpty.checked ? '1' : '0', page_size: pageSize.value}; page = 1; return loadList();
+        usage: usage.value, hide_empty: hideEmpty.checked ? '1' : '0', page_size: pageSize.value}; page = 1; return loadList({scrollToStart: true});
     }
     filters.addEventListener('submit', event => { event.preventDefault(); return changeFilters(); });
     type.addEventListener('change', changeFilters); section.addEventListener('change', changeFilters); usage.addEventListener('change', changeFilters);
     hideEmpty.addEventListener('change', changeFilters);
     pageSize.addEventListener('change', () => {
       if (!PAGE_SIZES.includes(Number(pageSize.value)) || !requireCurrent(key)) return;
-      applied = {...applied, page_size: pageSize.value}; page = 1; return loadList();
+      applied = {...applied, page_size: pageSize.value}; page = 1; return loadList({scrollToStart: true});
     });
     return {refresh, deactivate, setActive: value => value ? refresh() : deactivate(), hasUnsavedChanges, discardDrafts,
       openSignal: async id => { if (identity() !== key || !active) await refresh(); if (requireCurrent(key)) { const opened = await openRow({id}); if (opened) revealEditor(opened); } }};

@@ -8,8 +8,10 @@ inventory count is not the number of wired devices or addresses found in rungs.
 
 ## Workspace navigation
 
-The brand is the Home link; **Menu** beside it opens the ordered page directory,
-and the header names the current page. The **?** button beside Stop workspace
+The brand is the Home link; **Menu** opens the ordered page directory.
+Menu and the current page title form a centered group, with the brand left and
+project actions right. Narrower windows center the group on its own row.
+The **?** button beside Stop workspace
 opens the review guide. Native keyboard navigation, modified clicks and
 outside/Escape dismissal are supported. Normal Menu and brand URLs are relative
 to the application root, so opening them from a source popout does not preserve
@@ -44,6 +46,15 @@ lists. It disappears when leaving Field I/O. Application menus remain above the
 toolbar and editor. Successful automatic import no longer creates a persistent
 startup alert; source and analysis time remain in the header. Genuine startup
 warnings are retained.
+
+Next/Previous signals, page-size changes and explicit filters scroll to the
+first new row after the current successful response is painted. Measured scroll
+clearance accounts for the application header and toolbar once. Background
+refresh keeps the reading position. Failed, unavailable, stale or superseded
+responses do not scroll; Retry preserves navigation intent. The selected editor
+and unsaved drafts remain intact. Validation: 133 focused UI tests passed;
+Chrome confirmed bottom-to-first-row navigation with an open editor, the
+full-width footer and centered header at desktop, 1,000 and 700 pixels.
 
 ## Source-display recovery
 

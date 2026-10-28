@@ -7,9 +7,29 @@ the task and when he mentions new photos. Compare modification times so newly
 added examples are not missed. Inspect these local references; do not commit
 plant screenshots or copy their identifiers into synthetic fixtures.
 
+## Signal pagination and centered navigation (2026-10-28)
+
+Next/Previous signals, page-size changes and explicit filters return to the
+first row after the current response loads. Sticky header/toolbar clearance is
+measured without counting the header twice. Open editors and unsaved drafts are
+retained; background refresh, failed loads and stale responses do not scroll.
+A retry preserves the original navigation intent.
+
+Menu and the current page title now form a centered header group. The brand
+stays left and project actions right; narrower windows center navigation on its
+own row. The latest photo's repeated description is explicitly inherited from
+the communication module. It describes that module, not proof of a ladder
+reference to each listed register. No parser change follows from that photo.
+
+Validation: 133 focused UI tests passed and independent review found no remaining
+issues. Chrome verified pagination from the bottom with the editor retained,
+the visible first new row, a full-width footer, and centered navigation at
+desktop, 1,000-pixel and 700-pixel widths. Work-PC step: stop the old workspace,
+manually `git pull`, then `bash ./open-workbench.sh`. No reanalysis is needed.
+
 ## Header navigation and copy destination context (2026-10-28)
 
-The PLC Workbench brand returns Home. **Menu** beside it contains the same page
+The PLC Workbench brand returns Home. **Menu** contains the same page
 order as the home cards; the current page title replaces the dropdown. **?** after
 Stop workspace opens the review guide. FR/Canadian EN controls now live in the
 footer, sharing the existing translation state as pages change. Source popouts

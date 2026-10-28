@@ -36,6 +36,7 @@
 .field-signals-layout { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: .75rem; }
 .field-signals-layout.has-selection { grid-template-columns: minmax(0, 1fr) minmax(22rem, 35%); }
 .field-signals-directory, .field-signals-detail { min-width: 0; }
+.field-signals-directory { scroll-margin-top: max(0px, calc(var(--field-signals-pane-top) - var(--workspace-pane-top))); }
 .field-signals-detail[hidden] { display: none; }
 .field-signals-controller-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; margin: 0; }
 .field-signals-controller-tools button { padding: .2rem .45rem; font-size: .75rem; }

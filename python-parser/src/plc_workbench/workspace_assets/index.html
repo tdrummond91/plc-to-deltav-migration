@@ -39,13 +39,15 @@
   <body>
     <a class="skip" href="#main">Skip to workspace</a>
     <header class="topbar">
-      <div class="brand-with-menu">
+      <div class="header-brand">
         <a id="workspace-home" class="brand" href="/#view=home" aria-label="PLC Workbench home">
           <span class="brand-mark" aria-hidden="true">▥</span>
           <div>
             <strong>PLC Workbench</strong><span>Engineering workspace</span>
           </div>
         </a>
+      </div>
+      <div id="header-navigation" class="header-navigation">
         <details id="page-menu" class="page-menu">
           <summary><span aria-hidden="true">☰</span> Menu</summary>
           <nav class="page-menu-body" aria-label="Workspace pages">
@@ -62,8 +64,8 @@
             <a href="/#view=objects" data-view="objects">Tags &amp; source objects</a>
           </nav>
         </details>
+        <div id="current-page-title" class="current-page-title" aria-live="polite">Opening workspace…</div>
       </div>
-      <div id="current-page-title" class="current-page-title" aria-live="polite">Opening workspace…</div>
       <div class="top-actions">
         <details id="project-tools" class="project-tools"><summary>Project tools</summary><div class="project-tools-body">
         <section class="source-card" aria-label="Current analysis source">
