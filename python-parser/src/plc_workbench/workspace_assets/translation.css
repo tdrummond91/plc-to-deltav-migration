@@ -5,10 +5,10 @@
 .translation-language { display: flex; align-items: center; justify-content: center; gap: .45rem; flex: 1; flex-wrap: wrap; min-width: 0; }
 .translation-language span { font-size: .8rem; }
 .translation-flag { width: 1.5rem; height: 1rem; flex: none; border-radius: 2px; box-shadow: 0 0 0 1px #8886; }
-.translation-controls button[aria-pressed="true"], .header-language button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--bg); box-shadow: inset 0 -2px var(--accent); }
-.header-language { display: flex; align-items: center; gap: .3rem; flex: none; }
-.header-language .translation-language { flex: none; flex-wrap: nowrap; gap: .35rem; padding: .4rem .5rem; font-size: .8rem; }
-.header-language .translation-flag { width: 1.3rem; height: .87rem; }
+.translation-controls button[aria-pressed="true"], .footer-language button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--bg); box-shadow: inset 0 -2px var(--accent); }
+.footer-language { display: flex; align-items: center; gap: .3rem; flex: none; }
+.footer-language .translation-language { flex: none; flex-wrap: nowrap; gap: .35rem; padding: .15rem .4rem; font-size: .76rem; }
+.footer-language .translation-flag { width: 1.3rem; height: .87rem; }
 .translation-both { font-size: .8rem; }
 .translation-controls p { overflow-wrap: anywhere; line-height: 1.5; }
 .translation-controls summary, .translation-original-disclosure > summary { cursor: pointer; }

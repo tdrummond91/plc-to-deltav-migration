@@ -6,6 +6,20 @@ can therefore exist, inherit a module description and have no captured RLL
 reference. An address used in logic can also lack an authored description. The
 inventory count is not the number of wired devices or addresses found in rungs.
 
+## Workspace navigation
+
+The brand is the Home link; **Menu** beside it opens the ordered page directory,
+and the header names the current page. The **?** button beside Stop workspace
+opens the review guide. Native keyboard navigation, modified clicks and
+outside/Escape dismissal are supported. Normal Menu and brand URLs are relative
+to the application root, so opening them from a source popout does not preserve
+source-only query parameters. Source popouts display a source title during loading.
+
+The existing FR/Canadian EN controls move between the shared footer and Field
+I/O's full-width footer. This reuses one translation controller and preserves
+pending state. Footer height is measured to reserve space for page content and
+panes; language controls are not duplicated in the header.
+
 ## Signal table and editor
 
 The table fills the page until a row is selected. Click any noninteractive part
@@ -96,6 +110,31 @@ source wording and saved reviewer edits are never overwritten. English display
 uses the existing local translation cache keyed by the full original wording.
 When the result itself inherits a datatype-member description, its cell includes
 both the result link and the actual description-owner link.
+
+For COP/CPS, one fixed destination element can supply **From result ...** context
+to its completely covered source words. This uses authenticated static storage
+layouts and the existing byte-range resolver; it includes source words reached
+by the copy even if they have no exact operand occurrence. For example, copying
+two INT registers into one described REAL gives both input rows the same linked
+destination context. A fixed single array element is also supported. A condition
+that enables the copy is not itself copied and does not inherit that context.
+
+The byte mapping follows [Rockwell's COP/CPS reference](https://www.rockwellautomation.com/en-us/docs/studio-5000-logix-designer/38-01/contents-ditamap/instruction-set/array-file-misc-instructions/copy-synchronous-copy-file--cps-.html):
+Length counts destination elements, and the copy transfers bytes rather than
+performing a numeric conversion. Existing range bounds apply. Multi-element
+destinations, zero/dynamic length, unknown/conflicting layouts, partly covered
+source words, self-overlap and other competing uses cannot provide this simple
+context. Multiple destination elements need explicit per-element correspondence;
+the first element's description is never spread across the whole source range.
+Original source wording and saved DeltaV names remain unchanged.
+
+Validation for navigation and copy context: 271 focused tests passed across
+workspace UI, translation UI, Field I/O UI, copy/result context, usage ranges,
+signal usage, signal inventory and the closed I/O audit. Independent review found
+no remaining issues. Chrome verified both INT input rows' destination wording,
+the linked annotation window, full workspace navigation from a source popout,
+normal/narrow footer clearance and menu dismissal. Fixtures are independently
+invented; no fresh work-PC export is required.
 
 If the supported result has no description, its rung's direct comment can supply
 **From Rung N comment** context instead. This covers two-register calculations

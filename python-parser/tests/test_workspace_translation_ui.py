@@ -94,7 +94,7 @@ class WorkspaceTranslationUiTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("TRANSLATION_TEST_COMPLETE", result.stdout)
 
-    def test_header_and_project_controls_share_pending_requests_and_saved_mode(self) -> None:
+    def test_footer_and_project_controls_share_pending_requests_and_saved_mode(self) -> None:
         self.run_js(r"""
 const shortcuts = new Element('div');
 const controller = window.PLCTranslation.mount(container, api, () => {}, shortcuts);

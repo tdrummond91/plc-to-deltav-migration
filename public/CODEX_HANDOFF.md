@@ -1,5 +1,45 @@
 # Current handoff: PLC analysis workbench
 
+## Working reference photos
+
+For UI fixes, check the newest image files on Tyler's Desktop at the start of
+the task and when he mentions new photos. Compare modification times so newly
+added examples are not missed. Inspect these local references; do not commit
+plant screenshots or copy their identifiers into synthetic fixtures.
+
+## Header navigation and copy destination context (2026-10-28)
+
+The PLC Workbench brand returns Home. **Menu** beside it contains the same page
+order as the home cards; the current page title replaces the dropdown. **?** after
+Stop workspace opens the review guide. FR/Canadian EN controls now live in the
+footer, sharing the existing translation state as pages change. Source popouts
+show their own source title, and opening Menu links in a new tab opens the full
+workspace rather than retaining source-only parameters.
+
+Field I/O can now inherit a described COP/CPS destination as linked context for a
+qualified single-element copy. This includes multiple smaller source words that
+make up one destination value, even when only the first word appears explicitly
+in the instruction. Direct input descriptions take precedence. The result name,
+description owner and rung remain linked; saved DeltaV names are not changed.
+Copy conditions do not inherit the copied value's description. Fixed one-element
+array destinations are supported; multi-element destinations require a separate
+per-element correspondence and are not guessed. Dynamic/zero lengths, missing
+or conflicting layouts, partial source words, self-overlap and competing uses
+do not supply this context. Qualified rung comments remain the fallback when
+the destination lacks authored wording.
+
+Work-PC step: stop the old workspace, manually `git pull`, then
+`bash ./open-workbench.sh`. Reuse the saved analysis and translation cache. Check
+the pictured COP signal's description and destination link; no new analysis is
+needed. Validation is recorded in the
+[Field signal inventory audit](docs/reviews/FIELD_SIGNAL_INVENTORY_AUDIT.md).
+
+Validation: 271 focused UI/backend/audit tests passed; independent review found
+no remaining issues. Chrome verified normal/narrow headers and footer clearance,
+Menu/Home/help and Escape/outside dismissal, both copied words' linked wording,
+the destination annotation popout, and opening a full rung directory from that
+popout with Ctrl-click.
+
 ## Compact Field I/O controls and source-display recovery (2026-10-28)
 
 Field I/O now keeps its title, count, scan disclosure, controller actions and

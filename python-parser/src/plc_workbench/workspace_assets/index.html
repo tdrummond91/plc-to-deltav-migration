@@ -39,31 +39,31 @@
   <body>
     <a class="skip" href="#main">Skip to workspace</a>
     <header class="topbar">
-      <div class="brand-with-language">
-        <div class="brand">
+      <div class="brand-with-menu">
+        <a id="workspace-home" class="brand" href="/#view=home" aria-label="PLC Workbench home">
           <span class="brand-mark" aria-hidden="true">▥</span>
           <div>
             <strong>PLC Workbench</strong><span>Engineering workspace</span>
           </div>
-        </div>
-        <div id="header-language" class="header-language"></div>
+        </a>
+        <details id="page-menu" class="page-menu">
+          <summary><span aria-hidden="true">☰</span> Menu</summary>
+          <nav class="page-menu-body" aria-label="Workspace pages">
+            <a href="/#view=home" data-view="home">Home / page guide</a>
+            <a href="/#view=application" data-view="application">Application map</a>
+            <a href="/analysis#view=patterns" data-view="patterns" target="_blank" rel="noopener">Patterns <span aria-hidden="true">↗</span><span class="sr-only"> (new window)</span></a>
+            <a href="/#view=field-io" data-view="field-io">Field I/O</a>
+            <a href="/analysis#view=overview" data-view="analysis" target="_blank" rel="noopener">Full source analysis <span aria-hidden="true">↗</span><span class="sr-only"> (new window)</span></a>
+            <a href="/#view=routines" data-view="routines">Programs &amp; routines</a>
+            <a href="/#view=rungs" data-view="rungs">Rungs</a>
+            <a href="/#view=map" data-view="map">Ladder map</a>
+            <a href="/#view=connections" data-view="connections">Connection map</a>
+            <a href="/#view=groups" data-view="groups">Classification &amp; groups</a>
+            <a href="/#view=objects" data-view="objects">Tags &amp; source objects</a>
+          </nav>
+        </details>
       </div>
-      <nav class="page-switcher" aria-label="Quick navigation">
-        <button id="workspace-home" type="button">Home</button>
-        <label>Page<select id="page-select">
-          <option value="" disabled>Choose a page</option>
-          <option value="home">Home / page guide</option>
-          <option value="application">Application map</option>
-          <option value="patterns">Patterns ↗</option>
-          <option value="field-io">Field I/O</option>
-          <option value="analysis">Full source analysis ↗</option>
-          <option value="routines">Programs &amp; routines</option>
-          <option value="rungs">Rungs</option><option value="map">Ladder map</option>
-          <option value="connections">Connection map</option><option value="groups">Classification &amp; groups</option>
-          <option value="objects">Tags &amp; source objects</option>
-        </select></label>
-        <button id="review-help" type="button">How to review</button>
-      </nav>
+      <div id="current-page-title" class="current-page-title" aria-live="polite">Opening workspace…</div>
       <div class="top-actions">
         <details id="project-tools" class="project-tools"><summary>Project tools</summary><div class="project-tools-body">
         <section class="source-card" aria-label="Current analysis source">
@@ -92,6 +92,7 @@
         <p class="muted">Closing a browser window leaves the local server running. Stop workspace ends all review windows and returns to Bash.</p>
         </div></details>
         <button id="stop" type="button" title="Stop the local server for all review windows">Stop workspace</button>
+        <button id="review-help" class="review-help" type="button" aria-label="How to review" title="How to review">?</button>
       </div>
       <div class="analysis-identity" aria-label="Active analysis">
         <strong id="header-source-name">Opening project…</strong>
@@ -119,7 +120,7 @@
           <p><strong>Function</strong> on Classification &amp; groups organizes proposed engineering functions such as AI, AO, DI, DO, DC and AC. It can combine several source records. These proposals are not approved DeltaV class assignments.</p>
           <p><strong>Reviewed category</strong> and review status are your saved decisions. Filtering by a family never changes them. Tags uses object types; Connection map uses direction, routine scope and exact signals.</p></section>
           <section class="panel home-reference"><h2>Arrange your workspace</h2>
-          <p>Use Page for engineering views, including Programs &amp; routines. How to review opens the checkable guide. Project tools contains source selection, Source language, backups and Changes &amp; reconciliation. Drag a source divider, or hide its pane. Pop out a saved source to free its original pane; Show source restores it. Separate windows have independent selections. Save, then use Project tools → Refresh saved data in the other window.</p>
+          <p>Use Menu for engineering views, including Programs &amp; routines. Click the PLC Workbench logo to return here. The ? button opens How to review. The footer’s FR / EN buttons switch source wording; Project tools contains translation setup, source selection, backups and Changes &amp; reconciliation. Drag a source divider, or hide its pane. Pop out a saved source to free its original pane; Show source restores it. Separate windows have independent selections. Save, then use Project tools → Refresh saved data in the other window.</p>
           <p><strong>To finish:</strong> save your edits, then use Stop workspace in the main window or Ctrl+C in its Bash terminal. Chrome’s X closes that window only; the local server and any translation work continue.</p></section>
         </section>
         <section id="view-application" class="view" hidden>
@@ -327,6 +328,9 @@
         </section>
       </main>
     </div>
+    <footer id="workspace-footer" class="workspace-footer" aria-label="Workspace display controls">
+      <div id="footer-language" class="footer-language"></div>
+    </footer>
     <dialog id="dialog" aria-labelledby="dialog-title">
       <form method="dialog" id="dialog-form">
         <div class="dialog-header">

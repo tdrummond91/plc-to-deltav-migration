@@ -113,7 +113,7 @@
     both.type = 'button';
     both.addEventListener('click', () => configure(modeOf(last) === 'both' ? 'english' : 'both', true));
     languageButtons.push({value: 'both', button: both, compact: false});
-    // Both header flags are active for bilingual display; either selects that
+    // Both footer flags are active for bilingual display; either selects that
     // single language through this same controller and request guard.
     const paintMode = value => languageButtons.forEach(control => control.button.setAttribute('aria-pressed',
       String(control.value === value || (control.compact && value === 'both'))));

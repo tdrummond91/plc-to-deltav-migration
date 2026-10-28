@@ -12,7 +12,7 @@ import re
 import shutil
 import subprocess
 import unittest
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 
 ASSETS = Path(__file__).resolve().parents[1] / "src/plc_workbench/workspace_assets"
@@ -109,6 +109,7 @@ const loadRungs=async()=>{};
 let openSource=async()=>{};
 const notify=text=>{notice=text;};
 let run=async callback=>callback();
+let placeFooterLanguage=()=>{};
 const Event=function(type){this.type=type;};
 """
 
@@ -184,13 +185,47 @@ class WorkspacePageTests(unittest.TestCase):
 
     def test_page_menu_starts_with_application_and_keeps_full_analysis_separate(self) -> None:
         html = (ASSETS / 'index.html').read_text(encoding='utf-8')
-        menu = re.search(r'<select id="page-select">(.*?)</select>', html, re.DOTALL)
+        menu = re.search(r'<details id="page-menu".*?</details>', html, re.DOTALL)
         self.assertIsNotNone(menu)
-        values = re.findall(r'<option value="([^"]+)"', menu.group(1))
+        values = re.findall(r'data-view="([^"]+)"', menu.group())
         self.assertEqual(values, ['home', 'application', 'patterns', 'field-io', 'analysis', 'routines', 'rungs',
                                   'map', 'connections', 'groups', 'objects'])
         self.assertNotIn('view-patterns', page_ids := [attrs.get('id') for _, attrs in Page().elements])
         self.assertNotIn('view-analysis', page_ids)
+
+    def test_native_navigation_links_leave_source_popout_query_and_keep_target_view(self) -> None:
+        page = Page()
+        source_url = 'http://127.0.0.1:8745/?panel=source&run_id=invented-run#view=rungs&source=invented-rung'
+        links = [attrs for tag, attrs in page.elements if tag == 'a'
+                 and (attrs.get('id') == 'workspace-home' or 'data-view' in attrs)]
+        self.assertEqual(len(links), 12)
+        for attrs in links:
+            with self.subTest(destination=attrs.get('data-view') or 'brand'):
+                resolved = urlsplit(urljoin(source_url, attrs['href']))
+                self.assertEqual(resolved.query, '')
+                view = attrs.get('data-view', 'home')
+                if view in {'patterns', 'analysis'}:
+                    self.assertEqual(resolved.path, '/analysis')
+                    self.assertEqual(resolved.fragment, 'view=patterns' if view == 'patterns' else 'view=overview')
+                else:
+                    self.assertEqual(resolved.path, '/')
+                    self.assertEqual(resolved.fragment, f'view={view}')
+
+    def test_header_uses_home_brand_named_menu_title_and_compact_help_with_footer_language(self) -> None:
+        page = Page()
+        by_id = {attrs['id']: (tag, attrs) for tag, attrs in page.elements if 'id' in attrs}
+        self.assertEqual(by_id['workspace-home'][0], 'a')
+        self.assertEqual(by_id['workspace-home'][1]['href'], '/#view=home')
+        self.assertEqual(by_id['workspace-home'][1]['aria-label'], 'PLC Workbench home')
+        self.assertEqual(by_id['page-menu'][0], 'details')
+        self.assertEqual(by_id['review-help'][1]['aria-label'], 'How to review')
+        self.assertIn('workspace-footer', page.parents['footer-language'])
+        self.assertNotIn('header', page.parents['footer-language'])
+        self.assertNotIn('page-select', by_id)
+        order = list(by_id)
+        self.assertLess(order.index('workspace-home'), order.index('page-menu'))
+        self.assertLess(order.index('page-menu'), order.index('current-page-title'))
+        self.assertLess(order.index('stop'), order.index('review-help'))
 
 
 @unittest.skipUnless(NODE, "Node is optional developer tooling")
@@ -202,7 +237,11 @@ class WorkspaceInteractionTests(unittest.TestCase):
             names = ['sourceWindowAnnotation', *names]
         if 'renderDetail' in names and 'renderSelectedAnnotation' not in names:
             names = ['renderSelectedAnnotation', *names]
+        if any(name in names for name in ('switchView', 'navigateWorkspace', 'installWorkspaceNavigation', 'openRoutineRungs')) and 'updateWorkspaceNavigation' not in names:
+            names = ['updateWorkspaceNavigation', *names]
         dom = DOM
+        if 'placeFooterLanguage' in names:
+            dom = dom.replace('let placeFooterLanguage=()=>{};', '')
         for name in ("openSource", "loadRungs"):
             if name in names:
                 dom = dom.replace(f"const {name}=async()=>{{}};", "")
@@ -220,6 +259,70 @@ class WorkspaceInteractionTests(unittest.TestCase):
         result = subprocess.run([NODE, "-"], input=code, capture_output=True, encoding="utf-8", timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("UI_TEST_COMPLETE", result.stdout, "An asynchronous check never completed")
+
+    def test_navigation_title_and_current_page_follow_pages_and_source_popouts(self) -> None:
+        self.run_js(['updateWorkspaceNavigation'], r"""
+const title=node('div'),menu=node('details'),rungs=node('a'),io=node('a');
+rungs.dataset.view='rungs';io.dataset.view='field-io';menu.append(rungs,io);
+menu.querySelectorAll=()=>[rungs,io];$=id=>id==='current-page-title'?title:id==='page-menu'?menu:null;
+state.view='field-io';updateWorkspaceNavigation();assert.equal(title.textContent,'Field I/O');
+assert.equal(io.attributes['aria-current'],'page');assert.equal(rungs.attributes['aria-current'],undefined);
+state.view='guide';updateWorkspaceNavigation();assert.equal(title.textContent,'How to review');assert.equal(io.attributes['aria-current'],undefined);
+document.body.classList.add('source-popout');state.view='rungs';updateWorkspaceNavigation();assert.equal(title.textContent,'Rung source');
+assert.equal(rungs.attributes['aria-current'],'page');
+state.view='home';updateWorkspaceNavigation('objects');assert.equal(title.textContent,'Source object');assert.equal(state.view,'home','Loading title must not navigate');
+""")
+
+    def test_footer_language_moves_same_controls_without_duplicate_or_losing_pending_state(self) -> None:
+        self.run_js(['placeFooterLanguage'], r"""
+const controls=node('div'),shared=node('footer'),io=node('div'),pending=node('button');
+pending.disabled=true;controls.append(pending);let height=35;
+Object.defineProperty(controls,'parentElement',{get(){return this.parent;}});
+for(const host of [shared,io]){const append=host.append.bind(host);host.append=(item)=>{item.remove();append(item);};}
+shared.getBoundingClientRect=()=>({height});shared.append(controls);
+const writes=[];document.documentElement={style:{setProperty:(name,value)=>writes.push([name,value])}};
+document.querySelector=selector=>selector==='#field-io-browser .field-signals-footer'?io:null;
+$=id=>id==='footer-language'?controls:id==='workspace-footer'?shared:null;
+state.view='home';placeFooterLanguage();assert.equal(shared.hidden,false);assert.equal(writes.at(-1)[1],'35px');
+state.view='field-io';placeFooterLanguage();assert.equal(shared.hidden,true);assert.equal(io.children.length,1);assert.equal(shared.children.length,0);
+assert.equal(writes.at(-1)[1],'0px');placeFooterLanguage();assert.equal(io.children.length,1);
+state.view='rungs';height=38;placeFooterLanguage();assert.equal(shared.hidden,false);assert.equal(io.children.length,0);
+assert.equal(shared.children[0],controls);assert.equal(controls.children[0],pending);assert.equal(pending.disabled,true);assert.equal(writes.at(-1)[1],'38px');
+""")
+
+    def test_menu_keyboard_activation_respects_declined_edits_and_native_modified_links(self) -> None:
+        self.run_js(['installWorkspaceNavigation'], r"""
+const menu=node('details'),summary=node('summary','Menu'),rung=node('a'),patterns=node('a'),main=node('main'),tools=node('details'),shared=node('footer'),title=node('div');
+menu.append(summary,rung,patterns);rung.dataset.view='rungs';patterns.dataset.view='patterns';
+menu.querySelectorAll=selector=>selector==='a[data-view]'?[rung,patterns]:selector==='summary'?[summary]:[];
+$=id=>({'page-menu':menu,'main':main,'project-tools':tools,'workspace-footer':shared,'current-page-title':title}[id]);
+let focused='',allowed=false,prevented=0,calls=[],resize;
+main.focus=()=>focused='main';summary.focus=()=>focused='summary';
+navigateWorkspace=view=>{calls.push(view);return allowed;};requestedLocation=()=>({view:'rungs'});
+window.addEventListener=(name,handler)=>resize=handler;
+installWorkspaceNavigation();assert.equal(title.textContent,'Rungs');
+menu.open=true;const event={button:0,preventDefault(){prevented++;}};
+rung.events.click(event);assert.equal(menu.open,true);assert.equal(focused,'');assert.equal(prevented,1);
+allowed=true;rung.events.click(event);assert.equal(menu.open,false);assert.equal(focused,'main');
+menu.open=true;patterns.events.click(event);assert.equal(menu.open,false);assert.equal(focused,'summary');
+const count=calls.length;for(const flag of ['ctrlKey','metaKey','shiftKey','altKey'])rung.events.click({...event,[flag]:true});
+rung.events.click({...event,button:1});assert.equal(calls.length,count);assert.equal(prevented,3);
+tools.open=true;menu.open=true;menu.events.toggle();assert.equal(tools.open,false);
+""")
+
+    def test_navigation_menu_dismisses_outside_and_escape_without_collapsing_inline_details(self) -> None:
+        setup = OVERLAY_SETUP.replace("installOverlayDismissal();", """
+const pages=node('details'),pageSummary=node('summary','Menu'),item=node('a','Rungs');pages.append(pageSummary,item);
+const get=$;$=id=>id==='page-menu'?pages:get(id);pageSummary.focus=()=>{document.activeElement=pageSummary;};
+installOverlayDismissal();
+""")
+        self.run_js(['closeModal', 'installOverlayDismissal'], setup + r"""
+dialog.open=false;pages.open=true;document.events.click({target:item});assert.equal(pages.open,true);
+document.events.click({target:outside});assert.equal(pages.open,false);assert.equal(inline.open,true);
+pages.open=true;document.activeElement=item;let prevented=0;
+document.events.keydown({key:'Escape',preventDefault(){prevented++;}});
+assert.equal(pages.open,false);assert.equal(document.activeElement,pageSummary);assert.equal(prevented,1);
+""")
 
     def test_sticky_panel_offset_tracks_wrapped_header_height_and_releases_observer(self) -> None:
         self.run_js(['installHeaderLayout'], r"""
@@ -853,16 +956,16 @@ discard=()=>{throw new Error('Opening evidence must not discard a review');};
 switchView=()=>{throw new Error('Opening evidence must not navigate the editor');};
 const selected={source:{id:'rung-current'}};state.source=selected;state.dirty=true;state.view='rungs';
 for(const [page,report] of [['patterns','patterns'],['analysis','overview']]){
-  $('page-select').value=page;
+  $('current-page-title').textContent='Rungs';
   assert.equal(navigateWorkspace(page),true);
   assert.deepEqual(calls.at(-1),['/analysis#view='+report,'_blank','popup,width=1400,height=900']);
-  assert.equal(opened.opener,null);assert.equal($('page-select').value,'rungs');
+  assert.equal(opened.opener,null);assert.equal($('current-page-title').textContent,'Rungs');
   assert.equal(state.source,selected);assert.equal(state.dirty,true);assert.equal(state.view,'rungs');
 }
 window.open=()=>null;
 for(const [page,report,activeView] of [['patterns','patterns','guide'],['analysis','overview','changes']]){
-  state.view=activeView;$('notice').replaceChildren();$('page-select').value=page;
-  assert.equal(navigateWorkspace(page),false);assert.equal($('page-select').value,'');
+  state.view=activeView;$('notice').replaceChildren();updateWorkspaceNavigation();const title=$('current-page-title').textContent;
+  assert.equal(navigateWorkspace(page),false);assert.equal($('current-page-title').textContent,title);
   const fallback=$('notice').children[0];
   assert.equal(fallback.href,'/analysis#view='+report);
   assert.equal(fallback.target,'_blank');assert.equal(fallback.rel,'noopener');
@@ -877,7 +980,7 @@ for(const [page,report,activeView] of [['patterns','patterns','guide'],['analysi
 const elements=new Map();$=id=>{if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);};
 document.querySelectorAll=()=>[];let refreshes=0,exits=0;
 fieldIOBrowser={refresh:()=>refreshes++,deactivate:()=>exits++};state.view='home';
-assert.equal(switchView('field-io'),true);assert.equal(refreshes,1);assert.equal($('page-select').value,'field-io');
+assert.equal(switchView('field-io'),true);assert.equal(refreshes,1);assert.equal($('current-page-title').textContent,'Field I/O');
 assert.equal(switchView('home'),true);assert.equal(exits,1);assert.equal(state.view,'home');
 """)
 
@@ -888,7 +991,7 @@ document.querySelectorAll=()=>[];let updates=0,exits=0;
 applicationBrowser={update:value=>{updates++;assert.equal(value,state.project);},deactivate:()=>exits++};
 state.view='home';
 assert.equal(switchView('application'),true);assert.equal(updates,1);
-assert.equal($('page-select').value,'application');
+assert.equal($('current-page-title').textContent,'Application map');
 assert.equal(switchView('home'),true);assert.equal(exits,1);
 assert.equal(switchView('application'),true);assert.equal(updates,2);
 """)

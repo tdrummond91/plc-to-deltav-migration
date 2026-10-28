@@ -25,6 +25,7 @@ CONTEXT_REASONS = ('specific_source', 'no_direct_use', 'multiple_rungs', 'nonrea
     'usage_unavailable', 'annotations_unavailable', 'capacity')
 _CONDITIONS = frozenset({'XIC', 'XIO', 'EQU', 'NEQ', 'LES', 'LEQ', 'GRT', 'GEQ', 'LIM'})
 _RESULTS = frozenset({'OTE', 'MOV', 'ADD', 'SUB', 'MUL', 'DIV', 'ABS', 'LN', 'SQR', 'CPT'})
+_COPIES = frozenset({'COP', 'CPS'})
 _SPECIFIC = frozenset({'exact_member_comment', 'exact_alias_description', 'declared_member_description'})
 _ORIGINS = {'exact_member_comment': ('channel', 'Channel comment'),
     'exact_alias_description': ('alias', 'Signal alias description'),
@@ -66,6 +67,7 @@ class SignalContextIndex:
         self._rungs: dict[str, dict] = {}
         self._signals: dict[str, str] = {}
         self._rung_reasons: dict[str, str] = {}
+        self._copies: dict[str, dict] = {}
         self._uncertain_roots: set[str] = set()
         self._budget = 0
         self.available = True
@@ -76,6 +78,7 @@ class SignalContextIndex:
             self._rungs.clear()
             self._signals.clear()
             self._rung_reasons.clear()
+            self._copies.clear()
             self._uncertain_roots.clear()
             self._budget = 0
             self.available = False
@@ -94,7 +97,8 @@ class SignalContextIndex:
         if structure.get('kind') != 'sequence' or not items or items[-1].get('kind') != 'instruction':
             return None
         output = self.base._instructions[items[-1]['instruction_id']]
-        if output.opcode.upper() not in _RESULTS:
+        opcode = output.opcode.upper()
+        if opcode not in _RESULTS | _COPIES:
             return None
         pending = list(items[:-1])
         while pending:
@@ -139,6 +143,37 @@ class SignalContextIndex:
                 key = _usage_key(use['suffix'])
                 if key == result_key or _child(key, result_key) or _child(result_key, key):
                     return None
+        if opcode in _COPIES:
+            resolver = self.usage._range_resolver
+            if resolver is None or len(output.arguments) != 3 or expression_uses:
+                return None
+            source = next((use for use in operands if use['instruction_id'] == output.id
+                           and use['argument_index'] == 0), None)
+            if source is None or source['binding_status'] != 'root_bound':
+                return None
+            footprints = []
+            for use in (source, result):
+                ref = self.base._reference_uses[use['id']]
+                binding = self.io.rack_references.binding(ref['raw_text'].strip(), rung.scope_id)
+                footprint = resolver.resolve(ref, binding)
+                # One destination element has one wording owner. A longer
+                # array copy needs element correspondence, not the first
+                # destination element's comment applied to the whole range.
+                if footprint['status'] != 'resolved' or footprint['length'] != 1:
+                    return None
+                footprints.append(footprint)
+            source_range, destination_range = footprints
+            if source_range['byte_count'] % source_range['element_bytes']:
+                return None  # Do not assign a whole signal to a partial word.
+            if (source_range['root_id'] == destination_range['root_id']
+                    and source_range['container_suffix'] == destination_range['container_suffix']
+                    and source_range['start_byte'] < destination_range['end_byte']
+                    and destination_range['start_byte'] < source_range['end_byte']):
+                return None
+            copy = {'source_use_id': source['id'], 'source_range': source_range,
+                    'destination_range': destination_range}
+            self._retain((rung.id, copy))
+            self._copies[rung.id] = copy
         return result
 
     def _build(self) -> None:
@@ -232,7 +267,8 @@ class SignalContextIndex:
                         'description_scope': 'rung_comment', 'suffix': ''}
             opcode = self.base._instructions[result['instruction_id']].opcode.upper()
             label = 'Rung comment' if description_kind == 'rung_comment' else 'Result description'
-            row = {'kind': 'boolean_result' if opcode == 'OTE' else 'calculation_result',
+            row = {'kind': ('copy_result' if opcode in _COPIES else
+                           'boolean_result' if opcode == 'OTE' else 'calculation_result'),
                 'description_kind': description_kind,
                 'description': note['text'], 'result_name': ref['raw_text'].strip(),
                 'result_id': result['symbol_id'], 'result_suffix': result['suffix'],
@@ -242,9 +278,11 @@ class SignalContextIndex:
                 'description_owner_suffix': note.get('owner_suffix', note.get('suffix', '')),
                 'rung_id': rung_id, 'instruction_id': result['instruction_id'], 'rung_number': rung.number,
                 'path': self.base._path(rung.parent_id) + ' / Rung ' + str(rung.number),
-                'basis': 'single_supported_rung_result',
+                'basis': ('single_fixed_copy_destination' if opcode in _COPIES
+                          else 'single_supported_rung_result'),
                 'scope_complete': not gaps, 'scope_gap_reasons': sorted(gaps),
                 'notice': (f'{label} from the single matched RLL use rung; it is context, not the field signal\'s source description or confirmed equipment identity.'
+                    + (f' {opcode} copies source bytes into one destination element; it does not perform a numeric conversion or rename the source signal.' if opcode in _COPIES else '')
                     + (' Other source languages are outside this lookup.' if 'unsupported_routines' in gaps else '')
                     + (' Additional source is outside the completed scan; this does not establish that the signal has only one use in the entire source.' if gaps else ''))}
             self._retain((rung_id, row))
@@ -253,7 +291,8 @@ class SignalContextIndex:
         for address in self.io.addresses.values():
             if self.reason(address['id']) not in {'result_description', 'rung_comment'}:
                 continue
-            rung_id = address['uses'][0]['rung_id']
+            copy_rung, _ = self._copy_context(address)
+            rung_id = copy_rung or address['uses'][0]['rung_id']
             self._retain((address['id'], rung_id))
             self._signals[address['id']] = rung_id
 
@@ -295,6 +334,9 @@ class SignalContextIndex:
             return 'access_unavailable'
         if self.usage._limited:
             return 'usage_unavailable'
+        copy_rung, copy_reason = self._copy_context(address)
+        if copy_rung:
+            return copy_reason or self._rung_reasons.get(copy_rung, 'unsupported_result')
         direct = address['uses']
         if not direct:
             return 'no_direct_use'
@@ -304,6 +346,9 @@ class SignalContextIndex:
         if any(use['role'] != 'read' for use in direct):
             return 'nonread_use'
         rung_id = next(iter(rungs))
+        if rung_id in self._copies:
+            # Enable contacts are not bytes copied to the destination.
+            return 'unsupported_result'
         reason = self._rung_reasons.get(rung_id, 'unsupported_result')
         if reason not in {'result_description', 'rung_comment'}:
             return reason
@@ -316,6 +361,37 @@ class SignalContextIndex:
                for identifier, _, proven, _ in self.usage._related(address)):
             return 'overlapping_use'
         return reason
+
+    def _copy_context(self, address: dict) -> tuple[str | None, str | None]:
+        """Find one copied source footprint, including non-operand source words.
+
+        Query existing authenticated range evidence without expanding arrays or
+        retaining prose per field signal. Every other captured or possible use
+        blocks attribution to a single copy destination, even on the same rung.
+        """
+        if not self._copies or self.usage._limited:
+            return None, None
+        rung_id = None
+        for identifier, _, proven, _ in self.usage._related(address):
+            candidate_rung = self.usage._uses[identifier]['rung_id']
+            copy = self._copies.get(candidate_rung)
+            if (not proven or copy is None or identifier != copy['source_use_id']
+                    or self.usage._range_resolver.match(copy['source_range'], address)['status'] != 'included'):
+                continue
+            if rung_id is not None and candidate_rung != rung_id:
+                return rung_id, 'multiple_rungs'
+            rung_id = candidate_rung
+        if rung_id is None:
+            return None, None
+        source_id = self._copies[rung_id]['source_use_id']
+        if address['root_id'] in self._uncertain_roots:
+            return rung_id, 'overlapping_use'
+        if any(use['id'] != source_id for use in address['uses']):
+            return rung_id, 'overlapping_use'
+        if any(identifier != source_id or not proven
+               for identifier, _, proven, _ in self.usage._related(address)):
+            return rung_id, 'overlapping_use'
+        return rung_id, None
 
     def get(self, address_id: str) -> dict | None:
         rung_id = self._signals.get(address_id)

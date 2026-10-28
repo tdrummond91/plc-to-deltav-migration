@@ -300,6 +300,7 @@
     $('rung-routine-filter').value = routineId;
     switchView('rungs', true);
     document.body.classList.remove('source-popout', 'workspace-popout');
+    updateWorkspaceNavigation();
     $('project-tools').open = false;
     window.history.replaceState(null, '', '/#view=rungs' + (sourceId ? '&source=' + encodeURIComponent(sourceId) : ''));
     if (sourceId) {
@@ -341,7 +342,7 @@
     state.view = view;
     const sourceAccess = $('source-window-access');
     if (sourceAccess) sourceAccess.hidden = !['rungs', 'objects'].includes(view);
-    if ($('page-select')) $('page-select').value = ['changes', 'guide'].includes(view) ? '' : view;
+    updateWorkspaceNavigation();
     document
       .querySelectorAll(".view")
       .forEach((n) => (n.hidden = n.id !== "view-" + view));
@@ -357,18 +358,64 @@
     if (view === "changes") renderChanges();
     if (view === "connections") renderConnections();
     if (view === "map") run(() => ladderMap.refresh());
+    placeFooterLanguage();
     return true;
+  }
+
+  function updateWorkspaceNavigation(view = state.view) {
+    const titles = {home: 'Home', application: 'Application map', 'field-io': 'Field I/O',
+      routines: 'Programs & routines', rungs: 'Rungs', map: 'Ladder map',
+      connections: 'Connection map', groups: 'Classification & groups',
+      objects: 'Tags & source objects', changes: 'Changes & reconciliation', guide: 'How to review'};
+    const title = $('current-page-title');
+    if (title) title.textContent = document.body.classList.contains('source-popout') && ['rungs', 'objects'].includes(view)
+      ? (view === 'rungs' ? 'Rung source' : 'Source object') : titles[view] || 'Workspace';
+    $('page-menu')?.querySelectorAll('a[data-view]').forEach(item => {
+      if (item.dataset.view === view) item.setAttribute('aria-current', 'page');
+      else item.removeAttribute('aria-current');
+    });
+  }
+  function placeFooterLanguage() {
+    const controls = $('footer-language'), shared = $('workspace-footer');
+    if (!controls || !shared) return;
+    const fieldFooter = state.view === 'field-io' ? document.querySelector('#field-io-browser .field-signals-footer') : null;
+    const host = fieldFooter || shared;
+    if (controls.parentElement !== host) host.append(controls);
+    shared.hidden = Boolean(fieldFooter);
+    // Field I/O already reserves its complete measured footer height.
+    document.documentElement.style.setProperty('--workspace-footer-height',
+      fieldFooter ? '0px' : `${Math.ceil(shared.getBoundingClientRect().height)}px`);
+  }
+  function installWorkspaceNavigation() {
+    const menu = $('page-menu'), shared = $('workspace-footer');
+    menu.querySelectorAll('a[data-view]').forEach(item => item.addEventListener('click', event => {
+      // Preserve native modified-click / new-tab behavior for real links.
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button) return;
+      event.preventDefault();
+      const report = ['analysis', 'patterns'].includes(item.dataset.view);
+      if (!navigateWorkspace(item.dataset.view)) return;
+      menu.open = false;
+      if (report) menu.querySelector('summary')?.focus();
+      else $('main').focus();
+    }));
+    menu.addEventListener('toggle', () => { if (menu.open) $('project-tools').open = false; });
+    const observer = typeof window.ResizeObserver === 'function' ? new window.ResizeObserver(placeFooterLanguage) : null;
+    observer?.observe(shared);
+    window.addEventListener('resize', placeFooterLanguage);
+    updateWorkspaceNavigation(requestedLocation()?.view || state.view);
+    placeFooterLanguage();
   }
 
   function navigateWorkspace(view) {
     if (view === 'analysis' || view === 'patterns') {
-      $('page-select').value = ['changes', 'guide'].includes(state.view) ? '' : state.view;
       return openFullAnalysis(view === 'patterns' ? 'patterns' : 'overview');
     }
-    if (!switchView(view)) { $('page-select').value = state.view; return false; }
-    // A source-only window can return to normal browsing through Home or Page.
+    if (!switchView(view)) return false;
+    // A source-only window can return to normal browsing through the logo or Menu.
     document.body.classList.remove('source-popout', 'workspace-popout');
     $('project-tools').open = false;
+    $('page-menu').open = false;
+    updateWorkspaceNavigation();
     window.history.replaceState(null, '', '/#view=' + encodeURIComponent(view));
     return true;
   }
@@ -1922,6 +1969,7 @@
   }
   function installOverlayDismissal() {
     const dialog = $("dialog"), tools = $("project-tools");
+    const menus = [tools, $('page-menu')].filter(Boolean);
     let backdropPress = null;
     const outsideDialog = event => {
       if (!dialog.open || event.target !== dialog) return false;
@@ -1961,16 +2009,19 @@
       closeModal();
     });
     document.addEventListener("click", event => {
-      if (tools.open && !dialog.open && !tools.contains(event.target)) tools.open = false;
+      if (!dialog.open) menus.forEach(menu => { if (menu.open && !menu.contains(event.target)) menu.open = false; });
     }, true);
     document.addEventListener("keydown", event => {
       // The native cancel event owns Escape while a dialog is open, including
       // its unsaved-edit confirmation and in-flight-operation protection.
-      if (event.key !== "Escape" || event.defaultPrevented || dialog.open || !tools.open) return;
+      const openMenus = menus.filter(menu => menu.open);
+      if (event.key !== "Escape" || event.defaultPrevented || dialog.open || !openMenus.length) return;
       event.preventDefault();
-      const restoreFocus = tools.contains(document.activeElement);
-      tools.open = false;
-      if (restoreFocus) tools.querySelector("summary")?.focus();
+      openMenus.forEach(menu => {
+        const restoreFocus = menu.contains(document.activeElement);
+        menu.open = false;
+        if (restoreFocus) menu.querySelector("summary")?.focus();
+      });
     });
   }
   function bulkReview() {
@@ -2861,10 +2912,13 @@
   $("dialog-close").addEventListener("click", closeModal);
   $("dialog-cancel").addEventListener("click", closeModal);
   installOverlayDismissal();
-  $('workspace-home').addEventListener('click', () => navigateWorkspace('home'));
+  $('workspace-home').addEventListener('click', event => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button) return;
+    event.preventDefault();
+    if (navigateWorkspace('home')) $('main').focus();
+  });
   $('review-help').addEventListener('click', () => navigateWorkspace('guide'));
   $('project-changes').addEventListener('click', () => navigateWorkspace('changes'));
-  $('page-select').addEventListener('change', () => navigateWorkspace($('page-select').value));
   $('rung-routine-filter').addEventListener('change', () => {
     state.routine = $('rung-routine-filter').value;
     state.page = 1;
@@ -2920,7 +2974,7 @@
   });
   // Read-only discovery on user navigation; no timer, Git transport or implicit import.
   $('project-tools').addEventListener('toggle', () => {
-    if ($('project-tools').open) void refreshSavedRuns();
+    if ($('project-tools').open) { $('page-menu').open = false; void refreshSavedRuns(); }
   });
   window.addEventListener('focus', () => { void refreshSavedRuns(); });
   $("backup").addEventListener("click", () =>
@@ -3231,7 +3285,8 @@
       await openSource(id, 'rung-detail', true);
     }),
   });
-  const translations = window.PLCTranslation.mount($("translation-controls"), api, translationChanged, $("header-language"));
+  const translations = window.PLCTranslation.mount($("translation-controls"), api, translationChanged, $("footer-language"));
+  installWorkspaceNavigation();
   installHeaderLayout();
   installTableHeaders();
   const classificationBrowser = window.PLCClassification.mount($("classification-browser"), {
